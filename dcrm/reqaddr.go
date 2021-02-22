@@ -17,20 +17,22 @@
 package dcrm 
 
 import (
-	//"bytes"
-	//cryptorand "crypto/rand"
-	//"crypto/sha512"
+	"bytes"
+	cryptorand "crypto/rand"
+	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
-	//"io"
+	"io"
 	"math/big"
 	//"strconv"
+	"sort"
+	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
 	"strings"
 	"time"
 	"encoding/json"
 	"sync"
 	"github.com/fsn-dev/cryptoCoins/coins"
-	//"github.com/fsn-dev/cryptoCoins/coins/types"
+	"github.com/fsn-dev/cryptoCoins/coins/types"
 	//"github.com/anyswap/Anyswap-MPCNode/mpcdsa/crypto/ec2"
 	//"github.com/anyswap/Anyswap-MPCNode/mpcdsa/crypto/ed"
 	//"github.com/anyswap/Anyswap-MPCNode/mpcdsa/ecdsa/keygen"
@@ -38,6 +40,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	dcrmlib "github.com/anyswap/Anyswap-MPCNode/dcrm-lib/dcrm"
 	keygen2 "github.com/anyswap/Anyswap-MPCNode/dcrm-lib/ecdsa/keygen"
+	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ed"
 )
 
 var (
@@ -96,6 +99,7 @@ func SetReqAddrNonce(account string, nonce string) (string, error) {
 
 type TxDataReqAddr struct {
     TxType string
+    Keytype string
     GroupId string
     ThresHold string
     Mode string
@@ -265,6 +269,7 @@ func GetCurNodeReqAddrInfo(geter_acc string) ([]*ReqAddrReply, string, error) {
 
 //ec2
 //msgprex = hash
+//cointype == keytype    //ec||ed25519
 func dcrm_genPubKey(msgprex string, account string, cointype string, ch chan interface{}, mode string, nonce string) {
 
 	wk, err := FindWorker(msgprex)
@@ -277,7 +282,7 @@ func dcrm_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 	cur_enode = GetSelfEnode()
 
-	/*if types.IsDefaultED25519(cointype) {
+	if types.IsDefaultED25519(cointype) {
 		ok2 := false
 		for j := 0;j < recalc_times;j++ { //try 20 times
 		    if len(ch) != 0 {
@@ -353,7 +358,7 @@ func dcrm_genPubKey(msgprex string, account string, cointype string, ch chan int
 			return
 		}
 
-		if !strings.EqualFold(cointype, "ALL") {
+		/*if !strings.EqualFold(cointype, "ALL") {
 			h := coins.NewCryptocoinHandler(cointype)
 			if h == nil {
 				res := RpcDcrmRes{Ret: "", Tip: "cointype is not supported", Err: fmt.Errorf("req addr fail,cointype is not supported.")}
@@ -385,7 +390,7 @@ func dcrm_genPubKey(msgprex string, account string, cointype string, ch chan int
 			SkU1Chan <- sk
 			sk = KeyData{Key: []byte(key), Data: sedsku1}
 			SkU1Chan <- sk
-		} else {
+		} else*/ {
 			kd := KeyData{Key: sedpk[:], Data: ss}
 			PubKeyDataChan <- kd
 			/////
@@ -422,7 +427,7 @@ func dcrm_genPubKey(msgprex string, account string, cointype string, ch chan int
 		res := RpcDcrmRes{Ret: pubkeyhex, Tip: "", Err: nil}
 		ch <- res
 		return
-	}*/
+	}
 
 	ok := false
 	for j := 0;j < recalc_times;j++ { //try 20 times
@@ -528,7 +533,7 @@ func dcrm_genPubKey(msgprex string, account string, cointype string, ch chan int
 		return
 	}
 
-	if !strings.EqualFold(cointype, "ALL") {
+	/*if !strings.EqualFold(cointype, "ALL") {
 		h := coins.NewCryptocoinHandler(cointype)
 		if h == nil {
 			res := RpcDcrmRes{Ret: "", Tip: "cointype is not supported", Err: fmt.Errorf("req addr fail,cointype is not supported.")}
@@ -560,7 +565,7 @@ func dcrm_genPubKey(msgprex string, account string, cointype string, ch chan int
 		
 		bip = KeyData{Key: []byte(key), Data: bip32c}
 		Bip32CChan <- bip
-	} else {
+	} else*/ {
 		kd := KeyData{Key: ys, Data: ss}
 		PubKeyDataChan <- kd
 		/////
@@ -602,9 +607,78 @@ func dcrm_genPubKey(msgprex string, account string, cointype string, ch chan int
 	ch <- res
 }
 
+func GetIds(keytype string, groupid string) sortableIDSSlice {
+	var ids sortableIDSSlice
+	_, nodes := GetGroup(groupid)
+	others := strings.Split(nodes, common.Sep2)
+	for _, v := range others {
+		node2 := ParseNode(v) //bug??
+		uid := DoubleHash(node2, keytype)
+		ids = append(ids, uid)
+	}
+	sort.Sort(ids)
+	return ids
+}
+
+func DoubleHash(id string, keytype string) *big.Int {
+	// Generate the random num
+
+	// First, hash with the keccak256
+	keccak256 := sha3.NewKeccak256()
+	_,err := keccak256.Write([]byte(id))
+	if err != nil {
+	    return nil
+	}
+
+
+	digestKeccak256 := keccak256.Sum(nil)
+
+	//second, hash with the SHA3-256
+	sha3256 := sha3.New256()
+
+	_,err = sha3256.Write(digestKeccak256)
+	if err != nil {
+	    return nil
+	}
+
+	if keytype == "ED25519" {
+	    var digest [32]byte
+	    copy(digest[:], sha3256.Sum(nil))
+
+	    //////
+	    var zero [32]byte
+	    var one [32]byte
+	    one[0] = 1
+	    ed.ScMulAdd(&digest, &digest, &one, &zero)
+	    //////
+	    digestBigInt := new(big.Int).SetBytes(digest[:])
+	    return digestBigInt
+	}
+
+	digest := sha3256.Sum(nil)
+	// convert the hash ([]byte) to big.Int
+	digestBigInt := new(big.Int).SetBytes(digest)
+	return digestBigInt
+}
+
+func GetEnodesByUid(uid *big.Int, keytype string, groupid string) string {
+	_, nodes := GetGroup(groupid)
+	others := strings.Split(nodes, common.Sep2)
+	for _, v := range others {
+		node2 := ParseNode(v) //bug??
+		id := DoubleHash(node2, keytype)
+		if id.Cmp(uid) == 0 {
+			return v
+		}
+	}
+
+	return ""
+}
+
 //ed
 //msgprex = hash
-/*func KeyGenerate_ed(msgprex string, ch chan interface{}, id int, cointype string) bool {
+//cointype == keytype    //ec || ed25519
+func KeyGenerate_ed(msgprex string, ch chan interface{}, id int, cointype string) bool {
 	if id < 0 || id >= RPCMaxWorker || id >= len(workers) {
 		res := RpcDcrmRes{Ret: "", Tip: "dcrm back-end internal error:no find worker id", Err: GetRetErr(ErrGetWorkerIdError)}
 		ch <- res
@@ -1176,7 +1250,6 @@ func dcrm_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 	return true
 }
-*/
 
 func ReqDataFromGroup(msgprex string,wid int,datatype string,trytimes int,timeout int) bool {
 	return false //tmp code

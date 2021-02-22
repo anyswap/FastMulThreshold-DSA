@@ -428,7 +428,7 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 	    return "","","",nil,fmt.Errorf("there is same enodeID in group")
 	}
 	
-	key := Keccak256Hash([]byte(strings.ToLower(from.Hex() + ":" + "ALL" + ":" + groupid + ":" + fmt.Sprintf("%v", Nonce) + ":" + threshold + ":" + mode))).Hex()
+	key := Keccak256Hash([]byte(strings.ToLower(from.Hex() + ":" + req.Keytype + ":" + groupid + ":" + fmt.Sprintf("%v", Nonce) + ":" + threshold + ":" + mode))).Hex()
 
 //	common.Debug("================CheckRaw, it is reqaddr tx=================","raw ",raw,"key ",key,"req ",&req)
 	return key,from.Hex(),fmt.Sprintf("%v", Nonce),&req,nil

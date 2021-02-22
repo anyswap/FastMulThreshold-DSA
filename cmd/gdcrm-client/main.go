@@ -294,6 +294,7 @@ func reqDcrmAddr() {
 	timestamp := strconv.FormatInt((time.Now().UnixNano() / 1e6), 10)
 	txdata := reqAddrData{
 		TxType:    *cmd,
+		Keytype:   *keyType,
 		GroupID:   *gid,
 		ThresHold: *ts,
 		Mode:      *mode,
@@ -988,6 +989,7 @@ type groupInfo struct {
 }
 type reqAddrData struct {
 	TxType    string `json:"TxType"`
+	Keytype    string `json:"Keytype"`
 	GroupID   string `json:"GroupId"`
 	ThresHold string `json:"ThresHold"`
 	Mode      string `json:"Mode"`

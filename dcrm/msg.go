@@ -1839,7 +1839,7 @@ func KeyInitAcceptData(raw string,workid int,sender string,ch chan interface{}) 
 			return err
 		    }
 
-		    ac := &AcceptReqAddrData{Initiator:sender,Account: from, Cointype: "ALL", GroupId: req.GroupId, Nonce: nonce, LimitNum: req.ThresHold, Mode: req.Mode, TimeStamp: req.TimeStamp, Deal: "false", Accept: "false", Status: "Pending", PubKey: "", Tip: "", Error: "", AllReply: ars, WorkId: workid,Sigs:sigs}
+		    ac := &AcceptReqAddrData{Initiator:sender,Account: from, Cointype: req.Keytype, GroupId: req.GroupId, Nonce: nonce, LimitNum: req.ThresHold, Mode: req.Mode, TimeStamp: req.TimeStamp, Deal: "false", Accept: "false", Status: "Pending", PubKey: "", Tip: "", Error: "", AllReply: ars, WorkId: workid,Sigs:sigs}
 		    err = SaveAcceptReqAddrData(ac)
 		    common.Info("===================call SaveAcceptReqAddrData finish====================","account ",from,"err ",err,"key ",key)
 		   if err == nil {
@@ -1877,7 +1877,7 @@ func KeyInitAcceptData(raw string,workid int,sender string,ch chan interface{}) 
 					agreeWaitTimeOut := time.NewTicker(agreeWaitTime)
 					if wid < 0 || wid >= len(workers) || workers[wid] == nil {
 						ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)	
-						_,err = AcceptReqAddr(sender,from, "ALL", req.GroupId, nonce, req.ThresHold, req.Mode, "false", "false", "Failure", "", "workid error", "workid error", ars, wid,"")
+						_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId, nonce, req.ThresHold, req.Mode, "false", "false", "Failure", "", "workid error", "workid error", ars, wid,"")
 						if err != nil {
 						    tip = "accept reqaddr error"
 						    reply = false
@@ -1911,7 +1911,7 @@ func KeyInitAcceptData(raw string,workid int,sender string,ch chan interface{}) 
 
 							if !reply {
 								tip = "don't accept req addr"
-								_,err = AcceptReqAddr(sender,from, "ALL", req.GroupId,nonce, req.ThresHold, req.Mode, "false", "false", "Failure", "", "don't accept req addr", "don't accept req addr", ars, wid,"")
+								_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId,nonce, req.ThresHold, req.Mode, "false", "false", "Failure", "", "don't accept req addr", "don't accept req addr", ars, wid,"")
 								if err != nil {
 								    tip = "don't accept req addr and accept reqaddr error"
 								    timeout <- true
@@ -1919,7 +1919,7 @@ func KeyInitAcceptData(raw string,workid int,sender string,ch chan interface{}) 
 								}
 							} else {
 								tip = ""
-								_,err = AcceptReqAddr(sender,from, "ALL", req.GroupId,nonce, req.ThresHold, req.Mode, "false", "true", "Pending", "", "", "", ars, wid,"")
+								_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId,nonce, req.ThresHold, req.Mode, "false", "true", "Pending", "", "", "", ars, wid,"")
 								if err != nil {
 								    tip = "accept reqaddr error"
 								    timeout <- true
@@ -1934,7 +1934,7 @@ func KeyInitAcceptData(raw string,workid int,sender string,ch chan interface{}) 
 							common.Info("================== KeyInitAcceptData, agree wait timeout==================","raw ",raw,"key ",key)
 							ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)
 							//bug: if self not accept and timeout
-							_,err = AcceptReqAddr(sender,from, "ALL", req.GroupId, nonce, req.ThresHold, req.Mode, "false", "false", "Timeout", "", "get other node accept req addr result timeout", "get other node accept req addr result timeout", ars, wid,"")
+							_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId, nonce, req.ThresHold, req.Mode, "false", "false", "Timeout", "", "get other node accept req addr result timeout", "get other node accept req addr result timeout", ars, wid,"")
 							if err != nil {
 							    tip = "get other node accept req addr result timeout and accept reqaddr fail"
 							    reply = false
@@ -1966,9 +1966,9 @@ func KeyInitAcceptData(raw string,workid int,sender string,ch chan interface{}) 
 				ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)
 				if !reply {
 					if tip == "get other node accept req addr result timeout" {
-						_,err = AcceptReqAddr(sender,from, "ALL", req.GroupId, nonce, req.ThresHold, req.Mode, "false", "", "Timeout", "", tip, "don't accept req addr.", ars, workid,"")
+						_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId, nonce, req.ThresHold, req.Mode, "false", "", "Timeout", "", tip, "don't accept req addr.", ars, workid,"")
 					} else {
-						_,err = AcceptReqAddr(sender,from, "ALL", req.GroupId, nonce, req.ThresHold, req.Mode, "false", "", "Failure", "", tip, "don't accept req addr.", ars, workid,"")
+						_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId, nonce, req.ThresHold, req.Mode, "false", "", "Failure", "", tip, "don't accept req addr.", ars, workid,"")
 					}
 
 					if err != nil {
@@ -1987,7 +1987,7 @@ func KeyInitAcceptData(raw string,workid int,sender string,ch chan interface{}) 
 				}
 
 				ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)
-				_,err = AcceptReqAddr(sender,from, "ALL", req.GroupId,nonce, req.ThresHold, req.Mode, "false", "true", "Pending", "", "", "", ars, workid,"")
+				_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId,nonce, req.ThresHold, req.Mode, "false", "true", "Pending", "", "", "", ars, workid,"")
 				if err != nil {
 				    res := RpcDcrmRes{Ret:"", Tip: err.Error(), Err: err}
 				    ch <- res
@@ -1996,12 +1996,12 @@ func KeyInitAcceptData(raw string,workid int,sender string,ch chan interface{}) 
 			}
 
 			common.Info("================== KeyInitAcceptData, start call dcrm_genPubKey====================","w.id ",w.id,"w.groupid ",w.groupid,"key ",key)
-			dcrm_genPubKey(w.sid, from, "ALL", rch, req.Mode, nonce)
+			dcrm_genPubKey(w.sid, from, req.Keytype, rch, req.Mode, nonce)
 			chret, tip, cherr := GetChannelValue(waitall, rch)
 			common.Info("================== KeyInitAcceptData , finish dcrm_genPubKey ===================","get return value ",chret,"err ",cherr,"key ",key)
 			if cherr != nil {
 				ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)
-				_,err = AcceptReqAddr(sender,from, "ALL", req.GroupId, nonce, req.ThresHold, req.Mode, "false", "", "Failure", "", tip, cherr.Error(), ars, workid,"")
+				_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId, nonce, req.ThresHold, req.Mode, "false", "", "Failure", "", tip, cherr.Error(), ars, workid,"")
 				if err != nil {
 				    res := RpcDcrmRes{Ret:"", Tip:err.Error(), Err:err}
 				    ch <- res
@@ -2127,7 +2127,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 			return err
 		    }
 
-		    ac := &AcceptReqAddrData{Initiator:sender,Account: from, Cointype: "ALL", GroupId: req.GroupId, Nonce: nonce, LimitNum: req.ThresHold, Mode: req.Mode, TimeStamp: req.TimeStamp, Deal: "false", Accept: "false", Status: "Pending", PubKey: "", Tip: "", Error: "", AllReply: ars, WorkId: workid,Sigs:sigs}
+		    ac := &AcceptReqAddrData{Initiator:sender,Account: from, Cointype: req.Keytype, GroupId: req.GroupId, Nonce: nonce, LimitNum: req.ThresHold, Mode: req.Mode, TimeStamp: req.TimeStamp, Deal: "false", Accept: "false", Status: "Pending", PubKey: "", Tip: "", Error: "", AllReply: ars, WorkId: workid,Sigs:sigs}
 		    err = SaveAcceptReqAddrData(ac)
 		    common.Info("===================call SaveAcceptReqAddrData finish====================","account ",from,"err ",err,"key ",key)
 		   if err == nil {
@@ -2175,7 +2175,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 					agreeWaitTimeOut := time.NewTicker(agreeWaitTime)
 					if wid < 0 || wid >= len(workers) || workers[wid] == nil {
 						ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)	
-						_,err = AcceptReqAddr(sender,from, "ALL", req.GroupId, nonce, req.ThresHold, req.Mode, "false", "false", "Failure", "", "workid error", "workid error", ars, wid,"")
+						_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId, nonce, req.ThresHold, req.Mode, "false", "false", "Failure", "", "workid error", "workid error", ars, wid,"")
 						if err != nil {
 						    tip = "accept reqaddr error"
 						    reply = false
@@ -2209,7 +2209,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 
 							if !reply {
 								tip = "don't accept req addr"
-								_,err = AcceptReqAddr(sender,from, "ALL", req.GroupId,nonce, req.ThresHold, req.Mode, "false", "false", "Failure", "", "don't accept req addr", "don't accept req addr", ars, wid,"")
+								_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId,nonce, req.ThresHold, req.Mode, "false", "false", "Failure", "", "don't accept req addr", "don't accept req addr", ars, wid,"")
 								if err != nil {
 								    tip = "don't accept req addr and accept reqaddr error"
 								    timeout <- true
@@ -2217,7 +2217,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 								}
 							} else {
 								tip = ""
-								_,err = AcceptReqAddr(sender,from, "ALL", req.GroupId,nonce, req.ThresHold, req.Mode, "false", "true", "Pending", "", "", "", ars, wid,"")
+								_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId,nonce, req.ThresHold, req.Mode, "false", "true", "Pending", "", "", "", ars, wid,"")
 								if err != nil {
 								    tip = "accept reqaddr error"
 								    timeout <- true
@@ -2232,7 +2232,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 							common.Info("================== InitAcceptData, agree wait timeout==================","raw ",raw,"key ",key)
 							ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)
 							//bug: if self not accept and timeout
-							_,err = AcceptReqAddr(sender,from, "ALL", req.GroupId, nonce, req.ThresHold, req.Mode, "false", "false", "Timeout", "", "get other node accept req addr result timeout", "get other node accept req addr result timeout", ars, wid,"")
+							_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId, nonce, req.ThresHold, req.Mode, "false", "false", "Timeout", "", "get other node accept req addr result timeout", "get other node accept req addr result timeout", ars, wid,"")
 							if err != nil {
 							    tip = "get other node accept req addr result timeout and accept reqaddr fail"
 							    reply = false
@@ -2264,9 +2264,9 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 				ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)
 				if !reply {
 					if tip == "get other node accept req addr result timeout" {
-						_,err = AcceptReqAddr(sender,from, "ALL", req.GroupId, nonce, req.ThresHold, req.Mode, "false", "", "Timeout", "", tip, "don't accept req addr.", ars, workid,"")
+						_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId, nonce, req.ThresHold, req.Mode, "false", "", "Timeout", "", tip, "don't accept req addr.", ars, workid,"")
 					} else {
-						_,err = AcceptReqAddr(sender,from, "ALL", req.GroupId, nonce, req.ThresHold, req.Mode, "false", "", "Failure", "", tip, "don't accept req addr.", ars, workid,"")
+						_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId, nonce, req.ThresHold, req.Mode, "false", "", "Failure", "", tip, "don't accept req addr.", ars, workid,"")
 					}
 
 					if err != nil {
@@ -2285,7 +2285,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 				}
 
 				ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)
-				_,err = AcceptReqAddr(sender,from, "ALL", req.GroupId,nonce, req.ThresHold, req.Mode, "false", "true", "Pending", "", "", "", ars, workid,"")
+				_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId,nonce, req.ThresHold, req.Mode, "false", "true", "Pending", "", "", "", ars, workid,"")
 				if err != nil {
 				    res := RpcDcrmRes{Ret:"", Tip: err.Error(), Err: err}
 				    ch <- res
@@ -2294,7 +2294,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 			}
 
 			common.Info("================== InitAcceptData, start call dcrm_genPubKey====================","w.id ",w.id,"w.groupid ",w.groupid,"key ",key)
-			dcrm_genPubKey(w.sid, from, "ALL", rch, req.Mode, nonce)
+			dcrm_genPubKey(w.sid, from, req.Keytype, rch, req.Mode, nonce)
 			chret, tip, cherr := GetChannelValue(waitall, rch)
 			common.Info("================== InitAcceptData , finish dcrm_genPubKey ===================","get return value ",chret,"err ",cherr,"key ",key)
 			if cherr != nil {
