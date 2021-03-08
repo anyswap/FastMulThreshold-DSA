@@ -28,13 +28,13 @@ func (round *round4) Start() error {
 	}
 
 	for k,_ := range ids {
-	    msg2,ok := round.temp.kgRound2Messages[k].(*dcrm.KGRound2Message)
+	    msg2,ok := round.temp.kgRound2Messages[k].(*KGRound2Message)
 	    if !ok {
 		return errors.New("round.Start get round2 msg fail")
 	    }
 	   
 	    ushare := &ec2.ShareStruct2{Id: msg2.Id, Share: msg2.Share}
-	    msg3,ok := round.temp.kgRound3Messages[k].(*dcrm.KGRound3Message)
+	    msg3,ok := round.temp.kgRound3Messages[k].(*KGRound3Message)
 	    if !ok {
 		return errors.New("round.Start get round3 msg fail")
 	    }
@@ -47,7 +47,7 @@ func (round *round4) Start() error {
 	    }
 	    
 	    //verify commitment
-	    msg1,ok := round.temp.kgRound1Messages[k].(*dcrm.KGRound1Message)
+	    msg1,ok := round.temp.kgRound1Messages[k].(*KGRound1Message)
 	    if !ok {
 		return errors.New("round.Start get round1 msg fail")
 	    }
@@ -69,7 +69,7 @@ func (round *round4) Start() error {
 	    }
 
 	    _, c1G := deCommit_bip32.DeCommit()
-	    msg21,ok := round.temp.kgRound2Messages1[k].(*dcrm.KGRound2Message1)
+	    msg21,ok := round.temp.kgRound2Messages1[k].(*KGRound2Message1)
 	    if !ok {
 		return errors.New("round.Start get round2.1 msg fail")
 	    }
@@ -93,9 +93,9 @@ func (round *round4) Start() error {
 	var skU1 *big.Int
 
 	for k,_ := range ids {
-	    msg3,_ := round.temp.kgRound3Messages[k].(*dcrm.KGRound3Message)
-	    msg1,_ := round.temp.kgRound1Messages[k].(*dcrm.KGRound1Message)
-	    msg2,_ := round.temp.kgRound2Messages[k].(*dcrm.KGRound2Message)
+	    msg3,_ := round.temp.kgRound3Messages[k].(*KGRound3Message)
+	    msg1,_ := round.temp.kgRound1Messages[k].(*KGRound1Message)
+	    msg2,_ := round.temp.kgRound2Messages[k].(*KGRound2Message)
 	    ushare := &ec2.ShareStruct2{Id: msg2.Id, Share: msg2.Share}
 	    
 	    deCommit := &ec2.Commitment{C: msg1.ComC, D: msg3.ComU1GD}
@@ -103,7 +103,7 @@ func (round *round4) Start() error {
 	    pkx = u1G[0]
 	    pky = u1G[1]
 
-	    msg21,_ := round.temp.kgRound2Messages1[k].(*dcrm.KGRound2Message1)
+	    msg21,_ := round.temp.kgRound2Messages1[k].(*KGRound2Message1)
 
 	    c = msg21.C1
 	    skU1 = ushare.Share
@@ -115,17 +115,17 @@ func (round *round4) Start() error {
 		continue
 	    }
 
-	    msg2,_ := round.temp.kgRound2Messages[k].(*dcrm.KGRound2Message)
+	    msg2,_ := round.temp.kgRound2Messages[k].(*KGRound2Message)
 	    ushare := &ec2.ShareStruct2{Id: msg2.Id, Share: msg2.Share}
-	    msg3,_ := round.temp.kgRound3Messages[k].(*dcrm.KGRound3Message)
-	    msg1,_ := round.temp.kgRound1Messages[k].(*dcrm.KGRound1Message)
+	    msg3,_ := round.temp.kgRound3Messages[k].(*KGRound3Message)
+	    msg1,_ := round.temp.kgRound1Messages[k].(*KGRound1Message)
 	    
 	    deCommit := &ec2.Commitment{C: msg1.ComC, D: msg3.ComU1GD}
 
 	    _, u1G := deCommit.DeCommit()
 	    pkx, pky = secp256k1.S256().Add(pkx, pky, u1G[0], u1G[1])
 
-	    msg21,_ := round.temp.kgRound2Messages1[k].(*dcrm.KGRound2Message1)
+	    msg21,_ := round.temp.kgRound2Messages1[k].(*KGRound2Message1)
 
 	    c = new(big.Int).Add(c, msg21.C1)
 	    skU1 = new(big.Int).Add(skU1, ushare.Share)
@@ -146,8 +146,8 @@ func (round *round4) Start() error {
 	    return errors.New("gen ntilde h1 h2 fail.")
 	}
 	
-	kg := &dcrm.KGRound4Message{
-	    KGRoundMessage:new(dcrm.KGRoundMessage),
+	kg := &KGRound4Message{
+	    KGRoundMessage:new(KGRoundMessage),
 	    U1NtildeH1H2:u1NtildeH1H2,
 	}
 	kg.SetFromID(round.dnodeid)
@@ -162,7 +162,7 @@ func (round *round4) Start() error {
 }
 
 func (round *round4) CanAccept(msg dcrm.Message) bool {
-	if _, ok := msg.(*dcrm.KGRound4Message); ok {
+	if _, ok := msg.(*KGRound4Message); ok {
 		return msg.IsBroadcast()
 	}
 	return false

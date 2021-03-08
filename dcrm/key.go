@@ -11,6 +11,7 @@ import (
 	"time"
 	//"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/ecdsa/keygen"
 	dcrmlib "github.com/anyswap/Anyswap-MPCNode/dcrm-lib/dcrm"
+	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/ecdsa/keygen"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ec2"
 )
@@ -88,8 +89,8 @@ func GetRealMessage(msg map[string]string) dcrmlib.Message {
 	    fmt.Printf("============ GetRealMessage, get real message 1 success, msg map = %v ===========\n",msg)
 	    comc,_ := new(big.Int).SetString(msg["ComC"],10)
 	    comc_bip32,_ := new(big.Int).SetString(msg["ComC_bip32"],10)
-	    kg := &dcrmlib.KGRound1Message{
-		KGRoundMessage:new(dcrmlib.KGRoundMessage),
+	    kg := &keygen.KGRound1Message{
+		KGRoundMessage:new(keygen.KGRoundMessage),
 		ComC:comc,
 		ComC_bip32:comc_bip32,
 		U1PaillierPk:pub,
@@ -105,8 +106,8 @@ func GetRealMessage(msg map[string]string) dcrmlib.Message {
     if msg["Type"] == "KGRound2Message" {
 	id,_ := new(big.Int).SetString(msg["Id"],10)
 	sh,_ := new(big.Int).SetString(msg["Share"],10)
-	kg := &dcrmlib.KGRound2Message{
-	    KGRoundMessage:new(dcrmlib.KGRoundMessage),
+	kg := &keygen.KGRound2Message{
+	    KGRoundMessage:new(keygen.KGRoundMessage),
 	    Id:id,
 	    Share:sh,
 	}
@@ -121,8 +122,8 @@ func GetRealMessage(msg map[string]string) dcrmlib.Message {
     if msg["Type"] == "KGRound2Message1" {
 	    fmt.Printf("============ GetRealMessage, get real message 2-1 success, msg map = %v ===========\n",msg)
 	c1,_ := new(big.Int).SetString(msg["C1"],10)
-	kg := &dcrmlib.KGRound2Message1{
-	    KGRoundMessage:new(dcrmlib.KGRoundMessage),
+	kg := &keygen.KGRound2Message1{
+	    KGRoundMessage:new(keygen.KGRoundMessage),
 	    C1:c1,
 	}
 	kg.SetFromID(from)
@@ -157,8 +158,8 @@ func GetRealMessage(msg map[string]string) dcrmlib.Message {
 	    ugg[k] = tmp
 	}
 	
-	kg := &dcrmlib.KGRound3Message{
-	    KGRoundMessage:new(dcrmlib.KGRoundMessage),
+	kg := &keygen.KGRound3Message{
+	    KGRoundMessage:new(keygen.KGRoundMessage),
 	    ComU1GD:u1gd,
 	    ComC1GD:u1cd,
 	    U1PolyGG:ugg,
@@ -174,8 +175,8 @@ func GetRealMessage(msg map[string]string) dcrmlib.Message {
 	nti := &ec2.NtildeH1H2{}
 	if err := nti.UnmarshalJSON([]byte(msg["U1NtildeH1H2"]));err == nil {
 	    fmt.Printf("============ GetRealMessage, get real message 4 success, msg map = %v ===========\n",msg)
-	    kg := &dcrmlib.KGRound4Message{
-		KGRoundMessage:new(dcrmlib.KGRoundMessage),
+	    kg := &keygen.KGRound4Message{
+		KGRoundMessage:new(keygen.KGRoundMessage),
 		U1NtildeH1H2:nti,
 	    }
 	    kg.SetFromID(from)
@@ -190,8 +191,8 @@ func GetRealMessage(msg map[string]string) dcrmlib.Message {
 	zk := &ec2.ZkUProof{}
 	if err := zk.UnmarshalJSON([]byte(msg["U1zkUProof"]));err == nil {
 	    fmt.Printf("============ GetRealMessage, get real message 5 success, msg map = %v ===========\n",msg)
-	kg := &dcrmlib.KGRound5Message{
-	    KGRoundMessage:new(dcrmlib.KGRoundMessage),
+	kg := &keygen.KGRound5Message{
+	    KGRoundMessage:new(keygen.KGRoundMessage),
 	    U1zkUProof:zk,
 	}
 	kg.SetFromID(from)
@@ -209,8 +210,8 @@ func GetRealMessage(msg map[string]string) dcrmlib.Message {
 	    b = true
 	}
 
-	kg := &dcrmlib.KGRound6Message{
-	    KGRoundMessage:new(dcrmlib.KGRoundMessage),
+	kg := &keygen.KGRound6Message{
+	    KGRoundMessage:new(keygen.KGRoundMessage),
 	    Check_Pubkey_Status:b,
 	}
 	kg.SetFromID(from)
@@ -220,8 +221,8 @@ func GetRealMessage(msg map[string]string) dcrmlib.Message {
     }
 
     fmt.Printf("============ GetRealMessage, get real message 0 success, msg map = %v ===========\n",msg)
-    kg := &dcrmlib.KGRound0Message{
-	KGRoundMessage: new(dcrmlib.KGRoundMessage),
+    kg := &keygen.KGRound0Message{
+	KGRoundMessage: new(keygen.KGRoundMessage),
     }
     kg.SetFromID(from)
     kg.SetFromIndex(-1)
@@ -230,7 +231,7 @@ func GetRealMessage(msg map[string]string) dcrmlib.Message {
     return kg 
 }
 
-func processKeyGen(msgprex string,errChan chan struct{},outCh <-chan dcrmlib.Message,endCh <-chan dcrmlib.LocalDNodeSaveData) error {
+func processKeyGen(msgprex string,errChan chan struct{},outCh <-chan dcrmlib.Message,endCh <-chan keygen.LocalDNodeSaveData) error {
 	for {
 		select {
 		case <-errChan: // when keyGenParty return
@@ -278,7 +279,7 @@ func processKeyGen(msgprex string,errChan chan struct{},outCh <-chan dcrmlib.Mes
 }
 
 type KGLocalDBSaveData struct {
-    Save *dcrmlib.LocalDNodeSaveData
+    Save *keygen.LocalDNodeSaveData
     MsgToEnode map[string]string
 }
 
@@ -292,7 +293,7 @@ func (kgsave *KGLocalDBSaveData) OutMap() map[string]string {
 }
 
 func GetKGLocalDBSaveData(data map[string]string) *KGLocalDBSaveData {
-    save := dcrmlib.GetLocalDNodeSaveData(data)
+    save := keygen.GetLocalDNodeSaveData(data)
     msgtoenode := make(map[string]string)
     for _,v := range save.Ids {
 	msgtoenode[fmt.Sprintf("%v",v)] = data[fmt.Sprintf("%v",v)]

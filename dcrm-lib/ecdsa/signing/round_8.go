@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"math/big"
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/dcrm"
+	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/ecdsa/keygen"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	//"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ec2"
 )
 
-func newRound8(temp *localTempData,save *dcrm.LocalDNodeSaveData,idsign dcrm.SortableIDSSlice,out chan<- dcrm.Message,end chan<-dcrm.PrePubData,kgid string,threshold int,paillierkeylength int,predata *dcrm.PrePubData,txhash *big.Int,finalize_end chan<- *big.Int) dcrm.Round {
+func newRound8(temp *localTempData,save *keygen.LocalDNodeSaveData,idsign dcrm.SortableIDSSlice,out chan<- dcrm.Message,end chan<-PrePubData,kgid string,threshold int,paillierkeylength int,predata *PrePubData,txhash *big.Int,finalize_end chan<- *big.Int) dcrm.Round {
     return &round8{
 		&base{temp,save,idsign,out,end,make([]bool,threshold),false,0,kgid,threshold,paillierkeylength,predata,txhash,finalize_end}}
 }
@@ -33,8 +34,8 @@ func (round *round8) Start() error {
 	us1 := new(big.Int).Add(mk1, rSigma1)
 	us1 = new(big.Int).Mod(us1, secp256k1.S256().N)
 
-	srm := &dcrm.SignRound7Message{
-	    SignRoundMessage: new(dcrm.SignRoundMessage),
+	srm := &SignRound7Message{
+	    SignRoundMessage: new(SignRoundMessage),
 	    Us1:us1,
 	}
 	srm.SetFromID(round.kgid)
@@ -48,7 +49,7 @@ func (round *round8) Start() error {
 }
 
 func (round *round8) CanAccept(msg dcrm.Message) bool {
-	if _, ok := msg.(*dcrm.SignRound7Message); ok {
+	if _, ok := msg.(*SignRound7Message); ok {
 		return msg.IsBroadcast()
 	}
 	return false

@@ -2847,7 +2847,7 @@ func PreSign_ec3(msgprex string, save string, sku1 *big.Int, cointype string, ch
 
 	commStopChan := make(chan struct{})
 	outCh := make(chan dcrmlib.Message, w.ThresHold)
-	endCh := make(chan dcrmlib.PrePubData,w.ThresHold)
+	endCh := make(chan signing.PrePubData,w.ThresHold)
 	finalize_endCh := make(chan *big.Int,w.ThresHold)
 	errChan := make(chan struct{})
 	signDNode := signing.NewLocalDNode(outCh,endCh,sd,idsign,sd.CurDNodeID,w.ThresHold,PaillierKeyLength,false,nil,nil,finalize_endCh)
@@ -3045,10 +3045,10 @@ func Sign_ec3(msgprex string, message string, cointype string,save string, pkx *
 
 	commStopChan := make(chan struct{})
 	outCh := make(chan dcrmlib.Message, w.ThresHold)
-	endCh := make(chan dcrmlib.PrePubData,w.ThresHold)
+	endCh := make(chan signing.PrePubData,w.ThresHold)
 	finalize_endCh := make(chan *big.Int,w.ThresHold)
 	errChan := make(chan struct{})
-	predata := &dcrmlib.PrePubData{K1:pre.K1,R:pre.R,Ry:pre.Ry,Sigma1:pre.Sigma1}
+	predata := &signing.PrePubData{K1:pre.K1,R:pre.R,Ry:pre.Ry,Sigma1:pre.Sigma1}
 	signDNode := signing.NewLocalDNode(outCh,endCh,sd,idsign,sd.CurDNodeID,w.ThresHold,PaillierKeyLength,true,predata,mMtA,finalize_endCh)
 	w.DNode = signDNode
 	

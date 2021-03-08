@@ -33,13 +33,10 @@ import (
 	"sync"
 	"github.com/fsn-dev/cryptoCoins/coins"
 	"github.com/fsn-dev/cryptoCoins/coins/types"
-	//"github.com/anyswap/Anyswap-MPCNode/mpcdsa/crypto/ec2"
-	//"github.com/anyswap/Anyswap-MPCNode/mpcdsa/crypto/ed"
-	//"github.com/anyswap/Anyswap-MPCNode/mpcdsa/ecdsa/keygen"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	dcrmlib "github.com/anyswap/Anyswap-MPCNode/dcrm-lib/dcrm"
-	keygen2 "github.com/anyswap/Anyswap-MPCNode/dcrm-lib/ecdsa/keygen"
+	keygen "github.com/anyswap/Anyswap-MPCNode/dcrm-lib/ecdsa/keygen"
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ed"
 )
 
@@ -1533,9 +1530,9 @@ func KeyGenerate_DECDSA(msgprex string, ch chan interface{}, id int, cointype st
 	//taskDone := make(chan struct{})
 	commStopChan := make(chan struct{})
 	outCh := make(chan dcrmlib.Message, ns)
-	endCh := make(chan dcrmlib.LocalDNodeSaveData, ns)
+	endCh := make(chan keygen.LocalDNodeSaveData, ns)
 	errChan := make(chan struct{})
-	keyGenDNode := keygen2.NewLocalDNode(outCh,endCh,ns,w.ThresHold,2048)
+	keyGenDNode := keygen.NewLocalDNode(outCh,endCh,ns,w.ThresHold,2048)
 	w.DNode = keyGenDNode
 	//keyGenDNode.SetDNodeID(fmt.Sprintf("%v",DoubleHash2(cur_enode,"ECDSA")))
 	//fmt.Printf("=========== keygen, node uid = %v ===========\n",keyGenDNode.DNodeID())

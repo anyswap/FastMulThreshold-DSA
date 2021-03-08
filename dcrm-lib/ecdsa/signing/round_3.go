@@ -22,8 +22,8 @@ func (round *round3) Start() error {
 	}
 
 	fmt.Printf("============ round3.start, kc = %v, cur_index = %v ===========\n",round.temp.ukc)
-	srm := &dcrm.SignRound3Message{
-	    SignRoundMessage: new(dcrm.SignRoundMessage),
+	srm := &SignRound3Message{
+	    SignRoundMessage: new(SignRoundMessage),
 	    Kc:round.temp.ukc,
 	}
 	srm.SetFromID(round.kgid)
@@ -37,7 +37,7 @@ func (round *round3) Start() error {
 }
 
 func (round *round3) CanAccept(msg dcrm.Message) bool {
-	if _, ok := msg.(*dcrm.SignRound3Message); ok {
+	if _, ok := msg.(*SignRound3Message); ok {
 		return msg.IsBroadcast()
 	}
 	return false

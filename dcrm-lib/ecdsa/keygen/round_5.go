@@ -25,8 +25,8 @@ func (round *round5) Start() error {
 	    return errors.New("zku prove fail.")
 	}
 
-	kg := &dcrm.KGRound5Message{
-	    KGRoundMessage:new(dcrm.KGRoundMessage),
+	kg := &KGRound5Message{
+	    KGRoundMessage:new(KGRoundMessage),
 	    U1zkUProof:u1zkUProof,
 	}
 	kg.SetFromID(round.dnodeid)
@@ -40,7 +40,7 @@ func (round *round5) Start() error {
 }
 
 func (round *round5) CanAccept(msg dcrm.Message) bool {
-	if _, ok := msg.(*dcrm.KGRound5Message); ok {
+	if _, ok := msg.(*KGRound5Message); ok {
 		return msg.IsBroadcast()
 	}
 	return false

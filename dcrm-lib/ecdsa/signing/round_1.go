@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/dcrm"
+	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/ecdsa/keygen"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ec2"
 )
@@ -13,7 +14,7 @@ var (
 	zero = big.NewInt(0)
 )
 
-func newRound1(temp *localTempData,save *dcrm.LocalDNodeSaveData,idsign dcrm.SortableIDSSlice,out chan<- dcrm.Message,end chan<-dcrm.PrePubData,kgid string,threshold int,paillierkeylength int) dcrm.Round {
+func newRound1(temp *localTempData,save *keygen.LocalDNodeSaveData,idsign dcrm.SortableIDSSlice,out chan<- dcrm.Message,end chan<-PrePubData,kgid string,threshold int,paillierkeylength int) dcrm.Round {
     finalize_endCh := make(chan *big.Int,threshold)
     return &round1{
 		&base{temp,save,idsign,out,end,make([]bool,threshold),false,0,kgid,threshold,paillierkeylength,nil,nil,finalize_endCh}}
@@ -72,8 +73,8 @@ func (round *round1) Start() error {
 	round.temp.u1Gamma = u1Gamma
 	round.temp.commitU1GammaG = commitU1GammaG
 
-	srm := &dcrm.SignRound1Message{
-	    SignRoundMessage: new(dcrm.SignRoundMessage),
+	srm := &SignRound1Message{
+	    SignRoundMessage: new(SignRoundMessage),
 	    C11:commitU1GammaG.C,
 	}
 	srm.SetFromID(round.kgid)
@@ -87,9 +88,10 @@ func (round *round1) Start() error {
 }
 
 func (round *round1) CanAccept(msg dcrm.Message) bool {
-	if _, ok := msg.(*dcrm.SignRound1Message); ok {
+	if _, ok := msg.(*SignRound1Message); ok {
 		return msg.IsBroadcast()
 	}
+
 	return false
 }
 

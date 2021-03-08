@@ -43,13 +43,13 @@ func (round *round5) Start() error {
 
 	    u1PaillierPk := round.save.U1PaillierPk[oldindex]
 	    u1nt := round.save.U1NtildeH1H2[index]
-	    msg4,_ := round.temp.signRound4Messages[k].(*dcrm.SignRound4Message)
+	    msg4,_ := round.temp.signRound4Messages[k].(*SignRound4Message)
 	    rlt111 := msg4.U1u1MtAZK2Proof.MtAZK2Verify_nhh(round.temp.ukc,msg4.U1KGamma1Cipher,u1PaillierPk,u1nt)
 	    if !rlt111 {
 		return errors.New("verify mkg fail.")
 	    }
 	    
-	    msg41,_ := round.temp.signRound4Messages1[k].(*dcrm.SignRound4Message1)
+	    msg41,_ := round.temp.signRound4Messages1[k].(*SignRound4Message1)
 	    rlt112 := msg41.U1u1MtAZK3Proof.MtAZK3Verify_nhh(round.temp.ukc,msg41.U1Kw1Cipher,u1PaillierPk,u1nt)
 	    if !rlt112 {
 		return errors.New("verify mkw fail.")
@@ -87,8 +87,8 @@ func (round *round5) Start() error {
 	}
 	round.temp.sigma1 = sigma1
 	
-	srm := &dcrm.SignRound5Message{
-	    SignRoundMessage: new(dcrm.SignRoundMessage),
+	srm := &SignRound5Message{
+	    SignRoundMessage: new(SignRoundMessage),
 	    Delta1:delta1,
 	}
 	srm.SetFromID(round.kgid)
@@ -103,7 +103,7 @@ func (round *round5) Start() error {
 }
 
 func (round *round5) CanAccept(msg dcrm.Message) bool {
-	if _, ok := msg.(*dcrm.SignRound5Message); ok {
+	if _, ok := msg.(*SignRound5Message); ok {
 		return msg.IsBroadcast()
 	}
 	return false

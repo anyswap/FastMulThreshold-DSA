@@ -11,7 +11,7 @@ var (
 	zero = big.NewInt(0)
 )
 
-func newRound0(save *dcrm.LocalDNodeSaveData, temp *localTempData,out chan<- dcrm.Message, end chan<- dcrm.LocalDNodeSaveData,dnodeid string,dnodecount int,threshold int,paillierkeylength int) dcrm.Round {
+func newRound0(save *LocalDNodeSaveData, temp *localTempData,out chan<- dcrm.Message, end chan<- LocalDNodeSaveData,dnodeid string,dnodecount int,threshold int,paillierkeylength int) dcrm.Round {
     return &round0{
 		&base{save,temp,out,end,make([]bool,dnodecount),false,0,dnodeid,dnodecount,threshold,paillierkeylength}}
 }
@@ -25,8 +25,8 @@ func (round *round0) Start() error {
 	round.started = true
 	round.resetOK()
 
-	kg := &dcrm.KGRound0Message{
-	    KGRoundMessage: new(dcrm.KGRoundMessage),
+	kg := &KGRound0Message{
+	    KGRoundMessage: new(KGRoundMessage),
 	}
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(-1)
@@ -38,7 +38,7 @@ func (round *round0) Start() error {
 }
 
 func (round *round0) CanAccept(msg dcrm.Message) bool {
-	if _, ok := msg.(*dcrm.KGRound0Message); ok {
+	if _, ok := msg.(*KGRound0Message); ok {
 		return msg.IsBroadcast()
 	}
 	return false

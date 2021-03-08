@@ -26,20 +26,20 @@ func (round *round6) Start() error {
 	}
 
 	for k,_ := range ids {
-	    msg3,ok := round.temp.kgRound3Messages[k].(*dcrm.KGRound3Message)
+	    msg3,ok := round.temp.kgRound3Messages[k].(*KGRound3Message)
 	    if !ok {
 		return errors.New("round.Start get round3 msg fail")
 	    }
 	   
 	    //verify commitment
-	    msg1,ok := round.temp.kgRound1Messages[k].(*dcrm.KGRound1Message)
+	    msg1,ok := round.temp.kgRound1Messages[k].(*KGRound1Message)
 	    if !ok {
 		return errors.New("round.Start get round1 msg fail")
 	    }
 	    
 	    deCommit := &ec2.Commitment{C: msg1.ComC, D: msg3.ComU1GD}
 	    _, u1G := deCommit.DeCommit()
-	    msg5,ok := round.temp.kgRound5Messages[k].(*dcrm.KGRound5Message)
+	    msg5,ok := round.temp.kgRound5Messages[k].(*KGRound5Message)
 	    if !ok {
 		return errors.New("round.Start get round5 msg fail")
 	    }
@@ -50,8 +50,8 @@ func (round *round6) Start() error {
 	    }
 	}
 
-	kg := &dcrm.KGRound6Message{
-	    KGRoundMessage:new(dcrm.KGRoundMessage),
+	kg := &KGRound6Message{
+	    KGRoundMessage:new(KGRoundMessage),
 	    Check_Pubkey_Status:true,
 	}
 	kg.SetFromID(round.dnodeid)
@@ -65,7 +65,7 @@ func (round *round6) Start() error {
 }
 
 func (round *round6) CanAccept(msg dcrm.Message) bool {
-	if _, ok := msg.(*dcrm.KGRound6Message); ok {
+	if _, ok := msg.(*KGRound6Message); ok {
 		return msg.IsBroadcast()
 	}
 	return false

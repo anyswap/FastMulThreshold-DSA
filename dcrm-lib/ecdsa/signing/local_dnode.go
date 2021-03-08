@@ -6,18 +6,19 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/dcrm"
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ec2"
 	//"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
+	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/ecdsa/keygen"
 	"math/big"
 )
 
 type LocalDNode struct {
 	*dcrm.BaseDNode
 	temp localTempData
-	save *dcrm.LocalDNodeSaveData
+	save *keygen.LocalDNodeSaveData
 	idsign dcrm.SortableIDSSlice
 	out chan<- dcrm.Message
-	end chan<- dcrm.PrePubData
+	end chan<- PrePubData
 	finalize bool
-	predata *dcrm.PrePubData
+	predata *PrePubData
 	txhash *big.Int
 	finalize_end chan<- *big.Int 
 }
@@ -77,14 +78,14 @@ type localTempData struct {
 
 func NewLocalDNode(
 	out chan<- dcrm.Message,
-	end chan<- dcrm.PrePubData,
-	save *dcrm.LocalDNodeSaveData,
+	end chan<- PrePubData,
+	save *keygen.LocalDNodeSaveData,
 	idsign dcrm.SortableIDSSlice,
 	kgid *big.Int,
 	threshold int,
 	paillierkeylength int,
 	finalize bool,
-	predata *dcrm.PrePubData,
+	predata *PrePubData,
 	txhash *big.Int,
 	finalize_end chan<- *big.Int,
 ) dcrm.DNode {
@@ -167,7 +168,7 @@ func checkfull(msg []dcrm.Message) bool {
 
 func (p *LocalDNode) StoreMessage(msg dcrm.Message) (bool, error) {
     switch msg.(type) {
-	case *dcrm.SignRound1Message:
+	case *SignRound1Message:
 		index := msg.GetFromIndex()
 		p.temp.signRound1Messages[index] = msg 
 		if len(p.temp.signRound1Messages) == p.ThresHold && checkfull(p.temp.signRound1Messages) {
@@ -175,7 +176,7 @@ func (p *LocalDNode) StoreMessage(msg dcrm.Message) (bool, error) {
 		    //time.Sleep(time.Duration(20) * time.Second) //tmp code
 		    return true,nil
 		}
-	case *dcrm.SignRound2Message:
+	case *SignRound2Message:
 		index := msg.GetFromIndex()
 		fmt.Printf("================ StoreMessage,get 2 messages,index = %v ============\n",index)
 		p.temp.signRound2Messages[index] = msg 
@@ -184,7 +185,7 @@ func (p *LocalDNode) StoreMessage(msg dcrm.Message) (bool, error) {
 		    //time.Sleep(time.Duration(20) * time.Second) //tmp code
 		    return true,nil
 		}
-	case *dcrm.SignRound3Message:
+	case *SignRound3Message:
 		index := msg.GetFromIndex()
 		fmt.Printf("================ StoreMessage,get 3 messages,index = %v ============\n",index)
 		p.temp.signRound3Messages[index] = msg 
@@ -193,7 +194,7 @@ func (p *LocalDNode) StoreMessage(msg dcrm.Message) (bool, error) {
 		    //time.Sleep(time.Duration(20) * time.Second) //tmp code
 		    return true,nil
 		}
-	case *dcrm.SignRound4Message:
+	case *SignRound4Message:
 		index := msg.GetFromIndex()
 		p.temp.signRound4Messages[index] = msg 
 		if len(p.temp.signRound4Messages) == p.ThresHold && checkfull(p.temp.signRound4Messages) {
@@ -201,7 +202,7 @@ func (p *LocalDNode) StoreMessage(msg dcrm.Message) (bool, error) {
 		    //time.Sleep(time.Duration(20) * time.Second) //tmp code
 		    return true,nil
 		}
-	case *dcrm.SignRound4Message1:
+	case *SignRound4Message1:
 		index := msg.GetFromIndex()
 		p.temp.signRound4Messages1[index] = msg 
 		if len(p.temp.signRound4Messages1) == p.ThresHold && checkfull(p.temp.signRound4Messages1) {
@@ -209,7 +210,7 @@ func (p *LocalDNode) StoreMessage(msg dcrm.Message) (bool, error) {
 		    //time.Sleep(time.Duration(20) * time.Second) //tmp code
 		    return true,nil
 		}
-	case *dcrm.SignRound5Message:
+	case *SignRound5Message:
 		index := msg.GetFromIndex()
 		p.temp.signRound5Messages[index] = msg 
 		if len(p.temp.signRound5Messages) == p.ThresHold && checkfull(p.temp.signRound5Messages) {
@@ -217,14 +218,14 @@ func (p *LocalDNode) StoreMessage(msg dcrm.Message) (bool, error) {
 		    //time.Sleep(time.Duration(20) * time.Second) //tmp code
 		    return true,nil
 		}
-	case *dcrm.SignRound6Message:
+	case *SignRound6Message:
 		index := msg.GetFromIndex()
 		p.temp.signRound6Messages[index] = msg 
 		if len(p.temp.signRound6Messages) == p.ThresHold && checkfull(p.temp.signRound6Messages) {
 		    fmt.Printf("================ StoreMessage,get all 6 messages ==============\n")
 		    return true,nil
 		}
-	case *dcrm.SignRound7Message:
+	case *SignRound7Message:
 		index := msg.GetFromIndex()
 		p.temp.signRound7Messages[index] = msg 
 		if len(p.temp.signRound7Messages) == p.ThresHold && checkfull(p.temp.signRound7Messages) {

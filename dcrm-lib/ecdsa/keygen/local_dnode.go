@@ -12,9 +12,9 @@ import (
 type LocalDNode struct {
 	*dcrm.BaseDNode
 	temp localTempData
-	data dcrm.LocalDNodeSaveData 
+	data LocalDNodeSaveData 
 	out chan<- dcrm.Message
-	end chan<- dcrm.LocalDNodeSaveData
+	end chan<- LocalDNodeSaveData
 }
 
 type localMessageStore struct {
@@ -69,13 +69,13 @@ type localTempData struct {
 
 func NewLocalDNode(
 	out chan<- dcrm.Message,
-	end chan<- dcrm.LocalDNodeSaveData,
+	end chan<- LocalDNodeSaveData,
 	DNodeCountInGroup int,
 	threshold int,
 	paillierkeylength int,
 ) dcrm.DNode {
 
-    	data := dcrm.NewLocalDNodeSaveData(DNodeCountInGroup)
+    	data := NewLocalDNodeSaveData(DNodeCountInGroup)
 	p := &LocalDNode{
 		BaseDNode: new(dcrm.BaseDNode),
 		temp:      localTempData{},
@@ -147,7 +147,7 @@ func checkfull(msg []dcrm.Message) bool {
 
 func (p *LocalDNode) StoreMessage(msg dcrm.Message) (bool, error) {
     switch msg.(type) {
-	case *dcrm.KGRound0Message:
+	case *KGRound0Message:
 		if len(p.temp.kgRound0Messages) < p.DNodeCountInGroup {
 		    p.temp.kgRound0Messages = append(p.temp.kgRound0Messages,msg) 
 		}
@@ -157,17 +157,17 @@ func (p *LocalDNode) StoreMessage(msg dcrm.Message) (bool, error) {
 		    //time.Sleep(time.Duration(120) * time.Second) //tmp code
 		    return true,nil
 		}
-	case *dcrm.KGRound1Message:
+	case *KGRound1Message:
 		index := msg.GetFromIndex()
 		p.temp.kgRound1Messages[index] = msg 
-		m := msg.(*dcrm.KGRound1Message)
+		m := msg.(*KGRound1Message)
 		p.data.U1PaillierPk[index] = m.U1PaillierPk
 		if len(p.temp.kgRound1Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound1Messages) {
 		    fmt.Printf("================ StoreMessage,get all 1 messages ==============\n")
 		    //time.Sleep(time.Duration(20) * time.Second) //tmp code
 		    return true,nil
 		}
-	case *dcrm.KGRound2Message:
+	case *KGRound2Message:
 		index := msg.GetFromIndex()
 		p.temp.kgRound2Messages[index] = msg 
 		if len(p.temp.kgRound2Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound2Messages) {
@@ -175,7 +175,7 @@ func (p *LocalDNode) StoreMessage(msg dcrm.Message) (bool, error) {
 		    //time.Sleep(time.Duration(20) * time.Second) //tmp code
 		    return true,nil
 		}
-	case *dcrm.KGRound2Message1:
+	case *KGRound2Message1:
 		index := msg.GetFromIndex()
 		p.temp.kgRound2Messages1[index] = msg 
 		if len(p.temp.kgRound2Messages1) == p.DNodeCountInGroup && checkfull(p.temp.kgRound2Messages1) {
@@ -183,7 +183,7 @@ func (p *LocalDNode) StoreMessage(msg dcrm.Message) (bool, error) {
 		    //time.Sleep(time.Duration(20) * time.Second) //tmp code
 		    return true,nil
 		}
-	case *dcrm.KGRound3Message:
+	case *KGRound3Message:
 		index := msg.GetFromIndex()
 		p.temp.kgRound3Messages[index] = msg 
 		if len(p.temp.kgRound3Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound3Messages) {
@@ -191,9 +191,9 @@ func (p *LocalDNode) StoreMessage(msg dcrm.Message) (bool, error) {
 		    //time.Sleep(time.Duration(20) * time.Second) //tmp code
 		    return true,nil
 		}
-	case *dcrm.KGRound4Message:
+	case *KGRound4Message:
 		index := msg.GetFromIndex()
-		m := msg.(*dcrm.KGRound4Message)
+		m := msg.(*KGRound4Message)
 		p.data.U1NtildeH1H2[index] = m.U1NtildeH1H2
 		p.temp.kgRound4Messages[index] = msg 
 		if len(p.temp.kgRound4Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound4Messages) {
@@ -201,7 +201,7 @@ func (p *LocalDNode) StoreMessage(msg dcrm.Message) (bool, error) {
 		    //time.Sleep(time.Duration(20) * time.Second) //tmp code
 		    return true,nil
 		}
-	case *dcrm.KGRound5Message:
+	case *KGRound5Message:
 		index := msg.GetFromIndex()
 		p.temp.kgRound5Messages[index] = msg 
 		if len(p.temp.kgRound5Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound5Messages) {
@@ -209,7 +209,7 @@ func (p *LocalDNode) StoreMessage(msg dcrm.Message) (bool, error) {
 		    //time.Sleep(time.Duration(20) * time.Second) //tmp code
 		    return true,nil
 		}
-	case *dcrm.KGRound6Message:
+	case *KGRound6Message:
 		index := msg.GetFromIndex()
 		p.temp.kgRound6Messages[index] = msg 
 		if len(p.temp.kgRound6Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound6Messages) {

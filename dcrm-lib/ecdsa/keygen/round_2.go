@@ -37,8 +37,8 @@ func (round *round2) Start() error {
 
 	for k,id := range ids {
 	    for _,v := range u1Shares {
-		kg := &dcrm.KGRound2Message{
-		    KGRoundMessage:new(dcrm.KGRoundMessage),
+		kg := &KGRound2Message{
+		    KGRoundMessage:new(KGRoundMessage),
 		    Id:v.Id,
 		    Share:v.Share,
 		}
@@ -60,8 +60,8 @@ func (round *round2) Start() error {
 	    }
 	}
 
-	kg := &dcrm.KGRound2Message1{
-	    KGRoundMessage:new(dcrm.KGRoundMessage),
+	kg := &KGRound2Message1{
+	    KGRoundMessage:new(KGRoundMessage),
 	    C1:round.temp.c1,
 	}
 	kg.SetFromID(round.dnodeid)
@@ -74,10 +74,10 @@ func (round *round2) Start() error {
 }
 
 func (round *round2) CanAccept(msg dcrm.Message) bool {
-	if _, ok := msg.(*dcrm.KGRound2Message); ok {
+	if _, ok := msg.(*KGRound2Message); ok {
 		return !msg.IsBroadcast()
 	}
-	if _, ok := msg.(*dcrm.KGRound2Message1); ok {
+	if _, ok := msg.(*KGRound2Message1); ok {
 		return msg.IsBroadcast()
 	}
 	return false

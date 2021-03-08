@@ -23,7 +23,7 @@ func (round *round6) Start() error {
 	    return err
 	}
 
-	msg5,_ := round.temp.signRound5Messages[0].(*dcrm.SignRound5Message)
+	msg5,_ := round.temp.signRound5Messages[0].(*SignRound5Message)
 	deltaSum := msg5.Delta1
 
 	for k,_ := range round.idsign {
@@ -31,7 +31,7 @@ func (round *round6) Start() error {
 		continue
 	    }
 		
-	    msg5,_ := round.temp.signRound5Messages[k].(*dcrm.SignRound5Message)
+	    msg5,_ := round.temp.signRound5Messages[k].(*SignRound5Message)
 	    deltaSum = new(big.Int).Add(deltaSum,msg5.Delta1)
 	}
 	deltaSum = new(big.Int).Mod(deltaSum, secp256k1.S256().N)
@@ -39,8 +39,8 @@ func (round *round6) Start() error {
 
 	u1GammaZKProof := ec2.ZkUProve(round.temp.u1Gamma)
 	
-	srm := &dcrm.SignRound6Message{
-	    SignRoundMessage: new(dcrm.SignRoundMessage),
+	srm := &SignRound6Message{
+	    SignRoundMessage: new(SignRoundMessage),
 	    CommU1D:round.temp.commitU1GammaG.D,
 	    U1GammaZKProof:u1GammaZKProof,
 	}
@@ -56,7 +56,7 @@ func (round *round6) Start() error {
 }
 
 func (round *round6) CanAccept(msg dcrm.Message) bool {
-	if _, ok := msg.(*dcrm.SignRound6Message); ok {
+	if _, ok := msg.(*SignRound6Message); ok {
 		return msg.IsBroadcast()
 	}
 	return false

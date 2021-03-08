@@ -19,8 +19,8 @@ func (round *round3) Start() error {
 	    return err
 	}
 
-	kg := &dcrm.KGRound3Message{
-	    KGRoundMessage:new(dcrm.KGRoundMessage),
+	kg := &KGRound3Message{
+	    KGRoundMessage:new(KGRoundMessage),
 	    ComU1GD:round.temp.commitU1G.D,
 	    ComC1GD:round.temp.commitC1G.D,
 	    U1PolyGG:round.temp.u1PolyG.PolyG,
@@ -35,7 +35,7 @@ func (round *round3) Start() error {
 }
 
 func (round *round3) CanAccept(msg dcrm.Message) bool {
-	if _, ok := msg.(*dcrm.KGRound3Message); ok {
+	if _, ok := msg.(*KGRound3Message); ok {
 		return msg.IsBroadcast()
 	}
 	return false

@@ -18,7 +18,7 @@ func (round *round9) Start() error {
 	round.started = true
 	round.resetOK()
 
-	msg7,_ := round.temp.signRound7Messages[0].(*dcrm.SignRound7Message)
+	msg7,_ := round.temp.signRound7Messages[0].(*SignRound7Message)
 	s := msg7.Us1
 
 	for k,_ := range round.idsign {
@@ -26,7 +26,7 @@ func (round *round9) Start() error {
 		continue
 	    }
 	    
-	    msg7,_ := round.temp.signRound7Messages[k].(*dcrm.SignRound7Message)
+	    msg7,_ := round.temp.signRound7Messages[k].(*SignRound7Message)
 	    s = new(big.Int).Add(s,msg7.Us1)
 	}
 	s = new(big.Int).Mod(s, secp256k1.S256().N)

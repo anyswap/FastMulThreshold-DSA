@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"time"
 	dcrmlib "github.com/anyswap/Anyswap-MPCNode/dcrm-lib/dcrm"
+	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/ecdsa/signing"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ec2"
 )
@@ -74,8 +75,8 @@ func SignGetRealMessage(msg map[string]string) dcrmlib.Message {
     if msg["Type"] == "SignRound1Message" {
 	    fmt.Printf("============ GetRealMessage, get real sign message 1 success, msg map = %v ===========\n",msg)
 	    c11,_ := new(big.Int).SetString(msg["C11"],10)
-	    srm := &dcrmlib.SignRound1Message{
-		SignRoundMessage:new(dcrmlib.SignRoundMessage),
+	    srm := &signing.SignRound1Message{
+		SignRoundMessage:new(signing.SignRoundMessage),
 		C11:c11,
 	    }
 	    srm.SetFromID(from)
@@ -90,8 +91,8 @@ func SignGetRealMessage(msg map[string]string) dcrmlib.Message {
 	if err := proof.UnmarshalJSON([]byte(msg["U1u1MtAZK1Proof"]));err == nil {
 
 	    fmt.Printf("============== SignGetRealMessage, U1u1MtAZK1Proof = %v, ==============\n",proof)
-	    srm := &dcrmlib.SignRound2Message{
-		SignRoundMessage:new(dcrmlib.SignRoundMessage),
+	    srm := &signing.SignRound2Message{
+		SignRoundMessage:new(signing.SignRoundMessage),
 		U1u1MtAZK1Proof:proof,
 	    }
 	    srm.SetFromID(from)
@@ -111,8 +112,8 @@ func SignGetRealMessage(msg map[string]string) dcrmlib.Message {
 	fmt.Printf("============ SignGetRealMessage, get real message 3 success, msg map = %v ===========\n",msg)
 	kc,_ := new(big.Int).SetString(msg["Kc"],10)
 	fmt.Printf("============ SignGetRealMessage, kc = %v ===========\n",kc)
-	srm := &dcrmlib.SignRound3Message{
-	    SignRoundMessage:new(dcrmlib.SignRoundMessage),
+	srm := &signing.SignRound3Message{
+	    SignRoundMessage:new(signing.SignRoundMessage),
 	    Kc:kc,
 	}
 	srm.SetFromID(from)
@@ -128,8 +129,8 @@ func SignGetRealMessage(msg map[string]string) dcrmlib.Message {
 	    fmt.Printf("============ GetRealMessage, get real message 4 success, msg map = %v ===========\n",msg)
 
 	    cipher,_ := new(big.Int).SetString(msg["U1KGamma1Cipher"],10)
-	    srm := &dcrmlib.SignRound4Message{
-		SignRoundMessage:new(dcrmlib.SignRoundMessage),
+	    srm := &signing.SignRound4Message{
+		SignRoundMessage:new(signing.SignRoundMessage),
 		U1KGamma1Cipher:cipher,
 		U1u1MtAZK2Proof:proof,
 	    }
@@ -149,8 +150,8 @@ func SignGetRealMessage(msg map[string]string) dcrmlib.Message {
 	    fmt.Printf("============ GetRealMessage, get real message 4-1 success, msg map = %v ===========\n",msg)
 
 	    cipher,_ := new(big.Int).SetString(msg["U1Kw1Cipher"],10)
-	    srm := &dcrmlib.SignRound4Message1{
-		SignRoundMessage:new(dcrmlib.SignRoundMessage),
+	    srm := &signing.SignRound4Message1{
+		SignRoundMessage:new(signing.SignRoundMessage),
 		U1Kw1Cipher:cipher,
 		U1u1MtAZK3Proof:proof,
 	    }
@@ -168,8 +169,8 @@ func SignGetRealMessage(msg map[string]string) dcrmlib.Message {
 	fmt.Printf("============ GetRealMessage, get real message 5 success, msg map = %v ===========\n",msg)
 
 	delta,_ := new(big.Int).SetString(msg["Delta1"],10)
-	srm := &dcrmlib.SignRound5Message{
-	    SignRoundMessage:new(dcrmlib.SignRoundMessage),
+	srm := &signing.SignRound5Message{
+	    SignRoundMessage:new(signing.SignRoundMessage),
 	    Delta1:delta,
 	}
 	srm.SetFromID(from)
@@ -190,8 +191,8 @@ func SignGetRealMessage(msg map[string]string) dcrmlib.Message {
 		dtmp[k],_ = new(big.Int).SetString(v,10)
 	    }
 
-	    srm := &dcrmlib.SignRound6Message{
-		SignRoundMessage:new(dcrmlib.SignRoundMessage),
+	    srm := &signing.SignRound6Message{
+		SignRoundMessage:new(signing.SignRoundMessage),
 		CommU1D:dtmp,
 		U1GammaZKProof:proof,
 	    }
@@ -209,8 +210,8 @@ func SignGetRealMessage(msg map[string]string) dcrmlib.Message {
 	fmt.Printf("============ GetRealMessage, get real message 7 success, msg map = %v ===========\n",msg)
 
 	us1,_ := new(big.Int).SetString(msg["Us1"],10)
-	srm := &dcrmlib.SignRound7Message{
-	    SignRoundMessage:new(dcrmlib.SignRoundMessage),
+	srm := &signing.SignRound7Message{
+	    SignRoundMessage:new(signing.SignRoundMessage),
 	    Us1:us1,
 	}
 	srm.SetFromID(from)
@@ -222,7 +223,7 @@ func SignGetRealMessage(msg map[string]string) dcrmlib.Message {
     return nil 
 }
 
-func processSign(msgprex string,msgtoenode map[string]string,errChan chan struct{},outCh <-chan dcrmlib.Message,endCh <-chan dcrmlib.PrePubData) (*dcrmlib.PrePubData,error) {
+func processSign(msgprex string,msgtoenode map[string]string,errChan chan struct{},outCh <-chan dcrmlib.Message,endCh <-chan signing.PrePubData) (*signing.PrePubData,error) {
 	for {
 		select {
 		case <-errChan: // when keyGenParty return

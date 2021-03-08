@@ -1,10 +1,11 @@
-package dcrm
+package keygen 
 
 import (
 	"math/big"
 	"strings"
 	"fmt"
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ec2"
+	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/dcrm"
 )
 
 type LocalDNodeSaveData struct {
@@ -18,7 +19,7 @@ type LocalDNodeSaveData struct {
     U1PaillierPk []*ec2.PublicKey
     U1NtildeH1H2 []*ec2.NtildeH1H2
 
-    Ids SortableIDSSlice 
+    Ids dcrm.SortableIDSSlice 
     CurDNodeID *big.Int
 }
 
@@ -121,7 +122,7 @@ func GetLocalDNodeSaveData(data map[string]string) *LocalDNodeSaveData {
     }
 
     idstmp := strings.Split(data["Ids"],"|")
-    ids := make(SortableIDSSlice,len(idstmp))
+    ids := make(dcrm.SortableIDSSlice,len(idstmp))
     for k,v := range idstmp {
 	ids[k],_ = new(big.Int).SetString(v,10)
     }

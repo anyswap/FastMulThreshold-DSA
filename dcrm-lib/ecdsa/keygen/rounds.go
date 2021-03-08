@@ -10,10 +10,10 @@ import (
 
 type (
 	base struct {
-		Save   *dcrm.LocalDNodeSaveData 
+		Save   *LocalDNodeSaveData 
 		temp    *localTempData
 		out     chan<- dcrm.Message 
-		end     chan<- dcrm.LocalDNodeSaveData
+		end     chan<- LocalDNodeSaveData
 		ok      []bool
 		started bool
 		number  int

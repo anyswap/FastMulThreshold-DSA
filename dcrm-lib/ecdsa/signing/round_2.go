@@ -56,8 +56,8 @@ func (round *round2) Start() error {
 	    u1u1MtAZK1Proof := ec2.MtAZK1Prove_nhh(round.temp.u1K,round.temp.ukc2,u1PaillierPk,u1nt)
 	   
 	    fmt.Printf("==============round2.start,cur_index = %v,oldindex = %v,index = %v, u1K = %v, ukc = %v, ukc2 = %v, pk = %v, ntilde = %v, u1u1MtAZK1Proof = %v ============\n",cur_index,oldindex,index,round.temp.u1K,round.temp.ukc,round.temp.ukc2,u1PaillierPk,u1nt,u1u1MtAZK1Proof)
-	    srm := &dcrm.SignRound2Message{
-		SignRoundMessage: new(dcrm.SignRoundMessage),
+	    srm := &SignRound2Message{
+		SignRoundMessage: new(SignRoundMessage),
 		U1u1MtAZK1Proof: u1u1MtAZK1Proof,
 	    }
 	    srm.SetFromID(round.kgid)
@@ -76,7 +76,7 @@ func (round *round2) Start() error {
 }
 
 func (round *round2) CanAccept(msg dcrm.Message) bool {
-	if _, ok := msg.(*dcrm.SignRound2Message); ok {
+	if _, ok := msg.(*SignRound2Message); ok {
 		return !msg.IsBroadcast()
 	}
 	return false

@@ -40,8 +40,8 @@ func (round *round4) Start() error {
 		}
 	    }
 
-	    msg2,_ := round.temp.signRound2Messages[k].(*dcrm.SignRound2Message)
-	    msg3,_ := round.temp.signRound3Messages[k].(*dcrm.SignRound3Message)
+	    msg2,_ := round.temp.signRound2Messages[k].(*SignRound2Message)
+	    msg3,_ := round.temp.signRound3Messages[k].(*SignRound3Message)
 	    
 	    if k == cur_index {
 		u1PaillierPk := round.save.U1PaillierPk[index]
@@ -105,15 +105,15 @@ func (round *round4) Start() error {
 
 	    if k == cur_index {
 		u1PaillierPk := round.save.U1PaillierPk[index]
-		msg3,_ := round.temp.signRound3Messages[k].(*dcrm.SignRound3Message)
+		msg3,_ := round.temp.signRound3Messages[k].(*SignRound3Message)
 		u1KGamma1Cipher := u1PaillierPk.HomoMul(msg3.Kc,round.temp.u1Gamma)
 		beta1U1StarCipher, u1BetaR1, _ := u1PaillierPk.Encrypt(betaU1Star[k])
 		u1KGamma1Cipher = u1PaillierPk.HomoAdd(u1KGamma1Cipher,beta1U1StarCipher)
 		//u1nt := round.save.U1NtildeH1H2[index]
 		u1u1MtAZK2Proof := ec2.MtAZK2Prove_nhh(round.temp.u1Gamma, betaU1Star[k], u1BetaR1, round.temp.ukc,round.save.U1PaillierPk[oldindex],round.save.U1NtildeH1H2[oldindex])
 	    
-		srm := &dcrm.SignRound4Message{
-		    SignRoundMessage: new(dcrm.SignRoundMessage),
+		srm := &SignRound4Message{
+		    SignRoundMessage: new(SignRoundMessage),
 		    U1KGamma1Cipher:u1KGamma1Cipher,
 		    U1u1MtAZK2Proof:u1u1MtAZK2Proof,
 		}
@@ -123,15 +123,15 @@ func (round *round4) Start() error {
 
 	    } else {
 		u1PaillierPk := round.save.U1PaillierPk[index]
-		msg3,_ := round.temp.signRound3Messages[k].(*dcrm.SignRound3Message)
+		msg3,_ := round.temp.signRound3Messages[k].(*SignRound3Message)
 		u1KGamma1Cipher := u1PaillierPk.HomoMul(msg3.Kc,round.temp.u1Gamma)
 		beta1U1StarCipher, u1BetaR1, _ := u1PaillierPk.Encrypt(betaU1Star[k])
 		u1KGamma1Cipher = u1PaillierPk.HomoAdd(u1KGamma1Cipher,beta1U1StarCipher)
 		//u1nt := round.save.U1NtildeH1H2[index]
 		u1u1MtAZK2Proof := ec2.MtAZK2Prove_nhh(round.temp.u1Gamma, betaU1Star[k], u1BetaR1, msg3.Kc,u1PaillierPk,round.save.U1NtildeH1H2[oldindex])
 		
-		srm := &dcrm.SignRound4Message{
-		    SignRoundMessage: new(dcrm.SignRoundMessage),
+		srm := &SignRound4Message{
+		    SignRoundMessage: new(SignRoundMessage),
 		    U1KGamma1Cipher:u1KGamma1Cipher,
 		    U1u1MtAZK2Proof:u1u1MtAZK2Proof,
 		}
@@ -155,14 +155,14 @@ func (round *round4) Start() error {
 
 	    if k == cur_index {
 		u1PaillierPk := round.save.U1PaillierPk[index]
-		msg3,_ := round.temp.signRound3Messages[k].(*dcrm.SignRound3Message)
+		msg3,_ := round.temp.signRound3Messages[k].(*SignRound3Message)
 		u1Kw1Cipher := u1PaillierPk.HomoMul(msg3.Kc,round.temp.w1)
 		v1U1StarCipher,u1VR1, _ := u1PaillierPk.Encrypt(vU1Star[k])
 		u1Kw1Cipher = u1PaillierPk.HomoAdd(u1Kw1Cipher, v1U1StarCipher)                                       // send to u1
 		u1u1MtAZK3Proof := ec2.MtAZK3Prove_nhh(round.temp.w1, vU1Star[k], u1VR1, round.temp.ukc, round.save.U1PaillierPk[oldindex],round.save.U1NtildeH1H2[oldindex])
 	    
-		srm := &dcrm.SignRound4Message1{
-		    SignRoundMessage: new(dcrm.SignRoundMessage),
+		srm := &SignRound4Message1{
+		    SignRoundMessage: new(SignRoundMessage),
 		    U1Kw1Cipher:u1Kw1Cipher,
 		    U1u1MtAZK3Proof:u1u1MtAZK3Proof,
 		}
@@ -172,14 +172,14 @@ func (round *round4) Start() error {
 
 	    } else {
 		u1PaillierPk := round.save.U1PaillierPk[index]
-		msg3,_ := round.temp.signRound3Messages[k].(*dcrm.SignRound3Message)
+		msg3,_ := round.temp.signRound3Messages[k].(*SignRound3Message)
 		u1Kw1Cipher := u1PaillierPk.HomoMul(msg3.Kc,round.temp.w1)
 		v1U1StarCipher,u1VR1, _ := u1PaillierPk.Encrypt(vU1Star[k])
 		u1Kw1Cipher = u1PaillierPk.HomoAdd(u1Kw1Cipher, v1U1StarCipher)                                       // send to u1
 		u1u1MtAZK3Proof := ec2.MtAZK3Prove_nhh(round.temp.w1, vU1Star[k], u1VR1, msg3.Kc, u1PaillierPk,round.save.U1NtildeH1H2[oldindex])
 		
-		srm := &dcrm.SignRound4Message1{
-		    SignRoundMessage: new(dcrm.SignRoundMessage),
+		srm := &SignRound4Message1{
+		    SignRoundMessage: new(SignRoundMessage),
 		    U1Kw1Cipher:u1Kw1Cipher,
 		    U1u1MtAZK3Proof:u1u1MtAZK3Proof,
 		}
@@ -196,10 +196,10 @@ func (round *round4) Start() error {
 }
 
 func (round *round4) CanAccept(msg dcrm.Message) bool {
-	if _, ok := msg.(*dcrm.SignRound4Message); ok {
+	if _, ok := msg.(*SignRound4Message); ok {
 		return !msg.IsBroadcast()
 	}
-	if _, ok := msg.(*dcrm.SignRound4Message1); ok {
+	if _, ok := msg.(*SignRound4Message1); ok {
 		return !msg.IsBroadcast()
 	}
 	return false

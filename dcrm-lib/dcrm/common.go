@@ -4,24 +4,18 @@ package dcrm
 import (
     "math/big"
     "encoding/hex"
-    "encoding/gob"
-    "encoding/json"
-    "bytes"
+    //"encoding/gob"
+    //"encoding/json"
+    //"bytes"
     "strings"
     "fmt"
     "crypto/rand"
     "github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 )
 
-func Encode(obj interface{}) (string, error) {
+/*func Encode(obj interface{}) (string, error) {
     switch ch := obj.(type) {
-    case *KGRound1Message:
-	    /*ch := obj.(*KGRound1Message)
-	    ret,err := json.Marshal(ch)
-	    if err != nil {
-		return "",err
-	    }
-	    return string(ret),nil*/
+    case *keygen.KGRound1Message:
 
 	    var buff bytes.Buffer
 	    enc := gob.NewEncoder(&buff)
@@ -31,8 +25,8 @@ func Encode(obj interface{}) (string, error) {
 		return "", err
 	    }
 	    return buff.String(), nil
-    case *LocalDNodeSaveData:
-	    ch2 := obj.(*LocalDNodeSaveData)
+    case *keygen.LocalDNodeSaveData:
+	    ch2 := obj.(*keygen.LocalDNodeSaveData)
 	    ret,err := json.Marshal(ch2)
 	    if err != nil {
 		return "",err
@@ -46,20 +40,12 @@ func Encode(obj interface{}) (string, error) {
 func Decode(s string, datatype string) (interface{}, error) {
 
 	if datatype == "KGRound1Message" {
-		/*var m KGRound1Message
-		err := json.Unmarshal([]byte(s), &m)
-		if err != nil {
-		    fmt.Println("================Decode,json Unmarshal err =%v===================",err)
-		    return nil,err
-		}
-
-		return &m,nil*/
 		var data bytes.Buffer
 		data.Write([]byte(s))
 
 		dec := gob.NewDecoder(&data)
 
-		var res KGRound1Message
+		var res keygen.KGRound1Message
 		err := dec.Decode(&res)
 		if err != nil {
 			return nil, err
@@ -69,7 +55,7 @@ func Decode(s string, datatype string) (interface{}, error) {
 	}
 
 	if datatype == "LocalDNodeSaveData" {
-		var m LocalDNodeSaveData
+		var m keygen.LocalDNodeSaveData
 		err := json.Unmarshal([]byte(s), &m)
 		if err != nil {
 		    return nil,err
@@ -80,6 +66,7 @@ func Decode(s string, datatype string) (interface{}, error) {
 
 	return nil, fmt.Errorf("decode obj fail.")
 }
+*/
 
 type SortableIDSSlice []*big.Int
 

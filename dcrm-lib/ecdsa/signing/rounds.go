@@ -2,6 +2,7 @@ package signing
 
 import (
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/dcrm"
+	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/ecdsa/keygen"
 	"math/big"
 	"errors"
 	//"sort"
@@ -11,17 +12,17 @@ import (
 type (
 	base struct {
 		temp    *localTempData
-		save   *dcrm.LocalDNodeSaveData
+		save   *keygen.LocalDNodeSaveData
 		idsign dcrm.SortableIDSSlice
 		out     chan<- dcrm.Message 
-		end     chan<- dcrm.PrePubData
+		end     chan<- PrePubData
 		ok      []bool
 		started bool
 		number  int
 		kgid string
 		threshold int
 		paillierkeylength int
-		predata *dcrm.PrePubData
+		predata *PrePubData
 		txhash *big.Int
 		finalize_end chan<- *big.Int 
 	}

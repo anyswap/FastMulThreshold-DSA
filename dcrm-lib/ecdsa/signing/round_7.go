@@ -21,8 +21,8 @@ func (round *round7) Start() error {
 	var GammaGSumx *big.Int
 	var GammaGSumy *big.Int
 	for k,_ := range round.idsign {
-	    msg1,_ := round.temp.signRound1Messages[k].(*dcrm.SignRound1Message)
-	    msg6,_ := round.temp.signRound6Messages[k].(*dcrm.SignRound6Message)
+	    msg1,_ := round.temp.signRound1Messages[k].(*SignRound1Message)
+	    msg6,_ := round.temp.signRound6Messages[k].(*SignRound6Message)
 	    deCommit := &ec2.Commitment{C: msg1.C11, D: msg6.CommU1D}
 	    if !deCommit.Verify() {
 		return errors.New("verify commit fail.")
@@ -44,8 +44,8 @@ func (round *round7) Start() error {
 		continue
 	    }
 
-	    msg1,_ := round.temp.signRound1Messages[k].(*dcrm.SignRound1Message)
-	    msg6,_ := round.temp.signRound6Messages[k].(*dcrm.SignRound6Message)
+	    msg1,_ := round.temp.signRound1Messages[k].(*SignRound1Message)
+	    msg6,_ := round.temp.signRound6Messages[k].(*SignRound6Message)
 	    deCommit := &ec2.Commitment{C: msg1.C11, D: msg6.CommU1D}
 	    _, u1GammaG := deCommit.DeCommit()
 	    GammaGSumx, GammaGSumy = secp256k1.S256().Add(GammaGSumx, GammaGSumy, u1GammaG[0], u1GammaG[1])
@@ -64,7 +64,7 @@ func (round *round7) Start() error {
 	    return errors.New("calc r fail.")
 	}
 
-	round.end <- dcrm.PrePubData{K1:round.temp.u1K,R:r,Ry:deltaGammaGy,Sigma1:round.temp.sigma1}
+	round.end <- PrePubData{K1:round.temp.u1K,R:r,Ry:deltaGammaGy,Sigma1:round.temp.sigma1}
 
 	fmt.Printf("============= round7.start success, current node id = %v =============\n",round.kgid)
 
