@@ -17,12 +17,12 @@
 package dcrm 
 
 import (
-	"bytes"
-	cryptorand "crypto/rand"
-	"crypto/sha512"
+	//"bytes"
+	//cryptorand "crypto/rand"
+	//"crypto/sha512"
 	"encoding/hex"
 	"fmt"
-	"io"
+	//"io"
 	"math/big"
 	//"strconv"
 	"sort"
@@ -32,11 +32,13 @@ import (
 	"encoding/json"
 	"sync"
 	"github.com/fsn-dev/cryptoCoins/coins"
-	"github.com/fsn-dev/cryptoCoins/coins/types"
+	//"github.com/fsn-dev/cryptoCoins/coins/types"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	dcrmlib "github.com/anyswap/Anyswap-MPCNode/dcrm-lib/dcrm"
 	keygen "github.com/anyswap/Anyswap-MPCNode/dcrm-lib/ecdsa/keygen"
+	edkeygen "github.com/anyswap/Anyswap-MPCNode/dcrm-lib/eddsa/keygen"
+	//"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ed"
 )
 
@@ -279,14 +281,16 @@ func dcrm_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 	cur_enode = GetSelfEnode()
 
-	if types.IsDefaultED25519(cointype) {
+	fmt.Printf("====================dcrm_genPubKey,cointype = %v ================\n",cointype)
+	if cointype == "ED25519" {
+	//if types.IsDefaultED25519(cointype) {
 		ok2 := false
 		for j := 0;j < recalc_times;j++ { //try 20 times
 		    if len(ch) != 0 {
 			<-ch
 		    }
 
-		    ok2 = KeyGenerate_ed(msgprex, ch, id, cointype)
+		    ok2 = KeyGenerate_DEDDSA(msgprex, ch, id, cointype)
 		    if ok2 {
 			break
 		    }
@@ -328,6 +332,7 @@ func dcrm_genPubKey(msgprex string, account string, cointype string, ch chan int
 		//rk := Keccak256Hash([]byte(strings.ToLower(account + ":" + cointype + ":" + wk.groupid + ":" + nonce + ":" + wk.limitnum + ":" + mode))).Hex()
 
 		pubkeyhex := hex.EncodeToString(sedpk)
+		fmt.Printf("====================dcrm_genPubKey,success get pubkey = %v =====================\n",pubkeyhex)
 		
 		pubs := &PubKeyData{Key:msgprex,Account: account, Pub: string(sedpk), Save: sedsave, Nonce: nonce, GroupId: wk.groupid, LimitNum: wk.limitnum, Mode: mode,KeyGenTime:tt}
 		epubs, err := Encode2(pubs)
@@ -675,7 +680,7 @@ func GetEnodesByUid(uid *big.Int, keytype string, groupid string) string {
 //ed
 //msgprex = hash
 //cointype == keytype    //ec || ed25519
-func KeyGenerate_ed(msgprex string, ch chan interface{}, id int, cointype string) bool {
+func KeyGenerate_DEDDSA(msgprex string, ch chan interface{}, id int, cointype string) bool {
 	if id < 0 || id >= RPCMaxWorker || id >= len(workers) {
 		res := RpcDcrmRes{Ret: "", Tip: "dcrm back-end internal error:no find worker id", Err: GetRetErr(ErrGetWorkerIdError)}
 		ch <- res
@@ -697,6 +702,42 @@ func KeyGenerate_ed(msgprex string, ch chan interface{}, id int, cointype string
 		return false
 	}
 
+	commStopChan := make(chan struct{})
+	outCh := make(chan dcrmlib.Message, ns)
+	endCh := make(chan edkeygen.LocalDNodeSaveData, ns)
+	errChan := make(chan struct{})
+	keyGenDNode := edkeygen.NewLocalDNode(outCh,endCh,ns,w.ThresHold)
+	w.DNode = keyGenDNode
+
+	w.MsgToEnode[w.DNode.DNodeID()] = cur_enode
+
+	var keyGenWg sync.WaitGroup
+	keyGenWg.Add(2)
+	go func() {
+		defer keyGenWg.Done()
+		if err := keyGenDNode.Start(); nil != err {
+		    fmt.Printf("==========ed,keygen node start err = %v, key = %v ==========\n",err,msgprex)
+			close(errChan)
+		}
+		
+		for _,v := range w.PreSaveDcrmMsg {
+		    w.DcrmMsg <- v 
+		}
+	}()
+	go ProcessInboundMessages_EDDSA(msgprex,commStopChan,&keyGenWg,ch)
+	err := processKeyGen_EDDSA(msgprex,errChan, outCh, endCh)
+	if err != nil {
+	    fmt.Printf("==========process ed keygen err = %v, key = %v ==========\n",err,msgprex)
+	    close(commStopChan)
+	    res := RpcDcrmRes{Ret: "", Err: err}
+	    ch <- res
+	    return false
+	}
+
+	close(commStopChan)
+	keyGenWg.Wait()
+
+	/*
 	rand := cryptorand.Reader
 	var seed [32]byte
 
@@ -1244,6 +1285,7 @@ func KeyGenerate_ed(msgprex string, ch chan interface{}, id int, cointype string
 	w.edsave.PushBack(save)
 	w.edsku1.PushBack(string(sk[:]))
 	w.edpk.PushBack(string(finalPkBytes[:]))
+*/
 
 	return true
 }
