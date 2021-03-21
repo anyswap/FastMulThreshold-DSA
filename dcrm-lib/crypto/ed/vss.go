@@ -126,7 +126,7 @@ func Verify_vss(share [32]byte, id [32]byte, cfsBBytes [][32]byte) bool {
 	rlt1.ToBytes(&rlt1Bytes)
 	rlt2.ToBytes(&rlt2Bytes)
 
-	fmt.Printf("======================Verify_vss,rlt1Bytes = %v, rlt2Bytes = %v ======================\n",rlt1Bytes[:],rlt2Bytes[:])
+	//fmt.Printf("======================Verify_vss,rlt1Bytes = %v, rlt2Bytes = %v ======================\n",rlt1Bytes[:],rlt2Bytes[:])
 	if bytes.Equal(rlt1Bytes[:], rlt2Bytes[:]) {
 		return true
 	} else {

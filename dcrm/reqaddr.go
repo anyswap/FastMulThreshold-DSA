@@ -281,7 +281,7 @@ func dcrm_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 	cur_enode = GetSelfEnode()
 
-	fmt.Printf("====================dcrm_genPubKey,cointype = %v ================\n",cointype)
+	//fmt.Printf("====================dcrm_genPubKey,cointype = %v ================\n",cointype)
 	if cointype == "ED25519" {
 	//if types.IsDefaultED25519(cointype) {
 		ok2 := false

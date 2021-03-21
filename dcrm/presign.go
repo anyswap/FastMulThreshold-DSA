@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"bytes"
+	//"bytes"
 
 	//"github.com/anyswap/Anyswap-MPCNode/mpcdsa/crypto/ec2"
 	//"github.com/anyswap/Anyswap-MPCNode/mpcdsa/ecdsa/signing"
@@ -41,10 +41,11 @@ import (
 	"container/list"
 	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/ecdsa/signing"
+	edsigning "github.com/anyswap/Anyswap-MPCNode/dcrm-lib/eddsa/signing"
 	dcrmlib "github.com/anyswap/Anyswap-MPCNode/dcrm-lib/dcrm"
-	"crypto/sha512"
-	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ed"
-	"github.com/agl/ed25519"
+	//"crypto/sha512"
+	//"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ed"
+	//"github.com/agl/ed25519"
 )
 
 var (
@@ -75,7 +76,7 @@ func SetSignNonce(account string,nonce string) (string, error) {
 	return "", nil
 }
 
-func SignInitAcceptData(sbd *SignBrocastData,workid int,sender string,ch chan interface{}) error {
+func SignInitAcceptData2(sbd *SignBrocastData,workid int,sender string,ch chan interface{}) error {
     if sbd == nil || workid < 0 || sender == "" || sbd.Raw == "" || sbd.PickHash == nil {
 	res := RpcDcrmRes{Ret: "", Tip: "init accept data fail.", Err: fmt.Errorf("init accept data fail")}
 	ch <- res
@@ -558,7 +559,7 @@ func InitAcceptData2(sbd *SignBrocastData,workid int,sender string,ch chan inter
 			///////bug
 			for k,v := range workers {
 			    if strings.EqualFold(v.sid, key) {
-				err = SignInitAcceptData(sbd,k,sender,ch)
+				err = SignInitAcceptData(sbd.Raw,k,sender,ch)
 				v.bwire <-true //add for dcrm-lib
 				return err 
 			    }
@@ -998,8 +999,14 @@ func Sign(raw string) (string, string, error) {
 
     common.Debug("=====================Sign================","key",key,"from",from,"raw",raw)
 
-    rsd := &RpcSignData{Raw:raw,PubKey:sig.PubKey,InputCode:sig.InputCode,GroupId:sig.GroupId,MsgHash:sig.MsgHash,Key:key}
-    SignChan <- rsd
+    if sig.Keytype == "ED25519" {
+	common.Info("============Sign,SendMsgToDcrmGroup===============","raw ",raw,"gid ",sig.GroupId,"key ",key)
+	SendMsgToDcrmGroup(raw, sig.GroupId)
+	SetUpMsgList(raw,cur_enode)
+    } else {
+	rsd := &RpcSignData{Raw:raw,PubKey:sig.PubKey,InputCode:sig.InputCode,GroupId:sig.GroupId,MsgHash:sig.MsgHash,Key:key}
+	SignChan <- rsd
+    }
     return key, "", nil
 }
 
@@ -1020,56 +1027,57 @@ func HandleRpcSign() {
 			    } else {
 				pub = Keccak256Hash([]byte(strings.ToLower(rsd.PubKey + ":" + rsd.GroupId))).Hex()
 			    }
-				bret := false
-				pickhash := make([]*PickHashKey,0)
-				for _,vv := range rsd.MsgHash {
-					pickkey := PickPrePubData(pub)
-					if pickkey == "" {
-						bret = true
-						break
+			    
+			    bret := false
+			    pickhash := make([]*PickHashKey,0)
+			    for _,vv := range rsd.MsgHash {
+				    pickkey := PickPrePubData(pub)
+				    if pickkey == "" {
+					    bret = true
+					    break
+				    }
+
+				    common.Info("========================HandleRpcSign,choose pickkey==================","txhash",vv,"pickkey",pickkey,"key",rsd.Key)
+				    ph := &PickHashKey{Hash:vv,PickKey:pickkey}
+				    pickhash = append(pickhash,ph)
+
+				    //check pre sigal
+				    if rsd.InputCode != "" {
+					if GetTotalCount(pub) >= (PreBip32DataCount/2) && GetTotalCount(pub) <= PreBip32DataCount {
+						PutPreSigal(pub,false)
+					} else {
+						PutPreSigal(pub,true)
 					}
-
-					common.Info("========================HandleRpcSign,choose pickkey==================","txhash",vv,"pickkey",pickkey,"key",rsd.Key)
-					ph := &PickHashKey{Hash:vv,PickKey:pickkey}
-					pickhash = append(pickhash,ph)
-
-					//check pre sigal
-					if rsd.InputCode != "" {
-					    if GetTotalCount(pub) >= (PreBip32DataCount/2) && GetTotalCount(pub) <= PreBip32DataCount {
-						    PutPreSigal(pub,false)
-					    } else {
-						    PutPreSigal(pub,true)
-					    }
- 					} else {
-					    if GetTotalCount(pub) >= (PrePubDataCount*3/4) && GetTotalCount(pub) <= PrePubDataCount {
-						    PutPreSigal(pub,false)
-					    } else {
-						    PutPreSigal(pub,true)
-					    }
- 					}
-					//
-				}
-
-				if bret {
-					continue
-				}
-
-				send,err := CompressSignBrocastData(rsd.Raw,pickhash)
-				if err != nil {
-					common.Info("=========================HandleRpcSign======================","rsd.Pubkey",rsd.PubKey,"key",rsd.Key,"exsit",exsit,"ok",ok,"bret",bret,"err",err)
-					DtPreSign.Lock()
-					for _,vv := range pickhash {
-						SetPrePubDataUseStatus(pub,vv.PickKey,false)
-						kd := UpdataPreSignData{Key:[]byte(strings.ToLower(pub)),Del:true,Data:vv.PickKey}
-						PrePubKeyDataChan <- kd
+				    } else {
+					if GetTotalCount(pub) >= (PrePubDataCount*3/4) && GetTotalCount(pub) <= PrePubDataCount {
+						PutPreSigal(pub,false)
+					} else {
+						PutPreSigal(pub,true)
 					}
-					DtPreSign.Unlock()
+				    }
+				    //
+			    }
 
-					continue
-				}
+			    if bret {
+				    continue
+			    }
 
-				SendMsgToDcrmGroup(send,rsd.GroupId)
-				SetUpMsgList(send,cur_enode)
+			    send,err := CompressSignBrocastData(rsd.Raw,pickhash)
+			    if err != nil {
+				    common.Info("=========================HandleRpcSign======================","rsd.Pubkey",rsd.PubKey,"key",rsd.Key,"exsit",exsit,"ok",ok,"bret",bret,"err",err)
+				    DtPreSign.Lock()
+				    for _,vv := range pickhash {
+					    SetPrePubDataUseStatus(pub,vv.PickKey,false)
+					    kd := UpdataPreSignData{Key:[]byte(strings.ToLower(pub)),Del:true,Data:vv.PickKey}
+					    PrePubKeyDataChan <- kd
+				    }
+				    DtPreSign.Unlock()
+
+				    continue
+			    }
+
+			    SendMsgToDcrmGroup(send,rsd.GroupId)
+			    SetUpMsgList(send,cur_enode)
 			}
 		}
 	}
@@ -1210,8 +1218,8 @@ func sign_ed(msgprex string,txhash []string,save string, sku1 *big.Int, pk strin
 		    <-ch1
 		}
 
-		w := workers[id]
-		w.Clear2()
+		//w := workers[id]
+		//w.Clear2()
 		bak_sig = Sign_ed(msgprex, save, sku1, v, keytype, pk, ch1, id)
 		ret, _, cherr := GetChannelValue(ch_t, ch1)
 		if ret != "" && cherr == nil {
@@ -1255,30 +1263,66 @@ func Sign_ed(msgprex string, save string, sku1 *big.Int, message string, cointyp
 		return ""
 	}
 
-	ns, _ := GetGroup(GroupId)
-	if ns != w.NodeCnt {
-		logs.Debug("Sign_ed,get nodes info error.")
-		res := RpcDcrmRes{Ret: "", Tip: "dcrm back-end internal error:the group is not ready", Err: GetRetErr(ErrGroupNotReady)}
-		ch <- res
-		return ""
-	}
-
-	/*msgmap := make(map[string]string)
+	msgmap := make(map[string]string)
 	err := json.Unmarshal([]byte(save), &msgmap)
 	if err != nil {
-	    res := RpcDcrmRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
+	    res := RpcDcrmRes{Ret: "", Tip: "ed presign get local save data fail", Err: fmt.Errorf("ed presign get local save data fail")}
 	    ch <- res
 	    return "" 
 	}
-	kgsave := GetKGLocalDBSaveData(msgmap)
+	kgsave := GetKGLocalDBSaveData_ed(msgmap)
 	if kgsave == nil {
-	    res := RpcDcrmRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
+	    res := RpcDcrmRes{Ret: "", Tip: "ed presign get local save data fail", Err: fmt.Errorf("ed presign get local save data fail")}
 	    ch <- res
 	    return ""
 	}
-	sd := kgsave.Save*/
+	sd := kgsave.Save
 	
-	ids := GetIds(cointype, GroupId)
+	idsign := GetIdSignByGroupId_ed(sd.Ids,kgsave.MsgToEnode,w.groupid)
+	//for k,v := range idsign {
+	  //  fmt.Printf("================ed sign,get idsign, k = %v, v = %v ================\n",k,v)
+	//}
+
+	mMtA, _ := new(big.Int).SetString(message, 16)
+	fmt.Printf("==============Sign_ed, w.groupid = %v, message = %v ==============\n",w.groupid,message)
+
+	commStopChan := make(chan struct{})
+	outCh := make(chan dcrmlib.Message, w.ThresHold)
+	endCh := make(chan edsigning.EdSignData,w.ThresHold)
+	finalize_endCh := make(chan *big.Int,w.ThresHold) //useness
+	errChan := make(chan struct{})
+	signDNode := edsigning.NewLocalDNode(outCh,endCh,sd,idsign,sd.CurDNodeID,w.ThresHold,PaillierKeyLength,false,nil,mMtA,finalize_endCh)
+	w.DNode = signDNode
+	
+	var signWg sync.WaitGroup
+	signWg.Add(2)
+	go func() {
+		defer signWg.Done()
+		if err := signDNode.Start(); nil != err {
+		    fmt.Printf("==========ed sign node start err = %v ==========\n",err)
+			close(errChan)
+		}
+		
+		//fmt.Printf("=================ed sign, handle save msg 111111, len w.PreSaveDcrmMsg = %v, key = %v ===================\n",len(w.PreSaveDcrmMsg),msgprex)
+		for _,v := range w.PreSaveDcrmMsg {
+		    fmt.Printf("=================ed sign, handle save msg, v = %v, key = %v ===================\n",v,msgprex)
+		    w.DcrmMsg <- v 
+		}
+	}()
+	go EdSignProcessInboundMessages(msgprex,commStopChan,&signWg,ch)
+	edrs,err := processSign_ed(msgprex,kgsave.MsgToEnode,errChan, outCh, endCh)
+	if err != nil || edrs == nil {
+	    fmt.Printf("==========process ed sign err = %v ==========\n",err)
+	    close(commStopChan)
+	    res := RpcDcrmRes{Ret: "", Err: err}
+	    ch <- res
+	    return "" 
+	}
+
+	close(commStopChan)
+	signWg.Wait()
+
+	/*ids := GetIds(cointype, GroupId)
 	idSign := ids[:w.ThresHold]
 
 	m := strings.Split(save, common.Sep11)
@@ -1844,61 +1888,11 @@ func Sign_ed(msgprex string, save string, sku1 *big.Int, message string, cointyp
 	suss := ed25519.Verify(&pkfinal, []byte(message), signature)
 	common.Debug("===========ed verify again============","pass",suss)
 	//////
+	*/
 
-	res := RpcDcrmRes{Ret: rx + ":" + sx, Tip: "", Err: nil}
+	res := RpcDcrmRes{Ret: edrs.Rx + ":" + edrs.Sx, Tip: "", Err: nil}
 	ch <- res
 	return ""
-}
-
-type InputVerify struct {
-	FinalR  [32]byte
-	FinalS  [32]byte
-	Message []byte
-	FinalPk [32]byte
-}
-
-func EdVerify(input InputVerify) bool {
-	// 1. calculate k
-	var k [32]byte
-	var kDigest [64]byte
-
-	h := sha512.New()
-	_,err := h.Write(input.FinalR[:])
-	if err != nil {
-	    return false
-	}
-
-	_,err = h.Write(input.FinalPk[:])
-	if err != nil {
-	    return false
-	}
-
-	_,err = h.Write(input.Message[:])
-	if err != nil {
-	    return false
-	}
-
-	h.Sum(kDigest[:0])
-
-	ed.ScReduce(&k, &kDigest)
-
-	// 2. verify the equation
-	var R, pkB, sB, sBCal ed.ExtendedGroupElement
-	pkB.FromBytes(&(input.FinalPk))
-	R.FromBytes(&(input.FinalR))
-
-	ed.GeScalarMult(&sBCal, &k, &pkB)
-	ed.GeAdd(&sBCal, &R, &sBCal)
-
-	ed.GeScalarMultBase(&sB, &(input.FinalS))
-
-	var sBBytes, sBCalBytes [32]byte
-	sB.ToBytes(&sBBytes)
-	sBCal.ToBytes(&sBCalBytes)
-
-	pass := bytes.Equal(sBBytes[:], sBCalBytes[:])
-
-	return pass
 }
 
 func sign(wsid string,account string,pubkey string,inputcode string,unsignhash []string,keytype string,nonce string,mode string,pickhash []*PickHashKey ,ch chan interface{}) {
@@ -2795,6 +2789,34 @@ func GetIdSignByGroupId(msgtoenode map[string]string,groupid string) dcrmlib.Sor
     
     sort.Sort(ids)
     return ids
+}
+
+func GetIdSignByGroupId_ed(ids dcrmlib.SortableIDSSlice,msgtoenode map[string]string,groupid string) dcrmlib.SortableIDSSlice {
+    var signids dcrmlib.SortableIDSSlice
+
+    _, enodes := GetGroup(groupid)
+    nodes := strings.Split(enodes, common.Sep2)
+    for _, node := range nodes {
+	node2 := ParseNode(node)
+	for key,value := range msgtoenode {
+	    if strings.EqualFold(value,node2) {
+
+		for _,v := range ids {
+		    var id [32]byte
+		    copy(id[:],v.Bytes())
+		    if strings.EqualFold(hex.EncodeToString(id[:]),key) {
+			signids = append(signids,v)
+			break
+		    }
+
+		}
+		break
+	    }
+	}
+    }
+    
+    sort.Sort(signids)
+    return signids
 }
 
 //msgprex = hash

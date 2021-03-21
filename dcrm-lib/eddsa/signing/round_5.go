@@ -7,12 +7,13 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/dcrm"
 )
 
-func (round *round3) Start() error {
+func (round *round5) Start() error {
 	if round.started {
-	    fmt.Printf("============= round3.start fail =======\n")
+	    fmt.Printf("============= ed sign,round5.start fail =======\n")
 	    return errors.New("round already started")
 	}
-	round.number = 3
+
+	round.number = 5
 	round.started = true
 	round.resetOK()
 
@@ -21,30 +22,30 @@ func (round *round3) Start() error {
 	    return err
 	}
 
-	fmt.Printf("============ round3.start, kc = %v, cur_index = %v ===========\n",round.temp.ukc)
-	srm := &SignRound3Message{
+	srm := &SignRound5Message{
 	    SignRoundMessage: new(SignRoundMessage),
-	    Kc:round.temp.ukc,
+	    DSB:round.temp.DSB,
 	}
 	srm.SetFromID(round.kgid)
 	srm.SetFromIndex(cur_index)
 
-	round.temp.signRound3Messages[cur_index] = srm
-	round.out <- srm
+	round.temp.signRound5Messages[cur_index] = srm
+	round.out <-srm
+    
+	fmt.Printf("============= ed sign,round5.start success, current node id = %v =============\n",round.kgid)
 
-	fmt.Printf("============= round3.start success, current node id = %v =======\n",round.kgid)
 	return nil
 }
 
-func (round *round3) CanAccept(msg dcrm.Message) bool {
-	if _, ok := msg.(*SignRound3Message); ok {
+func (round *round5) CanAccept(msg dcrm.Message) bool {
+	if _, ok := msg.(*SignRound5Message); ok {
 		return msg.IsBroadcast()
 	}
 	return false
 }
 
-func (round *round3) Update() (bool, error) {
-	for j, msg := range round.temp.signRound3Messages {
+func (round *round5) Update() (bool, error) {
+	for j, msg := range round.temp.signRound5Messages {
 		if round.ok[j] {
 			continue
 		}
@@ -57,9 +58,9 @@ func (round *round3) Update() (bool, error) {
 	return true, nil
 }
 
-func (round *round3) NextRound() dcrm.Round {
+func (round *round5) NextRound() dcrm.Round {
     //fmt.Printf("========= round.next round ========\n")
     round.started = false
-    return &round4{round}
+    return &round6{round}
 }
 

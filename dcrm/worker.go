@@ -786,6 +786,8 @@ func (w *RPCReqWorker) Clear() {
 	if len(w.bwire) == 1 {
 		<-w.bwire
 	}
+
+	//fmt.Printf("=====================RpcReqWorker.Clear, reset w.DcrmMsg, key = %v =====================\n",w.sid)
 	w.DcrmMsg = make(chan string,100)
 	w.DNode = nil
 	w.MsgToEnode = make(map[string]string)

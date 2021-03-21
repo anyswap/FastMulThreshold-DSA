@@ -385,7 +385,7 @@ func GetRealMessage_EDDSA(msg map[string]string) dcrmlib.Message {
 	kg.SetFromID(from)
 	kg.SetFromIndex(index)
 	kg.ToID = to
-	fmt.Printf("===================GetRealMessage_EDDSA,cpk = %v,index = %v =====================\n",temCpk,index)
+	//fmt.Printf("===================GetRealMessage_EDDSA,cpk = %v,index = %v =====================\n",temCpk,index)
 	return kg
     }
 
@@ -416,7 +416,7 @@ func GetRealMessage_EDDSA(msg map[string]string) dcrmlib.Message {
 	kg.SetFromID(from)
 	kg.SetFromIndex(index)
 	kg.ToID = to
-	fmt.Printf("===================GetRealMessage_EDDSA,dpk = %v,index = %v =====================\n",temdpk,index)
+	//fmt.Printf("===================GetRealMessage_EDDSA,dpk = %v,index = %v =====================\n",temdpk,index)
 	return kg
     }
 
@@ -432,7 +432,7 @@ func GetRealMessage_EDDSA(msg map[string]string) dcrmlib.Message {
 	kg.SetFromID(from)
 	kg.SetFromIndex(index)
 	kg.ToID = to
-	fmt.Printf("===================GetRealMessage_EDDSA,share = %v,index = %v =====================\n",temsh,index)
+	//fmt.Printf("===================GetRealMessage_EDDSA,share = %v,index = %v =====================\n",temsh,index)
 	return kg
     }
 
@@ -568,7 +568,7 @@ func ProcessOutCh(msgprex string,msg dcrmlib.Message) error {
 	    nodes := strings.Split(enodes, common.Sep2)
 	    for _, node := range nodes {
 		node2 := ParseNode(node)
-		fmt.Printf("===============ProcessOutCh, enode = %v,node2 = %v ==============\n",enode,node2)
+		//fmt.Printf("===============ProcessOutCh, enode = %v,node2 = %v ==============\n",enode,node2)
 		
 		if strings.EqualFold(enode,node2) {
 		    fmt.Printf("=========== ProcessOutCh,send msg = %v, group id = %v,send to peer = %v ===========\n",string(s),w.groupid,node)

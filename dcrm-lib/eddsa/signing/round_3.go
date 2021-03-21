@@ -10,7 +10,7 @@ import (
 func (round *round3) Start() error {
 	if round.started {
 	    fmt.Printf("============= round3.start fail =======\n")
-	    return errors.New("round already started")
+	    return errors.New("ed sign,round3 already started")
 	}
 	round.number = 3
 	round.started = true
@@ -21,10 +21,9 @@ func (round *round3) Start() error {
 	    return err
 	}
 
-	fmt.Printf("============ round3.start, kc = %v, cur_index = %v ===========\n",round.temp.ukc)
 	srm := &SignRound3Message{
 	    SignRoundMessage: new(SignRoundMessage),
-	    Kc:round.temp.ukc,
+	    DR:round.temp.DR,
 	}
 	srm.SetFromID(round.kgid)
 	srm.SetFromIndex(cur_index)
@@ -32,7 +31,7 @@ func (round *round3) Start() error {
 	round.temp.signRound3Messages[cur_index] = srm
 	round.out <- srm
 
-	fmt.Printf("============= round3.start success, current node id = %v =======\n",round.kgid)
+	fmt.Printf("============= ed sign,round3.start success, current node id = %v =======\n",round.kgid)
 	return nil
 }
 

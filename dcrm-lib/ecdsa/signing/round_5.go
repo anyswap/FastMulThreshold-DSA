@@ -124,7 +124,7 @@ func (round *round5) Update() (bool, error) {
 }
 
 func (round *round5) NextRound() dcrm.Round {
-    fmt.Printf("========= round.next round ========\n")
+    //fmt.Printf("========= round.next round ========\n")
     round.started = false
     return &round6{round}
 }

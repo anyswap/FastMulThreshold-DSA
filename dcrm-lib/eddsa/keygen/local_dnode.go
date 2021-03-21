@@ -8,7 +8,7 @@ import (
 	//"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	//"math/big"
 	"encoding/hex"
-	"strings"
+	//"strings"
 	"io"
 	cryptorand "crypto/rand"
 )
@@ -79,7 +79,7 @@ func NewLocalDNode(
 	one[0] = 1
 	ed.ScMulAdd(&id, &id, &one, &zero)
 
-	p.Id = strings.ToLower(hex.EncodeToString(id[:]))
+	p.Id = hex.EncodeToString(id[:])
 	//uid := dcrm.GetRandomIntFromZn(secp256k1.S256().N)
 	//p.Id = fmt.Sprintf("%v",uid)
 	fmt.Printf("=========== ed,NewLocalDNode, id = %v, p.Id = %v =============\n",id,p.Id)
@@ -121,7 +121,7 @@ func (p *LocalDNode) DNodeID() string { //lower
 }
 
 func (p *LocalDNode) SetDNodeID(id string) {
-	p.Id = strings.ToLower(id)
+	p.Id = id
 }
 
 func checkfull(msg []dcrm.Message) bool {

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"fmt"
 	//"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ed"
+	"encoding/hex"
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/dcrm"
 )
 
@@ -28,10 +29,18 @@ func NewLocalDNodeSaveData(DNodeCount int) (saveData LocalDNodeSaveData) {
 
 func (sd *LocalDNodeSaveData) OutMap() map[string]string {
     sdout := make(map[string]string)
-    sdout["Sk"] = string(sd.Sk[:])
-    sdout["Pk"] = string(sd.Pk[:])
-    sdout["TSk"] = string(sd.TSk[:])
-    sdout["FinalPkBytes"] = string(sd.FinalPkBytes[:])
+
+    sk := hex.EncodeToString(sd.Sk[:])
+    sdout["Sk"] = sk
+
+    pk := hex.EncodeToString(sd.Pk[:])
+    sdout["Pk"] = pk
+
+    tsk := hex.EncodeToString(sd.TSk[:])
+    sdout["TSk"] = tsk
+
+    finalpk := hex.EncodeToString(sd.FinalPkBytes[:])
+    sdout["FinalPkBytes"] = finalpk
 
     ids := make([]string,len(sd.Ids))
     for k,v := range sd.Ids {
@@ -47,13 +56,20 @@ func (sd *LocalDNodeSaveData) OutMap() map[string]string {
 func GetLocalDNodeSaveData(data map[string]string) *LocalDNodeSaveData {
 
     var Sk [64]byte
-    copy(Sk[:],[]byte(data["Sk"]))
+    sk,_ := hex.DecodeString(data["Sk"])
+    copy(Sk[:],sk[:])
+
     var TSk [32]byte
-    copy(TSk[:],[]byte(data["TSk"]))
+    tsk,_ := hex.DecodeString(data["TSk"])
+    copy(TSk[:],tsk[:])
+    
     var Pk [32]byte
-    copy(Pk[:],[]byte(data["Pk"]))
+    pk,_ := hex.DecodeString(data["Pk"])
+    copy(Pk[:],pk[:])
+    
     var FinalPkBytes [32]byte
-    copy(FinalPkBytes[:],[]byte(data["FinalPkBytes"]))
+    finalpk,_ := hex.DecodeString(data["FinalPkBytes"])
+    copy(FinalPkBytes[:],finalpk[:])
     
     idstmp := strings.Split(data["Ids"],"|")
     ids := make(dcrm.SortableIDSSlice,len(idstmp))
@@ -64,6 +80,8 @@ func GetLocalDNodeSaveData(data map[string]string) *LocalDNodeSaveData {
     curdnodeid, _ := new(big.Int).SetString(data["CurDNodeID"],10)
 
     sd := &LocalDNodeSaveData{Sk:Sk,TSk:TSk,Pk:Pk,FinalPkBytes:FinalPkBytes,Ids:ids,CurDNodeID:curdnodeid}
+
+    //fmt.Printf("===============ed sign,GetLocalDNodeSaveData, save.Sk = %v,save.Pk = %v,save.TSk = %v,save.FinalPkBytes = %v, save.Ids = %v, save.CurDNodeID = %v =================\n",hex.EncodeToString(sd.Sk[:]),hex.EncodeToString(sd.Pk[:]),hex.EncodeToString(sd.TSk[:]),hex.EncodeToString(sd.FinalPkBytes[:]),sd.Ids,sd.CurDNodeID)
     return sd
 }
 

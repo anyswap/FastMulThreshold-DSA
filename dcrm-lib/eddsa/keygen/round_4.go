@@ -2,7 +2,7 @@ package keygen
 
 import (
 	"errors"
-	"strings"
+	//"strings"
 	"encoding/hex"
 	"fmt"
 	//"math/big"
@@ -115,11 +115,11 @@ func (round *round4) Start() error {
 	//////
 
 	var uids [][32]byte
-	for k,v := range ids {
+	for _,v := range ids {
 	    var tem [32]byte
 	    tmp := v.Bytes()
 	    copy(tem[:], tmp[:])
-	    fmt.Printf("======================round4.start, uids len = %v, k = %v, v = %v, tmp = %v,tem = %v,cur_index = %v, node id = %v =================\n",len(tmp),k,v,tmp,tem,cur_index,round.dnodeid)
+	    //fmt.Printf("======================round4.start, k = %v, v = %v, tem = %v =================\n",k,v,hex.EncodeToString(tem[:]))
 	    if len(v.Bytes()) < 32 {
 		    l := len(v.Bytes())
 		    for j := l; j < 32; j++ {
@@ -146,19 +146,6 @@ func (round *round4) Start() error {
 	_, cfsBBytes, shares := ed.Vss(ask,uids,round.threshold,round.dnodecount)
 	round.temp.cfsBBytes = cfsBBytes
 
-	///test
-	for k,v := range shares {
-	    fmt.Printf("================round4.start, get shares key = %v, value = %v ===============\n",k,v)
-	}
-	for k,v := range cfsBBytes {
-	    fmt.Printf("================round4.start, get cfsBBytes cur_index = %v, key = %v, value = %v ===============\n",cur_index,k,v)
-	}
-	shareUFlag := ed.Verify_vss(shares[cur_index], uids[cur_index],cfsBBytes)
-	if !shareUFlag {
-	    fmt.Printf("====================round4.start,check local vss fail, cur index = %v, share = %v,uids[cur_index] = %v,cfsBBytes = %v ==================\n",cur_index,shares[cur_index],uids[cur_index],cfsBBytes)
-	}
-	///////
-
 	for k, id := range ids {
 	    kg := &KGRound4Message{
 		KGRoundMessage:new(KGRoundMessage),
@@ -168,14 +155,14 @@ func (round *round4) Start() error {
 	    kg.SetFromIndex(cur_index)
     
 	    if k == cur_index {
-		fmt.Printf("=========== ed,round4, it is self. share struct id = %v, share = %v, k = %v ===========\n",id,shares[k],k)
+		//fmt.Printf("=========== ed,round4, it is self. share struct id = %v, share = %v, k = %v ===========\n",id,shares[k],k)
 		round.temp.kgRound4Messages[k] = kg
 	    } else {
-		fmt.Printf("===========ed,round4, share struct id = %v, share = %v, k = %v ===========\n",id,shares[k],k)
+		//fmt.Printf("===========ed,round4, share struct id = %v, share = %v, k = %v ===========\n",id,shares[k],k)
 
 		var tmp [32]byte
 		copy(tmp[:],id.Bytes())
-		idtmp := strings.ToLower(hex.EncodeToString(tmp[:]))
+		idtmp := hex.EncodeToString(tmp[:])
 		kg.AppendToID(idtmp) //id-->dnodeid
 		round.out <-kg
 	    }

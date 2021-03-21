@@ -56,7 +56,7 @@ func (round *round6) Start() error {
 		return errors.New("ed,round.Start get round3 msg fail")
 	    }
 	  
-	    fmt.Printf("=====================round6.start,check vss, share = %v, id = %v,index = %v,uids[] = %v, cfsbtyes = %v,k = %v ============\n",msg4.Share,id,cur_index,round.temp.uids[cur_index],msg5.CfsBBytes,k)
+	    //fmt.Printf("=====================round6.start,check vss, share = %v, id = %v,index = %v,uids[] = %v, cfsbtyes = %v,k = %v ============\n",msg4.Share,id,cur_index,round.temp.uids[cur_index],msg5.CfsBBytes,k)
 
 	    shareUFlag := ed.Verify_vss(msg4.Share,round.temp.uids[cur_index],msg5.CfsBBytes)
 	    if !shareUFlag {
@@ -70,7 +70,7 @@ func (round *round6) Start() error {
 	    PkSet2 = append(PkSet2[:], (temPk[:])...)
 	}
 
-	fmt.Printf("===============================round6.start,check vss share success ===============================\n")
+	//fmt.Printf("===============================round6.start,check vss share success ===============================\n")
 	   
 	// 3.2 verify share2
 	var a2 [32]byte
@@ -176,6 +176,8 @@ func (round *round6) Start() error {
 	
 	round.Save.TSk = tSk
 	round.Save.FinalPkBytes = finalPkBytes
+
+	//fmt.Printf("===============round6.start, save.Sk = %v,save.Pk = %v,save.TSk = %v,save.FinalPkBytes = %v, save.Ids = %v, save.CurDNodeID = %v =================\n",hex.EncodeToString(round.Save.Sk[:]),hex.EncodeToString(round.Save.Pk[:]),hex.EncodeToString(round.Save.TSk[:]),hex.EncodeToString(round.Save.FinalPkBytes[:]),round.Save.Ids,round.Save.CurDNodeID)
 
 	round.end <- *round.Save
 	

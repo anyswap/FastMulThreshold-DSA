@@ -4,14 +4,14 @@ import (
 	"errors"
 	"fmt"
 	//"math/big"
-	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ec2"
+	//"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ed"
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/dcrm"
 )
 
 func (round *round2) Start() error {
 	if round.started {
 	    fmt.Printf("============= round2.start fail =======\n")
-	    return errors.New("round already started")
+	    return errors.New("ed sign,round2 already started")
 	}
 	round.number = 2
 	round.started = true
@@ -22,7 +22,7 @@ func (round *round2) Start() error {
 	    return err
 	}
 
-	oldindex := -1
+	/*oldindex := -1
 	for k,v := range round.save.Ids {
 	    if v.Cmp(round.save.CurDNodeID) == 0 {
 		oldindex = k
@@ -33,15 +33,6 @@ func (round *round2) Start() error {
 	if oldindex == -1 {
 	    return errors.New("error old index")
 	}
-
-	u1PaillierPk := round.save.U1PaillierPk[oldindex]
-	if u1PaillierPk == nil {
-	    return errors.New("error paillier pk for current node.")
-	}
-
-	u1KCipher,u1R,_ := u1PaillierPk.Encrypt(round.temp.u1K)
-	round.temp.ukc = u1KCipher 
-	round.temp.ukc2 = u1R
 
 	for k,v := range round.idsign {
 	    index := -1
@@ -70,14 +61,25 @@ func (round *round2) Start() error {
 		round.out <-srm
 	    }
 	}
+	*/
 	
-	fmt.Printf("============= round2.start success, current node id = %v =======\n",round.kgid)
+	srm := &SignRound2Message{
+	    SignRoundMessage: new(SignRoundMessage),
+	    ZkR: round.temp.zkR,
+	}
+	srm.SetFromID(round.kgid)
+	srm.SetFromIndex(cur_index)
+
+	round.temp.signRound2Messages[cur_index] = srm
+	round.out <- srm
+
+	fmt.Printf("============= ed sign,round2.start success, current node id = %v =======\n",round.kgid)
 	return nil
 }
 
 func (round *round2) CanAccept(msg dcrm.Message) bool {
 	if _, ok := msg.(*SignRound2Message); ok {
-		return !msg.IsBroadcast()
+		return msg.IsBroadcast()
 	}
 	return false
 }
