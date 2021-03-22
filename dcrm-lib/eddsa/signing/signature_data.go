@@ -63,6 +63,7 @@ func EdVerify(input InputVerify) bool {
 type EdSignData struct {
     Rx string
     Sx string
+    Sig [64]byte 
 }
 
 //TODO

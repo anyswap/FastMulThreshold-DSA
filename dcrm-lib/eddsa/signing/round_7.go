@@ -49,7 +49,7 @@ func (round *round7) Start() error {
 	suss := ed25519.Verify(&round.temp.pkfinal, []byte(round.temp.message), signature)
 	fmt.Printf("===========ed verify, success = %v============\n",suss)
 
-	round.end <- EdSignData{Rx:rx,Sx:sx}
+	round.end <- EdSignData{Rx:rx,Sx:sx,Sig:*signature}
 
 	fmt.Printf("============= round7.start success, current node id = %v =============\n",round.kgid)
 

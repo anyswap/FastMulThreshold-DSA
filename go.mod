@@ -14,6 +14,8 @@ require (
 	github.com/cosmos/ledger-cosmos-go v0.11.1 // indirect
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.7.1
+	github.com/dfuse-io/binary v0.0.0-20210216024852-4ae6830a495d
+	github.com/dfuse-io/solana-go v0.2.0
 	github.com/docker/docker v1.13.1
 	github.com/ethereum/go-ethereum v1.9.14
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
@@ -56,8 +58,6 @@ require (
 	github.com/multiformats/go-multiaddr v0.2.0
 	github.com/multiformats/go-multiaddr-dns v0.2.0 // indirect
 	github.com/onrik/ethrpc v1.0.0
-	github.com/onsi/ginkgo v1.12.0 // indirect
-	github.com/onsi/gomega v1.9.0 // indirect
 	github.com/pborman/uuid v1.2.0 // indirect
 	github.com/pelletier/go-toml v1.8.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -68,8 +68,6 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
-	github.com/spf13/cobra v1.0.0 // indirect
-	github.com/spf13/viper v1.7.0 // indirect
 	github.com/stretchr/testify v1.6.1 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
 	github.com/whyrusleeping/go-logging v0.0.1
@@ -78,9 +76,6 @@ require (
 	github.com/whyrusleeping/go-smux-yamux v2.0.9+incompatible // indirect
 	github.com/whyrusleeping/yamux v1.2.0 // indirect
 	github.com/zondax/ledger-go v0.11.0 // indirect
-	go.uber.org/atomic v1.5.1 // indirect
-	go.uber.org/multierr v1.4.0 // indirect
-	go.uber.org/zap v1.13.0 // indirect
 	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/net v0.0.0-20200904194848-62affa334b73
 	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 // indirect

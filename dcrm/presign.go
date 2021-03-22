@@ -43,9 +43,12 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/ecdsa/signing"
 	edsigning "github.com/anyswap/Anyswap-MPCNode/dcrm-lib/eddsa/signing"
 	dcrmlib "github.com/anyswap/Anyswap-MPCNode/dcrm-lib/dcrm"
+	//"github.com/fsn-dev/cryptoCoins/coins"
 	//"crypto/sha512"
 	//"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ed"
 	//"github.com/agl/ed25519"
+	//"bytes"
+	//bin "github.com/dfuse-io/binary"
 )
 
 var (
@@ -1890,7 +1893,9 @@ func Sign_ed(msgprex string, save string, sku1 *big.Int, message string, cointyp
 	//////
 	*/
 
-	res := RpcDcrmRes{Ret: edrs.Rx + ":" + edrs.Sx, Tip: "", Err: nil}
+	sig := hex.EncodeToString(edrs.Sig[:])
+	fmt.Printf("==================sign_ed,get the sig = %v ===================\n",sig)
+	res := RpcDcrmRes{Ret: sig, Tip: "", Err: nil}
 	ch <- res
 	return ""
 }
@@ -1947,6 +1952,122 @@ func sign(wsid string,account string,pubkey string,inputcode string,unsignhash [
 	var cherrtmp error
 	rch := make(chan interface{}, 1)
 	if keytype == "ED25519" {
+	    
+	    //xrp test
+	    /*chandler := coins.NewCryptocoinHandler("XRP")
+	    if chandler == nil {
+		    res := RpcDcrmRes{Ret: "", Tip: "cointype is not supported", Err: GetRetErr(ErrCoinTypeNotSupported)}
+		    ch <- res
+		    return
+	    }
+	    realdcrmfrom, err := chandler.PublicKeyToAddress(pubkey)
+	    if err != nil {
+		    res := RpcDcrmRes{Ret: "", Tip: "dcrm back-end internal error:get dcrm addr error from pubkey:" + pubkey, Err: fmt.Errorf("get dcrm addr fail")}
+		    ch <- res
+		    return
+	    }
+	    amount, ok := new(big.Int).SetString("1230000", 10)
+	    if !ok {
+		    res := RpcDcrmRes{Ret: "", Tip: "lockout value error", Err: fmt.Errorf("lockout value error")}
+		    ch <- res
+		    return
+	    }
+
+	    var lockouttx interface{}
+	    var digests []string
+	    var buildTxErr error
+	    lockouttx, digests, buildTxErr = chandler.BuildUnsignedTransaction(realdcrmfrom, pubkey, "rwybySLAzoJcqB44HQrwyk42z7jzu3GfSS", amount, "","xrp test")
+	    
+	    if buildTxErr != nil || lockouttx == nil || len(digests) == 0 {
+		    res := RpcDcrmRes{Ret: "", Tip: "dcrm back-end internal error:build unsign transaction fail", Err: buildTxErr}
+		    ch <- res
+		    return
+	    }
+
+	    sign_ed(wsid,digests,save,sku1,dcrmpub,keytype,rch)
+	    ret, tip, cherr := GetChannelValue(waitall, rch)
+	    if cherr != nil {
+		    res := RpcDcrmRes{Ret: "", Tip: tip, Err: cherr}
+		    ch <- res
+		    return
+	    }
+
+	    result = ret
+	    cherrtmp = cherr
+
+	    if cherr == nil {
+		var sigs []string
+		tmps := strings.Split(result, ":")
+		for _,rsv := range tmps {
+		    if rsv == "NULL" {
+			continue
+		    }
+
+		    sigs = append(sigs,rsv)
+		}
+
+		signedTx, err := chandler.MakeSignedTransaction(sigs, lockouttx)
+		if err != nil {
+			res := RpcDcrmRes{Ret: "", Tip: "dcrm back-end internal error:new sign transaction fail", Err: err}
+			ch <- res
+			return
+		}
+		lockout_tx_hash, err := chandler.SubmitTransaction(signedTx)
+		fmt.Printf("=====================ed sign,xrp test, lockout tx hash = %v, err = %v =====================\n",lockout_tx_hash,err)
+	    }*/
+	    ////////////xrp test
+
+	    ////////solana test
+	    /*fromaddr,err := PubkeyHexToAddress(pubkeyhex)
+	    if err != nil {
+		res := RpcDcrmRes{Ret: "", Tip: "dcrm back-end internal error:pubkey to dcrm addr fail", Err: err}
+		ch <- res
+		return
+	    }
+
+
+	    tx := buildUnsignedTx(fromaddr, "2z55nksdCojo3jDW5reezbZMEvBQmdgPvMa7djMn3vR4", big.NewInt(333))
+
+	    m := tx.Message
+	    buf := new(bytes.Buffer)
+	    err = bin.NewEncoder(buf).Encode(m)
+	    checkError(err)
+	    messageCnt := buf.Bytes()
+	    dig := hex.EncodeToString(messageCnt)
+	    var digests []string
+	    digests = append(digests,dig)
+
+	    sign_ed(wsid,digests,save,sku1,dcrmpub,keytype,rch)
+	    ret, tip, cherr := GetChannelValue(waitall, rch)
+	    if cherr != nil {
+		    res := RpcDcrmRes{Ret: "", Tip: tip, Err: cherr}
+		    ch <- res
+		    return
+	    }
+
+	    result = ret
+	    cherrtmp = cherr
+
+	    if cherr == nil {
+		var sigs []string
+		tmps := strings.Split(result, ":")
+		for _,rsv := range tmps {
+		    if rsv == "NULL" {
+			continue
+		    }
+
+		    sigs = append(sigs,rsv)
+		}
+
+		rsv,_ := hex.DecodeString(sigs[0])
+		var rs [64]byte
+		copy(rs[:],rsv[:])
+		signedTx := makeSignedTx(tx, rs[:])
+		simulateTx(signedTx)
+	    }*/
+	    /////////solana test
+
+	    
 	    sign_ed(wsid,unsignhash,save,sku1,dcrmpub,keytype,rch)
 	    ret, tip, cherr := GetChannelValue(waitall, rch)
 	    if cherr != nil {
@@ -1957,6 +2078,7 @@ func sign(wsid string,account string,pubkey string,inputcode string,unsignhash [
 
 	    result = ret
 	    cherrtmp = cherr
+	    
 	} else {
 	    sign_ec(wsid,unsignhash,save,sku1,dcrmpkx,dcrmpky,inputcode,keytype,pickhash,rch)
 	    ret, tip, cherr := GetChannelValue(waitall,rch)
@@ -1980,7 +2102,7 @@ func sign(wsid string,account string,pubkey string,inputcode string,unsignhash [
 
 	    //bug
 	    rets := []rune(rsv)
-	    if len(rets) != 130 {
+	    if keytype != "ED25519" && len(rets) != 130 {
 		    res := RpcDcrmRes{Ret: "", Tip: "dcrm back-end internal error:wrong rsv size", Err: GetRetErr(ErrDcrmSigWrongSize)}
 		    ch <- res
 		    return
