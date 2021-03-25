@@ -22,47 +22,6 @@ func (round *round2) Start() error {
 	    return err
 	}
 
-	/*oldindex := -1
-	for k,v := range round.save.Ids {
-	    if v.Cmp(round.save.CurDNodeID) == 0 {
-		oldindex = k
-		break
-	    }
-	}
-
-	if oldindex == -1 {
-	    return errors.New("error old index")
-	}
-
-	for k,v := range round.idsign {
-	    index := -1
-	    for kk,vv := range round.save.Ids {
-		if v.Cmp(vv) == 0 {
-		    index = kk
-		    break
-		}
-	    }
-
-	    u1nt := round.save.U1NtildeH1H2[index]
-	    u1u1MtAZK1Proof := ec2.MtAZK1Prove_nhh(round.temp.u1K,round.temp.ukc2,u1PaillierPk,u1nt)
-	   
-	    fmt.Printf("==============round2.start,cur_index = %v,oldindex = %v,index = %v, u1K = %v, ukc = %v, ukc2 = %v, pk = %v, ntilde = %v, u1u1MtAZK1Proof = %v ============\n",cur_index,oldindex,index,round.temp.u1K,round.temp.ukc,round.temp.ukc2,u1PaillierPk,u1nt,u1u1MtAZK1Proof)
-	    srm := &SignRound2Message{
-		SignRoundMessage: new(SignRoundMessage),
-		U1u1MtAZK1Proof: u1u1MtAZK1Proof,
-	    }
-	    srm.SetFromID(round.kgid)
-	    srm.SetFromIndex(cur_index)
-	    
-	    if cur_index == k {
-		round.temp.signRound2Messages[cur_index] = srm
-	    } else {
-		srm.AppendToID(fmt.Sprintf("%v",v))
-		round.out <-srm
-	    }
-	}
-	*/
-	
 	srm := &SignRound2Message{
 	    SignRoundMessage: new(SignRoundMessage),
 	    ZkR: round.temp.zkR,

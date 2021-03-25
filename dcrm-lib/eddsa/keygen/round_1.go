@@ -10,6 +10,7 @@ import (
 	cryptorand "crypto/rand"
 	"io"
 	"crypto/sha512"
+	//"crypto/ed25519/internal/edwards25519"
 )
 
 func (round *round1) Start() error {
@@ -30,6 +31,7 @@ func (round *round1) Start() error {
 	}
 
 	// 1.2 privateKey' = SHA512(seed)
+	
 	var sk [64]byte
 	var pk [32]byte
 
@@ -37,6 +39,7 @@ func (round *round1) Start() error {
 
 	seedDigest[0] &= 248
 	seedDigest[31] &= 127
+	//seedDigest[31] &= 63
 	seedDigest[31] |= 64
 
 	copy(sk[:], seedDigest[:])
@@ -49,6 +52,25 @@ func (round *round1) Start() error {
 	ed.GeScalarMultBase(&A, &temSk)
 
 	A.ToBytes(&pk)
+	///////////////////solana
+	/*var sk [64]byte
+	var pk [32]byte
+
+	seedDigest := sha512.Sum512(seed[:])
+
+	seedDigest[0] &= 248
+	seedDigest[31] &= 127
+	seedDigest[31] |= 64
+
+	var A ed.ExtendedGroupElement
+	var temSk [32]byte
+	copy(temSk[:], seedDigest[:])
+	ed.GeScalarMultBase(&A, &temSk)
+	A.ToBytes(&pk)
+
+	copy(sk[:], seed[:])
+	copy(sk[32:], pk[:])*/
+	/////////////////solana
 
 	CPk, DPk := ed.Commit(pk)
 	zkPk := ed.Prove(temSk)

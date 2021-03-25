@@ -25,7 +25,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	//"bytes"
 
 	//"github.com/anyswap/Anyswap-MPCNode/mpcdsa/crypto/ec2"
 	//"github.com/anyswap/Anyswap-MPCNode/mpcdsa/ecdsa/signing"
@@ -1282,9 +1281,6 @@ func Sign_ed(msgprex string, save string, sku1 *big.Int, message string, cointyp
 	sd := kgsave.Save
 	
 	idsign := GetIdSignByGroupId_ed(sd.Ids,kgsave.MsgToEnode,w.groupid)
-	//for k,v := range idsign {
-	  //  fmt.Printf("================ed sign,get idsign, k = %v, v = %v ================\n",k,v)
-	//}
 
 	mMtA, _ := new(big.Int).SetString(message, 16)
 	fmt.Printf("==============Sign_ed, w.groupid = %v, message = %v ==============\n",w.groupid,message)
@@ -1893,8 +1889,11 @@ func Sign_ed(msgprex string, save string, sku1 *big.Int, message string, cointyp
 	//////
 	*/
 
-	sig := hex.EncodeToString(edrs.Sig[:])
-	fmt.Printf("==================sign_ed,get the sig = %v ===================\n",sig)
+	signature := new([64]byte)
+	copy(signature[:], edrs.Rx[:])
+	copy(signature[32:], edrs.Sx[:])
+	sig := hex.EncodeToString(signature[:])
+	fmt.Printf("==================sign_ed,get the sig = %v, signature = %v ===================\n",sig,signature)
 	res := RpcDcrmRes{Ret: sig, Tip: "", Err: nil}
 	ch <- res
 	return ""
@@ -2018,13 +2017,12 @@ func sign(wsid string,account string,pubkey string,inputcode string,unsignhash [
 	    ////////////xrp test
 
 	    ////////solana test
-	    /*fromaddr,err := PubkeyHexToAddress(pubkeyhex)
+	    /*fromaddr,err := PubkeyHexToAddress(pubkey)
 	    if err != nil {
 		res := RpcDcrmRes{Ret: "", Tip: "dcrm back-end internal error:pubkey to dcrm addr fail", Err: err}
 		ch <- res
 		return
 	    }
-
 
 	    tx := buildUnsignedTx(fromaddr, "2z55nksdCojo3jDW5reezbZMEvBQmdgPvMa7djMn3vR4", big.NewInt(333))
 
@@ -2033,7 +2031,15 @@ func sign(wsid string,account string,pubkey string,inputcode string,unsignhash [
 	    err = bin.NewEncoder(buf).Encode(m)
 	    checkError(err)
 	    messageCnt := buf.Bytes()
-	    dig := hex.EncodeToString(messageCnt)
+	    
+	    //dig := hex.EncodeToString(messageCnt)
+	    //mt,_ := new(big.Int).SetString(dig,16)
+	    //mt2 := hex.EncodeToString(mt.Bytes())
+	    //fmt.Printf("====================ed sign,solona dig = %v, mt2 = %v ===================\n",dig,mt2)
+
+	    dig := hex.EncodeToString(messageCnt[:])
+	    fmt.Printf("===================ed sign,solana fromaddr = %v,msg = %v, msg str = %v ======================\n",fromaddr,messageCnt,dig)
+
 	    var digests []string
 	    digests = append(digests,dig)
 
@@ -2062,11 +2068,12 @@ func sign(wsid string,account string,pubkey string,inputcode string,unsignhash [
 		rsv,_ := hex.DecodeString(sigs[0])
 		var rs [64]byte
 		copy(rs[:],rsv[:])
+		fmt.Printf("======================ed sign,solana rsv1 = %v, sig = %v, rsv2 = %v, rs = %v ====================\n",ret,sigs[0],rsv,rs)
+
 		signedTx := makeSignedTx(tx, rs[:])
-		simulateTx(signedTx)
+		sendTx(signedTx)
 	    }*/
 	    /////////solana test
-
 	    
 	    sign_ed(wsid,unsignhash,save,sku1,dcrmpub,keytype,rch)
 	    ret, tip, cherr := GetChannelValue(waitall, rch)
@@ -2078,7 +2085,6 @@ func sign(wsid string,account string,pubkey string,inputcode string,unsignhash [
 
 	    result = ret
 	    cherrtmp = cherr
-	    
 	} else {
 	    sign_ec(wsid,unsignhash,save,sku1,dcrmpkx,dcrmpky,inputcode,keytype,pickhash,rch)
 	    ret, tip, cherr := GetChannelValue(waitall,rch)

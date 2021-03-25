@@ -332,10 +332,10 @@ func dcrm_genPubKey(msgprex string, account string, cointype string, ch chan int
 		//rk := Keccak256Hash([]byte(strings.ToLower(account + ":" + cointype + ":" + wk.groupid + ":" + nonce + ":" + wk.limitnum + ":" + mode))).Hex()
 
 		pubkeyhex := hex.EncodeToString(sedpk)
-		//dcrmaddrs,_,_ := GetDcrmAddr(pubkeyhex)
 		
+		//dcrmaddrs,_,_ := GetDcrmAddr(pubkeyhex)
 		//solana_addr,_ := PubkeyHexToAddress(pubkeyhex)
-		//fmt.Printf("====================dcrm_genPubKey,success get pubkey = %v,dcrm addr = %v =====================\n",pubkeyhex,dcrmaddrs,solana_addr)
+		//fmt.Printf("====================dcrm_genPubKey,success get pubkey = %v,dcrm addr = %v, solana addr = %v =====================\n",pubkeyhex,dcrmaddrs,solana_addr)
 		
 		pubs := &PubKeyData{Key:msgprex,Account: account, Pub: string(sedpk), Save: sedsave, Nonce: nonce, GroupId: wk.groupid, LimitNum: wk.limitnum, Mode: mode,KeyGenTime:tt}
 		epubs, err := Encode2(pubs)
@@ -355,7 +355,7 @@ func dcrm_genPubKey(msgprex string, account string, cointype string, ch chan int
 		}
 
 		common.Info("===============dcrm_genPubKey,start call AcceptReqAddr to update success status=================","account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",msgprex)
-		tip, reply := AcceptReqAddr("",account, "ALL", wk.groupid, nonce, wk.limitnum, mode, "true", "true", "Success", pubkeyhex, "", "", nil, id,"")
+		tip, reply := AcceptReqAddr("",account, cointype, wk.groupid, nonce, wk.limitnum, mode, "true", "true", "Success", pubkeyhex, "", "", nil, id,"")
 		if reply != nil {
 			common.Info("===============dcrm_genPubKey,update reqaddr status=================","err",reply,"account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",msgprex)
 			res := RpcDcrmRes{Ret: "", Tip: tip, Err: fmt.Errorf("update req addr status error.")}

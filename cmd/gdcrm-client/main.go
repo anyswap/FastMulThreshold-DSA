@@ -605,7 +605,8 @@ func signMsgHash(hashs []string, contexts []string,loopCount int) (rsv []string)
 	// get rawTx
 	reqKeyID, err := client.Call("dcrm_sign", rawTX)
 	if err != nil {
-		panic(err)
+		//panic(err)
+		return
 	}
 	// get keyID
 	keyID, err := getJSONResult(reqKeyID)

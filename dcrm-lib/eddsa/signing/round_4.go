@@ -8,6 +8,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ed"
 	//"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"crypto/sha512"
+	"encoding/hex"
 )
 
 func (round *round4) Start() error {
@@ -98,13 +99,6 @@ func (round *round4) Start() error {
 	lambda[0] = 1
 	order := ed.GetBytesOrder()
 
-	/*cur_oldindex := -1
-	for kkk,vvv := range round.save.Ids {
-	    if vvv.Cmp(round.save.CurDNodeID) == 0 {
-		cur_oldindex = kkk
-		break
-	    }
-	}*/
 	var cur_byte [32]byte
 	copy(cur_byte[:],round.save.CurDNodeID.Bytes())
 	
@@ -113,13 +107,6 @@ func (round *round4) Start() error {
 			continue
 		}
 
-		/*oldindex := -1
-		for kkk,vvv := range round.save.Ids {
-		    if vvv.Cmp(vv) == 0 {
-			oldindex = kkk
-			break
-		    }
-		}*/
 		var index_byte [32]byte
 		copy(index_byte[:],vv.Bytes())
 		
@@ -134,6 +121,10 @@ func (round *round4) Start() error {
 
 	var s [32]byte
 	ed.ScMul(&s, &lambda, &round.temp.tsk)
+
+	stmp := hex.EncodeToString(s[:])
+	fmt.Printf("============================== round4.start, stmp = %v ============================\n",stmp)
+
 	ed.ScMul(&s, &s, &k)
 	ed.ScAdd(&s, &s, &round.temp.r)
 

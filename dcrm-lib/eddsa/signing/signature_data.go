@@ -3,10 +3,13 @@ package signing
 import (
 	"math/big"
 	//"strings"
-	//"fmt"
+	"bytes"
+	"fmt"
+	"strconv"
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ed"
 	"crypto/sha512"
-	"bytes"
+	//"crypto/ed25519/internal/edwards25519"
+	edlib "crypto/ed25519"
 )
 
 type InputVerify struct {
@@ -61,9 +64,8 @@ func EdVerify(input InputVerify) bool {
 }
 
 type EdSignData struct {
-    Rx string
-    Sx string
-    Sig [64]byte 
+    Rx  [32]byte
+    Sx  [32]byte
 }
 
 //TODO
@@ -72,5 +74,56 @@ type PrePubData struct {
 	R *big.Int
 	Ry *big.Int
 	Sigma1 *big.Int
+}
+
+////////solane ed lib verify
+func Verify(publicKey edlib.PublicKey, message, sig []byte) bool {
+	if l := len(publicKey); l != 32 {
+	    fmt.Printf("================= ed25519: bad public key length: " + strconv.Itoa(l) + " ==================\n")
+	    //panic("ed25519: bad public key length: " + strconv.Itoa(l))
+	    return false
+	}
+
+	if len(sig) != 64 || sig[63]&224 != 0 {
+	    fmt.Printf("===================ed lib verify fail,sig len error =========================\n")
+		return false
+	}
+
+	var A ed.ExtendedGroupElement
+	var publicKeyBytes [32]byte
+	copy(publicKeyBytes[:], publicKey)
+	if !A.FromBytes(&publicKeyBytes) {
+		fmt.Printf("===================ed lib verify fail,pubkey format error =========================\n")
+		return false
+	}
+	ed.FeNeg(&A.X, &A.X)
+	ed.FeNeg(&A.T, &A.T)
+
+	h := sha512.New()
+	h.Write(sig[:32])
+	h.Write(publicKey[:])
+	h.Write(message)
+	var digest [64]byte
+	h.Sum(digest[:0])
+
+	var hReduced [32]byte
+	ed.ScReduce(&hReduced, &digest)
+
+	var R ed.ProjectiveGroupElement
+	var s [32]byte
+	copy(s[:], sig[32:])
+
+	// https://tools.ietf.org/html/rfc8032#section-5.1.7 requires that s be in
+	// the range [0, order) in order to prevent signature malleability.
+	if !ed.ScMinimal(&s) {
+		fmt.Printf("===================ed lib verify fail,check ScMinimal fail =========================\n")
+		return false
+	}
+
+	ed.GeDoubleScalarMultVartime(&R, &hReduced, &A, &s)
+
+	var checkR [32]byte
+	R.ToBytes(&checkR)
+	return bytes.Equal(sig[:32], checkR[:])
 }
 

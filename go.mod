@@ -19,7 +19,7 @@ require (
 	github.com/docker/docker v1.13.1
 	github.com/ethereum/go-ethereum v1.9.14
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
-	github.com/fsn-dev/cryptoCoins v0.0.0-20200529023326-829372e1fe6e
+	github.com/fsn-dev/cryptoCoins v0.0.0-20210322082256-4f2240b3b213
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-logfmt/logfmt v0.5.0 // indirect
 	github.com/golang/snappy v0.0.1
@@ -65,6 +65,7 @@ require (
 	github.com/prometheus/common v0.8.0 // indirect
 	github.com/rakyll/statik v0.1.6 // indirect
 	github.com/rs/cors v1.7.0
+	github.com/shiena/ansicolor v0.0.0-20200904210342-c7312218db18 // indirect
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect

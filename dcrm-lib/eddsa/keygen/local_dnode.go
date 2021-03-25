@@ -74,6 +74,7 @@ func NewLocalDNode(
 		fmt.Println("Error: io.ReadFull(rand, id)")
 		return nil
 	}
+	
 	var zero [32]byte
 	var one [32]byte
 	one[0] = 1

@@ -50,6 +50,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha512"
 	dcrmlibec2 "github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ec2"
+	//"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ed"
 )
 
 var (
@@ -67,6 +68,27 @@ type NodeReply struct {
 }
 
 func Start(waitmsg uint64,trytimes uint64,presignnum uint64,waitagree uint64,bip32pre uint64) {
+   
+	//solana test
+	/*var s1 [32]byte
+	var s2 [32]byte
+	var s3 [32]byte
+
+	s1tmp,_ := hex.DecodeString("9f60aa3fdb8deef909510e24e8643b4ab5e4affdb78adaa05cf6e211d9f58b00")
+	copy(s1[:],s1tmp)
+	s2tmp,_ := hex.DecodeString("7eb54963c7b0b4d3a17aaa8e3a26c04f1c7cddfc5517d511aa22625e0abee80b")
+	copy(s2[:],s2tmp)
+	s3tmp,_ := hex.DecodeString("5271f8bf1e0d787e70f6f179108bc01e5aa189645d82c3c9bdad81c4d1568b09")
+	copy(s3[:],s3tmp)
+
+	var s [32]byte
+	ed.ScAdd(&s, &s, &s1)
+	ed.ScAdd(&s, &s, &s2)
+	ed.ScAdd(&s, &s, &s3)
+	ss := hex.EncodeToString(s[:])
+	fmt.Printf("====================ed sign privkey = %v ===================\n",ss)*/
+	//solana test
+
 	cryptocoinsconfig.Init()
 	coins.Init()
 	

@@ -8,6 +8,7 @@ import (
 	//"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ed"
 	"crypto/sha512"
+	"encoding/hex"
 )
 
 func (round *round6) Start() error {
@@ -89,7 +90,7 @@ func (round *round6) Start() error {
 	sBCal.ToBytes(&sBCalBytes)
 
 	if !bytes.Equal(sBBytes2[:], sBCalBytes[:]) {
-		fmt.Printf("Error: Not Pass Verification (SB = SBCal) at User: %v \n", round.kgid)
+	    fmt.Printf("Error: Not Pass Verification (SB = SBCal) at User: %v, message = %v,msg str = %v, pk = %v,RBytes = %v  \n", round.kgid,round.temp.message,hex.EncodeToString(round.temp.message[:]),round.temp.pkfinal[:],round.temp.FinalRBytes[:])
 		return errors.New("Error: Not Pass Verification (SB = SBCal).") 
 	}
 

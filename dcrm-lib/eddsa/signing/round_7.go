@@ -9,6 +9,7 @@ import (
 	//"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/dcrm-lib/crypto/ed"
 	"github.com/agl/ed25519"
+	//edlib "crypto/ed25519"
 )
 
 func (round *round7) Start() error {
@@ -46,10 +47,20 @@ func (round *round7) Start() error {
 	signature := new([64]byte)
 	copy(signature[:], round.temp.FinalRBytes[:])
 	copy(signature[32:], FinalS[:])
+
+	fmt.Printf("================= ed sign 25519,sig = %v, pk = %v, msg = %v, sig str = %v, pk str = %v, msg str = %v =======================\n",signature,round.temp.pkfinal,round.temp.message,hex.EncodeToString(signature[:]),hex.EncodeToString(round.temp.pkfinal[:]),hex.EncodeToString(round.temp.message[:]))
 	suss := ed25519.Verify(&round.temp.pkfinal, []byte(round.temp.message), signature)
 	fmt.Printf("===========ed verify, success = %v============\n",suss)
 
-	round.end <- EdSignData{Rx:rx,Sx:sx,Sig:*signature}
+	/////////solana
+	/*suss = edlib.Verify(round.temp.pkfinal[:],round.temp.message,signature[:])
+	fmt.Printf("===========ed lib verify, success = %v============\n",suss)
+
+	suss = Verify(round.temp.pkfinal[:],round.temp.message,signature[:])
+	fmt.Printf("===========ed lib at local verify, success = %v============\n",suss)*/
+	/////////solana
+
+	round.end <- EdSignData{Rx:round.temp.FinalRBytes,Sx:FinalS}
 
 	fmt.Printf("============= round7.start success, current node id = %v =============\n",round.kgid)
 

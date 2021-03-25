@@ -39,7 +39,7 @@ type localTempData struct {
 	sk [64]byte
 	tsk [32]byte
 	pkfinal [32]byte
-	message string
+	message []byte 
 
 	DR [64]byte
 	zkR [64]byte

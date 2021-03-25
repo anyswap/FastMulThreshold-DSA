@@ -58,10 +58,6 @@ func (round *round1) Start() error {
 	}
 	round.temp.uids = uids
 	
-	//for k,v := range uids {
-	  //  fmt.Printf("===================== ed, sign, get uids, k = %v, id = %v =============\n",k,hex.EncodeToString(v[:]))
-	//}
-
 	round.temp.sk = sk
 	round.temp.tsk = tsk
 	round.temp.pkfinal = pkfinal
@@ -69,9 +65,10 @@ func (round *round1) Start() error {
 	if round.txhash == nil {
 	    return errors.New("no unsign hash")
 	}
-	//round.temp.message = round.txhash.String()
-	round.temp.message = hex.EncodeToString(round.txhash.Bytes())
-	//fmt.Printf("===============ed sign,round1.start, message = %v ======================\n",round.temp.message)
+	
+	tmpstr := hex.EncodeToString(round.txhash.Bytes())
+	round.temp.message,_ = hex.DecodeString(tmpstr)
+	fmt.Printf("===============ed sign,round1.start, message = %v, msg str = %v ======================\n",round.temp.message,tmpstr)
 
 	// [Notes]
 	// 1. calculate R

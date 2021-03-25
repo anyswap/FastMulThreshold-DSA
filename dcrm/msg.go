@@ -2644,7 +2644,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 			common.Info("================== InitAcceptData , finish dcrm_genPubKey ===================","get return value ",chret,"err ",cherr,"key ",key)
 			if cherr != nil {
 				ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)
-				_,err = AcceptReqAddr(sender,from, "ALL", req.GroupId, nonce, req.ThresHold, req.Mode, "false", "", "Failure", "", tip, cherr.Error(), ars, workid,"")
+				_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId, nonce, req.ThresHold, req.Mode, "false", "", "Failure", "", tip, cherr.Error(), ars, workid,"")
 				if err != nil {
 				    res := RpcDcrmRes{Ret:"", Tip:err.Error(), Err:err}
 				    ch <- res

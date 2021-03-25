@@ -70,7 +70,9 @@ func main() {
 }
 
 func StartDcrm(c *cli.Context) {
-    	SetLogger()
+
+    //dcrm.Tx_Test()
+    SetLogger()
 	go func() {
 	    <-signalChan
 	    stopLock.Lock()
@@ -81,7 +83,9 @@ func StartDcrm(c *cli.Context) {
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	startP2pNode()
+	
 	time.Sleep(time.Duration(180) * time.Second) //wait 3 ms for ec3
+
 	rpcdcrm.RpcInit(rpcport)
 	dcrm.Start(waitmsg,trytimes,presignnum,waitagree,bip32pre)
 	select {} // note for server, or for client
