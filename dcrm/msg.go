@@ -821,7 +821,7 @@ func InitPreSign(raw string,workid int,sender string,ch chan interface{}) bool {
 
 		    var ch1 = make(chan interface{}, 1)
 		    //pre := PreSign_ec3(w.sid,save,sku1,"ECDSA",ch1,workid)
-		    pre := PreSign_ec3(w.sid,save,childSKU1,"ECDSA",ch1,workid)
+		    pre := PreSign_ec3(w.sid,save,childSKU1,"EC256K1",ch1,workid)
 		    if pre == nil {
 			    res := RpcDcrmRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
 			    ch <- res
@@ -1341,7 +1341,7 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 
 			var ch1 = make(chan interface{}, 1)
 			//pre := PreSign_ec3(w.sid,save,sku1,"ECDSA",ch1,workid)
-			pre := PreSign_ec3(w.sid,save,childSKU1,"ECDSA",ch1,workid)
+			pre := PreSign_ec3(w.sid,save,childSKU1,"EC256K1",ch1,workid)
 			if pre == nil {
 				res := RpcDcrmRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
 				ch <- res

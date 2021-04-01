@@ -1927,7 +1927,7 @@ func sign(wsid string,account string,pubkey string,inputcode string,unsignhash [
 
 	var dcrmpkx *big.Int
 	var dcrmpky *big.Int
-	if keytype == "ECDSA" {
+	if keytype == "EC256K1" {
 		dcrmpks := []byte(dcrmpub)
 		dcrmpkx, dcrmpky = secp256k1.S256().Unmarshal(dcrmpks[:])
 	}
