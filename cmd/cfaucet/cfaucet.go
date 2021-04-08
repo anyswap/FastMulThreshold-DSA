@@ -228,7 +228,7 @@ func send_erc20(toAddress string, amt *big.Int, tokentype string) {
 func send_xrp(toAddress string, amt *big.Int) {
 	fmt.Printf("=========================\n           XRP           \n=========================\n\n")
 	h := api.NewCryptocoinHandler("XRP")
-	fromKey := xrp.XRP_importKeyFromSeed("ssfL5tmpTTqCw5sHjnRHQ4yyUCQKf", "ecdsa")
+	fromKey := xrp.XRP_importKeyFromSeed("ssfL5tmpTTqCw5sHjnRHQ4yyUCQKf", "EC256K1")
 	keyseq := uint32(0)
 	fromPubKeyHex := hex.EncodeToString(fromKey.Public(&keyseq))
 	fmt.Printf("++++++++++++\nfromPubKeyHex is %v\n++++++++++++\n", fromPubKeyHex)
