@@ -1927,7 +1927,7 @@ func sign(wsid string,account string,pubkey string,inputcode string,unsignhash [
 
 	var smpcpkx *big.Int
 	var smpcpky *big.Int
-	if keytype == "ECDSA" {
+	if keytype == "EC256K1" {
 		smpcpks := []byte(smpcpub)
 		smpcpkx, smpcpky = secp256k1.S256().Unmarshal(smpcpks[:])
 	}

@@ -821,7 +821,7 @@ func InitPreSign(raw string,workid int,sender string,ch chan interface{}) bool {
 
 		    var ch1 = make(chan interface{}, 1)
 		    //pre := PreSign_ec3(w.sid,save,sku1,"ECDSA",ch1,workid)
-		    pre := PreSign_ec3(w.sid,save,childSKU1,"ECDSA",ch1,workid)
+		    pre := PreSign_ec3(w.sid,save,childSKU1,"EC256K1",ch1,workid)
 		    if pre == nil {
 			    res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
 			    ch <- res
@@ -1341,7 +1341,7 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 
 			var ch1 = make(chan interface{}, 1)
 			//pre := PreSign_ec3(w.sid,save,sku1,"ECDSA",ch1,workid)
-			pre := PreSign_ec3(w.sid,save,childSKU1,"ECDSA",ch1,workid)
+			pre := PreSign_ec3(w.sid,save,childSKU1,"EC256K1",ch1,workid)
 			if pre == nil {
 				res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
 				ch <- res
@@ -2035,9 +2035,9 @@ func KeyInitAcceptData(raw string,workid int,sender string,ch chan interface{}) 
 							tt := fmt.Sprintf("%v",time.Now().UnixNano()/1e6)
 							nonce := Keccak256Hash([]byte(strings.ToLower(chret + req.GroupId + tt))).Hex()
 							index := 0
-							ids := GetIds2("ECDSA", req.GroupId)
+							ids := GetIds2("EC256K1", req.GroupId)
 							for kk, id := range ids {
-								enodes := GetEnodesByUid(id, "ECDSA", req.GroupId)
+								enodes := GetEnodesByUid(id, "EC256K1", req.GroupId)
 								if IsCurNode(enodes, cur_enode) {
 									if kk >= 2 {
 										index = kk - 2
@@ -2059,7 +2059,7 @@ func KeyInitAcceptData(raw string,workid int,sender string,ch chan interface{}) 
 							}
 							
 							for _, id := range tmp {
-								enodes := GetEnodesByUid(id, "ECDSA", req.GroupId)
+								enodes := GetEnodesByUid(id, "EC256K1", req.GroupId)
 								common.Info("===============PreSign in genkey,get enodes===============","enodes",enodes,"index",index)
 								if IsCurNode(enodes, cur_enode) {
 									common.Debug("===============PreSign in genkey,get cur enodes===============","enodes",enodes)
@@ -2668,9 +2668,9 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 							tt := fmt.Sprintf("%v",time.Now().UnixNano()/1e6)
 							nonce := Keccak256Hash([]byte(strings.ToLower(chret + req.GroupId + tt))).Hex()
 							index := 0
-							ids := GetIds2("ECDSA", req.GroupId)
+							ids := GetIds2("EC256K1", req.GroupId)
 							for kk, id := range ids {
-								enodes := GetEnodesByUid(id, "ECDSA", req.GroupId)
+								enodes := GetEnodesByUid(id, "EC256K1", req.GroupId)
 								if IsCurNode(enodes, cur_enode) {
 									if kk >= 2 {
 										index = kk - 2
@@ -2692,7 +2692,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 							}
 							
 							for _, id := range tmp {
-								enodes := GetEnodesByUid(id, "ECDSA", req.GroupId)
+								enodes := GetEnodesByUid(id, "EC256K1", req.GroupId)
 								common.Info("===============PreSign in genkey,get enodes===============","enodes",enodes,"index",index)
 								if IsCurNode(enodes, cur_enode) {
 									common.Debug("===============PreSign in genkey,get cur enodes===============","enodes",enodes)

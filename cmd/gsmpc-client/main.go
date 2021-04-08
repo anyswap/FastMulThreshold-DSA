@@ -145,7 +145,7 @@ func init() {
 	memo = flag.String("memo", "smpcwallet.com", "Memo")
 	accept = flag.String("accept", "AGREE", "AGREE|DISAGREE")
 	key = flag.String("key", "", "Accept key")
-	keyType = flag.String("keytype", "ECDSA", "ECDSA|ED25519")
+	keyType = flag.String("keytype", "EC256K1", "EC256K1|ED25519")
 	pubkey = flag.String("pubkey", "", "Smpc pubkey")
 	inputcode = flag.String("inputcode", "", "bip32 input code")
 	//msghash = flag.String("msghash", "", "msghash=Keccak256(unsignTX)")
