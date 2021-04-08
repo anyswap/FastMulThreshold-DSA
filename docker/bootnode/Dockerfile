@@ -1,5 +1,5 @@
 # prepare
-# 1st: cd ..; make gdcrm, cp bin/cmd/gdcrm docker
+# 1st: cd ..; make gsmpc, cp bin/cmd/gsmpc docker
 # 2nd: cd docker
 FROM ubuntu:18.04
 COPY bootnode /usr/local/bin/
@@ -8,7 +8,7 @@ RUN chmod +x /entrypoint-bootnode.sh
 ENTRYPOINT ["/entrypoint-bootnode.sh"]
 
 ##include 1st and 2nd
-##cp Dockerfile dcrm6; cd dcrm6
+##cp Dockerfile smpc6; cd smpc6
 #FROM golang:1.13.5 AS builder
 #WORKDIR /build
 #COPY . .

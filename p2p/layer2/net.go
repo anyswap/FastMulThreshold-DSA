@@ -28,13 +28,13 @@ import (
 
 //TODO
 const (
-	DcrmProtocol_type = discover.Dcrmprotocol_type
+	SmpcProtocol_type = discover.Smpcprotocol_type
 	Xprotocol_type    = discover.Xprotocol_type
 	Sdkprotocol_type  = discover.Sdkprotocol_type
-	ProtocolName      = "dcrm"
+	ProtocolName      = "smpc"
 	Xp_ProtocolName   = "xp"
 	peerMsgCode       = iota
-	Dcrm_msgCode
+	Smpc_msgCode
 	Sdk_msgCode
 	Xp_msgCode
 
@@ -52,7 +52,7 @@ var (
 	p2pServer     p2p.Server
 	bootNodeIP    *net.UDPAddr
 	callback      func(interface{}, string)
-	Dcrm_callback func(interface{}) <-chan string
+	Smpc_callback func(interface{}) <-chan string
 	Sdk_callback  func(interface{}, string)
 	Xp_callback   func(interface{})
 	emitter       *Emitter
@@ -63,7 +63,7 @@ var (
 	SdkGroup  map[discover.NodeID]*discover.Group = make(map[discover.NodeID]*discover.Group)
 )
 
-type Dcrm struct {
+type Smpc struct {
 	protocol  p2p.Protocol
 	peers     map[discover.NodeID]*peer
 	dccpPeers map[discover.NodeID]bool
@@ -90,8 +90,8 @@ var DefaultConfig = Config{
 	Nodes: make([]*discover.Node, 0),
 }
 
-type DcrmAPI struct {
-	dcrm *Dcrm
+type SmpcAPI struct {
+	smpc *Smpc
 }
 
 type XpAPI struct {

@@ -134,10 +134,10 @@ func getGroupAndCode(gid discover.NodeID, p2pType int) (*discover.Group, int) {
 			msgCode = Sdk_msgCode
 		}
 		break
-	case DcrmProtocol_type:
+	case SmpcProtocol_type:
 		if dccpGroup != nil {
 			xvcGroup = dccpGroup
-			msgCode = Dcrm_msgCode
+			msgCode = Smpc_msgCode
 		}
 		break
 	case Xprotocol_type:
@@ -247,13 +247,13 @@ func HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 				go Sdk_callEvent(string(recv), peer.ID().String())
 			}
 			break
-		case Dcrm_msgCode:
+		case Smpc_msgCode:
 			var recv []byte
 			err := rlp.Decode(msg.Payload, &recv)
 			if err != nil {
 				common.Info("Err: decode msg", "err", err)
 			} else {
-				go Dcrm_callEvent(string(recv))
+				go Smpc_callEvent(string(recv))
 			}
 			break
 		case Xp_msgCode:
@@ -300,7 +300,7 @@ func getGroup(gid discover.NodeID, p2pType int) (int, string) {
 			_, xvcGroup = getGroupSDK(gid)
 		}
 		break
-	case DcrmProtocol_type:
+	case SmpcProtocol_type:
 		if dccpGroup == nil {
 			return 0, ""
 		}
@@ -322,7 +322,7 @@ func getGroup(gid discover.NodeID, p2pType int) (int, string) {
 	}
 	for _, e := range xvcGroup.Nodes {
 		if enode != "" {
-			enode += discover.Dcrmdelimiter
+			enode += discover.Smpcdelimiter
 		}
 		enode += fmt.Sprintf("enode://%v@%v:%v", e.ID, e.IP, e.UDP)
 		count++
@@ -368,7 +368,7 @@ func recvGroupInfo(gid discover.NodeID, mode string, req interface{}, p2pType in
 		SdkGroup[gid] = groupTmp
 		xvcGroup = groupTmp
 		break
-	case DcrmProtocol_type:
+	case SmpcProtocol_type:
 		dccpGroup = discover.NewGroup()
 		xvcGroup = dccpGroup
 		break
@@ -514,7 +514,7 @@ func (e *Emitter) peersWithoutTx(hash common.Hash, group bool) []*peer {
 // in its transaction hash set for future reference.
 func (p *peer) sendTx(txs []Transaction) {
 	for _, tx := range txs {
-		if err := p2p.Send(p.ws, Dcrm_msgCode, string(tx.Payload)); err != nil {
+		if err := p2p.Send(p.ws, Smpc_msgCode, string(tx.Payload)); err != nil {
 			if len(p.queuedTxs) >= maxKnownTxs {
 				p.knownTxs.Pop()
 			}

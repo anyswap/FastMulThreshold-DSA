@@ -5,8 +5,8 @@ Nodekey="bootnode.key"
 # port
 Addr=11920
 
-# gdcrm config
-[gdcrm]
+# gsmpc config
+[gsmpc]
 # nodekey
 Nodekey="node.key"
 # bootnodes

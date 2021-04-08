@@ -30,8 +30,6 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-//modify by caihaijun@fusion.org
-
 package secp256k1
 
 import (
@@ -42,7 +40,8 @@ import (
 
 /*
 #include "libsecp256k1/include/secp256k1.h"
-extern int dcrm_secp256k1_ext_scalar_mul(const secp256k1_context* ctx, const unsigned char *point, const unsigned char *scalar);
+extern int smpc_secp256k1_ext_scalar_mul(const secp256k1_context* ctx, const unsigned char *point, const unsigned char *scalar);
+extern int smpc_secp256k1_get_ecdsa_sign_v(const secp256k1_context* ctx, unsigned char *point,const unsigned char *scalar);
 */
 import "C"
 
@@ -119,12 +118,6 @@ func (BitCurve *BitCurve) IsOnCurve(x, y *big.Int) bool {
 // top of the file.
 func (BitCurve *BitCurve) affineFromJacobian(x, y, z *big.Int) (xOut, yOut *big.Int) {
 	zinv := new(big.Int).ModInverse(z, BitCurve.P)
-	//+++++++++++caihaijun+++++++++++++++
-	if zinv == nil {
-		zero, _ := new(big.Int).SetString("0", 10)
-		return zero, zero
-	}
-	//++++++++++++++end++++++++++++++++++
 	zinvsq := new(big.Int).Mul(zinv, zinv)
 
 	xOut = new(big.Int).Mul(x, zinvsq)
@@ -264,7 +257,7 @@ func (BitCurve *BitCurve) ScalarMult(Bx, By *big.Int, scalar []byte) (*big.Int, 
 
 	pointPtr := (*C.uchar)(unsafe.Pointer(&point[0]))
 	scalarPtr := (*C.uchar)(unsafe.Pointer(&scalar[0]))
-	res := C.dcrm_secp256k1_ext_scalar_mul(context, pointPtr, scalarPtr)
+	res := C.smpc_secp256k1_ext_scalar_mul(context, pointPtr, scalarPtr)
 
 	// Unpack the result and clear temporaries.
 	x := new(big.Int).SetBytes(point[:32])
@@ -337,3 +330,36 @@ func (bitCurve *BitCurve) N3() *big.Int {
 	N3 = new(big.Int).Mul(N3, bitCurve.N)
 	return N3
 }
+
+//return value is normalized.
+func KMulG(k []byte) (*big.Int, *big.Int) {
+	return S256().ScalarBaseMult(k)
+}
+
+// MathReadBits encodes the absolute value of bigint as big-endian bytes. Callers must ensure
+// that buf has enough space. If buf is too short the result will be incomplete.
+func MathReadBits(bigint *big.Int, buf []byte) {
+	i := len(buf)
+	for _, d := range bigint.Bits() {
+		for j := 0; j < wordBytes && i > 0; j++ {
+			i--
+			buf[i] = byte(d)
+			d >>= 8
+		}
+	}
+}
+
+func Get_ecdsa_sign_v(rx *big.Int, ry *big.Int) int {
+	scalar := rx.Bytes()
+	padded := make([]byte, 32)
+	copy(padded[32-len(scalar):], scalar)
+	scalar = padded
+
+	point := make([]byte, 32)
+	MathReadBits(ry, point[:])
+	pointPtr := (*C.uchar)(unsafe.Pointer(&point[0]))
+	scalarPtr := (*C.uchar)(unsafe.Pointer(&scalar[0]))
+	res := int(C.smpc_secp256k1_get_ecdsa_sign_v(context, pointPtr, scalarPtr))
+	return res
+}
+

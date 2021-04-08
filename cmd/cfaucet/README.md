@@ -18,7 +18,7 @@ TRON测试币|TRX|Shasta测试网|417e5f4552091a69125d5dfcb7b8c2659029395bdf|htt
 EOS测试币|EOS|CryptoKylin测试网|gzx123454321|创建免费账号: http://faucet.cryptokylin.io/create_account?new_account_name<br>获得Token: http://faucet.cryptokylin.io/get_token?your_account_name
 * 第一次 Lockin `XRP` 至少要发送`100000000 drops = 100 XRP`用于激活账户, Lockout `XRP` 至少要保留`200 drop`
 * TRX目前使用16进制格式, 用这个工具把Base58格式转换成16进制: https://tronscan.org/#/tools/tron-convert-tool
-* Lockin `EOS` 要向链上设置的主账户发送转账, 把`DCRM EOS`地址写入交易备注, 不能直接向`DCRM EOS`地址转账!
+* Lockin `EOS` 要向链上设置的主账户发送转账, 把`SMPC EOS`地址写入交易备注, 不能直接向`SMPC EOS`地址转账!
 
 
 

@@ -1,7 +1,7 @@
 # Introduction
 Fast Multiparty Threshold DSA is a distributed key generation and distributed signature service that can serve as a distributed custodial solution.
 
-*Note : dcrm-walletService is considered beta software. We make no warranties or guarantees of its security or stability.*
+*Note : smpc-walletService is considered beta software. We make no warranties or guarantees of its security or stability.*
 
 # Install the Docker version
 ## 1. Install Docker. This depends on your platform, on Ubuntu this works:
@@ -14,13 +14,13 @@ sudo apt install docker.io
 ```
 docker run -d --name bootnode --network host --restart always -v /var/lib/docker/bootnode:/bootnode anyswap/bootnode --addr :12340
 ```
-- gdcrm
+- gsmpc
 ```
-docker run -d --name gdcrm --network host --restart always -v /var/lib/docker/gdcrm:/gdcrm anyswap/gdcrm --bootnodes "enode://ip@port" --port 12345 --rpcport 23456
+docker run -d --name gsmpc --network host --restart always -v /var/lib/docker/gsmpc:/gsmpc anyswap/gsmpc --bootnodes "enode://ip@port" --port 12345 --rpcport 23456
 ```
-- gdcrm-client
+- gsmpc-client
 ```
-docker exec gdcrm gdcrm-client --cmd ACCEPTREQADDR --url http://127.0.0.1:23456 --keystore keystore --passwd "123456" --key 0x...
+docker exec gsmpc gsmpc-client --cmd ACCEPTREQADDR --url http://127.0.0.1:23456 --keystore keystore --passwd "123456" --key 0x...
 ```
 
 # Install the Source version
@@ -48,12 +48,12 @@ cd FastMulThreshold-DSA && make
 ## Run
 First generate the node key: 
 ```
-./bin/cmd/gdcrm --genkey node1.key
+./bin/cmd/gsmpc --genkey node1.key
 ```
 
-then run the dcrm node 7x24 in the background:
+then run the smpc node 7x24 in the background:
 ```
-nohup ./bin/cmd/gdcrm --nodekey node1.key &
+nohup ./bin/cmd/gsmpc --nodekey node1.key &
 ```
-The `gdcrm` will provide rpc service, the default RPC port is port 4449.
+The `gsmpc` will provide rpc service, the default RPC port is port 4449.
 

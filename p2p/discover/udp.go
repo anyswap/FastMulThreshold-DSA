@@ -594,32 +594,32 @@ func decodePacket(buf []byte) (packet, NodeID, []byte, error) {
 		req = new(neighbors)
 	case Sdk_findGroupPacket:
 		req = new(findgroup)
-	case Dcrm_findGroupPacket:
+	case Smpc_findGroupPacket:
 		req = new(findgroup)
 	case Xp_findGroupPacket:
 		req = new(findgroup)
-	case Dcrm_groupPacket:
+	case Smpc_groupPacket:
 		req = new(Group)
 	case Sdk_groupPacket:
 		req = new(Group)
 	case Xp_groupPacket:
 		req = new(Group)
-	case Dcrm_groupInfoPacket:
+	case Smpc_groupInfoPacket:
 		req = new(Group)
 	case PeerMsgPacket:
 		req = new(message)
-	case getDcrmPacket:
-		req = new(getdcrmmessage)
+	case getSmpcPacket:
+		req = new(getsmpcmessage)
 	case getSdkPacket:
-		req = new(getdcrmmessage)
+		req = new(getsmpcmessage)
 	case Xp_getCCPacket:
-		req = new(getdcrmmessage)
-	case gotDcrmPacket:
-		req = new(dcrmmessage)
+		req = new(getsmpcmessage)
+	case gotSmpcPacket:
+		req = new(smpcmessage)
 	case gotSdkPacket:
-		req = new(dcrmmessage)
+		req = new(smpcmessage)
 	case gotXpPacket:
-		req = new(dcrmmessage)
+		req = new(smpcmessage)
 	case Ack_Packet:
 		req = new(Ack)
 	default:

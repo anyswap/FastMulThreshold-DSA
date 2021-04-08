@@ -74,7 +74,7 @@ type Config struct {
 	// Disabling is useful for protocol debugging (manual topology).
 	NoDiscovery bool
 
-	DcrmEnabled bool
+	SmpcEnabled bool
 	Nodes       []*discover.Node
 
 	// DiscoveryV5 specifies whether the new topic-discovery based V5 discovery

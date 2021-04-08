@@ -29,7 +29,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/p2p"
 	"github.com/anyswap/Anyswap-MPCNode/p2p/event"
 
-	//"github.com/anyswap/Anyswap-MPCNode/p2p/dcrm"
+	//"github.com/anyswap/Anyswap-MPCNode/p2p/smpc"
 	"github.com/anyswap/Anyswap-MPCNode/rpc"
 )
 
@@ -202,10 +202,10 @@ func (n *Node) Start() error {
 	n.server = running
 	n.stop = make(chan struct{})
 
-	//TODO: DCRM p2p
+	//TODO: SMPC p2p
 	bn := fmt.Sprintf("%v", n.serverConfig.BootstrapNodes[0])
 	fmt.Printf("\nbootnode: %+v\n\n", bn)
-	//dcrm.P2pInit(2345, bn, "", "")
+	//smpc.P2pInit(2345, bn, "", "")
 
 	return nil
 }

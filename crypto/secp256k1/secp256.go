@@ -19,8 +19,8 @@ package secp256k1
 #include "ext.h"
 
 typedef void (*callbackFunc) (const char* msg, void* data);
-extern void dcrm_secp256k1GoPanicIllegal(const char* msg, void* data);
-extern void dcrm_secp256k1GoPanicError(const char* msg, void* data);
+extern void smpc_secp256k1GoPanicIllegal(const char* msg, void* data);
+extern void smpc_secp256k1GoPanicError(const char* msg, void* data);
 */
 import "C"
 
@@ -34,9 +34,9 @@ var context *C.secp256k1_context
 
 func init() {
 	// around 20 ms on a modern CPU.
-	context = C.dcrm_secp256k1_context_create_sign_verify()
-	C.dcrm_secp256k1_context_set_illegal_callback(context, C.callbackFunc(C.dcrm_secp256k1GoPanicIllegal), nil)
-	C.dcrm_secp256k1_context_set_error_callback(context, C.callbackFunc(C.dcrm_secp256k1GoPanicError), nil)
+	context = C.smpc_secp256k1_context_create_sign_verify()
+	C.smpc_secp256k1_context_set_illegal_callback(context, C.callbackFunc(C.smpc_secp256k1GoPanicIllegal), nil)
+	C.smpc_secp256k1_context_set_error_callback(context, C.callbackFunc(C.smpc_secp256k1GoPanicError), nil)
 }
 
 var (
@@ -63,16 +63,16 @@ func Sign(msg []byte, seckey []byte) ([]byte, error) {
 		return nil, ErrInvalidKey
 	}
 	seckeydata := (*C.uchar)(unsafe.Pointer(&seckey[0]))
-	if C.dcrm_secp256k1_ec_seckey_verify(context, seckeydata) != 1 {
+	if C.smpc_secp256k1_ec_seckey_verify(context, seckeydata) != 1 {
 		return nil, ErrInvalidKey
 	}
 
 	var (
 		msgdata   = (*C.uchar)(unsafe.Pointer(&msg[0]))
-		noncefunc = C.dcrm_secp256k1_nonce_function_rfc6979
-		sigstruct C.dcrm_secp256k1_ecdsa_recoverable_signature
+		noncefunc = C.smpc_secp256k1_nonce_function_rfc6979
+		sigstruct C.smpc_secp256k1_ecdsa_recoverable_signature
 	)
-	if C.dcrm_dcrm_secp256k1_ecdsa_sign_recoverable(context, &sigstruct, msgdata, seckeydata, noncefunc, nil) == 0 {
+	if C.smpc_smpc_secp256k1_ecdsa_sign_recoverable(context, &sigstruct, msgdata, seckeydata, noncefunc, nil) == 0 {
 		return nil, ErrSignFailed
 	}
 
@@ -81,7 +81,7 @@ func Sign(msg []byte, seckey []byte) ([]byte, error) {
 		sigdata = (*C.uchar)(unsafe.Pointer(&sig[0]))
 		recid   C.int
 	)
-	C.dcrm_secp256k1_ecdsa_recoverable_signature_serialize_compact(context, sigdata, &recid, &sigstruct)
+	C.smpc_secp256k1_ecdsa_recoverable_signature_serialize_compact(context, sigdata, &recid, &sigstruct)
 	sig[64] = byte(recid) // add back recid to get 65 bytes sig
 	return sig, nil
 }

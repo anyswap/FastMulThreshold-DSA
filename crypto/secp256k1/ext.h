@@ -1,26 +1,10 @@
-// Copyright 2015 The go-ethereum Authors
-// This file is part of the go-ethereum library.
-//
-// The go-ethereum library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-ethereum library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2015 Jeffrey Wilcke, Felix Lange, Gustav Simonsson. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be found in
+// the LICENSE file.
 
-//modify by caihaijun@fusion.org
-
-#include<dcrm_ext.h>
-
-// dcrm_secp256k1_context_create_sign_verify creates a context for signing and signature verification.
-static secp256k1_context* dcrm_secp256k1_context_create_sign_verify() {
-	return dcrm_secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+// smpc_secp256k1_context_create_sign_verify creates a context for signing and signature verification.
+static secp256k1_context* smpc_secp256k1_context_create_sign_verify() {
+	return smpc_secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
 }
 
 // secp256k1_ext_ecdsa_recover recovers the public key of an encoded compact signature.
@@ -37,17 +21,17 @@ static int secp256k1_ext_ecdsa_recover(
 	const unsigned char *sigdata,
 	const unsigned char *msgdata
 ) {
-	dcrm_secp256k1_ecdsa_recoverable_signature sig;
+	smpc_secp256k1_ecdsa_recoverable_signature sig;
 	secp256k1_pubkey pubkey;
 
-	if (!dcrm_secp256k1_ecdsa_recoverable_signature_parse_compact(ctx, &sig, sigdata, (int)sigdata[64])) {
+	if (!smpc_secp256k1_ecdsa_recoverable_signature_parse_compact(ctx, &sig, sigdata, (int)sigdata[64])) {
 		return 0;
 	}
-	if (!dcrm_secp256k1_ecdsa_recover(ctx, &pubkey, &sig, msgdata)) {
+	if (!smpc_secp256k1_ecdsa_recover(ctx, &pubkey, &sig, msgdata)) {
 		return 0;
 	}
 	size_t outputlen = 65;
-	return dcrm_secp256k1_ec_pubkey_serialize(ctx, pubkey_out, &outputlen, &pubkey, SECP256K1_EC_UNCOMPRESSED);
+	return smpc_secp256k1_ec_pubkey_serialize(ctx, pubkey_out, &outputlen, &pubkey, SECP256K1_EC_UNCOMPRESSED);
 }
 
 // secp256k1_ext_ecdsa_verify verifies an encoded compact signature.
@@ -66,16 +50,16 @@ static int secp256k1_ext_ecdsa_verify(
 	const unsigned char *pubkeydata,
 	size_t pubkeylen
 ) {
-	dcrm_secp256k1_ecdsa_signature sig;
+	smpc_secp256k1_ecdsa_signature sig;
 	secp256k1_pubkey pubkey;
 
-	if (!dcrm_secp256k1_ecdsa_signature_parse_compact(ctx, &sig, sigdata)) {
+	if (!smpc_secp256k1_ecdsa_signature_parse_compact(ctx, &sig, sigdata)) {
 		return 0;
 	}
-	if (!dcrm_secp256k1_ec_pubkey_parse(ctx, &pubkey, pubkeydata, pubkeylen)) {
+	if (!smpc_secp256k1_ec_pubkey_parse(ctx, &pubkey, pubkeydata, pubkeylen)) {
 		return 0;
 	}
-	return dcrm_secp256k1_ecdsa_verify(ctx, &sig, msgdata, &pubkey);
+	return smpc_secp256k1_ecdsa_verify(ctx, &sig, msgdata, &pubkey);
 }
 
 // secp256k1_ext_reencode_pubkey decodes then encodes a public key. It can be used to
@@ -98,30 +82,14 @@ static int secp256k1_ext_reencode_pubkey(
 ) {
 	secp256k1_pubkey pubkey;
 
-	if (!dcrm_secp256k1_ec_pubkey_parse(ctx, &pubkey, pubkeydata, pubkeylen)) {
+	if (!smpc_secp256k1_ec_pubkey_parse(ctx, &pubkey, pubkeydata, pubkeylen)) {
 		return 0;
 	}
 	unsigned int flag = (outlen == 33) ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED;
-	return dcrm_secp256k1_ec_pubkey_serialize(ctx, out, &outlen, &pubkey, flag);
+	return smpc_secp256k1_ec_pubkey_serialize(ctx, out, &outlen, &pubkey, flag);
 }
 
-//+++++++++++++++++caihaijun++++++++++++++++++
-/*int dcrm_secp256k1_get_ecdsa_sign_v(const secp256k1_context* ctx, unsigned char *point,const unsigned char *scalar)
-{
-	int ret = 0;
-	int overflow = 0;
-	secp256k1_fe feY;
-	secp256k1_scalar s;
-
-	secp256k1_fe_set_b32(&feY, point);
-	secp256k1_scalar_set_b32(&s, scalar, &overflow);
-	
-	ret = (overflow ? 2 : 0) | (secp256k1_fe_is_odd(&feY) ? 1 : 0);
-	return ret;
-}*/
-//+++++++++++++++++++++end++++++++++++++++++++
-
-// dcrm_secp256k1_ext_scalar_mul multiplies a point by a scalar in constant time.
+// smpc_secp256k1_ext_scalar_mul multiplies a point by a scalar in constant time.
 //
 // Returns: 1: multiplication was successful
 //          0: scalar was invalid (zero or overflow)
@@ -130,7 +98,7 @@ static int secp256k1_ext_reencode_pubkey(
 //  In:     point:    pointer to a 64-byte public point,
 //                    encoded as two 256bit big-endian numbers.
 //          scalar:   a 32-byte scalar with which to multiply the point
-int dcrm_secp256k1_ext_scalar_mul(const secp256k1_context* ctx, unsigned char *point, const unsigned char *scalar) {
+int smpc_secp256k1_ext_scalar_mul(const secp256k1_context* ctx, unsigned char *point, const unsigned char *scalar) {
 	int ret = 0;
 	int overflow = 0;
 	secp256k1_fe feX, feY;
@@ -160,3 +128,19 @@ int dcrm_secp256k1_ext_scalar_mul(const secp256k1_context* ctx, unsigned char *p
 	secp256k1_scalar_clear(&s);
 	return ret;
 }
+
+int smpc_secp256k1_get_ecdsa_sign_v(const secp256k1_context* ctx, unsigned char *point,const unsigned char *scalar)
+{
+	int ret = 0;
+	int overflow = 0;
+	secp256k1_fe feY;
+	secp256k1_scalar s;
+
+	secp256k1_fe_set_b32(&feY, point);
+	secp256k1_scalar_set_b32(&s, scalar, &overflow);
+	
+	ret = (overflow ? 2 : 0) | (secp256k1_fe_is_odd(&feY) ? 1 : 0);
+	return ret;
+}
+
+

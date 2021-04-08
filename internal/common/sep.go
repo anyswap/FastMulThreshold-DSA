@@ -17,14 +17,14 @@
 package common
 
 const (
-	Sep9 = "dcrmsep9"
-	Sep  = "dcrmparm"
-	Sep2 = "dcrmmsg"
-	Sep10      = "dcrmsep10" //valatetx
-	Sep11      = "dcrmsep11"
-	Sep12      = "dcrmsep12"
-	MsgTypeSep = "caihaijundcrm"
+	Sep9 = "smpcsep9"
+	Sep  = "smpcparm"
+	Sep2 = "smpcmsg"
+	Sep10      = "smpcsep10" //valatetx
+	Sep11      = "smpcsep11"
+	Sep12      = "smpcsep12"
+	MsgTypeSep = "caihaijunsmpc"
 	SepOB      = "dccpmatchxvc"
-	SepSave = "dcrmsepsave"
-	SepDel  = "dcrmsepdel"
+	SepSave = "smpcsepsave"
+	SepDel  = "smpcsepdel"
 )

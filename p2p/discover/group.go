@@ -40,10 +40,10 @@ import (
 var (
 	setgroupNumber = 0
 	setgroup       = 0
-	Dcrmdelimiter  = "dcrmmsg"
-	Dcrm_groupList *Group
+	Smpcdelimiter  = "smpcmsg"
+	Smpc_groupList *Group
 	Xp_groupList   *Group
-	tmpdcrmmsg     = &getdcrmmessage{Number: [3]byte{0, 0, 0}, Msg: ""}
+	tmpsmpcmsg     = &getsmpcmessage{Number: [3]byte{0, 0, 0}, Msg: ""}
 	setlocaliptrue = false
 	LocalIP        string
 	RemoteIP       net.IP
@@ -77,7 +77,7 @@ var (
 	SDK_groupListChan chan int = make(chan int, 1)
 )
 var (
-	Dcrm_groupMemNum = 0
+	Smpc_groupMemNum = 0
 	Xp_groupMemNum   = 0
 	SDK_groupNum     = 0
 )
@@ -91,24 +91,24 @@ const (
 	SendWaitTime = 1 * time.Minute
 	pingCount    = 10
 
-	Dcrmprotocol_type = iota + 1
+	Smpcprotocol_type = iota + 1
 	Xprotocol_type
 	Sdkprotocol_type
 
-	Dcrm_findGroupPacket = iota + 10 + neighborsPacket //14
+	Smpc_findGroupPacket = iota + 10 + neighborsPacket //14
 	Xp_findGroupPacket
 	Sdk_findGroupPacket
-	Dcrm_groupPacket
+	Smpc_groupPacket
 	Sdk_groupPacket
 	Xp_groupPacket
-	Dcrm_groupInfoPacket
+	Smpc_groupInfoPacket
 	Sdk_groupStatusPacket
 	PeerMsgPacket
-	getDcrmPacket
+	getSmpcPacket
 	getSdkPacket
 	Xp_getCCPacket
 	getXpPacket
-	gotDcrmPacket
+	gotSmpcPacket
 	gotSdkPacket
 	gotXpPacket
 
@@ -157,7 +157,7 @@ type (
 		Expiration uint64
 	}
 
-	getdcrmmessage struct {
+	getsmpcmessage struct {
 		//sync.Mutex
 		Number     [3]byte
 		P2pType    byte
@@ -167,7 +167,7 @@ type (
 		Expiration uint64
 	}
 
-	dcrmmessage struct {
+	smpcmessage struct {
 		//sync.Mutex
 		Number     [3]byte
 		Target     NodeID // doesn't need to be an actual public key
@@ -188,8 +188,8 @@ func getGroupList(gid NodeID, p2pType int) *Group { //nooo
 	switch p2pType {
 	case Sdkprotocol_type:
 		return getGroupSDK(gid)
-	case Dcrmprotocol_type:
-		return Dcrm_groupList
+	case Smpcprotocol_type:
+		return Smpc_groupList
 	case Xprotocol_type:
 		return Xp_groupList
 	}
@@ -213,7 +213,7 @@ func getGroupSDK(gid NodeID) *Group { //nooo
 
 func getGroupChange(p2pType int) *int {
 	switch p2pType {
-	case Dcrmprotocol_type:
+	case Smpcprotocol_type:
 		return &changed
 	case Xprotocol_type:
 		return &Xp_changed
@@ -225,8 +225,8 @@ func getCCPacket(p2pType int) int {
 	switch p2pType {
 	case Sdkprotocol_type:
 		return getSdkPacket
-	case Dcrmprotocol_type:
-		return getDcrmPacket
+	case Smpcprotocol_type:
+		return getSmpcPacket
 	case Xprotocol_type:
 		return Xp_getCCPacket
 	}
@@ -236,8 +236,8 @@ func getGroupPacket(p2pType int) int {
 	switch p2pType {
 	case Sdkprotocol_type:
 		return Sdk_groupPacket
-	case Dcrmprotocol_type:
-		return Dcrm_groupPacket
+	case Smpcprotocol_type:
+		return Smpc_groupPacket
 	case Xprotocol_type:
 		return Xp_groupPacket
 	}
@@ -248,8 +248,8 @@ func getFindGroupPacket(p2pType int) int {
 	switch p2pType {
 	case Sdkprotocol_type:
 		return Sdk_findGroupPacket
-	case Dcrmprotocol_type:
-		return Dcrm_findGroupPacket
+	case Smpcprotocol_type:
+		return Smpc_findGroupPacket
 	case Xprotocol_type:
 		return Xp_findGroupPacket
 	}
@@ -260,8 +260,8 @@ func getGroupMemNum(p2pType int) int {
 	switch p2pType {
 	case Sdkprotocol_type:
 		return SDK_groupNum
-	case Dcrmprotocol_type:
-		return Dcrm_groupMemNum
+	case Smpcprotocol_type:
+		return Smpc_groupMemNum
 	case Xprotocol_type:
 		return Xp_groupMemNum
 	}
@@ -272,8 +272,8 @@ func getGotPacket(p2pType int) int {
 	switch p2pType {
 	case Sdkprotocol_type:
 		return gotSdkPacket
-	case Dcrmprotocol_type:
-		return gotDcrmPacket
+	case Smpcprotocol_type:
+		return gotSmpcPacket
 	case Xprotocol_type:
 		return gotXpPacket
 	}
@@ -344,8 +344,8 @@ func (req *findgroup) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byt
 	return nil
 }
 
-func (req *getdcrmmessage) name() string { return "GETDCRMMSG/v4" }
-func (req *dcrmmessage) name() string    { return "DCRMMSG/v4" }
+func (req *getsmpcmessage) name() string { return "GETSMPCMSG/v4" }
+func (req *smpcmessage) name() string    { return "SMPCMSG/v4" }
 
 var number [3]byte
 
@@ -365,14 +365,14 @@ func (t *udp) udpSendMsg(toid NodeID, toaddr *net.UDPAddr, msg string, number [3
 	} else {
 		getPacket = getCCPacket(p2pType)
 	}
-	reqGet := &getdcrmmessage{
+	reqGet := &getsmpcmessage{
 		Target:     toid,
 		Number:     number,
 		P2pType:    byte(p2pType),
 		Msg:        msg,
 		Sequence:   s,
 	}
-	req := &dcrmmessage{
+	req := &smpcmessage{
 		Target:     toid,
 		Number:     number,
 		P2pType:    byte(p2pType),
@@ -436,7 +436,7 @@ func (req *Ack) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) err
 	return nil
 }
 
-// sendgroup sends to group dcrm and waits until
+// sendgroup sends to group smpc and waits until
 // the node has reply.
 func (t *udp) sendToGroupCC(toid NodeID, toaddr *net.UDPAddr, msg string, p2pType int) (string, error) {
 	var err error = nil
@@ -469,20 +469,20 @@ func (t *udp) sendToGroupCC(toid NodeID, toaddr *net.UDPAddr, msg string, p2pTyp
 	return retmsg, err
 }
 
-func (req *getdcrmmessage) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
+func (req *getsmpcmessage) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
 	//if expired(req.Expiration) {
 	//	return errExpired
 	//}
-	common.Debug("send ack ==== (req *getdcrmmessage) handle() ====", "to", from, "squencencen", req.Sequence)
+	common.Debug("send ack ==== (req *getsmpcmessage) handle() ====", "to", from, "squencencen", req.Sequence)
 	t.send(from, byte(Ack_Packet), &Ack{
 		Sequence:   req.Sequence,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
 	})
 	ss := fmt.Sprintf("get-%v-%v", fromID, req.Sequence)
-	common.Debug("==== (req *getdcrmmessage) handle() ====", "from", from, "sequence", req.Sequence)
+	common.Debug("==== (req *getsmpcmessage) handle() ====", "from", from, "sequence", req.Sequence)
 	sequenceLock.Lock()
 	if _, ok := sequenceDoneRecv.Load(ss); ok {
-		common.Debug("==== (req *getdcrmmessage) handle() ====", "from", from, "req.Sequence", from, req.Sequence)
+		common.Debug("==== (req *getsmpcmessage) handle() ====", "from", from, "req.Sequence", from, req.Sequence)
 		sequenceLock.Unlock()
 		return nil
 	}
@@ -492,32 +492,32 @@ func (req *getdcrmmessage) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac 
 	msgp := req.Msg
 	num := req.Number
 	if num[2] > 1 {
-		if tmpdcrmmsg.Number[0] == 0 || num[0] != tmpdcrmmsg.Number[0] {
-			tmpdcrmmsg = &(*req)
+		if tmpsmpcmsg.Number[0] == 0 || num[0] != tmpsmpcmsg.Number[0] {
+			tmpsmpcmsg = &(*req)
 			return nil
 		}
-		if tmpdcrmmsg.Number[1] == num[1] {
+		if tmpsmpcmsg.Number[1] == num[1] {
 			return nil
 		}
 		var buffer bytes.Buffer
-		if tmpdcrmmsg.Number[1] < num[1] {
-			buffer.WriteString(tmpdcrmmsg.Msg)
+		if tmpsmpcmsg.Number[1] < num[1] {
+			buffer.WriteString(tmpsmpcmsg.Msg)
 			buffer.WriteString(req.Msg)
 		} else {
 			buffer.WriteString(req.Msg)
-			buffer.WriteString(tmpdcrmmsg.Msg)
+			buffer.WriteString(tmpsmpcmsg.Msg)
 		}
 		msgp = buffer.String()
 	}
 
 	go func() {
 		msgHash := crypto.Keccak256Hash([]byte(strings.ToLower(msgp))).Hex()
-		common.Debug("==== (req *getdcrmmessage) handle() ==== p2pBroatcast", "recv from target", fromID, "from", from, "msgHash", msgHash)
+		common.Debug("==== (req *getsmpcmessage) handle() ==== p2pBroatcast", "recv from target", fromID, "from", from, "msgHash", msgHash)
 		msgc := callMsgEvent(msgp, int(req.P2pType), fromID.String())
 		msg := <-msgc
 		_, err := t.udpSendMsg(fromID, from, msg, number, int(req.P2pType), true)
 		if err != nil {
-			common.Debug("dcrm handle", "send to target", fromID, "from", from, "msg(len", len(msg), "err", err)
+			common.Debug("smpc handle", "send to target", fromID, "from", from, "msg(len", len(msg), "err", err)
 		}
 	}()
 	return nil
@@ -536,28 +536,28 @@ func RemoveSequenceDoneRecv(id string) {
 	})
 }
 
-func (req *dcrmmessage) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
+func (req *smpcmessage) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
 	//if expired(req.Expiration) {
 	//        return errExpired
 	//}
 	msgHash := crypto.Keccak256Hash([]byte(strings.ToLower(req.Msg))).Hex()
-	common.Debug("==== (req *dcrmmessage) handle() ==== p2pBroatcast", "recv from target", fromID, "from", from, "msgHash", msgHash)
-	common.Debug("send ack ==== (req *dcrmmessage) handle() ====", "to", from, "msg", req.Msg)
+	common.Debug("==== (req *smpcmessage) handle() ==== p2pBroatcast", "recv from target", fromID, "from", from, "msgHash", msgHash)
+	common.Debug("send ack ==== (req *smpcmessage) handle() ====", "to", from, "msg", req.Msg)
 	t.send(from, byte(Ack_Packet), &Ack{
 		Sequence:   req.Sequence,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
 	})
 	ss := fmt.Sprintf("%v-%v", fromID, req.Sequence)
-	common.Debug("==== (req *dcrmmessage) handle() ====", "recvMsg", ss)
+	common.Debug("==== (req *smpcmessage) handle() ====", "recvMsg", ss)
 	sequenceLock.Lock()
 	if _, ok := sequenceDoneRecv.Load(ss); ok {
-		common.Debug("==== (req *dcrmmessage) handle() ====", "from", from, "exist req.Sequence", req.Sequence)
+		common.Debug("==== (req *smpcmessage) handle() ====", "from", from, "exist req.Sequence", req.Sequence)
 		sequenceLock.Unlock()
 		return nil
 	}
 	sequenceDoneRecv.Store(ss, 1)
 	sequenceLock.Unlock()
-	common.Debug("==== (req *dcrmmessage) handle() ==== p2pBroatcast callback callCCReturn", "recv from target", fromID, "from", from, "msgHash", msgHash)
+	common.Debug("==== (req *smpcmessage) handle() ==== p2pBroatcast callback callCCReturn", "recv from target", fromID, "from", from, "msgHash", msgHash)
 	go callCCReturn(req.Msg, int(req.P2pType), fromID.String())
 	return nil
 }
@@ -582,10 +582,10 @@ func InitGroup() {
 	setgroup = 1
 	//	setgroupNumber = groupsNum
 	//SDK_groupNum = nodesNum
-	//	Dcrm_groupMemNum = nodesNum
+	//	Smpc_groupMemNum = nodesNum
 	//	Xp_groupMemNum   = nodesNum
-	//	Dcrm_groupList = &Group{msg: "dcrm", count: 0, Expiration: ^uint64(0)}
-	//	Xp_groupList = &Group{msg: "dcrm", count: 0, Expiration: ^uint64(0)}
+	//	Smpc_groupList = &Group{msg: "smpc", count: 0, Expiration: ^uint64(0)}
+	//	Xp_groupList = &Group{msg: "smpc", count: 0, Expiration: ^uint64(0)}
 	//	RecoverGroupSDKList()// List
 	//	RecoverGroupAll(SDK_groupList)// Group
 	//	for i, g := range SDK_groupList {
@@ -705,18 +705,18 @@ func setGroup(n *Node, replace string) {
 	} else if setgroupNumber == 1 {
 		setGroupCC(n, replace, Xprotocol_type) // same nodes
 	} else {
-		groupChanged := getGroupChange(Dcrmprotocol_type)
+		groupChanged := getGroupChange(Smpcprotocol_type)
 		if *groupChanged == 2 {
 			setGroupCC(n, replace, Xprotocol_type) // deferent nodes
 		}
 	}
-	setGroupCC(n, replace, Dcrmprotocol_type)
+	setGroupCC(n, replace, Smpcprotocol_type)
 }
 
 func sendGroupToNode(groupList *Group, p2pType int, node *Node) { //nooo
 	ipa := &net.UDPAddr{IP: node.IP, Port: int(node.UDP)}
 	go SendToPeer(groupList.ID, node.ID, ipa, "", p2pType)
-	if p2pType == Dcrmprotocol_type || p2pType == Sdkprotocol_type {
+	if p2pType == Smpcprotocol_type || p2pType == Sdkprotocol_type {
 		var tmp int = 0
 		for i := 0; i < groupList.count; i++ {
 			n := groupList.Nodes[i]
@@ -724,7 +724,7 @@ func sendGroupToNode(groupList *Group, p2pType int, node *Node) { //nooo
 			if n.ID != node.ID {
 				continue
 			}
-			cDgid := fmt.Sprintf("%v", groupList.ID) + "|" + "1dcrmslash1:" + strconv.Itoa(tmp) + "#" + "Init"
+			cDgid := fmt.Sprintf("%v", groupList.ID) + "|" + "1smpcslash1:" + strconv.Itoa(tmp) + "#" + "Init"
 			common.Debug("==== sendGroupToNode() ====", "cDgid", cDgid)
 			ipa := &net.UDPAddr{IP: node.IP, Port: int(node.UDP)}
 			SendMsgToNode(node.ID, ipa, cDgid)
@@ -748,14 +748,14 @@ func sendGroupInfo(gid NodeID, nodes []RpcNode, p2pType int) { //nooo
 }
 
 func sendGroupInit2Node(gid NodeID, node RpcNode, i int) {
-	cDgid := fmt.Sprintf("%v", gid) + "|" + "1dcrmslash1:" + strconv.Itoa(i) + "#" + "Init"
+	cDgid := fmt.Sprintf("%v", gid) + "|" + "1smpcslash1:" + strconv.Itoa(i) + "#" + "Init"
 	ipa := &net.UDPAddr{IP: node.IP, Port: int(node.UDP)}
 	SendMsgToNode(node.ID, ipa, cDgid)
 }
 
 func sendGroupInit(groupList *Group, p2pType int) { //nooo
 	//enodes := fmt.Sprintf("%v,%v,%v", groupList.ID, count, enode)
-	if p2pType == Dcrmprotocol_type || p2pType == Sdkprotocol_type {
+	if p2pType == Smpcprotocol_type || p2pType == Sdkprotocol_type {
 		for i := 0; i < groupList.count; i++ {
 			node := groupList.Nodes[i]
 			gid := groupList.ID
@@ -996,7 +996,7 @@ func setGroupCC(n *Node, replace string, p2pType int) {
 				count++
 				node := groupList.Nodes[i]
 				if enode != "" {
-					enode += Dcrmdelimiter
+					enode += Smpcdelimiter
 				}
 				e := fmt.Sprintf("enode://%v@%v:%v", node.ID, node.IP, node.UDP)
 				enode += e
@@ -1006,7 +1006,7 @@ func setGroupCC(n *Node, replace string, p2pType int) {
 				}
 			}
 			enodes := fmt.Sprintf("%v,%v", count, enode)
-			if p2pType == Dcrmprotocol_type {
+			if p2pType == Smpcprotocol_type {
 				go callPrivKeyEvent(enodes)
 			}
 		}
@@ -1046,7 +1046,7 @@ func setGroupCC(n *Node, replace string, p2pType int) {
 			count++
 			node := groupList.Nodes[i]
 			if enode != "" {
-				enode += Dcrmdelimiter
+				enode += Smpcdelimiter
 			}
 			e := fmt.Sprintf("enode://%v@%v:%v", node.ID, node.IP, node.UDP)
 			enode += e
@@ -1054,7 +1054,7 @@ func setGroupCC(n *Node, replace string, p2pType int) {
 			go SendToPeer(NodeID{}, node.ID, ipa, "", p2pType)
 		}
 		enodes := fmt.Sprintf("%v,%v", count, enode)
-		if p2pType == Dcrmprotocol_type {
+		if p2pType == Smpcprotocol_type {
 			go callPrivKeyEvent(enodes)
 		}
 		*groupChanged = 2
@@ -1079,10 +1079,10 @@ func (t *udp) sendToPeer(gid, toid NodeID, toaddr *net.UDPAddr, msg string, p2pT
 	if req == nil {
 		return nil
 	}
-	errc := t.pending(toid, byte(Dcrm_groupInfoPacket), func(r interface{}) bool {
+	errc := t.pending(toid, byte(Smpc_groupInfoPacket), func(r interface{}) bool {
 		return true
 	})
-	_, errt := t.send(toaddr, byte(Dcrm_groupInfoPacket), req)
+	_, errt := t.send(toaddr, byte(Smpc_groupInfoPacket), req)
 	if errt != nil {
 		common.Debug("====  (t *udp) sendToPeer()  ====", "t.send, toaddr", toaddr, "err", errt)
 	} else {
@@ -1175,8 +1175,8 @@ func callMsgEvent(e interface{}, p2pType int, fromID string) <-chan string {
 			ch <- "RegisterSdkMsgCallback not called"
 			return ch
 		}
-	case Dcrmprotocol_type:
-		return dcrmcallback(e)
+	case Smpcprotocol_type:
+		return smpccallback(e)
 	case Xprotocol_type:
 		return xpcallback(e)
 	}
@@ -1194,14 +1194,14 @@ func callsdkEvent(e interface{}, fromID string) <-chan string {
 	return sdkcallback(e, fromID)
 }
 
-//peer(of DCRM group) receive other peer msg to run dcrm
-var dcrmcallback func(interface{}) <-chan string
+//peer(of SMPC group) receive other peer msg to run smpc
+var smpccallback func(interface{}) <-chan string
 
-func RegisterDcrmMsgCallback(callbackfunc func(interface{}) <-chan string) {
-	dcrmcallback = callbackfunc
+func RegisterSmpcMsgCallback(callbackfunc func(interface{}) <-chan string) {
+	smpccallback = callbackfunc
 }
-func calldcrmEvent(e interface{}) <-chan string {
-	return dcrmcallback(e)
+func callsmpcEvent(e interface{}) <-chan string {
+	return smpccallback(e)
 }
 
 var sdkretcallback func(interface{}, string)
@@ -1216,13 +1216,13 @@ func callsdkReturn(e interface{}, fromID string) {
 }
 
 //return
-var dcrmretcallback func(interface{})
+var smpcretcallback func(interface{})
 
-func RegisterDcrmMsgRetCallback(callbackfunc func(interface{})) {
-	dcrmretcallback = callbackfunc
+func RegisterSmpcMsgRetCallback(callbackfunc func(interface{})) {
+	smpcretcallback = callbackfunc
 }
-func calldcrmReturn(e interface{}) {
-	dcrmretcallback(e)
+func callsmpcReturn(e interface{}) {
+	smpcretcallback(e)
 }
 
 //peer(of Xp group) receive other peer msg to run dccp
@@ -1249,8 +1249,8 @@ func callCCReturn(e interface{}, p2pType int, fromID string) {
 	switch p2pType {
 	case Sdkprotocol_type:
 		callsdkReturn(e, fromID)
-	case Dcrmprotocol_type:
-		calldcrmReturn(e)
+	case Smpcprotocol_type:
+		callsmpcReturn(e)
 	case Xprotocol_type:
 		callxpReturn(e)
 	}
@@ -1274,7 +1274,7 @@ func ParseNodes(n []*Node) (int, string) {
 	enode := ""
 	for _, e := range n {
 		if enode != "" {
-			enode += Dcrmdelimiter
+			enode += Smpcdelimiter
 		}
 		i++
 		enode += e.String()
@@ -1337,9 +1337,9 @@ func UpdateGroupNodesNumber(number, p2pType int) {
 			SDK_groupNum = number
 		}
 		break
-	case Dcrmprotocol_type:
-		if Dcrm_groupMemNum == 0 {
-			Dcrm_groupMemNum = number
+	case Smpcprotocol_type:
+		if Smpc_groupMemNum == 0 {
+			Smpc_groupMemNum = number
 		}
 		break
 	case Xprotocol_type:

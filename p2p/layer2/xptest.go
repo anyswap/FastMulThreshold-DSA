@@ -29,8 +29,8 @@ func pcall(msg interface{}) {
 func xpcall(msg interface{}) <-chan string {
 	ch := make(chan string, 800)
 	fmt.Printf("\nxp xpcall: msg=%v\n", msg)
-	dcrmcallMsg := fmt.Sprintf("%v xpcall", msg)
-	Xprotocol_broadcastInGroupOthers(dcrmcallMsg)
+	smpccallMsg := fmt.Sprintf("%v xpcall", msg)
+	Xprotocol_broadcastInGroupOthers(smpccallMsg)
 	ch <- msg.(string)
 	return ch
 }
