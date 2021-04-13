@@ -24,7 +24,7 @@ import (
 	"time"
 
 	//"github.com/anyswap/Anyswap-MPCNode/log"
-	"github.com/anyswap/Anyswap-MPCNode/metrics"
+	//"github.com/anyswap/Anyswap-MPCNode/metrics"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"
@@ -43,16 +43,7 @@ type LDBDatabase struct {
 	fn string      // filename for reporting
 	db *leveldb.DB // LevelDB instance
 
-	compTimeMeter    metrics.Meter // Meter for measuring the total time spent in database compaction
-	compReadMeter    metrics.Meter // Meter for measuring the data read during compaction
-	compWriteMeter   metrics.Meter // Meter for measuring the data written during compaction
-	writeDelayNMeter metrics.Meter // Meter for measuring the write delay number due to database compaction
-	writeDelayMeter  metrics.Meter // Meter for measuring the write delay duration due to database compaction
-	diskReadMeter    metrics.Meter // Meter for measuring the effective amount of data read
-	diskWriteMeter   metrics.Meter // Meter for measuring the effective amount of data written
-
 	quitLock sync.Mutex      // Mutex protecting the quit channel access
-	quitChan chan chan error // Quit channel to stop the metrics collection before closing the database
 
 }
 
@@ -129,14 +120,14 @@ func (db *LDBDatabase) Close() {
 	db.quitLock.Lock()
 	defer db.quitLock.Unlock()
 
-	if db.quitChan != nil {
+	/*if db.quitChan != nil {
 		errc := make(chan error)
 		db.quitChan <- errc
 		if err := <-errc; err != nil {
 			//db.log.Error("Metrics collection failed", "err", err)
 		}
 		db.quitChan = nil
-	}
+	}*/
 	err := db.db.Close()
 	if err == nil {
 		//db.log.Info("Database closed")
@@ -152,17 +143,8 @@ func (db *LDBDatabase) LDB() *leveldb.DB {
 // Meter configures the database metrics collectors and
 func (db *LDBDatabase) Meter(prefix string) {
 	// Initialize all the metrics collector at the requested prefix
-	db.compTimeMeter = metrics.NewRegisteredMeter(prefix+"compact/time", nil)
-	db.compReadMeter = metrics.NewRegisteredMeter(prefix+"compact/input", nil)
-	db.compWriteMeter = metrics.NewRegisteredMeter(prefix+"compact/output", nil)
-	db.diskReadMeter = metrics.NewRegisteredMeter(prefix+"disk/read", nil)
-	db.diskWriteMeter = metrics.NewRegisteredMeter(prefix+"disk/write", nil)
-	db.writeDelayMeter = metrics.NewRegisteredMeter(prefix+"compact/writedelay/duration", nil)
-	db.writeDelayNMeter = metrics.NewRegisteredMeter(prefix+"compact/writedelay/counter", nil)
-
 	// Create a quit channel for the periodic collector and run it
 	db.quitLock.Lock()
-	db.quitChan = make(chan chan error)
 	db.quitLock.Unlock()
 
 	go db.meter(3 * time.Second)
@@ -245,16 +227,6 @@ func (db *LDBDatabase) meter(refresh time.Duration) {
 				compactions[i%2][idx] += value
 			}
 		}
-		// Update all the requested meters
-		if db.compTimeMeter != nil {
-			db.compTimeMeter.Mark(int64((compactions[i%2][0] - compactions[(i-1)%2][0]) * 1000 * 1000 * 1000))
-		}
-		if db.compReadMeter != nil {
-			db.compReadMeter.Mark(int64((compactions[i%2][1] - compactions[(i-1)%2][1]) * 1024 * 1024))
-		}
-		if db.compWriteMeter != nil {
-			db.compWriteMeter.Mark(int64((compactions[i%2][2] - compactions[(i-1)%2][2]) * 1024 * 1024))
-		}
 
 		// Retrieve the write delay statistic
 		writedelay, err := db.db.GetProperty("leveldb.writedelay")
@@ -279,12 +251,6 @@ func (db *LDBDatabase) meter(refresh time.Duration) {
 			//db.log.Error("Failed to parse delay duration", "err", err)
 			merr = err
 			continue
-		}
-		if db.writeDelayNMeter != nil {
-			db.writeDelayNMeter.Mark(delayN - delaystats[0])
-		}
-		if db.writeDelayMeter != nil {
-			db.writeDelayMeter.Mark(duration.Nanoseconds() - delaystats[1])
 		}
 		// If a warning that db is performing compaction has been displayed, any subsequent
 		// warnings will be withheld for one minute not to overwhelm the user.
@@ -319,26 +285,16 @@ func (db *LDBDatabase) meter(refresh time.Duration) {
 			merr = err
 			continue
 		}
-		if db.diskReadMeter != nil {
-			db.diskReadMeter.Mark(int64((nRead - iostats[0]) * 1024 * 1024))
-		}
-		if db.diskWriteMeter != nil {
-			db.diskWriteMeter.Mark(int64((nWrite - iostats[1]) * 1024 * 1024))
-		}
 		iostats[0], iostats[1] = nRead, nWrite
 
 		// Sleep a bit, then repeat the stats collection
 		select {
-		case errc = <-db.quitChan:
 			// Quit requesting, stop hammering the database
 		case <-time.After(refresh):
 			// Timeout, gather a new set of stats
 		}
 	}
 
-	if errc == nil {
-		errc = <-db.quitChan
-	}
 	errc <- merr
 }
 
