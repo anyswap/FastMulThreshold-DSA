@@ -674,7 +674,7 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 
     //************************/////////////
 
-    /*rh := TxDataReShare{}
+    rh := TxDataReShare{}
     err = json.Unmarshal(tx.Data(), &rh)
     if err == nil && rh.TxType == "RESHARE" {
 	if !IsValidReShareAccept(from.Hex(),rh.GroupId) {
@@ -711,7 +711,7 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 	Nonce := tx.Nonce()
 	
 	return key,from.Hex(),fmt.Sprintf("%v", Nonce),&rh,nil
-    }*/
+    }
 
     acceptreq := TxDataAcceptReqAddr{}
     err = json.Unmarshal(tx.Data(), &acceptreq)
@@ -1571,7 +1571,7 @@ func GetAllReplyFromGroup(wid int,gid string,rt RpcType,initiator string) []Node
 	}
     } 
     
-    /*if rt == Rpc_RESHARE {
+    if rt == Rpc_RESHARE {
 	for _, node := range nodes {
 		node2 := ParseNode(node)
 		sta := "Pending"
@@ -1640,7 +1640,7 @@ func GetAllReplyFromGroup(wid int,gid string,rt RpcType,initiator string) []Node
 		nr := NodeReply{Enode:node2,Status:sta,TimeStamp:ts,Initiator:in}
 		ars = append(ars,nr)
 	}
-    }*/
+    }
     
     if rt == Rpc_REQADDR {
 	for _, node := range nodes {

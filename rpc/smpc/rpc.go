@@ -449,7 +449,7 @@ func (this *Service) GetSignStatus(key string) map[string]interface{} {
 }
 
 //reshare
-/*func (this *Service) ReShare(raw string) map[string]interface{} {
+func (this *Service) ReShare(raw string) map[string]interface{} {
 	common.Debug("===================ReShare=====================","raw",raw)
 
 	data := make(map[string]interface{})
@@ -573,7 +573,7 @@ func (this *Service) GetReShareStatus(key string) map[string]interface{} {
 		"Error":  "",
 		"Data":   data,
 	}
-}*/
+}
 
 //raw tx: 
 //data = pubkey + subgids

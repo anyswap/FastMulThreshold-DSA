@@ -245,7 +245,7 @@ func GetRawReply(l *list.List) map[string]*RawReply {
 	    continue
 	}
 	
-	/*rh,ok := txdata.(*TxDataReShare)
+	rh,ok := txdata.(*TxDataReShare)
 	if ok {
 	    reply := &RawReply{From:from,Accept:"true",TimeStamp:rh.TimeStamp}
 	    tmp,ok := ret[from]
@@ -260,7 +260,7 @@ func GetRawReply(l *list.List) map[string]*RawReply {
 	    }
 
 	    continue
-	}*/
+	}
 	
 	acceptreq,ok := txdata.(*TxDataAcceptReqAddr)
 	if ok {
@@ -614,6 +614,22 @@ func Call(msg interface{}, enode string) {
 		w.bwire <-true //add for smpc-lib
 	    } else {
 		fmt.Printf("\n============Call,keygen cmd arrive before smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
+		SetUpMsgList(s, enode)
+	    }
+	    
+	    return
+	}
+
+	ok,key = IsReshareCmd(s)
+	if ok {
+	    w, err := FindWorker(key)
+	    if err == nil {
+		fmt.Printf("\n============Call,reshare cmd arrive after dcrm msg. key = %v, msg = %v ==============\n",key,msgmap)
+		ch := make(chan interface{}, 1)
+		ReshareInitAcceptData(s,w.id,enode,ch)
+		w.bwire <-true //add for dcrm-lib
+	    } else {
+		fmt.Printf("\n============Call,reshare cmd arrive before dcrm msg. key = %v, msg = %v ==============\n",key,msgmap)
 		SetUpMsgList(s, enode)
 	    }
 	    
@@ -1607,7 +1623,7 @@ func DisAcceptMsg(raw string,workid int) {
 	}
     }
     
-    /*_,ok = txdata.(*TxDataReShare)
+    _,ok = txdata.(*TxDataReShare)
     if ok {
 	if Find(w.msg_acceptreshareres, raw) {
 	    return
@@ -1632,7 +1648,7 @@ func DisAcceptMsg(raw string,workid int) {
 
 	    workers[ac.WorkId].acceptReShareChan <- "go on"
 	}
-    }*/
+    }
     
     acceptreq,ok := txdata.(*TxDataAcceptReqAddr)
     if ok {
@@ -1748,6 +1764,24 @@ func DisAcceptMsg(raw string,workid int) {
     }
 }
 
+func IsReshareCmd(raw string) (bool,string) {
+    if raw == "" {
+	return false,""
+    }
+
+    key,_,_,txdata,err := CheckRaw(raw)
+    if err != nil {
+	return false,""
+    }
+    
+    _,ok := txdata.(*TxDataReShare)
+    if ok {
+	return true,key
+    }
+
+    return false,""
+}
+
 func IsGenKeyCmd(raw string) (bool,string) {
     if raw == "" {
 	return false,""
@@ -1812,6 +1846,283 @@ func IsSignDataCmd(raw string) (string,bool) {
     }
 
     return "",false
+}
+
+func ReshareInitAcceptData(raw string,workid int,sender string,ch chan interface{}) error {
+    if raw == "" || workid < 0 || sender == "" {
+	res := RpcSmpcRes{Ret: "", Tip: "init accept data fail.", Err: fmt.Errorf("init accept data fail")}
+	ch <- res
+	return fmt.Errorf("init accept data fail")
+    }
+
+    key,from,_,txdata,err := CheckRaw(raw)
+    if err != nil {
+	res := RpcSmpcRes{Ret: "", Tip: err.Error(), Err: err}
+	ch <- res
+	return err
+    }
+    
+    rh,ok := txdata.(*TxDataReShare)
+    if ok {
+	ars := GetAllReplyFromGroup(workid,rh.GroupId,Rpc_RESHARE,sender)
+	sigs,err := GetGroupSigsDataByRaw(raw) 
+	common.Debug("=================ReshareInitAcceptData,reshare=================","get group sigs ",sigs,"err ",err,"key ",key)
+	if err != nil {
+	    res := RpcSmpcRes{Ret: "", Tip: err.Error(), Err: err}
+	    ch <- res
+	    return err
+	}
+
+	ac := &AcceptReShareData{Initiator:sender,Account: from, GroupId: rh.GroupId, TSGroupId:rh.TSGroupId, PubKey: rh.PubKey, LimitNum: rh.ThresHold, PubAccount:rh.Account, Mode:rh.Mode, Sigs:sigs, TimeStamp: rh.TimeStamp, Deal: "false", Accept: "false", Status: "Pending", NewSk: "", Tip: "", Error: "", AllReply: ars, WorkId:workid}
+	err = SaveAcceptReShareData(ac)
+	common.Info("===================finish call SaveAcceptReShareData======================","err ",err,"workid ",workid,"account ",from,"group id ",rh.GroupId,"pubkey ",rh.PubKey,"threshold ",rh.ThresHold,"key ",key)
+	if err == nil {
+	    w := workers[workid]
+	    w.sid = key 
+	    w.groupid = rh.TSGroupId 
+	    w.limitnum = rh.ThresHold
+	    gcnt, _ := GetGroup(w.groupid)
+	    w.NodeCnt = gcnt
+	    w.ThresHold = w.NodeCnt
+
+	    fmt.Printf("==================== reshare,gcnt = %v,w.NodeCnt = %v,w.ThresHold = %v,w.sid = %v ======================\n",gcnt,w.NodeCnt,w.ThresHold,w.sid)
+
+	    nums := strings.Split(w.limitnum, "/")
+	    if len(nums) == 2 {
+		nodecnt, err := strconv.Atoi(nums[1])
+		if err == nil {
+		    w.NodeCnt = nodecnt
+		}
+
+		w.ThresHold = gcnt
+		if w.ThresHold == 0 {
+		    th,_ := strconv.Atoi(nums[0])
+		    w.ThresHold = th
+		}
+		
+		fmt.Printf("==================== reshare,222222,gcnt = %v,w.NodeCnt = %v,w.ThresHold = %v,w.sid = %v ======================\n",gcnt,w.NodeCnt,w.ThresHold,w.sid)
+	    }
+
+	    w.SmpcFrom = rh.PubKey  // pubkey replace dcrmfrom in reshare 
+
+	    var reply bool
+	    var tip string
+	    timeout := make(chan bool, 1)
+	    go func(wid int) {
+		    cur_enode = discover.GetLocalID().String() //GetSelfEnode()
+		    agreeWaitTime := 10 * time.Minute
+		    agreeWaitTimeOut := time.NewTicker(agreeWaitTime)
+
+		    wtmp2 := workers[wid]
+
+		    for {
+			    select {
+			    case account := <-wtmp2.acceptReShareChan:
+				    common.Debug("(self *RecvMsg) Run(),", "account= ", account, "key = ", key)
+				    ars := GetAllReplyFromGroup(w.id,rh.GroupId,Rpc_RESHARE,sender)
+				    common.Info("================== ReshareInitAcceptData, get all AcceptReShareRes================","raw ",raw,"result ",ars,"key ",key)
+				    
+				    //bug
+				    reply = true
+				    for _,nr := range ars {
+					if !strings.EqualFold(nr.Status,"Agree") {
+					    reply = false
+					    break
+					}
+				    }
+				    //
+
+				    if !reply {
+					    tip = "don't accept reshare"
+					    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "false", "Failure", "", "don't accept reshare", "don't accept reshare", nil, wid)
+				    } else {
+					    tip = ""
+					    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "false", "pending", "", "", "", ars, wid)
+				    }
+
+				    if err != nil {
+					tip = tip + " and accept reshare data fail"
+				    }
+
+				    ///////
+				    timeout <- true
+				    return
+			    case <-agreeWaitTimeOut.C:
+				    common.Info("================== ReshareInitAcceptData, agree wait timeout===================","raw ",raw,"key ",key)
+				    ars := GetAllReplyFromGroup(w.id,rh.GroupId,Rpc_RESHARE,sender)
+				    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "false", "Timeout", "", "get other node accept reshare result timeout", "get other node accept reshare result timeout", ars, wid)
+				    reply = false
+				    tip = "get other node accept reshare result timeout"
+				    if err != nil {
+					tip = tip + " and accept reshare data fail"
+				    }
+				    //
+
+				    timeout <- true
+				    return
+			    }
+		    }
+	    }(workid)
+
+	    if len(workers[workid].acceptWaitReShareChan) == 0 {
+		    workers[workid].acceptWaitReShareChan <- "go on"
+	    }
+
+	    DisAcceptMsg(raw,workid)
+	    HandleC1Data(nil,key,workid)
+	    
+	    <-timeout
+
+	    if !reply {
+		    //////////////////////reshare result start/////////////////////////
+		    if tip == "get other node accept reshare result timeout" {
+			    ars := GetAllReplyFromGroup(workid,rh.GroupId,Rpc_RESHARE,sender)
+			    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold, rh.Mode,"false", "", "Timeout", "", "get other node accept reshare result timeout", "get other node accept reshare result timeout", ars,workid)
+		    } else {
+			    /////////////TODO tmp
+			    //sid-enode:SendReShareRes:Success:rsv
+			    //sid-enode:SendReShareRes:Fail:err
+			    mp := []string{w.sid, cur_enode}
+			    enode := strings.Join(mp, "-")
+			    s0 := "SendReShareRes"
+			    s1 := "Fail"
+			    s2 := "don't accept reshare."
+			    ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
+			    SendMsgToSmpcGroup(ss, rh.GroupId)
+			    DisMsg(ss)
+			    _, _, err := GetChannelValue(ch_t, w.bsendreshareres)
+			    ars := GetAllReplyFromGroup(w.id,rh.GroupId,Rpc_RESHARE,sender)
+			    if err != nil {
+				    tip = "get other node terminal accept reshare result timeout" ////bug
+				    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Timeout", "", tip,tip, ars, workid)
+				    if err != nil {
+					tip = tip + " and accept reshare data fail"
+				    }
+
+			    } else if w.msg_sendreshareres.Len() != w.ThresHold {
+				    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold, rh.Mode,"false", "", "Failure", "", "get other node reshare result fail","get other node reshare result fail",ars, workid)
+				    if err != nil {
+					tip = tip + " and accept reshare data fail"
+				    }
+			    } else {
+				    reply2 := "false"
+				    lohash := ""
+				    iter := w.msg_sendreshareres.Front()
+				    for iter != nil {
+					    mdss := iter.Value.(string)
+					    ms := strings.Split(mdss, common.Sep)
+					    if strings.EqualFold(ms[2], "Success") {
+						    reply2 = "true"
+						    lohash = ms[3]
+						    break
+					    }
+
+					    lohash = ms[3]
+					    iter = iter.Next()
+				    }
+
+				    if reply2 == "true" {
+					    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold, rh.Mode,"true", "true", "Success", lohash," "," ",ars, workid)
+					    if err != nil {
+						tip = tip + " and accept reshare data fail"
+					    }
+				    } else {
+					    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Failure", "",lohash,lohash,ars, workid)
+					    if err != nil {
+						tip = tip + " and accept reshare data fail"
+					    }
+				    }
+			    }
+		    }
+
+		    res2 := RpcSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("don't accept reshare.")}
+		    ch <- res2
+		    return fmt.Errorf("don't accept reshare.")
+	    }
+
+	    rch := make(chan interface{}, 1)
+	    _reshare(w.sid,from,rh.GroupId,rh.PubKey,rh.Account,rh.Mode,sigs,rch)
+	    chret, tip, cherr := GetChannelValue(ch_t, rch)
+	    if chret != "" {
+		    res2 := RpcSmpcRes{Ret: chret, Tip: "", Err: nil}
+		    ch <- res2
+		    return nil 
+	    }
+
+	    if tip == "get other node accept reshare result timeout" {
+		    ars := GetAllReplyFromGroup(workid,rh.GroupId,Rpc_RESHARE,sender)
+		    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Timeout", "", "get other node accept reshare result timeout", "get other node accept reshare result timeout", ars,workid)
+	    } else {
+		    /////////////TODO tmp
+		    //sid-enode:SendReShareRes:Success:rsv
+		    //sid-enode:SendReShareRes:Fail:err
+		    mp := []string{w.sid, cur_enode}
+		    enode := strings.Join(mp, "-")
+		    s0 := "SendReShareRes"
+		    s1 := "Fail"
+		    s2 := "don't accept reshare."
+		    ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
+		    SendMsgToSmpcGroup(ss, rh.GroupId)
+		    DisMsg(ss)
+		    _, _, err := GetChannelValue(ch_t, w.bsendreshareres)
+		    ars := GetAllReplyFromGroup(w.id,rh.GroupId,Rpc_RESHARE,sender)
+		    if err != nil {
+			    tip = "get other node terminal accept reshare result timeout" ////bug
+			    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Timeout", "", tip,tip, ars, workid)
+			    if err != nil {
+				tip = tip + " and accept reshare data fail"
+			    }
+		    } else if w.msg_sendsignres.Len() != w.ThresHold {
+			    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Failure", "", "get other node reshare result fail","get other node reshare result fail",ars, workid)
+			    if err != nil {
+				tip = tip + " and accept reshare data fail"
+			    }
+		    } else {
+			    reply2 := "false"
+			    lohash := ""
+			    iter := w.msg_sendreshareres.Front()
+			    for iter != nil {
+				    mdss := iter.Value.(string)
+				    ms := strings.Split(mdss, common.Sep)
+				    if strings.EqualFold(ms[2], "Success") {
+					    reply2 = "true"
+					    lohash = ms[3]
+					    break
+				    }
+
+				    lohash = ms[3]
+				    iter = iter.Next()
+			    }
+
+			    if reply2 == "true" {
+				    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"true", "true", "Success", lohash," "," ",ars, workid)
+				    if err != nil {
+					tip = tip + " and accept reshare data fail"
+				    }
+			    } else {
+				    _,err = AcceptReShare(sender,from, rh.GroupId,rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Failure", "",lohash,lohash,ars,workid)
+				    if err != nil {
+					tip = tip + " and accept reshare data fail"
+				    }
+			    }
+		    }
+	    }
+
+	    if cherr != nil {
+		    res2 := RpcSmpcRes{Ret:"", Tip: tip, Err: cherr}
+		    ch <- res2
+		    return cherr 
+	    }
+
+	    res2 := RpcSmpcRes{Ret:"", Tip: tip, Err: fmt.Errorf("reshare fail.")}
+	    ch <- res2
+	    return fmt.Errorf("reshare fail.")
+	}
+    }
+
+    res := RpcSmpcRes{Ret: "", Tip: "init accept data fail.", Err: fmt.Errorf("init accept data fail")}
+    ch <- res
+    return fmt.Errorf("init accept data fail")
 }
 
 func KeyInitAcceptData(raw string,workid int,sender string,ch chan interface{}) error {
@@ -3362,7 +3673,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	}
     }
 
-    /*rh,ok := txdata.(*TxDataReShare)
+    rh,ok := txdata.(*TxDataReShare)
     if ok {
 	ars := GetAllReplyFromGroup(workid,rh.GroupId,Rpc_RESHARE,sender)
 	sigs,err := GetGroupSigsDataByRaw(raw) 
@@ -3377,6 +3688,16 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	err = SaveAcceptReShareData(ac)
 	common.Info("===================finish call SaveAcceptReShareData======================","err ",err,"workid ",workid,"account ",from,"group id ",rh.GroupId,"pubkey ",rh.PubKey,"threshold ",rh.ThresHold,"key ",key)
 	if err == nil {
+	    ///////bug
+	    for k,v := range workers {
+		if strings.EqualFold(v.sid, key) {
+		    err = ReshareInitAcceptData(raw,k,sender,ch)
+		    v.bwire <-true //add for smpc-lib
+		    return err
+		}
+	    }
+	    //////////
+
 	    w := workers[workid]
 	    w.sid = key 
 	    w.groupid = rh.TSGroupId 
@@ -3384,6 +3705,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	    gcnt, _ := GetGroup(w.groupid)
 	    w.NodeCnt = gcnt
 	    w.ThresHold = w.NodeCnt
+	    //fmt.Printf("==================== reshare,gcnt = %v,w.NodeCnt = %v,w.ThresHold = %v,w.sid = %v ======================\n",gcnt,w.NodeCnt,w.ThresHold,w.sid)
 
 	    nums := strings.Split(w.limitnum, "/")
 	    if len(nums) == 2 {
@@ -3393,6 +3715,12 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 		}
 
 		w.ThresHold = gcnt
+		if w.ThresHold == 0 {
+		    th,_ := strconv.Atoi(nums[0])
+		    w.ThresHold = th
+		}
+		
+		//fmt.Printf("==================== reshare,222222,gcnt = %v,w.NodeCnt = %v,w.ThresHold = %v,w.sid = %v ======================\n",gcnt,w.NodeCnt,w.ThresHold,w.sid)
 	    }
 
 	    w.SmpcFrom = rh.PubKey  // pubkey replace smpcfrom in reshare 
@@ -3533,7 +3861,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	    }
 
 	    rch := make(chan interface{}, 1)
-	    reshare(w.sid,from,rh.GroupId,rh.PubKey,rh.Account,rh.Mode,sigs,rch)
+	    _reshare(w.sid,from,rh.GroupId,rh.PubKey,rh.Account,rh.Mode,sigs,rch)
 	    chret, tip, cherr := GetChannelValue(ch_t, rch)
 	    if chret != "" {
 		    res2 := RpcSmpcRes{Ret: chret, Tip: "", Err: nil}
@@ -3610,7 +3938,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	    ch <- res2
 	    return fmt.Errorf("reshare fail.")
 	}
-    }*/
+    }
 
     acceptreq,ok := txdata.(*TxDataAcceptReqAddr)
     if ok {
@@ -3909,14 +4237,14 @@ func GetGroupSigsDataByRaw(raw string) (string,error) {
 	groupsigs = req.Sigs
 	groupid = req.GroupId
     } else {
-	/*rh := TxDataReShare{}
+	rh := TxDataReShare{}
 	err = json.Unmarshal(tx.Data(), &rh)
 	if err == nil && rh.TxType == "RESHARE" {
 	    threshold = rh.ThresHold
 	    mode = rh.Mode
 	    groupsigs = rh.Sigs
 	    groupid = rh.GroupId
-	}*/
+	}
     }
 
     if threshold == "" || mode == "" || groupid == "" {
