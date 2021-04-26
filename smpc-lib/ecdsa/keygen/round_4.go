@@ -141,14 +141,21 @@ func (round *round4) Start() error {
 
 	// zk of paillier key
 	NtildeLength := 2048
-	u1NtildeH1H2 := ec2.GenerateNtildeH1H2(NtildeLength)
+	u1NtildeH1H2,alpha,beta,p,q := ec2.GenerateNtildeH1H2(NtildeLength)
 	if u1NtildeH1H2 == nil {
 	    return errors.New("gen ntilde h1 h2 fail.")
 	}
-	
+
+	ntildeProof1 := ec2.NewNtildeProof(u1NtildeH1H2.H1, u1NtildeH1H2.H2, alpha, p, q, u1NtildeH1H2.Ntilde)
+	ntildeProof2 := ec2.NewNtildeProof(u1NtildeH1H2.H2, u1NtildeH1H2.H1, beta, p, q, u1NtildeH1H2.Ntilde)
+
+	fmt.Printf("=========================keygen round4.start, curindex = %v, h1 = %v, h2 = %v, ntilde = %v, pf1 = %v, pf2 = %v ===========================\n",cur_index,u1NtildeH1H2.H1,u1NtildeH1H2.H2,u1NtildeH1H2.Ntilde,ntildeProof1,ntildeProof2)
+
 	kg := &KGRound4Message{
 	    KGRoundMessage:new(KGRoundMessage),
 	    U1NtildeH1H2:u1NtildeH1H2,
+	    NtildeProof1:ntildeProof1,
+	    NtildeProof2:ntildeProof2,
 	}
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(cur_index)

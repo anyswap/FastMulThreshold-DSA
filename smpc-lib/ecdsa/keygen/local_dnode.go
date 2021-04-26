@@ -2,7 +2,7 @@ package keygen
 
 import (
 	"fmt"
-	//"time"
+	"errors"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
@@ -194,6 +194,22 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 	case *KGRound4Message:
 		index := msg.GetFromIndex()
 		m := msg.(*KGRound4Message)
+
+		////////add for ntilde zk proof check
+		H1 := m.U1NtildeH1H2.H1
+		H2 := m.U1NtildeH1H2.H2
+		Ntilde := m.U1NtildeH1H2.Ntilde
+		pf1 := m.NtildeProof1
+		pf2 := m.NtildeProof2
+		fmt.Printf("=========================keygen StoreMessage, message 4, curindex = %v, h1 = %v, h2 = %v, ntilde = %v, pf1 = %v, pf2 = %v ===========================\n",index,H1,H2,Ntilde,pf1,pf2)
+		if H1.Cmp(H2) == 0 {
+		    return false,errors.New("h1 and h2 were equal for this mpc node")
+		}
+		if !pf1.Verify(H1, H2, Ntilde) || !pf2.Verify(H2, H1, Ntilde) {
+		    return false,errors.New("ntilde zk proof check fail.")
+		}
+		////////
+
 		p.data.U1NtildeH1H2[index] = m.U1NtildeH1H2
 		p.temp.kgRound4Messages[index] = msg 
 		if len(p.temp.kgRound4Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound4Messages) {

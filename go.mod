@@ -9,6 +9,7 @@ require (
 	github.com/astaxie/beego v1.12.0
 	github.com/binance-chain/go-sdk v1.2.1
 	github.com/binance-chain/ledger-cosmos-go v0.9.9 // indirect
+	github.com/binance-chain/tss-lib v1.3.2
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v0.0.0-20191219182022-e17c9730c422
 	github.com/cosmos/ledger-cosmos-go v0.11.1 // indirect

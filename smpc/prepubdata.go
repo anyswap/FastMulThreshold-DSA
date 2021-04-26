@@ -463,7 +463,7 @@ func UpdatePrePubKeyDataForDb() {
 			continue
 		    }
 		    err = predb.Put(kd.Key, []byte(es))
-		    common.Info("=====================UpdatePrePubKeyDataForDb,put pre-sign data into db 33333333========================","pick key",val.(*PrePubData).Key,"pub",kd.Key,"err",err)
+		    //common.Info("=====================UpdatePrePubKeyDataForDb,put pre-sign data into db 33333333========================","pick key",val.(*PrePubData).Key,"pub",kd.Key,"err",err)
 		    if err != nil {
 			time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
 			continue
@@ -474,7 +474,7 @@ func UpdatePrePubKeyDataForDb() {
 		}
 
 		ps,err := DecodePreSignDataValue(string(da))
-		common.Info("=====================UpdatePrePubKeyDataForDb,put pre-sign data into db 4444444========================","pick key",val.(*PrePubData).Key,"pub",kd.Key,"err",err)
+		//common.Info("=====================UpdatePrePubKeyDataForDb,put pre-sign data into db 4444444========================","pick key",val.(*PrePubData).Key,"pub",kd.Key,"err",err)
 		if err != nil {
 		    datas := make([]*PrePubData,0)
 		    datas = append(datas,val.(*PrePubData))
@@ -485,7 +485,7 @@ func UpdatePrePubKeyDataForDb() {
 			continue
 		    }
 		    err = predb.Put(kd.Key, []byte(es))
-		    common.Info("=====================UpdatePrePubKeyDataForDb,put pre-sign data into db 666666========================","pick key",val.(*PrePubData).Key,"pub",kd.Key,"err",err)
+		    //common.Info("=====================UpdatePrePubKeyDataForDb,put pre-sign data into db 666666========================","pick key",val.(*PrePubData).Key,"pub",kd.Key,"err",err)
 		    if err != nil {
 			time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
 			continue

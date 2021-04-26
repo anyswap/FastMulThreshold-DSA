@@ -179,15 +179,23 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
     if msg["Type"] == "KGRound4Message" {
 	nti := &ec2.NtildeH1H2{}
 	if err := nti.UnmarshalJSON([]byte(msg["U1NtildeH1H2"]));err == nil {
-	    fmt.Printf("============ GetRealMessage, get real message 4 success, msg map = %v ===========\n",msg)
-	    kg := &keygen.KGRound4Message{
-		KGRoundMessage:new(keygen.KGRoundMessage),
-		U1NtildeH1H2:nti,
+	    pf1 := &ec2.NtildeProof{}
+	    if err := pf1.UnmarshalJSON([]byte(msg["NtildeProof1"]));err == nil {
+		pf2 := &ec2.NtildeProof{}
+		if err := pf2.UnmarshalJSON([]byte(msg["NtildeProof2"]));err == nil {
+		    fmt.Printf("============ GetRealMessage, get real message 4 success, msg map = %v ===========\n",msg)
+		    kg := &keygen.KGRound4Message{
+			KGRoundMessage:new(keygen.KGRoundMessage),
+			U1NtildeH1H2:nti,
+			NtildeProof1:pf1,
+			NtildeProof2:pf2,
+		    }
+		    kg.SetFromID(from)
+		    kg.SetFromIndex(index)
+		    kg.ToID = to
+		    return kg
+		}
 	    }
-	    kg.SetFromID(from)
-	    kg.SetFromIndex(index)
-	    kg.ToID = to
-	    return kg
 	}
     }
 
