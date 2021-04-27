@@ -7,6 +7,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
 	"math/big"
+	"errors"
 )
 
 type LocalDNode struct {
@@ -26,7 +27,8 @@ type localMessageStore struct {
 	reshareRound2Messages,
 	reshareRound2Messages1,
 	reshareRound3Messages,
-	reshareRound4Messages []smpc.Message
+	reshareRound4Messages,
+	reshareRound5Messages []smpc.Message
 }
 
 type localTempData struct {
@@ -36,7 +38,8 @@ type localTempData struct {
 	reshareRound2Messages,
 	reshareRound2Messages1,
 	reshareRound3Messages,
-	reshareRound4Messages []smpc.Message
+	reshareRound4Messages,
+	reshareRound5Messages []smpc.Message
 
 	// temp data (thrown away after keygen)
 
@@ -50,8 +53,14 @@ type localTempData struct {
 	skP1Shares []*ec2.ShareStruct2
 
 	//round 3
+	pkx *big.Int
+	pky *big.Int
+	newskU1 *big.Int
+	u1PaillierSk *ec2.PrivateKey
+	u1PaillierPk *ec2.PublicKey
 
 	//round 4
+	u1NtildeH1H2 *ec2.NtildeH1H2
 
 	//round 5
 
@@ -105,6 +114,7 @@ func NewLocalDNode(
 	p.temp.reshareRound2Messages1 = make([]smpc.Message,threshold)
 	p.temp.reshareRound3Messages = make([]smpc.Message,DNodeCountInGroup)
 	p.temp.reshareRound4Messages = make([]smpc.Message,DNodeCountInGroup)
+	p.temp.reshareRound5Messages = make([]smpc.Message,DNodeCountInGroup)
 	return p
 }
 
@@ -201,6 +211,23 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		p.data.U1NtildeH1H2[index] = m.U1NtildeH1H2
 		if len(p.temp.reshareRound4Messages) == p.DNodeCountInGroup && checkfull(p.temp.reshareRound4Messages) {
 		    fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
+		    return true,nil
+		}
+	case *ReshareRound5Message:
+		index := msg.GetFromIndex()
+		p.temp.reshareRound5Messages[index] = msg 
+		if len(p.temp.reshareRound5Messages) == p.DNodeCountInGroup && checkfull(p.temp.reshareRound5Messages) {
+		    fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
+
+		    ///check newskok
+		    for _,v := range p.temp.reshareRound5Messages {
+		    m := v.(*ReshareRound5Message)
+		    if m.NewSkOk != "TRUE" {
+			return false,errors.New("check newsk ok fail.")
+		    }
+		}
+		    ////
+
 		    return true,nil
 		}
 	default: // unrecognised message, just ignore!

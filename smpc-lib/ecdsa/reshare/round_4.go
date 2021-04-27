@@ -48,7 +48,8 @@ func (round *round4) Start() error {
 	re.SetFromID(round.dnodeid)
 	re.SetFromIndex(cur_index)
 
-	round.Save.U1NtildeH1H2[cur_index] = u1NtildeH1H2
+	//round.Save.U1NtildeH1H2[cur_index] = u1NtildeH1H2
+	round.temp.u1NtildeH1H2 = u1NtildeH1H2
 	round.temp.reshareRound4Messages[cur_index] = re
 	round.out <-re
 	

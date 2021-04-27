@@ -88,9 +88,12 @@ func (round *round3) Start() error {
 	
 	newskU1 = new(big.Int).Mod(newskU1, secp256k1.S256().N)
 	
-	round.Save.SkU1 = newskU1
-	round.Save.Pkx = pkx
-	round.Save.Pky = pky
+	//round.Save.SkU1 = newskU1
+	//round.Save.Pkx = pkx
+	//round.Save.Pky = pky
+	round.temp.pkx = pkx
+	round.temp.pky = pky
+	round.temp.newskU1 = newskU1
 
 	idtmp,ok := new(big.Int).SetString(round.dnodeid,10)
 	if !ok {
@@ -111,8 +114,10 @@ func (round *round3) Start() error {
 
 	u1PaillierPk, u1PaillierSk := ec2.GenerateKeyPair(round.paillierkeylength)
 
-	round.Save.U1PaillierSk = u1PaillierSk
-	round.Save.U1PaillierPk[cur_index] = u1PaillierPk
+	//round.Save.U1PaillierSk = u1PaillierSk
+	//round.Save.U1PaillierPk[cur_index] = u1PaillierPk
+	round.temp.u1PaillierSk = u1PaillierSk
+	round.temp.u1PaillierPk = u1PaillierPk
 	
 	re := &ReshareRound3Message{
 	    ReshareRoundMessage:new(ReshareRoundMessage),

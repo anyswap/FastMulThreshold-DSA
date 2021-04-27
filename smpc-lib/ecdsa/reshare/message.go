@@ -256,3 +256,35 @@ func (re *ReshareRound4Message) OutMap() map[string]string {
     return m
 }
 
+//ReshareRound5Message
+type ReshareRound5Message struct {
+    *ReshareRoundMessage
+    NewSkOk string
+}
+
+func (re *ReshareRound5Message) GetFromID() string {
+    return re.FromID
+}
+
+func (re *ReshareRound5Message) GetFromIndex() int {
+    return re.FromIndex
+}
+
+func (re *ReshareRound5Message) GetToID() []string {
+    return re.ToID
+}
+
+func (re *ReshareRound5Message) IsBroadcast() bool {
+    return true 
+}
+
+func (re *ReshareRound5Message) OutMap() map[string]string {
+    m := make(map[string]string)
+    m["FromID"] = re.FromID
+    m["FromIndex"] = strconv.Itoa(re.FromIndex) 
+    m["ToID"] = ""
+    m["NewSkOk"] = re.NewSkOk
+    m["Type"] = "ReshareRound4Message"
+    return m
+}
+

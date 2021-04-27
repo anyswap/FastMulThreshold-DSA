@@ -44,6 +44,9 @@ type (
 	round5 struct {
 		*round4
 	}
+	round6 struct {
+		*round5
+	}
 )
 
 // ----- //

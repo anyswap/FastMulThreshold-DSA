@@ -183,6 +183,19 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 	}
     }
 
+    //5 message
+    if msg["Type"] == "ReshareRound5Message" {
+	fmt.Printf("============ ReshareGetRealMessage, get real message 5 success, msg map = %v ===========\n",msg)
+	re := &reshare.ReshareRound5Message{
+	    ReshareRoundMessage:new(reshare.ReshareRoundMessage),
+	    NewSkOk:msg["NewSkOk"],
+	}
+	re.SetFromID(from)
+	re.SetFromIndex(index)
+	re.ToID = to
+	return re
+    }
+
     fmt.Printf("============ ReshareGetRealMessage, get real message 0 success, msg map = %v ===========\n",msg)
     re := &reshare.ReshareRound0Message{
 	ReshareRoundMessage: new(reshare.ReshareRoundMessage),
