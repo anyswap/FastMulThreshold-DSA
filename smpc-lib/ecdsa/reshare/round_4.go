@@ -36,14 +36,19 @@ func (round *round4) Start() error {
 
 	// zk of paillier key
 	NtildeLength := 2048
-	u1NtildeH1H2,_,_,_,_ := ec2.GenerateNtildeH1H2(NtildeLength)
+	u1NtildeH1H2,alpha,beta,p,q := ec2.GenerateNtildeH1H2(NtildeLength)
 	if u1NtildeH1H2 == nil {
 	    return errors.New("gen ntilde h1 h2 fail.")
 	}
 	
+	ntildeProof1 := ec2.NewNtildeProof(u1NtildeH1H2.H1, u1NtildeH1H2.H2, alpha, p, q, u1NtildeH1H2.Ntilde)
+	ntildeProof2 := ec2.NewNtildeProof(u1NtildeH1H2.H2, u1NtildeH1H2.H1, beta, p, q, u1NtildeH1H2.Ntilde)
+
 	re := &ReshareRound4Message{
 	    ReshareRoundMessage:new(ReshareRoundMessage),
 	    U1NtildeH1H2:u1NtildeH1H2,
+	    NtildeProof1:ntildeProof1,
+	    NtildeProof2:ntildeProof2,
 	}
 	re.SetFromID(round.dnodeid)
 	re.SetFromIndex(cur_index)

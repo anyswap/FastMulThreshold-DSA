@@ -169,7 +169,7 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 
     //4 message
     if msg["Type"] == "ReshareRound4Message" {
-	nti := &ec2.NtildeH1H2{}
+	/*nti := &ec2.NtildeH1H2{}
 	if err := nti.UnmarshalJSON([]byte(msg["U1NtildeH1H2"]));err == nil {
 	    fmt.Printf("============ ReshareGetRealMessage, get real message 4 success, msg map = %v ===========\n",msg)
 	    re := &reshare.ReshareRound4Message{
@@ -180,6 +180,26 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 	    re.SetFromIndex(index)
 	    re.ToID = to
 	    return re
+	}*/
+	nti := &ec2.NtildeH1H2{}
+	if err := nti.UnmarshalJSON([]byte(msg["U1NtildeH1H2"]));err == nil {
+	    pf1 := &ec2.NtildeProof{}
+	    if err := pf1.UnmarshalJSON([]byte(msg["NtildeProof1"]));err == nil {
+		pf2 := &ec2.NtildeProof{}
+		if err := pf2.UnmarshalJSON([]byte(msg["NtildeProof2"]));err == nil {
+		    fmt.Printf("============ ReshareGetRealMessage, get real message 4 success, msg map = %v ===========\n",msg)
+		    re := &reshare.ReshareRound4Message{
+			ReshareRoundMessage:new(reshare.ReshareRoundMessage),
+			U1NtildeH1H2:nti,
+			NtildeProof1:pf1,
+			NtildeProof2:pf2,
+		    }
+		    re.SetFromID(from)
+		    re.SetFromIndex(index)
+		    re.ToID = to
+		    return re
+		}
+	    }
 	}
     }
 

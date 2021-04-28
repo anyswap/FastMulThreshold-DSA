@@ -223,6 +223,10 @@ func (re *ReshareRound3Message) OutMap() map[string]string {
 type ReshareRound4Message struct {
     *ReshareRoundMessage
     U1NtildeH1H2 *ec2.NtildeH1H2
+    
+    //add for ntilde zk
+    NtildeProof1 *ec2.NtildeProof
+    NtildeProof2 *ec2.NtildeProof
 }
 
 func (re *ReshareRound4Message) GetFromID() string {
@@ -250,6 +254,16 @@ func (re *ReshareRound4Message) OutMap() map[string]string {
     nt,err := re.U1NtildeH1H2.MarshalJSON()
     if err == nil {
 	m["U1NtildeH1H2"] = string(nt) 
+    }
+
+    pf1,err := re.NtildeProof1.MarshalJSON()
+    if err == nil {
+	m["NtildeProof1"] = string(pf1) 
+    }
+
+    pf2,err := re.NtildeProof2.MarshalJSON()
+    if err == nil {
+	m["NtildeProof2"] = string(pf2) 
     }
 
     m["Type"] = "ReshareRound4Message"

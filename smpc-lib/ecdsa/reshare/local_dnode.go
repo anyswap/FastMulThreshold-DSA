@@ -206,8 +206,24 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		}
 	case *ReshareRound4Message:
 		index := msg.GetFromIndex()
-		p.temp.reshareRound4Messages[index] = msg 
 		m := msg.(*ReshareRound4Message)
+		
+		////////add for ntilde zk proof check
+		H1 := m.U1NtildeH1H2.H1
+		H2 := m.U1NtildeH1H2.H2
+		Ntilde := m.U1NtildeH1H2.Ntilde
+		pf1 := m.NtildeProof1
+		pf2 := m.NtildeProof2
+		fmt.Printf("=========================reshare StoreMessage, message 4, curindex = %v, h1 = %v, h2 = %v, ntilde = %v, pf1 = %v, pf2 = %v ===========================\n",index,H1,H2,Ntilde,pf1,pf2)
+		if H1.Cmp(H2) == 0 {
+		    return false,errors.New("h1 and h2 were equal for this mpc node")
+		}
+		if !pf1.Verify(H1, H2, Ntilde) || !pf2.Verify(H2, H1, Ntilde) {
+		    return false,errors.New("ntilde zk proof check fail.")
+		}
+		////////
+
+		p.temp.reshareRound4Messages[index] = msg 
 		p.data.U1NtildeH1H2[index] = m.U1NtildeH1H2
 		if len(p.temp.reshareRound4Messages) == p.DNodeCountInGroup && checkfull(p.temp.reshareRound4Messages) {
 		    fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
