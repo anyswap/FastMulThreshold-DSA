@@ -62,16 +62,10 @@ type RPCReqWorker struct {
 	SmpcFrom         string
 	NodeCnt          int
 	ThresHold        int
-	ch               chan interface{}
-	retres           *list.List
 	//
 	msg_acceptreqaddrres      *list.List
-	msg_acceptlockoutres      *list.List
 	msg_acceptreshareres      *list.List
 	msg_acceptsignres      *list.List
-	msg_sendlockoutres      *list.List
-	msg_sendreshareres      *list.List
-	msg_sendsignres      *list.List
 	msg_c1      *list.List
 	msg_kc      *list.List
 	msg_mkg      *list.List
@@ -81,7 +75,6 @@ type RPCReqWorker struct {
 	msg_share1      *list.List
 	msg_zkfact      *list.List
 	msg_zku      *list.List
-	msg_checkpubkeystatus      *list.List
 	msg_bip32c1      *list.List
 	msg_mtazk1proof      *list.List
 	msg_c11      *list.List
@@ -90,7 +83,6 @@ type RPCReqWorker struct {
 	msg_zkabproof      *list.List
 	msg_commitbigut      *list.List
 	msg_commitbigutd11      *list.List
-	msg_s1      *list.List
 	msg_ss1      *list.List
 	msg_paillierkey      *list.List
 	
@@ -102,13 +94,10 @@ type RPCReqWorker struct {
 	bip32c  *list.List
 
 	bacceptreqaddrres chan bool
-	bacceptlockoutres chan bool
 	bacceptreshareres chan bool
 	bacceptsignres chan bool
-	bsendlockoutres   chan bool
 	bsendreshareres   chan bool
 	bsendsignres   chan bool
-	bgaccs            chan bool
 	bc1               chan bool
 	bmkg              chan bool
 	bmkw              chan bool
@@ -117,7 +106,6 @@ type RPCReqWorker struct {
 	bshare1           chan bool
 	bzkfact           chan bool
 	bzku              chan bool
-	bcheckpubkeystatus              chan bool
 	bbip32c1              chan bool
 	bmtazk1proof      chan bool
 	bkc               chan bool
@@ -125,14 +113,12 @@ type RPCReqWorker struct {
 	bzkabproof        chan bool
 	bcommitbigut      chan bool
 	bcommitbigutd11   chan bool
-	bs1               chan bool
 	bss1              chan bool
 	bpaillierkey               chan bool
 	bc11              chan bool
 	bd11_1            chan bool
 
 	sid string //save the key
-	bnoreciv          chan bool
 
 	//ed
 	bedc11       chan bool
@@ -164,8 +150,6 @@ type RPCReqWorker struct {
 
 	acceptReqAddrChan     chan string
 	acceptWaitReqAddrChan chan string
-	acceptLockOutChan     chan string
-	acceptWaitLockOutChan chan string
 	acceptReShareChan     chan string
 	acceptWaitReShareChan chan string
 	acceptSignChan     chan string
@@ -261,12 +245,9 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		RPCReqWorkerPool:          workerPool,
 		RPCReqChannel:             make(chan RPCReq),
 		rpcquit:                   make(chan bool),
-		retres:                    list.New(),
-		ch:                        make(chan interface{}),
 		msg_share1:                list.New(),
 		msg_zkfact:                list.New(),
 		msg_zku:                   list.New(),
-		msg_checkpubkeystatus:                   list.New(),
 		msg_bip32c1:                   list.New(),
 		msg_mtazk1proof:           list.New(),
 		msg_c1:                    list.New(),
@@ -281,16 +262,11 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		msg_zkabproof:             list.New(),
 		msg_commitbigut:           list.New(),
 		msg_commitbigutd11:        list.New(),
-		msg_s1:                    list.New(),
 		msg_ss1:                   list.New(),
 		msg_paillierkey:                   list.New(),
 		msg_acceptreqaddrres:      list.New(),
-		msg_acceptlockoutres:      list.New(),
 		msg_acceptreshareres:      list.New(),
 		msg_acceptsignres:      list.New(),
-		msg_sendlockoutres:        list.New(),
-		msg_sendreshareres:        list.New(),
-		msg_sendsignres:        list.New(),
 
 		rsv:  list.New(),
 		pkx:  list.New(),
@@ -300,15 +276,11 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		bip32c:  list.New(),
 
 		bacceptreqaddrres: make(chan bool, 1),
-		bacceptlockoutres: make(chan bool, 1),
 		bacceptreshareres: make(chan bool, 1),
 		bacceptsignres: make(chan bool, 1),
-		bsendlockoutres:   make(chan bool, 1),
 		bsendreshareres:   make(chan bool, 1),
 		bsendsignres:   make(chan bool, 1),
-		bgaccs:            make(chan bool, 1),
 		bc1:               make(chan bool, 1),
-		bnoreciv:          make(chan bool, 1),
 		bd1_1:             make(chan bool, 1),
 		bc11:              make(chan bool, 1),
 		bkc:               make(chan bool, 1),
@@ -316,7 +288,6 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		bzkabproof:        make(chan bool, 1),
 		bcommitbigut:      make(chan bool, 1),
 		bcommitbigutd11:   make(chan bool, 1),
-		bs1:               make(chan bool, 1),
 		bss1:              make(chan bool, 1),
 		bpaillierkey:              make(chan bool, 1),
 		bmkg:              make(chan bool, 1),
@@ -324,7 +295,6 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		bshare1:           make(chan bool, 1),
 		bzkfact:           make(chan bool, 1),
 		bzku:              make(chan bool, 1),
-		bcheckpubkeystatus:              make(chan bool, 1),
 		bbip32c1:              make(chan bool, 1),
 		bmtazk1proof:      make(chan bool, 1),
 		bdelta1:           make(chan bool, 1),
@@ -364,8 +334,6 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		acceptReqAddrChan:     make(chan string, 1),
 		acceptWaitReqAddrChan: make(chan string, 1),
 
-		acceptLockOutChan:     make(chan string, 1),
-		acceptWaitLockOutChan: make(chan string, 1),
 		acceptReShareChan:     make(chan string, 1),
 		acceptWaitReShareChan: make(chan string, 1),
 		acceptSignChan:     make(chan string, 1),
@@ -392,11 +360,6 @@ func (w *RPCReqWorker) Clear() {
 
 	var next *list.Element
 
-	for e := w.msg_acceptlockoutres.Front(); e != nil; e = next {
-		next = e.Next()
-		w.msg_acceptlockoutres.Remove(e)
-	}
-
 	for e := w.msg_acceptreshareres.Front(); e != nil; e = next {
 		next = e.Next()
 		w.msg_acceptreshareres.Remove(e)
@@ -405,21 +368,6 @@ func (w *RPCReqWorker) Clear() {
 	for e := w.msg_acceptsignres.Front(); e != nil; e = next {
 		next = e.Next()
 		w.msg_acceptsignres.Remove(e)
-	}
-
-	for e := w.msg_sendlockoutres.Front(); e != nil; e = next {
-		next = e.Next()
-		w.msg_sendlockoutres.Remove(e)
-	}
-
-	for e := w.msg_sendreshareres.Front(); e != nil; e = next {
-		next = e.Next()
-		w.msg_sendreshareres.Remove(e)
-	}
-
-	for e := w.msg_sendsignres.Front(); e != nil; e = next {
-		next = e.Next()
-		w.msg_sendsignres.Remove(e)
 	}
 
 	for e := w.msg_acceptreqaddrres.Front(); e != nil; e = next {
@@ -472,11 +420,6 @@ func (w *RPCReqWorker) Clear() {
 		w.msg_zku.Remove(e)
 	}
 
-	for e := w.msg_checkpubkeystatus.Front(); e != nil; e = next {
-		next = e.Next()
-		w.msg_checkpubkeystatus.Remove(e)
-	}
-
 	for e := w.msg_bip32c1.Front(); e != nil; e = next {
 		next = e.Next()
 		w.msg_bip32c1.Remove(e)
@@ -517,11 +460,6 @@ func (w *RPCReqWorker) Clear() {
 		w.msg_commitbigutd11.Remove(e)
 	}
 
-	for e := w.msg_s1.Front(); e != nil; e = next {
-		next = e.Next()
-		w.msg_s1.Remove(e)
-	}
-
 	for e := w.msg_ss1.Front(); e != nil; e = next {
 		next = e.Next()
 		w.msg_ss1.Remove(e)
@@ -557,19 +495,11 @@ func (w *RPCReqWorker) Clear() {
 		w.sku1.Remove(e)
 	}
 
-	for e := w.retres.Front(); e != nil; e = next {
-		next = e.Next()
-		w.retres.Remove(e)
-	}
-
 	for e := w.rsv.Front(); e != nil; e = next {
 		next = e.Next()
 		w.rsv.Remove(e)
 	}
 
-	if len(w.ch) == 1 {
-		<-w.ch
-	}
 	if len(w.rpcquit) == 1 {
 		<-w.rpcquit
 	}
@@ -582,26 +512,17 @@ func (w *RPCReqWorker) Clear() {
 	if len(w.bzku) == 1 {
 		<-w.bzku
 	}
-	if len(w.bcheckpubkeystatus) == 1 {
-		<-w.bcheckpubkeystatus
-	}
 	if len(w.bbip32c1) == 1 {
 		<-w.bbip32c1
 	}
 	if len(w.bmtazk1proof) == 1 {
 		<-w.bmtazk1proof
 	}
-	if len(w.bacceptlockoutres) == 1 {
-		<-w.bacceptlockoutres
-	}
 	if len(w.bacceptreshareres) == 1 {
 		<-w.bacceptreshareres
 	}
 	if len(w.bacceptsignres) == 1 {
 		<-w.bacceptsignres
-	}
-	if len(w.bsendlockoutres) == 1 {
-		<-w.bsendlockoutres
 	}
 	if len(w.bsendreshareres) == 1 {
 		<-w.bsendreshareres
@@ -612,14 +533,8 @@ func (w *RPCReqWorker) Clear() {
 	if len(w.bacceptreqaddrres) == 1 {
 		<-w.bacceptreqaddrres
 	}
-	if len(w.bgaccs) == 1 {
-		<-w.bgaccs
-	}
 	if len(w.bc1) == 1 {
 		<-w.bc1
-	}
-	if len(w.bnoreciv) == 1 {
-		<-w.bnoreciv
 	}
 	if len(w.bd1_1) == 1 {
 		<-w.bd1_1
@@ -641,9 +556,6 @@ func (w *RPCReqWorker) Clear() {
 	}
 	if len(w.bcommitbigutd11) == 1 {
 		<-w.bcommitbigutd11
-	}
-	if len(w.bs1) == 1 {
-		<-w.bs1
 	}
 	if len(w.bss1) == 1 {
 		<-w.bss1
@@ -762,12 +674,6 @@ func (w *RPCReqWorker) Clear() {
 	}
 	if len(w.acceptReqAddrChan) == 1 {
 		<-w.acceptReqAddrChan
-	}
-	if len(w.acceptWaitLockOutChan) == 1 {
-		<-w.acceptWaitLockOutChan
-	}
-	if len(w.acceptLockOutChan) == 1 {
-		<-w.acceptLockOutChan
 	}
 	if len(w.acceptReShareChan) == 1 {
 		<-w.acceptReShareChan
@@ -799,11 +705,6 @@ func (w *RPCReqWorker) Clear2() {
 	
 	var next *list.Element
 
-	for e := w.msg_acceptlockoutres.Front(); e != nil; e = next {
-		next = e.Next()
-		w.msg_acceptlockoutres.Remove(e)
-	}
-
 	for e := w.msg_acceptreshareres.Front(); e != nil; e = next {
 		next = e.Next()
 		w.msg_acceptreshareres.Remove(e)
@@ -812,21 +713,6 @@ func (w *RPCReqWorker) Clear2() {
 	for e := w.msg_acceptsignres.Front(); e != nil; e = next {
 		next = e.Next()
 		w.msg_acceptsignres.Remove(e)
-	}
-
-	for e := w.msg_sendlockoutres.Front(); e != nil; e = next {
-		next = e.Next()
-		w.msg_sendlockoutres.Remove(e)
-	}
-
-	for e := w.msg_sendreshareres.Front(); e != nil; e = next {
-		next = e.Next()
-		w.msg_sendreshareres.Remove(e)
-	}
-
-	for e := w.msg_sendsignres.Front(); e != nil; e = next {
-		next = e.Next()
-		w.msg_sendsignres.Remove(e)
 	}
 
 	for e := w.msg_acceptreqaddrres.Front(); e != nil; e = next {
@@ -879,11 +765,6 @@ func (w *RPCReqWorker) Clear2() {
 		w.msg_zku.Remove(e)
 	}
 
-	for e := w.msg_checkpubkeystatus.Front(); e != nil; e = next {
-		next = e.Next()
-		w.msg_checkpubkeystatus.Remove(e)
-	}
-
 	for e := w.msg_bip32c1.Front(); e != nil; e = next {
 		next = e.Next()
 		w.msg_bip32c1.Remove(e)
@@ -924,11 +805,6 @@ func (w *RPCReqWorker) Clear2() {
 		w.msg_commitbigutd11.Remove(e)
 	}
 
-	for e := w.msg_s1.Front(); e != nil; e = next {
-		next = e.Next()
-		w.msg_s1.Remove(e)
-	}
-
 	for e := w.msg_ss1.Front(); e != nil; e = next {
 		next = e.Next()
 		w.msg_ss1.Remove(e)
@@ -964,19 +840,11 @@ func (w *RPCReqWorker) Clear2() {
 		w.sku1.Remove(e)
 	}
 
-	for e := w.retres.Front(); e != nil; e = next {
-		next = e.Next()
-		w.retres.Remove(e)
-	}
-
 	for e := w.rsv.Front(); e != nil; e = next {
 		next = e.Next()
 		w.rsv.Remove(e)
 	}
 
-	if len(w.ch) == 1 {
-		<-w.ch
-	}
 	if len(w.rpcquit) == 1 {
 		<-w.rpcquit
 	}
@@ -989,26 +857,17 @@ func (w *RPCReqWorker) Clear2() {
 	if len(w.bzku) == 1 {
 		<-w.bzku
 	}
-	if len(w.bcheckpubkeystatus) == 1 {
-		<-w.bcheckpubkeystatus
-	}
 	if len(w.bbip32c1) == 1 {
 		<-w.bbip32c1
 	}
 	if len(w.bmtazk1proof) == 1 {
 		<-w.bmtazk1proof
 	}
-	if len(w.bacceptlockoutres) == 1 {
-		<-w.bacceptlockoutres
-	}
 	if len(w.bacceptreshareres) == 1 {
 		<-w.bacceptreshareres
 	}
 	if len(w.bacceptsignres) == 1 {
 		<-w.bacceptsignres
-	}
-	if len(w.bsendlockoutres) == 1 {
-		<-w.bsendlockoutres
 	}
 	if len(w.bsendreshareres) == 1 {
 		<-w.bsendreshareres
@@ -1019,14 +878,8 @@ func (w *RPCReqWorker) Clear2() {
 	if len(w.bacceptreqaddrres) == 1 {
 		<-w.bacceptreqaddrres
 	}
-	if len(w.bgaccs) == 1 {
-		<-w.bgaccs
-	}
 	if len(w.bc1) == 1 {
 		<-w.bc1
-	}
-	if len(w.bnoreciv) == 1 {
-		<-w.bnoreciv
 	}
 	if len(w.bd1_1) == 1 {
 		<-w.bd1_1
@@ -1048,9 +901,6 @@ func (w *RPCReqWorker) Clear2() {
 	}
 	if len(w.bcommitbigutd11) == 1 {
 		<-w.bcommitbigutd11
-	}
-	if len(w.bs1) == 1 {
-		<-w.bs1
 	}
 	if len(w.bss1) == 1 {
 		<-w.bss1
@@ -1169,12 +1019,6 @@ func (w *RPCReqWorker) Clear2() {
 	}
 	if len(w.acceptReqAddrChan) == 1 {
 		<-w.acceptReqAddrChan
-	}
-	if len(w.acceptWaitLockOutChan) == 1 {
-		<-w.acceptWaitLockOutChan
-	}
-	if len(w.acceptLockOutChan) == 1 {
-		<-w.acceptLockOutChan
 	}
 	if len(w.acceptReShareChan) == 1 {
 		<-w.acceptReShareChan

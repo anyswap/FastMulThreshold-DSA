@@ -1475,54 +1475,6 @@ func GetAllReplyFromGroup(wid int,gid string,rt RpcType,initiator string) []Node
 	return nil
     }
 
-    if rt == Rpc_LOCKOUT {
-	for _, node := range nodes {
-		node2 := ParseNode(node)
-		sta := "Pending"
-		ts := ""
-		in := "0"
-		if strings.EqualFold(initiator,node2) {
-		    in = "1"
-		}
-
-		iter := w.msg_acceptlockoutres.Front()
-		if iter != nil {
-		    mdss := iter.Value.(string)
-		    common.Debug("===================== GetAllReplyFromGroup call CheckRaw,it is Rpc_LOCKOUT ================")
-		    key,_,_,_,_ := CheckRaw(mdss)
-		    key2 := GetReqAddrKeyByOtherKey(key,rt)
-		    exsit,da := GetValueFromPubKeyData(key2)
-		    if exsit {
-			ac,ok := da.(*AcceptReqAddrData)
-			if ok && ac != nil {
-			    ret := GetRawReply(w.msg_acceptlockoutres)
-			    //sigs:  5:eid1:acc1:eid2:acc2:eid3:acc3:eid4:acc4:eid5:acc5
-			    mms := strings.Split(ac.Sigs, common.Sep)
-			    for k,mm := range mms {
-				if strings.EqualFold(mm,node2) {
-				    reply,ok := ret[mms[k+1]]
-				    if ok && reply != nil {
-					if reply.Accept == "true" {
-					    sta = "Agree"
-					} else {
-					    sta = "DisAgree"
-					}
-					ts = reply.TimeStamp
-				    }
-
-				    break
-				}
-			    }
-
-			}
-		    }
-		}
-		
-		nr := NodeReply{Enode:node2,Status:sta,TimeStamp:ts,Initiator:in}
-		ars = append(ars,nr)
-	}
-    } 
-    
     if rt == Rpc_SIGN {
 	for _, node := range nodes {
 		node2 := ParseNode(node)

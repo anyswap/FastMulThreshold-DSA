@@ -275,65 +275,7 @@ func SignInitAcceptData2(sbd *SignBrocastData,workid int,sender string,ch chan i
 					if tip == "get other node accept sign result timeout" {
 						ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
 						_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", "get other node accept sign result timeout", "get other node accept sign result timeout", ars,workid)
-					} else {
-						//sid-enode:SendSignRes:Success:rsv
-						//sid-enode:SendSignRes:Fail:err
-						mp := []string{w.sid, cur_enode}
-						enode := strings.Join(mp, "-")
-						s0 := "SendSignRes"
-						s1 := "Fail"
-						s2 := "don't accept sign."
-						ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
-						SendMsgToSmpcGroup(ss, w.groupid)
-						DisMsg(ss)
-						_, _, err := GetChannelValue(waitall, w.bsendsignres)
-						ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
-						if err != nil {
-							tip = "get other node terminal accept sign result timeout" ////bug
-							_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", tip, tip, ars,workid)
-							if err != nil {
-							    tip = tip + " and accept sign data fail"
-							}
-
-						} else if w.msg_sendsignres.Len() != w.ThresHold {
-							_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Failure", "", "get other node sign result fail", "get other node sign result fail", ars,workid)
-							if err != nil {
-							    tip = tip + " and accept sign data fail"
-							}
-
-						} else {
-							reply2 := "false"
-							lohash := ""
-							iter := w.msg_sendsignres.Front()
-							for iter != nil {
-								mdss := iter.Value.(string)
-								common.Info("======================== SignInitAcceptData,get sign result==================","sign result",mdss)
-								ms := strings.Split(mdss, common.Sep)
-								if strings.EqualFold(ms[2], "Success") {
-									reply2 = "true"
-									lohash = ms[3]
-									break
-								}
-
-								lohash = ms[3]
-								iter = iter.Next()
-							}
-
-							if reply2 == "true" {
-								_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "true", "Success", lohash, " ", " ", ars,workid)
-								if err != nil {
-								    tip = tip + " and accept sign data fail"
-								}
-
-							} else {
-								_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Failure", "", lohash,lohash, ars,workid)
-								if err != nil {
-								    tip = tip + " and accept sign data fail"
-								}
-
-							}
-						}
-					}
+					} 
 
 					DtPreSign.Lock()
 					for _,vv := range sbd.PickHash {
@@ -391,77 +333,7 @@ func SignInitAcceptData2(sbd *SignBrocastData,workid int,sender string,ch chan i
 			ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
 			if tip == "get other node accept sign result timeout" {
 				_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", tip,cherr.Error(),ars,workid)
-			} else {
-				//sid-enode:SendSignRes:Success:rsv
-				//sid-enode:SendSignRes:Fail:err
-				mp := []string{w.sid, cur_enode}
-				enode := strings.Join(mp, "-")
-				s0 := "SendSignRes"
-				s1 := "Fail"
-				s2 := cherr.Error()
-				ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
-				SendMsgToSmpcGroup(ss, w.groupid)
-				DisMsg(ss)
-				_, _, err := GetChannelValue(waitall, w.bsendsignres)
-				if err != nil {
-					tip = "get other node terminal accept sign result timeout" ////bug
-					_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", tip, tip, ars, workid)
-					if err != nil {
-					    tip = tip + " and accept sign data fail"
-					}
-
-				} else if w.msg_sendsignres.Len() != w.ThresHold {
-					_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Failure", "", "get other node sign result fail", "get other node sign result fail", ars, workid)
-					if err != nil {
-					    tip = tip + " and accept sign data fail"
-					}
-
-				} else {
-					reply2 := "false"
-					lohash := ""
-					iter := w.msg_sendsignres.Front()
-					for iter != nil {
-						mdss := iter.Value.(string)
-						common.Info("======================== SignInitAcceptData,get sign result==================","sign result",mdss)
-						ms := strings.Split(mdss, common.Sep)
-						if strings.EqualFold(ms[2], "Success") {
-							reply2 = "true"
-							lohash = ms[3]
-							break
-						}
-
-						lohash = ms[3]
-						iter = iter.Next()
-					}
-
-					if reply2 == "true" {
-						_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "true", "Success", lohash, " ", " ", ars, workid)
-						if err != nil {
-						    tip = tip + " and accept sign data fail"
-						}
-
-						/////bug
-						DtPreSign.Lock()
-						for _,vv := range sbd.PickHash {
-							DeletePrePubDataBak(pub,vv.PickKey)
-							kd := UpdataPreSignData{Key:[]byte(strings.ToLower(pub)),Del:true,Data:vv.PickKey}
-							PrePubKeyDataChan <- kd
-						}
-						DtPreSign.Unlock()
-
-						res := RpcSmpcRes{Ret: lohash, Tip: "", Err: nil}
-						ch <- res
-						return nil
-						////bug
-
-					} else {
-						_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Failure", "", lohash, lohash, ars, workid)
-						if err != nil {
-						    tip = tip + " and accept sign data fail"
-						}
-					}
-				}
-			}
+			} 
 
 			if cherr != nil {
 				DtPreSign.Lock()
@@ -713,65 +585,7 @@ func InitAcceptData2(sbd *SignBrocastData,workid int,sender string,ch chan inter
 					if tip == "get other node accept sign result timeout" {
 						ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
 						_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", "get other node accept sign result timeout", "get other node accept sign result timeout", ars,workid)
-					} else {
-						//sid-enode:SendSignRes:Success:rsv
-						//sid-enode:SendSignRes:Fail:err
-						mp := []string{w.sid, cur_enode}
-						enode := strings.Join(mp, "-")
-						s0 := "SendSignRes"
-						s1 := "Fail"
-						s2 := "don't accept sign."
-						ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
-						SendMsgToSmpcGroup(ss, w.groupid)
-						DisMsg(ss)
-						_, _, err := GetChannelValue(waitall, w.bsendsignres)
-						ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
-						if err != nil {
-							tip = "get other node terminal accept sign result timeout" ////bug
-							_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", tip, tip, ars,workid)
-							if err != nil {
-							    tip = tip + " and accept sign data fail"
-							}
-
-						} else if w.msg_sendsignres.Len() != w.ThresHold {
-							_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Failure", "", "get other node sign result fail", "get other node sign result fail", ars,workid)
-							if err != nil {
-							    tip = tip + " and accept sign data fail"
-							}
-
-						} else {
-							reply2 := "false"
-							lohash := ""
-							iter := w.msg_sendsignres.Front()
-							for iter != nil {
-								mdss := iter.Value.(string)
-								common.Info("========================InitAcceptData2,get sign result==================","sign result",mdss)
-								ms := strings.Split(mdss, common.Sep)
-								if strings.EqualFold(ms[2], "Success") {
-									reply2 = "true"
-									lohash = ms[3]
-									break
-								}
-
-								lohash = ms[3]
-								iter = iter.Next()
-							}
-
-							if reply2 == "true" {
-								_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "true", "Success", lohash, " ", " ", ars,workid)
-								if err != nil {
-								    tip = tip + " and accept sign data fail"
-								}
-
-							} else {
-								_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Failure", "", lohash,lohash, ars,workid)
-								if err != nil {
-								    tip = tip + " and accept sign data fail"
-								}
-
-							}
-						}
-					}
+					} 
 
 					DtPreSign.Lock()
 					for _,vv := range sbd.PickHash {
@@ -831,77 +645,7 @@ func InitAcceptData2(sbd *SignBrocastData,workid int,sender string,ch chan inter
 			ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
 			if tip == "get other node accept sign result timeout" {
 				_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", tip,cherr.Error(),ars,workid)
-			} else {
-				//sid-enode:SendSignRes:Success:rsv
-				//sid-enode:SendSignRes:Fail:err
-				mp := []string{w.sid, cur_enode}
-				enode := strings.Join(mp, "-")
-				s0 := "SendSignRes"
-				s1 := "Fail"
-				s2 := cherr.Error()
-				ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
-				SendMsgToSmpcGroup(ss, w.groupid)
-				DisMsg(ss)
-				_, _, err := GetChannelValue(waitall, w.bsendsignres)
-				if err != nil {
-					tip = "get other node terminal accept sign result timeout" ////bug
-					_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", tip, tip, ars, workid)
-					if err != nil {
-					    tip = tip + " and accept sign data fail"
-					}
-
-				} else if w.msg_sendsignres.Len() != w.ThresHold {
-					_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Failure", "", "get other node sign result fail", "get other node sign result fail", ars, workid)
-					if err != nil {
-					    tip = tip + " and accept sign data fail"
-					}
-
-				} else {
-					reply2 := "false"
-					lohash := ""
-					iter := w.msg_sendsignres.Front()
-					for iter != nil {
-						mdss := iter.Value.(string)
-						common.Info("========================InitAcceptData2,get sign result==================","sign result",mdss)
-						ms := strings.Split(mdss, common.Sep)
-						if strings.EqualFold(ms[2], "Success") {
-							reply2 = "true"
-							lohash = ms[3]
-							break
-						}
-
-						lohash = ms[3]
-						iter = iter.Next()
-					}
-
-					if reply2 == "true" {
-						_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "true", "Success", lohash, " ", " ", ars, workid)
-						if err != nil {
-						    tip = tip + " and accept sign data fail"
-						}
-					
-						/////bug
-						DtPreSign.Lock()
-						for _,vv := range sbd.PickHash {
-							DeletePrePubDataBak(pub,vv.PickKey)
-							kd := UpdataPreSignData{Key:[]byte(strings.ToLower(pub)),Del:true,Data:vv.PickKey}
-							PrePubKeyDataChan <- kd
-						}
-						DtPreSign.Unlock()
-
-						res := RpcSmpcRes{Ret: lohash, Tip: "", Err: nil}
-						ch <- res
-						return nil
-						////bug
-
-					} else {
-						_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Failure", "", lohash, lohash, ars, workid)
-						if err != nil {
-						    tip = tip + " and accept sign data fail"
-						}
-					}
-				}
-			}
+			} 
 
 			if cherr != nil {
 				DtPreSign.Lock()

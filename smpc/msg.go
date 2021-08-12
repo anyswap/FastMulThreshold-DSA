@@ -1564,33 +1564,6 @@ func DisAcceptMsg(raw string,workid int) {
 	}
     }
     
-    /*_,ok = txdata.(*TxDataLockOut)
-    if ok {
-	if Find(w.msg_acceptlockoutres, raw) {
-	    return
-	}
-
-	w.msg_acceptlockoutres.PushBack(raw)
-	if w.msg_acceptlockoutres.Len() >= w.ThresHold {
-	    if !CheckReply(w.msg_acceptlockoutres,Rpc_LOCKOUT,key) {
-		return
-	    }
-
-	    w.bacceptlockoutres <- true
-	    exsit,da := GetValueFromPubKeyData(key)
-	    if !exsit {
-		return
-	    }
-
-	    ac,ok := da.(*AcceptLockOutData)
-	    if !ok || ac == nil {
-		return
-	    }
-
-	    workers[ac.WorkId].acceptLockOutChan <- "go on"
-	}
-    }*/
-    
     sig2,ok := txdata.(*TxDataSign)
     if ok {
 	    common.Debug("======================DisAcceptMsg, get the msg and it is sign tx===========================","key",key,"from",from,"raw",raw)
@@ -1674,33 +1647,6 @@ func DisAcceptMsg(raw string,workid int) {
 	    }
 
 	    workers[ac.WorkId].acceptReqAddrChan <- "go on"
-	}
-    }
-    
-    acceptlockout,ok := txdata.(*TxDataAcceptLockOut)
-    if ok {
-	if Find(w.msg_acceptlockoutres, raw) {
-	    return
-	}
-
-	w.msg_acceptlockoutres.PushBack(raw)
-	if w.msg_acceptlockoutres.Len() >= w.ThresHold {
-	    if !CheckReply(w.msg_acceptlockoutres,Rpc_LOCKOUT,acceptlockout.Key) {
-		return
-	    }
-
-	    w.bacceptlockoutres <- true
-	    exsit,da := GetValueFromPubKeyData(acceptlockout.Key)
-	    if !exsit {
-		return
-	    }
-
-	    ac,ok := da.(*AcceptLockOutData)
-	    if !ok || ac == nil {
-		return
-	    }
-
-	    workers[ac.WorkId].acceptLockOutChan <- "go on"
 	}
     }
     
@@ -1978,62 +1924,7 @@ func ReshareInitAcceptData(raw string,workid int,sender string,ch chan interface
 		    if tip == "get other node accept reshare result timeout" {
 			    ars := GetAllReplyFromGroup(workid,rh.GroupId,Rpc_RESHARE,sender)
 			    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold, rh.Mode,"false", "", "Timeout", "", "get other node accept reshare result timeout", "get other node accept reshare result timeout", ars,workid)
-		    } else {
-			    /////////////TODO tmp
-			    //sid-enode:SendReShareRes:Success:rsv
-			    //sid-enode:SendReShareRes:Fail:err
-			    mp := []string{w.sid, cur_enode}
-			    enode := strings.Join(mp, "-")
-			    s0 := "SendReShareRes"
-			    s1 := "Fail"
-			    s2 := "don't accept reshare."
-			    ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
-			    SendMsgToSmpcGroup(ss, rh.GroupId)
-			    DisMsg(ss)
-			    _, _, err := GetChannelValue(ch_t, w.bsendreshareres)
-			    ars := GetAllReplyFromGroup(w.id,rh.GroupId,Rpc_RESHARE,sender)
-			    if err != nil {
-				    tip = "get other node terminal accept reshare result timeout" ////bug
-				    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Timeout", "", tip,tip, ars, workid)
-				    if err != nil {
-					tip = tip + " and accept reshare data fail"
-				    }
-
-			    } else if w.msg_sendreshareres.Len() != w.ThresHold {
-				    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold, rh.Mode,"false", "", "Failure", "", "get other node reshare result fail","get other node reshare result fail",ars, workid)
-				    if err != nil {
-					tip = tip + " and accept reshare data fail"
-				    }
-			    } else {
-				    reply2 := "false"
-				    lohash := ""
-				    iter := w.msg_sendreshareres.Front()
-				    for iter != nil {
-					    mdss := iter.Value.(string)
-					    ms := strings.Split(mdss, common.Sep)
-					    if strings.EqualFold(ms[2], "Success") {
-						    reply2 = "true"
-						    lohash = ms[3]
-						    break
-					    }
-
-					    lohash = ms[3]
-					    iter = iter.Next()
-				    }
-
-				    if reply2 == "true" {
-					    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold, rh.Mode,"true", "true", "Success", lohash," "," ",ars, workid)
-					    if err != nil {
-						tip = tip + " and accept reshare data fail"
-					    }
-				    } else {
-					    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Failure", "",lohash,lohash,ars, workid)
-					    if err != nil {
-						tip = tip + " and accept reshare data fail"
-					    }
-				    }
-			    }
-		    }
+		    } 
 
 		    res2 := RpcSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("don't accept reshare.")}
 		    ch <- res2
@@ -2052,61 +1943,7 @@ func ReshareInitAcceptData(raw string,workid int,sender string,ch chan interface
 	    if tip == "get other node accept reshare result timeout" {
 		    ars := GetAllReplyFromGroup(workid,rh.GroupId,Rpc_RESHARE,sender)
 		    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Timeout", "", "get other node accept reshare result timeout", "get other node accept reshare result timeout", ars,workid)
-	    } else {
-		    /////////////TODO tmp
-		    //sid-enode:SendReShareRes:Success:rsv
-		    //sid-enode:SendReShareRes:Fail:err
-		    mp := []string{w.sid, cur_enode}
-		    enode := strings.Join(mp, "-")
-		    s0 := "SendReShareRes"
-		    s1 := "Fail"
-		    s2 := "don't accept reshare."
-		    ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
-		    SendMsgToSmpcGroup(ss, rh.GroupId)
-		    DisMsg(ss)
-		    _, _, err := GetChannelValue(ch_t, w.bsendreshareres)
-		    ars := GetAllReplyFromGroup(w.id,rh.GroupId,Rpc_RESHARE,sender)
-		    if err != nil {
-			    tip = "get other node terminal accept reshare result timeout" ////bug
-			    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Timeout", "", tip,tip, ars, workid)
-			    if err != nil {
-				tip = tip + " and accept reshare data fail"
-			    }
-		    } else if w.msg_sendsignres.Len() != w.ThresHold {
-			    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Failure", "", "get other node reshare result fail","get other node reshare result fail",ars, workid)
-			    if err != nil {
-				tip = tip + " and accept reshare data fail"
-			    }
-		    } else {
-			    reply2 := "false"
-			    lohash := ""
-			    iter := w.msg_sendreshareres.Front()
-			    for iter != nil {
-				    mdss := iter.Value.(string)
-				    ms := strings.Split(mdss, common.Sep)
-				    if strings.EqualFold(ms[2], "Success") {
-					    reply2 = "true"
-					    lohash = ms[3]
-					    break
-				    }
-
-				    lohash = ms[3]
-				    iter = iter.Next()
-			    }
-
-			    if reply2 == "true" {
-				    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"true", "true", "Success", lohash," "," ",ars, workid)
-				    if err != nil {
-					tip = tip + " and accept reshare data fail"
-				    }
-			    } else {
-				    _,err = AcceptReShare(sender,from, rh.GroupId,rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Failure", "",lohash,lohash,ars,workid)
-				    if err != nil {
-					tip = tip + " and accept reshare data fail"
-				    }
-			    }
-		    }
-	    }
+	    } 
 
 	    if cherr != nil {
 		    res2 := RpcSmpcRes{Ret:"", Tip: tip, Err: cherr}
@@ -2569,64 +2406,7 @@ func SignInitAcceptData(raw string,workid int,sender string,ch chan interface{})
 					if tip == "get other node accept sign result timeout" {
 						ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
 						_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", "get other node accept sign result timeout", "get other node accept sign result timeout", ars,workid)
-					} else {
-						//sid-enode:SendSignRes:Success:rsv
-						//sid-enode:SendSignRes:Fail:err
-						mp := []string{w.sid, cur_enode}
-						enode := strings.Join(mp, "-")
-						s0 := "SendSignRes"
-						s1 := "Fail"
-						s2 := "don't accept sign."
-						ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
-						SendMsgToSmpcGroup(ss, w.groupid)
-						DisMsg(ss)
-						_, _, err := GetChannelValue(waitall, w.bsendsignres)
-						ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
-						if err != nil {
-							tip = "get other node terminal accept sign result timeout" ////bug
-							_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", tip, tip, ars,workid)
-							if err != nil {
-							    tip = tip + " and accept sign data fail"
-							}
-
-						} else if w.msg_sendsignres.Len() != w.ThresHold {
-							_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Failure", "", "get other node sign result fail", "get other node sign result fail", ars,workid)
-							if err != nil {
-							    tip = tip + " and accept sign data fail"
-							}
-
-						} else {
-							reply2 := "false"
-							lohash := ""
-							iter := w.msg_sendsignres.Front()
-							for iter != nil {
-								mdss := iter.Value.(string)
-								ms := strings.Split(mdss, common.Sep)
-								if strings.EqualFold(ms[2], "Success") {
-									reply2 = "true"
-									lohash = ms[3]
-									break
-								}
-
-								lohash = ms[3]
-								iter = iter.Next()
-							}
-
-							if reply2 == "true" {
-								_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "true", "Success", lohash, " ", " ", ars,workid)
-								if err != nil {
-								    tip = tip + " and accept sign data fail"
-								}
-
-							} else {
-								_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Failure", "", lohash,lohash, ars,workid)
-								if err != nil {
-								    tip = tip + " and accept sign data fail"
-								}
-
-							}
-						}
-					}
+					} 
 
 					res := RpcSmpcRes{Ret:"", Tip: tip, Err: fmt.Errorf("don't accept sign.")}
 					ch <- res
@@ -2661,62 +2441,7 @@ func SignInitAcceptData(raw string,workid int,sender string,ch chan interface{})
 			ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
 			if tip == "get other node accept sign result timeout" {
 				_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", tip,cherr.Error(),ars,workid)
-			} else {
-				//sid-enode:SendSignRes:Success:rsv
-				//sid-enode:SendSignRes:Fail:err
-				mp := []string{w.sid, cur_enode}
-				enode := strings.Join(mp, "-")
-				s0 := "SendSignRes"
-				s1 := "Fail"
-				s2 := cherr.Error()
-				ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
-				SendMsgToSmpcGroup(ss, w.groupid)
-				DisMsg(ss)
-				_, _, err := GetChannelValue(waitall, w.bsendsignres)
-				if err != nil {
-					tip = "get other node terminal accept sign result timeout" ////bug
-					_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", tip, tip, ars, workid)
-					if err != nil {
-					    tip = tip + " and accept sign data fail"
-					}
-
-				} else if w.msg_sendsignres.Len() != w.ThresHold {
-					_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Failure", "", "get other node sign result fail", "get other node sign result fail", ars, workid)
-					if err != nil {
-					    tip = tip + " and accept sign data fail"
-					}
-
-				} else {
-					reply2 := "false"
-					lohash := ""
-					iter := w.msg_sendsignres.Front()
-					for iter != nil {
-						mdss := iter.Value.(string)
-						ms := strings.Split(mdss, common.Sep)
-						if strings.EqualFold(ms[2], "Success") {
-							reply2 = "true"
-							lohash = ms[3]
-							break
-						}
-
-						lohash = ms[3]
-						iter = iter.Next()
-					}
-
-					if reply2 == "true" {
-						_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "true", "Success", lohash, " ", " ", ars, workid)
-						if err != nil {
-						    tip = tip + " and accept sign data fail"
-						}
-
-					} else {
-						_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Failure", "", lohash, lohash, ars, workid)
-						if err != nil {
-						    tip = tip + " and accept sign data fail"
-						}
-					}
-				}
-			}
+			} 
 
 			if cherr != nil {
 				res := RpcSmpcRes{Ret: "", Tip: tip, Err: cherr}
@@ -3038,318 +2763,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	}
     }
 
-    /*lo,ok := txdata.(*TxDataLockOut)
-    if ok {
-	common.Debug("===============InitAcceptData, check lockout raw success=================","raw ",raw,"key ",key,"from ",from,"nonce ",nonce,"txdata ",lo)
-	exsit,_ := GetValueFromPubKeyData(key)
-	if !exsit {
-	    cur_nonce, _, _ := GetLockOutNonce(from)
-	    cur_nonce_num, _ := new(big.Int).SetString(cur_nonce, 10)
-	    new_nonce_num, _ := new(big.Int).SetString(nonce, 10)
-	    common.Debug("===============InitAcceptData================","lockout cur_nonce_num ",cur_nonce_num,"lockout new_nonce_num ",new_nonce_num,"key ",key)
-	    if new_nonce_num.Cmp(cur_nonce_num) >= 0 {
-		_, err := SetLockOutNonce(from,nonce)
-		if err == nil {
-		    
-		    pubkey := ""
-		    lokey := Keccak256Hash([]byte(strings.ToLower(lo.SmpcAddr))).Hex()
-		    exsit,loda := GetValueFromPubKeyData(lokey)
-		    if exsit {
-			_,ok := loda.(*PubKeyData)
-			if ok {
-			    smpcpub := (loda.(*PubKeyData)).Pub
-			    pubkey = hex.EncodeToString([]byte(smpcpub))
-			}
-		    }
-		    if pubkey == "" {
-			res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get pubkey fail", Err: fmt.Errorf("get pubkey fail")}
-			ch <- res
-			return fmt.Errorf("get pubkey fail") 
-		    }
-		    
-		    ars := GetAllReplyFromGroup(workid,lo.GroupId,Rpc_LOCKOUT,sender)
-		    ac := &AcceptLockOutData{Initiator:sender,Account:from, GroupId:lo.GroupId, Nonce: nonce, PubKey: pubkey, SmpcTo: lo.SmpcTo, Value: lo.Value, Cointype: lo.Cointype, LimitNum: lo.ThresHold, Mode: lo.Mode, TimeStamp: lo.TimeStamp, Deal: "false", Accept: "false", Status: "Pending", OutTxHash: "", Tip: "", Error: "", AllReply: ars, WorkId: workid}
-		    err := SaveAcceptLockOutData(ac)
-		    if err == nil {
-			w := workers[workid]
-			w.sid = key
-			w.groupid = lo.GroupId 
-			w.limitnum = lo.ThresHold
-			gcnt, _ := GetGroup(w.groupid)
-			w.NodeCnt = gcnt
-			common.Debug("===================InitAcceptData====================","w.NodeCnt ",w.NodeCnt,"w.groupid ",w.groupid,"wid ",workid,"key ",key)
-			w.ThresHold = w.NodeCnt
-
-			nums := strings.Split(w.limitnum, "/")
-			if len(nums) == 2 {
-			    nodecnt, err := strconv.Atoi(nums[1])
-			    if err == nil {
-				w.NodeCnt = nodecnt
-			    }
-
-			    w.ThresHold = gcnt
-			}
-
-			w.SmpcFrom = lo.SmpcAddr
-
-			////////////////////
-			if lo.Mode == "0" {
-				////
-				var reply bool
-				var tip string
-				timeout := make(chan bool, 1)
-				go func(wid int) {
-					cur_enode = discover.GetLocalID().String() //GetSelfEnode()
-					agreeWaitTime := 10 * time.Minute
-					agreeWaitTimeOut := time.NewTicker(agreeWaitTime)
-
-					wtmp2 := workers[wid]
-
-					for {
-						select {
-						case account := <-wtmp2.acceptLockOutChan:
-							common.Debug("InitAcceptData", "account= ", account, "key = ", key)
-							ars := GetAllReplyFromGroup(w.id,lo.GroupId,Rpc_LOCKOUT,sender)
-							common.Debug("================== InitAcceptData, get all AcceptLockOutRes=================","raw ",raw,"result ",ars,"key ",key)
-							
-							//bug
-							reply = true
-							for _,nr := range ars {
-							    if !strings.EqualFold(nr.Status,"Agree") {
-								reply = false
-								break
-							    }
-							}
-							//
-
-							if !reply {
-								tip = "don't accept lockout"
-								_,err = AcceptLockOut(sender,from, lo.GroupId, nonce, lo.SmpcAddr, lo.ThresHold, "false", "false", "Failure", "", "don't accept lockout", "don't accept lockout", ars, wid)
-							} else {
-								tip = ""
-								_,err = AcceptLockOut(sender,from, lo.GroupId,nonce, lo.SmpcAddr, lo.ThresHold, "false", "true", "Pending", "", "", "", ars, wid)
-							}
-
-							if err != nil {
-							    tip = "accept lock data error"
-							}
-
-							///////
-							timeout <- true
-							return
-						case <-agreeWaitTimeOut.C:
-							common.Debug("================== InitAcceptData , agree wait timeout==============","raw ",raw,"key ",key)
-							ars := GetAllReplyFromGroup(w.id,lo.GroupId,Rpc_LOCKOUT,sender)
-							_,err = AcceptLockOut(sender,from, lo.GroupId,nonce, lo.SmpcAddr, lo.ThresHold, "false", "false", "Timeout", "", "get other node accept lockout result timeout", "get other node accept lockout result timeout", ars, wid)
-							reply = false
-							tip = "get other node accept lockout result timeout"
-							if err != nil {
-							    tip = "get other node accept lockout result timeout and accept lockout data fail"
-							}
-							//
-
-							timeout <- true
-							return
-						}
-					}
-				}(workid)
-
-				if len(workers[workid].acceptWaitLockOutChan) == 0 {
-					workers[workid].acceptWaitLockOutChan <- "go on"
-				}
-
-				DisAcceptMsg(raw,workid)
-				reqaddrkey := GetReqAddrKeyByOtherKey(key,Rpc_LOCKOUT)
-				exsit,da := GetValueFromPubKeyData(reqaddrkey)
-				if !exsit {
-				    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
-				    ch <- res
-				    return fmt.Errorf("get reqaddr sigs data fail") 
-				}
-				acceptreqdata,ok := da.(*AcceptReqAddrData)
-				if !ok || acceptreqdata == nil {
-				    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
-				    ch <- res
-				    return fmt.Errorf("get reqaddr sigs data fail") 
-				}
-
-				HandleC1Data(acceptreqdata,key,workid)
-
-				<-timeout
-
-				common.Debug("================== InitAcceptData==================","raw ",raw,"the terminal accept lockout result ",reply,"key ",key)
-
-				if !reply {
-					if tip == "get other node accept lockout result timeout" {
-						ars := GetAllReplyFromGroup(w.id,lo.GroupId,Rpc_LOCKOUT,sender)
-						_,err = AcceptLockOut(sender,from, lo.GroupId, nonce, lo.SmpcAddr, lo.ThresHold, "false", "", "Timeout", "", "get other node accept lockout result timeout", "get other node accept lockout result timeout", ars, workid)
-					} else {
-						/////////////TODO
-						//sid-enode:SendLockOutRes:Success:lockout_tx_hash
-						//sid-enode:SendLockOutRes:Fail:err
-						mp := []string{w.sid, cur_enode}
-						enode := strings.Join(mp, "-")
-						s0 := "SendLockOutRes"
-						s1 := "Fail"
-						s2 := "don't accept lockout."
-						ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
-						SendMsgToSmpcGroup(ss, w.groupid)
-						DisMsg(ss)
-						_, _, err := GetChannelValue(ch_t, w.bsendlockoutres)
-						ars := GetAllReplyFromGroup(w.id,lo.GroupId,Rpc_LOCKOUT,sender)
-						if err != nil {
-							tip = "get other node terminal accept lockout result timeout" ////bug
-							_,err = AcceptLockOut(sender,from, lo.GroupId,nonce, lo.SmpcAddr, lo.ThresHold, "false", "", "Timeout", "", tip, tip, ars, workid)
-							if err != nil {
-							    tip = tip + "accept lockout data fail"
-							}
-
-						} else if w.msg_sendlockoutres.Len() != w.ThresHold {
-							_,err = AcceptLockOut(sender,from, lo.GroupId, nonce, lo.SmpcAddr, lo.ThresHold, "false", "", "Failure", "", "get other node lockout result fail", "get other node lockout result fail", ars, workid)
-							if err != nil {
-							    tip = tip + "accept lockout data fail"
-							}
-
-						} else {
-							reply2 := "false"
-							lohash := ""
-							iter := w.msg_sendlockoutres.Front()
-							for iter != nil {
-								mdss := iter.Value.(string)
-								ms := strings.Split(mdss, common.Sep)
-								if strings.EqualFold(ms[2], "Success") {
-									reply2 = "true"
-									lohash = ms[3]
-									break
-								}
-
-								lohash = ms[3]
-								iter = iter.Next()
-							}
-
-							if reply2 == "true" {
-								_,err = AcceptLockOut(sender,from, lo.GroupId, nonce, lo.SmpcAddr, lo.ThresHold, "true", "true", "Success", lohash, " ", " ", ars, workid)
-								if err != nil {
-								    tip = tip + "accept lockout data fail"
-								}
-
-							} else {
-								_,err = AcceptLockOut(sender,from, lo.GroupId,nonce, lo.SmpcAddr, lo.ThresHold, "false", "", "Failure", "", lohash, lohash, ars, workid)
-								if err != nil {
-								    tip = tip + "accept lockout data fail"
-								}
-
-							}
-						}
-					}
-
-					res := RpcSmpcRes{Ret: strconv.Itoa(workid) + common.Sep + "rpc_lockout", Tip: tip, Err: fmt.Errorf("don't accept lockout.")}
-					ch <- res
-					return fmt.Errorf("don't accept lockout.") 
-				}
-			} else {
-				if len(workers[workid].acceptWaitLockOutChan) == 0 {
-					workers[workid].acceptWaitLockOutChan <- "go on"
-				}
-
-				ars := GetAllReplyFromGroup(w.id,lo.GroupId,Rpc_LOCKOUT,sender)
-				_,err = AcceptLockOut(sender,from, lo.GroupId, nonce, lo.SmpcAddr, lo.ThresHold, "false", "true", "Pending", "", "", "", ars, workid)
-				if err != nil {
-				    res := RpcSmpcRes{Ret:"", Tip:err.Error(), Err: err}
-				    ch <- res
-				    return err
-				}
-			}
-
-			rch := make(chan interface{}, 1)
-			common.Debug("================== InitAcceptData , start call validate_lockout================","key ",key)
-			validate_lockout(w.sid,from,lo.SmpcAddr,lo.Cointype, lo.Value, lo.SmpcTo,nonce, lo.Memo,rch)
-			chret, tip, cherr := GetChannelValue(waitall, rch)
-			common.Debug("================== InitAcceptData, finish and get validate_lockout=================","return value ",chret,"err ",cherr,"key ",key)
-			if chret != "" {
-				res := RpcSmpcRes{Ret: strconv.Itoa(workid) + common.Sep + "rpc_lockout" + common.Sep + chret, Tip: "", Err: nil}
-				ch <- res
-				return nil
-			}
-
-			ars := GetAllReplyFromGroup(w.id,lo.GroupId,Rpc_LOCKOUT,sender)
-			if tip == "get other node accept lockout result timeout" {
-				_,err = AcceptLockOut(sender,from, lo.GroupId,nonce, lo.SmpcAddr, lo.ThresHold, "false", "", "Timeout", "", tip, cherr.Error(), ars, workid)
-			} else {
-				/////////////TODO
-				//sid-enode:SendLockOutRes:Success:lockout_tx_hash
-				//sid-enode:SendLockOutRes:Fail:err
-				mp := []string{w.sid, cur_enode}
-				enode := strings.Join(mp, "-")
-				s0 := "SendLockOutRes"
-				s1 := "Fail"
-				s2 := cherr.Error()
-				ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
-				SendMsgToSmpcGroup(ss, w.groupid)
-				DisMsg(ss)
-				_, _, err := GetChannelValue(ch_t, w.bsendlockoutres)
-				if err != nil {
-					tip = "get other node terminal accept lockout result timeout" ////bug
-					_,err = AcceptLockOut(sender,from, lo.GroupId, nonce, lo.SmpcAddr, lo.ThresHold, "false", "", "Timeout", "", tip, tip, ars, workid)
-					if err != nil {
-					    tip = tip + " and accept lockout data fail"
-					}
-			
-				} else if w.msg_sendlockoutres.Len() != w.ThresHold {
-					_,err = AcceptLockOut(sender,from, lo.GroupId,nonce, lo.SmpcAddr, lo.ThresHold, "false", "", "Failure", "", "get other node lockout result fail", "get other node lockout result fail", ars,workid)
-					if err != nil {
-					    tip = tip + " and accept lockout data fail"
-					}
-			
-				} else {
-					reply2 := "false"
-					lohash := ""
-					iter := w.msg_sendlockoutres.Front()
-					for iter != nil {
-						mdss := iter.Value.(string)
-						ms := strings.Split(mdss, common.Sep)
-						if strings.EqualFold(ms[2], "Success") {
-							reply2 = "true"
-							lohash = ms[3]
-							break
-						}
-
-						lohash = ms[3]
-						iter = iter.Next()
-					}
-
-					if reply2 == "true" {
-						_,err = AcceptLockOut(sender,from, lo.GroupId,nonce, lo.SmpcAddr, lo.ThresHold, "true", "true", "Success", lohash, " ", " ", ars, workid)
-						if err != nil {
-						    tip = tip + " and accept lockout data fail"
-						}
-			
-					} else {
-						_,err = AcceptLockOut(sender,from, lo.GroupId,nonce, lo.SmpcAddr, lo.ThresHold, "false", "", "Failure", "", lohash, lohash, ars, workid)
-						if err != nil {
-						    tip = tip + " and accept lockout data fail"
-						}
-			
-					}
-				}
-			}
-
-			if cherr != nil {
-				res := RpcSmpcRes{Ret: strconv.Itoa(workid) + common.Sep + "rpc_lockout", Tip: tip, Err: cherr}
-				ch <- res
-				return cherr
-			}
-
-			res := RpcSmpcRes{Ret: strconv.Itoa(workid) + common.Sep + "rpc_lockout", Tip: tip, Err: fmt.Errorf("send tx to net fail.")}
-			ch <- res
-			return fmt.Errorf("send tx to net fail.")
-			////////////////////
-		    }
-		}
-	    }
-	}
-    }*/
-
     sig,ok := txdata.(*TxDataSign)
     if ok {
 	common.Debug("===============InitAcceptData, it is sign txdata and check sign raw success==================","key ",key,"from ",from,"nonce ",nonce)
@@ -3503,64 +2916,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 					if tip == "get other node accept sign result timeout" {
 						ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
 						_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", "get other node accept sign result timeout", "get other node accept sign result timeout", ars,workid)
-					} else {
-						//sid-enode:SendSignRes:Success:rsv
-						//sid-enode:SendSignRes:Fail:err
-						mp := []string{w.sid, cur_enode}
-						enode := strings.Join(mp, "-")
-						s0 := "SendSignRes"
-						s1 := "Fail"
-						s2 := "don't accept sign."
-						ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
-						SendMsgToSmpcGroup(ss, w.groupid)
-						DisMsg(ss)
-						_, _, err := GetChannelValue(waitall, w.bsendsignres)
-						ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
-						if err != nil {
-							tip = "get other node terminal accept sign result timeout" ////bug
-							_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", tip, tip, ars,workid)
-							if err != nil {
-							    tip = tip + " and accept sign data fail"
-							}
-
-						} else if w.msg_sendsignres.Len() != w.ThresHold {
-							_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Failure", "", "get other node sign result fail", "get other node sign result fail", ars,workid)
-							if err != nil {
-							    tip = tip + " and accept sign data fail"
-							}
-
-						} else {
-							reply2 := "false"
-							lohash := ""
-							iter := w.msg_sendsignres.Front()
-							for iter != nil {
-								mdss := iter.Value.(string)
-								ms := strings.Split(mdss, common.Sep)
-								if strings.EqualFold(ms[2], "Success") {
-									reply2 = "true"
-									lohash = ms[3]
-									break
-								}
-
-								lohash = ms[3]
-								iter = iter.Next()
-							}
-
-							if reply2 == "true" {
-								_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "true", "Success", lohash, " ", " ", ars,workid)
-								if err != nil {
-								    tip = tip + " and accept sign data fail"
-								}
-
-							} else {
-								_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Failure", "", lohash,lohash, ars,workid)
-								if err != nil {
-								    tip = tip + " and accept sign data fail"
-								}
-
-							}
-						}
-					}
+					} 
 
 					res := RpcSmpcRes{Ret:"", Tip: tip, Err: fmt.Errorf("don't accept sign.")}
 					ch <- res
@@ -3595,62 +2951,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 			ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
 			if tip == "get other node accept sign result timeout" {
 				_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", tip,cherr.Error(),ars,workid)
-			} else {
-				//sid-enode:SendSignRes:Success:rsv
-				//sid-enode:SendSignRes:Fail:err
-				mp := []string{w.sid, cur_enode}
-				enode := strings.Join(mp, "-")
-				s0 := "SendSignRes"
-				s1 := "Fail"
-				s2 := cherr.Error()
-				ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
-				SendMsgToSmpcGroup(ss, w.groupid)
-				DisMsg(ss)
-				_, _, err := GetChannelValue(waitall, w.bsendsignres)
-				if err != nil {
-					tip = "get other node terminal accept sign result timeout" ////bug
-					_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", tip, tip, ars, workid)
-					if err != nil {
-					    tip = tip + " and accept sign data fail"
-					}
-
-				} else if w.msg_sendsignres.Len() != w.ThresHold {
-					_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Failure", "", "get other node sign result fail", "get other node sign result fail", ars, workid)
-					if err != nil {
-					    tip = tip + " and accept sign data fail"
-					}
-
-				} else {
-					reply2 := "false"
-					lohash := ""
-					iter := w.msg_sendsignres.Front()
-					for iter != nil {
-						mdss := iter.Value.(string)
-						ms := strings.Split(mdss, common.Sep)
-						if strings.EqualFold(ms[2], "Success") {
-							reply2 = "true"
-							lohash = ms[3]
-							break
-						}
-
-						lohash = ms[3]
-						iter = iter.Next()
-					}
-
-					if reply2 == "true" {
-						_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "true", "Success", lohash, " ", " ", ars, workid)
-						if err != nil {
-						    tip = tip + " and accept sign data fail"
-						}
-
-					} else {
-						_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Failure", "", lohash, lohash, ars, workid)
-						if err != nil {
-						    tip = tip + " and accept sign data fail"
-						}
-					}
-				}
-			}
+			} 
 
 			if cherr != nil {
 				res := RpcSmpcRes{Ret: "", Tip: tip, Err: cherr}
@@ -3798,62 +3099,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 		    if tip == "get other node accept reshare result timeout" {
 			    ars := GetAllReplyFromGroup(workid,rh.GroupId,Rpc_RESHARE,sender)
 			    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold, rh.Mode,"false", "", "Timeout", "", "get other node accept reshare result timeout", "get other node accept reshare result timeout", ars,workid)
-		    } else {
-			    /////////////TODO tmp
-			    //sid-enode:SendReShareRes:Success:rsv
-			    //sid-enode:SendReShareRes:Fail:err
-			    mp := []string{w.sid, cur_enode}
-			    enode := strings.Join(mp, "-")
-			    s0 := "SendReShareRes"
-			    s1 := "Fail"
-			    s2 := "don't accept reshare."
-			    ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
-			    SendMsgToSmpcGroup(ss, rh.GroupId)
-			    DisMsg(ss)
-			    _, _, err := GetChannelValue(ch_t, w.bsendreshareres)
-			    ars := GetAllReplyFromGroup(w.id,rh.GroupId,Rpc_RESHARE,sender)
-			    if err != nil {
-				    tip = "get other node terminal accept reshare result timeout" ////bug
-				    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Timeout", "", tip,tip, ars, workid)
-				    if err != nil {
-					tip = tip + " and accept reshare data fail"
-				    }
-
-			    } else if w.msg_sendreshareres.Len() != w.ThresHold {
-				    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold, rh.Mode,"false", "", "Failure", "", "get other node reshare result fail","get other node reshare result fail",ars, workid)
-				    if err != nil {
-					tip = tip + " and accept reshare data fail"
-				    }
-			    } else {
-				    reply2 := "false"
-				    lohash := ""
-				    iter := w.msg_sendreshareres.Front()
-				    for iter != nil {
-					    mdss := iter.Value.(string)
-					    ms := strings.Split(mdss, common.Sep)
-					    if strings.EqualFold(ms[2], "Success") {
-						    reply2 = "true"
-						    lohash = ms[3]
-						    break
-					    }
-
-					    lohash = ms[3]
-					    iter = iter.Next()
-				    }
-
-				    if reply2 == "true" {
-					    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold, rh.Mode,"true", "true", "Success", lohash," "," ",ars, workid)
-					    if err != nil {
-						tip = tip + " and accept reshare data fail"
-					    }
-				    } else {
-					    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Failure", "",lohash,lohash,ars, workid)
-					    if err != nil {
-						tip = tip + " and accept reshare data fail"
-					    }
-				    }
-			    }
-		    }
+		    } 
 
 		    res2 := RpcSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("don't accept reshare.")}
 		    ch <- res2
@@ -3872,61 +3118,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	    if tip == "get other node accept reshare result timeout" {
 		    ars := GetAllReplyFromGroup(workid,rh.GroupId,Rpc_RESHARE,sender)
 		    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Timeout", "", "get other node accept reshare result timeout", "get other node accept reshare result timeout", ars,workid)
-	    } else {
-		    /////////////TODO tmp
-		    //sid-enode:SendReShareRes:Success:rsv
-		    //sid-enode:SendReShareRes:Fail:err
-		    mp := []string{w.sid, cur_enode}
-		    enode := strings.Join(mp, "-")
-		    s0 := "SendReShareRes"
-		    s1 := "Fail"
-		    s2 := "don't accept reshare."
-		    ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
-		    SendMsgToSmpcGroup(ss, rh.GroupId)
-		    DisMsg(ss)
-		    _, _, err := GetChannelValue(ch_t, w.bsendreshareres)
-		    ars := GetAllReplyFromGroup(w.id,rh.GroupId,Rpc_RESHARE,sender)
-		    if err != nil {
-			    tip = "get other node terminal accept reshare result timeout" ////bug
-			    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Timeout", "", tip,tip, ars, workid)
-			    if err != nil {
-				tip = tip + " and accept reshare data fail"
-			    }
-		    } else if w.msg_sendsignres.Len() != w.ThresHold {
-			    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Failure", "", "get other node reshare result fail","get other node reshare result fail",ars, workid)
-			    if err != nil {
-				tip = tip + " and accept reshare data fail"
-			    }
-		    } else {
-			    reply2 := "false"
-			    lohash := ""
-			    iter := w.msg_sendreshareres.Front()
-			    for iter != nil {
-				    mdss := iter.Value.(string)
-				    ms := strings.Split(mdss, common.Sep)
-				    if strings.EqualFold(ms[2], "Success") {
-					    reply2 = "true"
-					    lohash = ms[3]
-					    break
-				    }
-
-				    lohash = ms[3]
-				    iter = iter.Next()
-			    }
-
-			    if reply2 == "true" {
-				    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"true", "true", "Success", lohash," "," ",ars, workid)
-				    if err != nil {
-					tip = tip + " and accept reshare data fail"
-				    }
-			    } else {
-				    _,err = AcceptReShare(sender,from, rh.GroupId,rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Failure", "",lohash,lohash,ars,workid)
-				    if err != nil {
-					tip = tip + " and accept reshare data fail"
-				    }
-			    }
-		    }
-	    }
+	    } 
 
 	    if cherr != nil {
 		    res2 := RpcSmpcRes{Ret:"", Tip: tip, Err: cherr}
@@ -4358,18 +3550,10 @@ func HandleNoReciv(key string,reqer string,ower string,datatype string,wid int) 
     switch datatype {
 	case "AcceptReqAddrRes":
 	    l = w.msg_acceptreqaddrres
-	case "AcceptLockOutRes":
-	    l = w.msg_acceptlockoutres
-	case "SendLockOutRes":
-	    l = w.msg_sendlockoutres
 	case "AcceptSignRes":
 	    l = w.msg_acceptsignres 
 	case "AcceptReShareRes":
 	    l = w.msg_acceptreshareres 
-	case "SendSignRes":
-	    l = w.msg_sendsignres 
-	case "SendReShareRes":
-	    l = w.msg_sendreshareres 
 	case "C1":
 	    l = w.msg_c1
 	case "D1":
@@ -4402,8 +3586,6 @@ func HandleNoReciv(key string,reqer string,ower string,datatype string,wid int) 
 	    l = w.msg_commitbigut
 	case "CommitBigUTD11":
 	    l = w.msg_commitbigutd11
-	case "S1":
-	    l = w.msg_s1
 	case "SS1":
 	    l = w.msg_ss1
 	case "PaillierKey":
@@ -4503,48 +3685,6 @@ func DisMsg(msg string) {
 
 	msgCode := mm[1]
 	switch msgCode {
-	case "SendLockOutRes":
-		///bug
-		if w.msg_sendlockoutres.Len() >= w.ThresHold {
-			return
-		}
-		///
-		if Find(w.msg_sendlockoutres, msg) {
-			return
-		}
-
-		w.msg_sendlockoutres.PushBack(msg)
-		if w.msg_sendlockoutres.Len() == w.ThresHold {
-			w.bsendlockoutres <- true
-		}
-	case "SendSignRes":
-		///bug
-		if w.msg_sendsignres.Len() >= w.ThresHold {
-			return
-		}
-		///
-		if Find(w.msg_sendsignres, msg) {
-			return
-		}
-
-		w.msg_sendsignres.PushBack(msg)
-		if w.msg_sendsignres.Len() == w.ThresHold {
-			w.bsendsignres <- true
-		}
-	case "SendReShareRes":
-		///bug
-		if w.msg_sendreshareres.Len() >= w.NodeCnt {
-			return
-		}
-		///
-		if Find(w.msg_sendreshareres, msg) {
-			return
-		}
-
-		w.msg_sendreshareres.PushBack(msg)
-		if w.msg_sendreshareres.Len() == w.NodeCnt {
-			w.bsendreshareres <- true
-		}
 	case "NoReciv":
 		key := prexs[0]
 		enode1 := prexs[1]
@@ -4637,25 +3777,6 @@ func DisMsg(msg string) {
 		w.msg_zku.PushBack(msg)
 		if w.msg_zku.Len() == w.NodeCnt {
 			w.bzku <- true
-		}
-	case "CHECKPUBKEYSTATUS":
-		///bug
-		if w.msg_checkpubkeystatus.Len() >= w.NodeCnt {
-			common.Debug("======================DisMsg, >= w.NodeCnt for CHECKPUBKEYSTATUS================","w.msg_checkpubkeystatus len",w.msg_checkpubkeystatus.Len(),"w.NodeCnt",w.NodeCnt,"key",prexs[0])
-			return
-		}
-		///
-		if Find(w.msg_checkpubkeystatus, msg) {
-			common.Debug("======================DisMsg, already exsit for CHECKPUBKEYSTATUS================","w.msg_checkpubkeystatus len",w.msg_checkpubkeystatus.Len(),"w.NodeCnt",w.NodeCnt,"msg",msg,"key",prexs[0])
-			return
-		}
-
-		common.Debug("======================DisMsg, before pushback for CHECKPUBKEYSTATUS================","w.msg_checkpubkeystatus len",w.msg_checkpubkeystatus.Len(),"w.NodeCnt",w.NodeCnt,"key",prexs[0])
-		w.msg_checkpubkeystatus.PushBack(msg)
-		common.Debug("======================DisMsg, after pushback for CHECKPUBKEYSTATUS================","w.msg_checkpubkeystatus len",w.msg_checkpubkeystatus.Len(),"w.NodeCnt",w.NodeCnt,"key",prexs[0])
-		if w.msg_checkpubkeystatus.Len() == w.NodeCnt {
-			common.Debug("=====================Get All CHECKPUBKEYSTATUS====================","key",prexs[0])
-			w.bcheckpubkeystatus <- true
 		}
 	case "MTAZK1PROOF":
 		///bug
@@ -4823,21 +3944,6 @@ func DisMsg(msg string) {
 		if w.msg_commitbigutd11.Len() == w.ThresHold {
 			common.Debug("=====================Get All CommitBigUTD11====================","key",prexs[0])
 			w.bcommitbigutd11 <- true
-		}
-	case "S1":
-		///bug
-		if w.msg_s1.Len() >= w.ThresHold {
-			return
-		}
-		///
-		if Find(w.msg_s1, msg) {
-			return
-		}
-
-		w.msg_s1.PushBack(msg)
-		if w.msg_s1.Len() == w.ThresHold {
-			common.Debug("=====================Get All S1====================","key",prexs[0])
-			w.bs1 <- true
 		}
 	case "SS1":
 		///bug
