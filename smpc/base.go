@@ -96,7 +96,7 @@ func Start(params *LunchParams) {
 	WaitMsgTimeGG20 = int(params.WaitMsg)
 	recalc_times = int(params.TryTimes)
 	waitallgg20 = WaitMsgTimeGG20 * recalc_times
-	AgreeWait = int(params.WaitAgree)
+	WaitAgree = int(params.WaitAgree)
 	PreBip32DataCount = int(params.Bip32Pre)
 	
 	LdbPubKeyData = GetAllPubKeyDataFromDb()

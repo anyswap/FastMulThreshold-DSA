@@ -45,7 +45,7 @@ var (
 	WaitMsgTimeGG20                     = 100
 	waitall                     = ch_t * recalc_times
 	waitallgg20                     = WaitMsgTimeGG20 * recalc_times
-	AgreeWait = 2
+	WaitAgree = 120
 	
 	//callback
 	GetGroup               func(string) (int, string)

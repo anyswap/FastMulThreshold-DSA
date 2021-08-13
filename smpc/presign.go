@@ -157,7 +157,7 @@ func SignInitAcceptData2(sbd *SignBrocastData,workid int,sender string,ch chan i
 				timeout := make(chan bool, 1)
 				go func(wid int) {
 					cur_enode = discover.GetLocalID().String() //GetSelfEnode()
-					agreeWaitTime := time.Duration(AgreeWait) * time.Minute
+					agreeWaitTime := time.Duration(WaitAgree) * time.Second
 					agreeWaitTimeOut := time.NewTicker(agreeWaitTime)
 
 					wtmp2 := workers[wid]
@@ -467,7 +467,7 @@ func InitAcceptData2(sbd *SignBrocastData,workid int,sender string,ch chan inter
 				timeout := make(chan bool, 1)
 				go func(wid int) {
 					cur_enode = discover.GetLocalID().String() //GetSelfEnode()
-					agreeWaitTime := time.Duration(AgreeWait) * time.Minute
+					agreeWaitTime := time.Duration(WaitAgree) * time.Second
 					agreeWaitTimeOut := time.NewTicker(agreeWaitTime)
 
 					wtmp2 := workers[wid]
