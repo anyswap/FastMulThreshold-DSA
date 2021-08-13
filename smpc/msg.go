@@ -857,15 +857,17 @@ func InitPreSign(raw string,workid int,sender string,ch chan interface{}) bool {
 				pub = Keccak256Hash([]byte(strings.ToLower(ps.Pub + ":" + ps.Gid))).Hex()
 			    }
 
-			    PutPreSign(pub,pre)
-	    
-			    es,err := Encode2(pre)
+			    _,err = Encode2(pre)
 			    common.Debug("========================InitPreSign,finish,ecode pre-sign data.=================","err",err,"pick key",pre.Key)
 			    if err == nil {
-				kd := UpdataPreSignData{Key: []byte(strings.ToLower(pub)), Del:false,Data: es}
-				PrePubKeyDataChan <- kd
+				err = PutPreSignDataIntoDb(strings.ToLower(pub),pre)
+				if err == nil {
+				    PutPreSign(pub,pre)
+				} else {
+				    common.Error("========================PreSign at RecvMsg.Run,put pre-sign data into db fail.=================","err",err,"pick key",pre.Key)
+				}
 			    }
-			    
+				
 			    DtPreSign.Unlock()
 		    //}
 
@@ -1272,19 +1274,6 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		    }
 
 		    save := (da.(*PubKeyData)).Save
-		    ///sku1 /////////////
-		    /*da2 := GetSkU1FromLocalDb(string(smpcpks[:]))
-		    if da2 == nil {
-			    res := RpcSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
-			    ch <- res
-			    return false
-		    }
-		    sku1 := new(big.Int).SetBytes(da2)
-		    if sku1 == nil {
-			    res := RpcSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
-			    ch <- res
-			    return false
-		    }*/
 		    msgmap := make(map[string]string)
 		    err = json.Unmarshal([]byte(save), &msgmap)
 		    if err != nil {
@@ -1347,13 +1336,11 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		    }
 		    //
 
-			///////
 		    exsit,da3 := GetValueFromPubKeyData(pd.Key)
 		    ac,ok := da3.(*AcceptReqAddrData)
 		    if ok {
 			HandleC1Data(ac,w.sid,workid)
 		    }
-			///////
 
 			var ch1 = make(chan interface{}, 1)
 			//pre := PreSign_ec3(w.sid,save,sku1,"ECDSA",ch1,workid)
@@ -1377,13 +1364,15 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 				    pub = Keccak256Hash([]byte(strings.ToLower(ps.Pub + ":" + ps.Gid))).Hex()
 				}
 
-				PutPreSign(pub,pre)
-		
-				es,err := Encode2(pre)
+				_,err := Encode2(pre)
 				common.Debug("========================PreSign at RecvMsg.Run finish,ecode pre-sign data.=================","err",err,"pick key",pre.Key)
 				if err == nil {
-				    kd := UpdataPreSignData{Key: []byte(strings.ToLower(pub)), Del:false,Data: es}
-				    PrePubKeyDataChan <- kd
+				    err = PutPreSignDataIntoDb(strings.ToLower(pub),pre)
+				    if err == nil {
+					PutPreSign(pub,pre)
+				    } else {
+					common.Error("========================PreSign at RecvMsg.Run,put pre-sign data into db fail.=================","err",err,"pick key",pre.Key)
+				    }
 				}
 				
 				DtPreSign.Unlock()

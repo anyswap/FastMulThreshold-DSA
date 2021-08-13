@@ -28,14 +28,11 @@ import (
 )
 
 var (
-	PrePubKeyDataChan = make(chan UpdataPreSignData, 20000)
-	//PrePubKeyDataQueueChan = make(chan *PrePubData, 1000)
 	PreSignData  = common.NewSafeMap(10) //make(map[string][]byte)
 	PreSignDataBak  = common.NewSafeMap(10) //make(map[string][]byte)
 	predb *ethdb.LDBDatabase
 	PrePubDataCount = 2000
 	SignChan = make(chan *RpcSignData, 10000)
-	//DelSignChan = make(chan *DelSignData, 10000)
 	DtPreSign sync.Mutex
 	PreSigal  = common.NewSafeMap(10) //make(map[string][]byte)
 	PrePubGids  = common.NewSafeMap(10) //make(map[string][]byte)
@@ -343,14 +340,14 @@ func PickPrePubData(pub string) string {
 	return ""
 }
 
-func PickPrePubDataByKey(pub string,key string) {
+func PickPrePubDataByKey(pub string,key string) error {
 	if pub == "" || key == "" {
-		return
+		return fmt.Errorf("param error.")
 	}
 	
 	data,exsit := PreSignData.ReadMap(strings.ToLower(pub)) 
 	if !exsit {
-		return
+		return fmt.Errorf("pub-key no exsit")
 	}
 
 	var val *PrePubData
@@ -373,23 +370,10 @@ func PickPrePubDataByKey(pub string,key string) {
 
 	PreSignData.WriteMap(strings.ToLower(pub),tmp)
 	PutPreSignBak(pub,val)
+	return nil
 }
 
 func SetPrePubDataUseStatus(pub string,key string,used bool ) {
-	/*data,exsit := PreSignData.ReadMap(strings.ToLower(pub))
-	if !exsit {
-		return
-	}
-
-	datas := data.([]*PrePubData)
-	for _,v := range datas {
-		if v != nil && strings.EqualFold(v.Key,key) {
-			v.Used = used
-			//PreSignData.WriteMap(strings.ToLower(pub),datas)
-			return
-		}
-	}*/
-
 	if !used {
 		val := GetPrePubDataBak(pub,key)
 		if val != nil {
@@ -397,6 +381,73 @@ func SetPrePubDataUseStatus(pub string,key string,used bool ) {
 			DeletePrePubDataBak(pub,key)
 		}
 	}
+}
+
+func PutPreSignDataIntoDb(key string,val *PrePubData) error {
+    if val == nil || key == "" {
+	return fmt.Errorf("param error.")
+    }
+
+    if predb == nil {
+	return fmt.Errorf("db open fail.")
+    }
+
+    da, err := predb.Get([]byte(key))
+    if err != nil || da == nil {
+	datas := make([]*PrePubData,0)
+	datas = append(datas,val)
+	es,err := EncodePreSignDataValue(datas)
+	if err != nil {
+	    return err
+	}
+
+	err = predb.Put([]byte(key), []byte(es))
+	if err != nil {
+	    common.Errorf("=====================PutPreSignDataIntoDb,put pre-sign data into db fail.========================","pick key",val.Key,"key",key,"err",err)
+	    return err
+	}
+    }
+
+    return nil
+}
+
+func DeletePreSignDataFromDb(pub string,key string) error {
+    if pub == "" || key == "" {
+	return fmt.Errorf("param error.")
+    }
+
+    da, err := predb.Get([]byte(pub))
+    if err != nil {
+	return err
+    }
+
+    ps,err := DecodePreSignDataValue(string(da))
+    if err != nil {
+	return err
+    }
+
+    tmp := make([]*PrePubData,0)
+    for _,v := range ps.Data {
+	    if v != nil && strings.EqualFold(v.Key,key) {
+		   continue 
+	    }
+
+	    tmp = append(tmp,v)
+    }
+
+    es,err := EncodePreSignDataValue(tmp)
+    if err != nil {
+	return err
+    }
+
+    err = predb.Put([]byte(pub), []byte(es))
+    if err != nil {
+	common.Errorf("=================DeletePreSignDataFromDb, delete pre-sign data from db fail. ===============","key",pub,"pick key",key,"err",err)
+	return err
+    }
+
+    common.Debug("=================DeletePreSignDataFromDb, delete pre-sign data from db success ===============","pub",pub,"pick key",key)
+    return nil
 }
 
 type SignBrocastData struct {
@@ -431,125 +482,6 @@ func UnCompressSignBrocastData(data string) (*SignBrocastData,error) {
 	}
 
 	return ret.(*SignBrocastData),nil
-}
-
-func UpdatePrePubKeyDataForDb() {
-    for {
-	kd := <-PrePubKeyDataChan
-	if predb != nil {
-	    if !kd.Del {
-		val,err := Decode2(kd.Data,"PrePubData")
-		common.Info("=====================UpdatePrePubKeyDataForDb,decode and put pre-sign data========================","err",err,"pub",kd.Key)
-		if err != nil {
-		    time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
-		   continue 
-		}
-
-		da, err := predb.Get([]byte(kd.Key))
-		common.Info("=====================UpdatePrePubKeyDataForDb,put pre-sign data into db========================","pick key",val.(*PrePubData).Key,"pub",kd.Key,"err",err)
-		if err != nil {
-		    datas := make([]*PrePubData,0)
-		    datas = append(datas,val.(*PrePubData))
-		    es,err := EncodePreSignDataValue(datas)
-		    common.Info("=====================UpdatePrePubKeyDataForDb,put pre-sign data into db 2222222========================","pick key",val.(*PrePubData).Key,"pub",kd.Key,"err",err)
-		    if err != nil {
-			time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
-			continue
-		    }
-		    err = predb.Put(kd.Key, []byte(es))
-		    //common.Info("=====================UpdatePrePubKeyDataForDb,put pre-sign data into db 33333333========================","pick key",val.(*PrePubData).Key,"pub",kd.Key,"err",err)
-		    if err != nil {
-			time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
-			continue
-		    }
-
-		    time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
-		    continue
-		}
-
-		ps,err := DecodePreSignDataValue(string(da))
-		//common.Info("=====================UpdatePrePubKeyDataForDb,put pre-sign data into db 4444444========================","pick key",val.(*PrePubData).Key,"pub",kd.Key,"err",err)
-		if err != nil {
-		    datas := make([]*PrePubData,0)
-		    datas = append(datas,val.(*PrePubData))
-		    es,err := EncodePreSignDataValue(datas)
-		    common.Info("=====================UpdatePrePubKeyDataForDb,put pre-sign data into db 555555========================","pick key",val.(*PrePubData).Key,"pub",kd.Key,"err",err)
-		    if err != nil {
-			time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
-			continue
-		    }
-		    err = predb.Put(kd.Key, []byte(es))
-		    //common.Info("=====================UpdatePrePubKeyDataForDb,put pre-sign data into db 666666========================","pick key",val.(*PrePubData).Key,"pub",kd.Key,"err",err)
-		    if err != nil {
-			time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
-			continue
-		    }
-
-		    time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
-		    continue
-		}
-
-		ps.Data = append(ps.Data,val.(*PrePubData))
-		es,err := EncodePreSignDataValue(ps.Data)
-		if err != nil {
-		    time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
-		    continue
-		}
-		err = predb.Put(kd.Key, []byte(es))
-		if err != nil {
-		    time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
-		    continue
-		}
-		
-		time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
-		continue
-	    }
-
-	    ////////////
-	    da, err := predb.Get([]byte(kd.Key))
-	    if err != nil {
-		common.Info("=================UpdatePrePubKeyDataForDb, delete pre-sign data from db and get data from db fail ===============","key",kd.Key,"pick key",kd.Data,"err",err)
-		time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
-		continue	
-	    }
-	    ps,err := DecodePreSignDataValue(string(da))
-	    if err != nil {
-		common.Info("=================UpdatePrePubKeyDataForDb, delete pre-sign data from db and decode data from db fail ===============","key",kd.Key,"pick key",kd.Data,"err",err)
-		time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
-		continue
-	    }
-
-	    tmp := make([]*PrePubData,0)
-	    for _,v := range ps.Data {
-		    if v != nil && strings.EqualFold(v.Key,kd.Data) {
-			   continue 
-		    }
-		    
-		    tmp = append(tmp,v)
-	    }
-	    
-	    es,err := EncodePreSignDataValue(tmp)
-	    if err != nil {
-		common.Info("=================UpdatePrePubKeyDataForDb, delete pre-sign data from db and encode data fail ===============","key",kd.Key,"pick key",kd.Data,"err",err)
-		time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
-		continue
-	    }
-	    err = predb.Put(kd.Key, []byte(es))
-	    if err != nil {
-		common.Info("=================UpdatePrePubKeyDataForDb, delete pre-sign data from db fail ===============","key",kd.Key,"pick key",kd.Data,"err",err)
-		time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
-		continue
-	    }
-
-	    common.Info("=================UpdatePrePubKeyDataForDb, delete pre-sign data from db success ===============","key",kd.Key,"pick key",kd.Data)
-	    /////////////
-
-	} else {
-	    common.Info("=================UpdatePrePubKeyDataForDb, save to db fail ,db is nil ===============","key",kd.Key)
-	}
-
-	time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
-    }
 }
 
 type TxDataPreSignData struct {
@@ -619,12 +551,6 @@ func ExcutePreSignData(pre *TxDataPreSignData) {
 	    }
 	}(gid)
     }
-}
-
-type UpdataPreSignData struct {
-    Key []byte
-    Del bool 
-    Data string //pickkey or pre-sign-data
 }
 
 type PreSignDataValue struct {
