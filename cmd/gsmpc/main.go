@@ -87,7 +87,9 @@ func StartSmpc(c *cli.Context) {
 	time.Sleep(time.Duration(180) * time.Second) //wait 3 ms for ec3
 
 	rpcsmpc.RpcInit(rpcport)
-	smpc.Start(waitmsg,trytimes,presignnum,waitagree,bip32pre)
+
+	params := &smpc.LunchParams{WaitMsg:waitmsg,TryTimes:trytimes,PreSignNum:presignnum,WaitAgree:waitagree,Bip32Pre:bip32pre}
+	smpc.Start(params)
 	select {} // note for server, or for client
 }
 

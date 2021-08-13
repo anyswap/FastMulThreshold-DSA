@@ -27,7 +27,6 @@ import (
 	"sync"
 	"time"
 	"bytes"
-	"os"
 
 	"github.com/fsn-dev/cryptoCoins/coins"
 	cryptocoinsconfig "github.com/fsn-dev/cryptoCoins/coins/config"
@@ -36,21 +35,16 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	p2psmpc "github.com/anyswap/Anyswap-MPCNode/p2p/layer2"
 	"github.com/fsn-dev/cryptoCoins/tools/rlp"
-	"github.com/anyswap/Anyswap-MPCNode/ethdb"
-	//"github.com/anyswap/Anyswap-MPCNode/mpcdsa/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
 	"encoding/gob"
-	//"sort"
 	"compress/zlib"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
 	"io"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/hexutil"
-	//"github.com/anyswap/Anyswap-MPCNode/mpcdsa/crypto/ed"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"crypto/hmac"
 	"crypto/sha512"
 	smpclibec2 "github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
-	//"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
 )
 
 var (
@@ -67,169 +61,43 @@ type NodeReply struct {
     Initiator string // "1"/"0"
 }
 
-func Start(waitmsg uint64,trytimes uint64,presignnum uint64,waitagree uint64,bip32pre uint64) {
+type LunchParams struct {
+    WaitMsg uint64
+    TryTimes uint64
+    PreSignNum uint64
+    WaitAgree uint64
+    Bip32Pre uint64
+}
+
+func Start(params *LunchParams) {
    
-	//solana test
-	/*var s1 [32]byte
-	var s2 [32]byte
-	var s3 [32]byte
-
-	s1tmp,_ := hex.DecodeString("9f60aa3fdb8deef909510e24e8643b4ab5e4affdb78adaa05cf6e211d9f58b00")
-	copy(s1[:],s1tmp)
-	s2tmp,_ := hex.DecodeString("7eb54963c7b0b4d3a17aaa8e3a26c04f1c7cddfc5517d511aa22625e0abee80b")
-	copy(s2[:],s2tmp)
-	s3tmp,_ := hex.DecodeString("5271f8bf1e0d787e70f6f179108bc01e5aa189645d82c3c9bdad81c4d1568b09")
-	copy(s3[:],s3tmp)
-
-	var s [32]byte
-	ed.ScAdd(&s, &s, &s1)
-	ed.ScAdd(&s, &s, &s2)
-	ed.ScAdd(&s, &s, &s3)
-	ss := hex.EncodeToString(s[:])
-	fmt.Printf("====================ed sign privkey = %v ===================\n",ss)*/
-	//solana test
-
 	cryptocoinsconfig.Init()
 	coins.Init()
 	
-	InitDev(KeyFile)
 	cur_enode = p2psmpc.GetSelfID()
 	
+	go SavePubKeyDataToDb()
+	go SaveSkU1ToDb()
+	go SaveBip32CToDb()
+	go smpclibec2.GenRandomInt(2048)
+	go smpclibec2.GenRandomSafePrime(2048)
+	
 	common.Info("======================smpc.Start======================","cache",cache,"handles",handles,"cur enode",cur_enode)
-	
-	dir := GetDbDir()
-	dbtmp, err := ethdb.NewLDBDatabase(dir, cache, handles)
-	//bug
+	err := StartSmpcLocalDb()
 	if err != nil {
-	    common.Info("======================smpc.Start,open db fail======================","err",err,"dir",dir)
-		for i := 0; i < 80; i++ {
-			dbtmp2, err2 := ethdb.NewLDBDatabase(dir, cache, handles)
-			if err2 == nil && dbtmp2 != nil {
-				dbtmp = dbtmp2
-				err = err2
-				break
-			} else {
-			    common.Info("======================smpc.Start,open db fail======================","i",i,"err",err2,"dir",dir)
-			}
-
-			//time.Sleep(time.Duration(1000000000))
-			time.Sleep(time.Duration(2) * time.Second)
-		}
-	}
-	if err != nil {
-	    db = nil
-	} else {
-	    db = dbtmp
-	}
-
-	if db == nil {
-	    common.Info("======================smpc.Start,open db fail and gsmpc panic======================")
-	    os.Exit(1)
-	    return
-	}
-
-	time.Sleep(time.Duration(10) * time.Second)
-	
-	//
-	dbsktmp, err := ethdb.NewLDBDatabase(GetSkU1Dir(), cache, handles)
-	//bug
-	if err != nil {
-	    common.Info("======================smpc.Start,open dbsk fail======================","err",err,"dir",GetSkU1Dir())
-		for i := 0; i < 80; i++ {
-			dbsktmp, err = ethdb.NewLDBDatabase(GetSkU1Dir(), cache, handles)
-			if err == nil && dbsktmp != nil {
-				break
-			} else {
-			    common.Info("======================smpc.Start,open dbsk fail======================","i",i,"err",err,"dir",GetSkU1Dir())
-			}
-
-			//time.Sleep(time.Duration(1000000))
-			time.Sleep(time.Duration(2) * time.Second)
-		}
-	}
-	if err != nil {
-	    dbsk = nil
-	} else {
-	    dbsk = dbsktmp
-	}
-
-	if dbsk == nil {
-	    common.Info("======================smpc.Start,open dbsk fail and gsmpc panic======================")
-	    os.Exit(1)
-	    return
-	}
-
-	time.Sleep(time.Duration(10) * time.Second)
-
-	//bip32
-	dbbiptmp, err := ethdb.NewLDBDatabase(GetBip32CDir(), cache, handles)
-	//bug
-	if err != nil {
-	    common.Info("======================smpc.Start,open dbbip32 fail======================","err",err,"dir",GetBip32CDir())
-		for i := 0; i < 80; i++ {
-			dbbiptmp, err = ethdb.NewLDBDatabase(GetBip32CDir(), cache, handles)
-			if err == nil && dbbiptmp != nil {
-				break
-			} else {
-			    common.Info("======================smpc.Start,open dbbip32 fail======================","i",i,"err",err,"dir",GetBip32CDir())
-			}
-
-			//time.Sleep(time.Duration(1000000))
-			time.Sleep(time.Duration(2) * time.Second)
-		}
-	}
-	if err != nil {
-	    dbbip32 = nil
-	} else {
-	    dbbip32 = dbbiptmp
-	}
-
-	if dbbip32 == nil {
-	    common.Info("======================smpc.Start,open dbbip32 fail and gsmpc panic======================")
-	    os.Exit(1)
-	    return
-	}
-
-	time.Sleep(time.Duration(10) * time.Second)
-	//
-
-	//
-	predbtmp, err := ethdb.NewLDBDatabase(GetPreDbDir(), cache, handles)
-	//bug
-	if err != nil {
-	    common.Info("======================smpc.Start,open predb fail======================","err",err,"dir",GetPreDbDir())
-		for i := 0; i < 80; i++ {
-			predbtmp, err = ethdb.NewLDBDatabase(GetPreDbDir(), cache, handles)
-			if err == nil && predbtmp != nil {
-				break
-			} else {
-			    common.Info("======================smpc.Start,open predb fail======================","i",i,"err",err,"dir",GetPreDbDir())
-			}
-
-			//time.Sleep(time.Duration(1000000))
-			time.Sleep(time.Duration(2) * time.Second)
-		}
-	}
-	if err != nil {
-	    predb = nil
-	} else {
-	    predb = predbtmp
-	}
-	   
-	if predb == nil {
-	    common.Info("======================smpc.Start,open predb fail and gsmpc panic======================")
-	    os.Exit(1)
+	    info := "======================smpc.Start," + err.Error() + ",so terminate smpc node startup"
+	    common.Error(info)
 	    return
 	}
 
 	common.Info("======================smpc.Start,open all db success======================","cur_enode",cur_enode)
 	
-	PrePubDataCount = int(presignnum)
-	WaitMsgTimeGG20 = int(waitmsg)
-	recalc_times = int(trytimes)
+	PrePubDataCount = int(params.PreSignNum)
+	WaitMsgTimeGG20 = int(params.WaitMsg)
+	recalc_times = int(params.TryTimes)
 	waitallgg20 = WaitMsgTimeGG20 * recalc_times
-	AgreeWait = int(waitagree)
-	PreBip32DataCount = int(bip32pre)
+	AgreeWait = int(params.WaitAgree)
+	PreBip32DataCount = int(params.Bip32Pre)
 	
 	LdbPubKeyData = GetAllPubKeyDataFromDb()
 	GetAllPreSignFromDb()
@@ -238,19 +106,6 @@ func Start(waitmsg uint64,trytimes uint64,presignnum uint64,waitagree uint64,bip
 	go HandleRpcSign()
 
 	common.Info("================================smpc.Start,init finish.========================","cur_enode",cur_enode,"waitmsg",WaitMsgTimeGG20,"trytimes",recalc_times,"presignnum",PrePubDataCount,"bip32pre",PreBip32DataCount)
-}
-
-func InitDev(keyfile string) {
-	cur_enode = discover.GetLocalID().String()
-
-	go SavePubKeyDataToDb()
-	go SaveSkU1ToDb()
-	go SaveBip32CToDb()
-	//go ec2.GenRandomInt(2048)
-	//go ec2.GenRandomSafePrime(2048)
-	
-	go smpclibec2.GenRandomInt(2048)
-	go smpclibec2.GenRandomSafePrime(2048)
 }
 
 func InitGroupInfo(groupId string) {

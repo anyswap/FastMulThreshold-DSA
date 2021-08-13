@@ -22,6 +22,7 @@ import (
     "github.com/anyswap/Anyswap-MPCNode/ethdb"
     "time"
     "sync"
+    "errors"
     "github.com/anyswap/Anyswap-MPCNode/p2p/discover"
 )
 
@@ -178,12 +179,6 @@ func SaveBip32CToDb() {
 
 		time.Sleep(time.Duration(1000000)) //na, 1 s = 10e9 na
 	    }
-}
-
-func GetBip32CDir() string {
-	dir := common.DefaultDataDir()
-	dir += "/smpcdata/bip32" + cur_enode
-	return dir
 }
 
 func GetSkU1FromLocalDb(key string) []byte {
@@ -677,11 +672,15 @@ func GetPubKeyDataFromLocalDb(key string) (bool,interface{}) {
     return true,pd 
 }
 
+//-------------------------------------------------------
+
 func GetGroupDir() string { //TODO
 	dir := common.DefaultDataDir()
 	dir += "/smpcdata/smpcdb" + discover.GetLocalID().String() + "group"
 	return dir
 }
+
+//--------------------------------------------------------
 
 func GetDbDir() string {
 	dir := common.DefaultDataDir()
@@ -689,33 +688,104 @@ func GetDbDir() string {
 	return dir
 }
 
+func GetSmpcDb() *ethdb.LDBDatabase {
+    dir := GetDbDir()
+    db, err := ethdb.NewLDBDatabase(dir, cache, handles)
+    if err != nil {
+	common.Error("======================GetSmpcDb,open db fail======================","err",err,"dir",dir)
+	return nil
+    }
+
+    return db
+}
+
+//-----------------------------------------------------------
+
 func GetSkU1Dir() string {
 	dir := common.DefaultDataDir()
 	dir += "/smpcdata/sk" + cur_enode
 	return dir
 }
 
-func GetAllAccountsDir() string {
+func GetSmpcSkDb() *ethdb.LDBDatabase {
+    dir := GetSkU1Dir()
+    dbsk, err := ethdb.NewLDBDatabase(dir,cache,handles)
+    if err != nil {
+	common.Error("======================smpc.Start,open dbsk fail======================","err",err,"dir",dir)
+	return nil
+    }
+
+    return dbsk
+}
+
+//----------------------------------------------------------
+
+func GetBip32CDir() string {
 	dir := common.DefaultDataDir()
-	dir += "/smpcdata/allaccounts" + cur_enode
+	dir += "/smpcdata/bip32" + cur_enode
 	return dir
 }
 
-func GetAcceptLockOutDir() string {
+func GetSmpcBip32Db() *ethdb.LDBDatabase {
+    dir := GetBip32CDir()
+    dbbip32, err := ethdb.NewLDBDatabase(dir, cache, handles)
+    if err != nil {
+	common.Error("======================smpc.Start,open dbbip32 fail======================","err",err,"dir",dir)
+	return nil
+    }
+	
+    return dbbip32
+}
+
+//----------------------------------------------------------
+
+func GetPreDbDir() string {
 	dir := common.DefaultDataDir()
-	dir += "/smpcdata/smpcdb/acceptlockout" + cur_enode
+	dir += "/smpcdata/smpcpredb" + cur_enode
 	return dir
 }
 
-func GetAcceptReqAddrDir() string {
-	dir := common.DefaultDataDir()
-	dir += "/smpcdata/smpcdb/acceptreqaddr" + cur_enode
-	return dir
+func GetSmpcPreDb() *ethdb.LDBDatabase {
+    dir := GetPreDbDir()
+    predb, err := ethdb.NewLDBDatabase(dir, cache, handles)
+    if err != nil {
+	common.Error("======================smpc.Start,open predb fail======================","err",err,"dir",dir)
+	return nil
+    }
+
+    return predb
 }
 
-func GetGAccsDir() string {
-	dir := common.DefaultDataDir()
-	dir += "/smpcdata/smpcdb/gaccs" + cur_enode
-	return dir
+//-------------------------------------------------------------
+
+func StartSmpcLocalDb() error {
+    db = GetSmpcDb()
+    if db == nil {
+	common.Error("======================StartSmpcLocalDb,open db fail=====================")
+	return errors.New("open db fail")
+    }
+
+    dbsk = GetSmpcSkDb()
+    if dbsk == nil {
+	common.Error("======================StartSmpcLocalDb,open dbsk fail=====================")
+	return errors.New("open dbsk fail")
+    }
+
+    dbbip32 = GetSmpcBip32Db()
+    if dbbip32 == nil {
+	common.Error("======================StartSmpcLocalDb,open dbbip32 fail=====================")
+	return errors.New("open dbbip32 fail")
+    }
+
+    predb = GetSmpcPreDb()
+    if predb == nil {
+	common.Error("======================StartSmpcLocalDb,open predb fail=====================")
+	return errors.New("open predb fail")
+    }
+
+    return nil
 }
+
+//--------------------------------------------------------
+
 

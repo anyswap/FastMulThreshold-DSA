@@ -433,12 +433,6 @@ func UnCompressSignBrocastData(data string) (*SignBrocastData,error) {
 	return ret.(*SignBrocastData),nil
 }
 
-func GetPreDbDir() string {
-	dir := common.DefaultDataDir()
-	dir += "/smpcdata/smpcpredb" + cur_enode
-	return dir
-}
-
 func UpdatePrePubKeyDataForDb() {
     for {
 	kd := <-PrePubKeyDataChan
