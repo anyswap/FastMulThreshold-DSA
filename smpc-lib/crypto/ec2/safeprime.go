@@ -7,6 +7,7 @@ import (
 
 	"time"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
+	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 )
 
 const (
@@ -14,8 +15,7 @@ const (
 )
 
 var (
-	SafePrimeCh = make(chan SafePrime, 1000)
-	RndInt    = make(chan *big.Int, 1000)
+	SafePrimeCh = make(chan SafePrime, 4)
 )
 
 type SafePrime struct {
@@ -48,42 +48,30 @@ func probablyPrime(prime *big.Int) bool {
 	return prime != nil && prime.ProbablyPrime(PrimeTestTimes)
 }
 
-//=============================================
+//------------------------------------------------------
 
-func GenRandomSafePrime(length int) {
-	for {
-		if len(SafePrimeCh) < 4 { /////TODO  tmp:1000-->4
-			rndInt := <-RndInt
-			p := random.GetSafeRandomPrimeInt2(length/2, rndInt)
-			if p != nil {
-			    sp := SafePrime{q:rndInt,p:p}
-			    SafePrimeCh <- sp
-			    time.Sleep(time.Duration(1000000)) //1000 000 000 == 1s
-			}
-		}
-
-		////TODO tmp:1000-->4
-		if len(SafePrimeCh) == 4 {
-			break
-		}
-		//////
-	}
+func GenRandomSafePrime() {
+     for {
+         if len(SafePrimeCh) < 4 {
+             q,p := random.GetSafeRandomPrimeInt()
+	     if q != nil && p != nil {
+		 //check p < 2^(L/2),   L = 2048
+		two := big.NewInt(2)
+		lhalf := big.NewInt(1024)
+		 m := new(big.Int).Exp(two,lhalf,nil)
+		 if p.Cmp(m) < 0 {
+		    common.Info("================================Success Generate Safe Random Prime.==============================")
+		    SafePrimeCh <- SafePrime{q:q,p:p}
+		 }
+	     }
+         }
+	
+	if len(SafePrimeCh) == 4 {
+		break
+ 	}
+	 
+	time.Sleep(time.Duration(1000000)) //1000 000 000 == 1s
+     }
 }
 
-func GenRandomInt(length int) {
-
-	for {
-		if len(RndInt) < 1000 {
-			////TODO tmp:1000-->4
-			if len(SafePrimeCh) == 4 {
-				break
-			}
-			//////
-			p := random.GetSafeRandomInt(length / 2)
-			RndInt <- p
-
-			time.Sleep(time.Duration(1000000)) //1000 000 000 == 1s
-		}
-	}
-}
 

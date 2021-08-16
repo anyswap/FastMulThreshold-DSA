@@ -79,8 +79,7 @@ func Start(params *LunchParams) {
 	go SavePubKeyDataToDb()
 	go SaveSkU1ToDb()
 	go SaveBip32CToDb()
-	go smpclibec2.GenRandomInt(2048)
-	go smpclibec2.GenRandomSafePrime(2048)
+	go smpclibec2.GenRandomSafePrime()
 	
 	common.Info("======================smpc.Start======================","cache",cache,"handles",handles,"cur enode",cur_enode)
 	err := StartSmpcLocalDb()

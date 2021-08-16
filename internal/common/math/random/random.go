@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"time"
-	//"github.com/anyswap/Anyswap-MPCNode/internal/common"
 )
 
 //commitment question 2
@@ -61,70 +60,33 @@ func GetRandomIntFromZnStar(n *big.Int) *big.Int {
 	return rndNumZnStar
 }
 
-func GetRandomPrimeInt(length int) *big.Int {
-	var rndInt *big.Int
-
-	for {
-		rndInt = GetRandomInt(length)
-		if rndInt != nil && rndInt.ProbablyPrime(512) {
-			break
-		}
-	}
-
-	return rndInt
-}
-
-func GetSafeRandomPrimeInt(length int) *big.Int {
-	var rndInt *big.Int
+func GetSafeRandomPrimeInt() (*big.Int,*big.Int) {
+	var q *big.Int
+	var p *big.Int
 	var err error
+
 	one := big.NewInt(1)
 	two := big.NewInt(2)
+	length := 1024 // L/2
 
 	for {
-		rndInt, err = rand.Prime(rand.Reader, length-2)
+		q, err = rand.Prime(rand.Reader, length-1)
 		if err != nil {
 			fmt.Println("Generate Safe Random Prime ERROR!")
+			q = nil
+			p = nil
 			break
 		}
-		rndInt = new(big.Int).Mul(rndInt, two)
-		rndInt = new(big.Int).Add(rndInt, one)
-		if rndInt.ProbablyPrime(512) {
-			fmt.Printf("======================Success Generate Safe Random Prime.====================\n")
+
+		p = new(big.Int).Mul(q, two)
+		p = new(big.Int).Add(p, one)
+		if p.ProbablyPrime(512) {
 			break
 		}
 
 		time.Sleep(time.Duration(10000)) //1000 000 000 == 1s
 	}
 
-	return rndInt
+	return q,p
 }
 
-func GetSafeRandomPrimeInt2(length int, rndInt *big.Int) *big.Int {
-	one := big.NewInt(1)
-	two := big.NewInt(2)
-
-	rndInt = new(big.Int).Mul(rndInt, two)
-	rndInt = new(big.Int).Add(rndInt, one)
-	if rndInt.ProbablyPrime(512) {
-		fmt.Printf("======================Success Generate Safe Random Prime.====================\n")
-		return rndInt
-	}
-
-	return nil
-}
-
-func GetSafeRandomInt(length int) *big.Int {
-	var rndInt *big.Int
-	var err error
-	for {
-		rndInt, err = rand.Prime(rand.Reader, length-2)
-		if err == nil {
-			//fmt.Println("Generate Safe Random Int Success!")
-			break
-		}
-
-		time.Sleep(time.Duration(1000000)) //1000 000 000 == 1s
-	}
-
-	return rndInt
-}
