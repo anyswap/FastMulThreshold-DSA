@@ -38,6 +38,8 @@ var (
 	db *ethdb.LDBDatabase
 	dbsk *ethdb.LDBDatabase
 	dbbip32 *ethdb.LDBDatabase
+	predb *ethdb.LDBDatabase
+	prekey *ethdb.LDBDatabase
 )
 
 func makeDatabaseHandles() int {
@@ -758,6 +760,25 @@ func GetSmpcPreDb() *ethdb.LDBDatabase {
 
 //-------------------------------------------------------------
 
+func GetPreKeyDir() string {
+         dir := common.DefaultDataDir()
+         dir += "/smpcdata/smpcprekey" + cur_enode
+         return dir
+} 
+
+func GetSmpcPreKeyDb() *ethdb.LDBDatabase {
+    dir := GetPreKeyDir()
+    prekey, err := ethdb.NewLDBDatabase(dir, cache, handles)
+    if err != nil {
+	common.Error("======================smpc.Start,open prekey fail======================","err",err,"dir",dir)
+	return nil
+    }
+
+    return prekey
+}
+
+//--------------------------------------------------------------
+
 func StartSmpcLocalDb() error {
     db = GetSmpcDb()
     if db == nil {
@@ -781,6 +802,12 @@ func StartSmpcLocalDb() error {
     if predb == nil {
 	common.Error("======================StartSmpcLocalDb,open predb fail=====================")
 	return errors.New("open predb fail")
+    }
+
+    prekey = GetSmpcPreKeyDb()
+    if prekey == nil {
+	common.Error("======================StartSmpcLocalDb,open prekey fail=====================")
+	return errors.New("open prekey fail")
     }
 
     return nil

@@ -100,7 +100,6 @@ func Start(params *LunchParams) {
 	PreBip32DataCount = int(params.Bip32Pre)
 	
 	LdbPubKeyData = GetAllPubKeyDataFromDb()
-	GetAllPreSignFromDb()
 
 	go HandleRpcSign()
 
@@ -901,45 +900,7 @@ func Encode2(obj interface{}) (string, error) {
 			return "", err1
 		}
 		return buff.String(), nil
-	case *SignBrocastData:
-
-		/*var buff bytes.Buffer
-		enc := gob.NewEncoder(&buff)
-
-		err1 := enc.Encode(ch)
-		if err1 != nil {
-			return "", err1
-		}
-		return buff.String(), nil*/
-
-		ch2 := obj.(*SignBrocastData)
-		ret,err := json.Marshal(ch2)
-		if err != nil {
-		    return "",err
-		}
-		return string(ret),nil
-
 	case *PubKeyData:
-
-		var buff bytes.Buffer
-		enc := gob.NewEncoder(&buff)
-
-		err1 := enc.Encode(ch)
-		if err1 != nil {
-			return "", err1
-		}
-		return buff.String(), nil
-	case *PrePubData:
-
-		var buff bytes.Buffer
-		enc := gob.NewEncoder(&buff)
-
-		err1 := enc.Encode(ch)
-		if err1 != nil {
-			return "", err1
-		}
-		return buff.String(), nil
-	case *AcceptLockOutData:
 
 		var buff bytes.Buffer
 		enc := gob.NewEncoder(&buff)
@@ -955,16 +916,6 @@ func Encode2(obj interface{}) (string, error) {
 		    return "",err
 		}
 		return string(ret),nil
-		/*ch := obj.(*AcceptReqAddrData)
-
-		var buff bytes.Buffer
-		enc := gob.NewEncoder(&buff)
-
-		err1 := enc.Encode(ch)
-		if err1 != nil {
-			return "", err1
-		}
-		return buff.String(), nil*/
 	case *AcceptSignData:
 
 		var buff bytes.Buffer
@@ -985,33 +936,6 @@ func Encode2(obj interface{}) (string, error) {
 		    return "", err1
 		}
 		return buff.String(), nil
-	case *SignData:
-
-		var buff bytes.Buffer
-		enc := gob.NewEncoder(&buff)
-
-		err1 := enc.Encode(ch)
-		if err1 != nil {
-			return "", err1
-		}
-		return buff.String(), nil
-	case *PreSign:
-
-		var buff bytes.Buffer
-		enc := gob.NewEncoder(&buff)
-
-		err1 := enc.Encode(ch)
-		if err1 != nil {
-			return "", err1
-		}
-		return buff.String(), nil
-	case *PreSignDataValue:
-		ch2 := obj.(*PreSignDataValue)
-		ret,err := json.Marshal(ch2)
-		if err != nil {
-		    return "",err
-		}
-		return string(ret),nil
 	default:
 		return "", fmt.Errorf("encode obj fail.")
 	}
@@ -1020,14 +944,6 @@ func Encode2(obj interface{}) (string, error) {
 func Decode2(s string, datatype string) (interface{}, error) {
 
 	if datatype == "SendMsg" {
-		/*var m SendMsg
-		err := json.Unmarshal([]byte(s), &m)
-		if err != nil {
-		    fmt.Println("================Decode2,json Unmarshal err =%v===================",err)
-		    return nil,err
-		}
-
-		return &m,nil*/
 		var data bytes.Buffer
 		data.Write([]byte(s))
 
@@ -1040,29 +956,6 @@ func Decode2(s string, datatype string) (interface{}, error) {
 		}
 
 		return &res, nil
-	}
-
-	if datatype == "SignBrocastData" {
-		/*var data bytes.Buffer
-		data.Write([]byte(s))
-
-		dec := gob.NewDecoder(&data)
-
-		var res SignBrocastData
-		err := dec.Decode(&res)
-		if err != nil {
-			return nil, err
-		}
-
-		return &res, nil*/
-
-		var m SignBrocastData 
-		err := json.Unmarshal([]byte(s), &m)
-		if err != nil {
-		    return nil,err
-		}
-
-		return &m,nil
 	}
 
 	if datatype == "PubKeyData" {
@@ -1080,36 +973,6 @@ func Decode2(s string, datatype string) (interface{}, error) {
 		return &res, nil
 	}
 
-	if datatype == "PrePubData" {
-		var data bytes.Buffer
-		data.Write([]byte(s))
-
-		dec := gob.NewDecoder(&data)
-
-		var res PrePubData
-		err := dec.Decode(&res)
-		if err != nil {
-			return nil, err
-		}
-
-		return &res, nil
-	}
-
-	if datatype == "AcceptLockOutData" {
-		var data bytes.Buffer
-		data.Write([]byte(s))
-
-		dec := gob.NewDecoder(&data)
-
-		var res AcceptLockOutData
-		err := dec.Decode(&res)
-		if err != nil {
-			return nil, err
-		}
-
-		return &res, nil
-	}
-
 	if datatype == "AcceptReqAddrData" {
 		var m AcceptReqAddrData
 		err := json.Unmarshal([]byte(s), &m)
@@ -1118,18 +981,6 @@ func Decode2(s string, datatype string) (interface{}, error) {
 		}
 
 		return &m,nil
-		/*var data bytes.Buffer
-		data.Write([]byte(s))
-
-		dec := gob.NewDecoder(&data)
-
-		var res AcceptReqAddrData
-		err := dec.Decode(&res)
-		if err != nil {
-			return nil, err
-		}
-
-		return &res, nil*/
 	}
 
 	if datatype == "AcceptSignData" {
@@ -1160,46 +1011,6 @@ func Decode2(s string, datatype string) (interface{}, error) {
 		}
 
 		return &res, nil
-	}
-
-	if datatype == "SignData" {
-		var data bytes.Buffer
-		data.Write([]byte(s))
-
-		dec := gob.NewDecoder(&data)
-
-		var res SignData
-		err := dec.Decode(&res)
-		if err != nil {
-			return nil, err
-		}
-
-		return &res, nil
-	}
-
-	if datatype == "PreSign" {
-		var data bytes.Buffer
-		data.Write([]byte(s))
-
-		dec := gob.NewDecoder(&data)
-
-		var res PreSign
-		err := dec.Decode(&res)
-		if err != nil {
-			return nil, err
-		}
-
-		return &res, nil
-	}
-
-	if datatype == "PreSignDataValue" {
-		var m PreSignDataValue 
-		err := json.Unmarshal([]byte(s), &m)
-		if err != nil {
-		    return nil,err
-		}
-
-		return &m,nil
 	}
 
 	return nil, fmt.Errorf("decode obj fail.")
@@ -1792,40 +1603,53 @@ func GetBip32ChildKey(rootpubkey string,inputcode string) (string,string,error) 
     common.Debug("============================get bip32 child key==========================","get gids",gids,"pubkey",rootpubkey)
     for _,gid := range gids {
 	pub := Keccak256Hash([]byte(strings.ToLower(rootpubkey + ":" + inputcode + ":" + gid))).Hex()
-	if NeedToStartPreBip32(pub) {
+	//if NeedToStartPreBip32(pub) {
 	    //for _,gid := range pre.SubGid {
 		go func(gg string) {
 		    PutPreSigal(pub,true)
-		    common.Info("===================before generate pre-sign data for bip32===============","current total number of the data ",GetTotalCount(pub),"the number of remaining pre-sign data",(PreBip32DataCount-GetTotalCount(pub)),"pub",pub,"pubkey",rootpubkey,"input code",inputcode,"sub-groupid",gg)
+
+		    err := SavePrekeyToDb(rootpubkey,inputcode,gg)
+		    if err != nil {
+			common.Error("=========================get bip32 child key,save (pubkey,inputcode,gid) to db fail.=======================","pubkey",rootpubkey,"inputcode",inputcode,"gid",gg,"err",err)
+			return
+		    }
+
+		    common.Info("===================before generate pre-sign data for bip32===============","current total number of the data ",GetTotalCount(rootpubkey,inputcode,gg),"the number of remaining pre-sign data",(PreBip32DataCount-GetTotalCount(rootpubkey,inputcode,gg)),"pub",pub,"pubkey",rootpubkey,"input code",inputcode,"sub-groupid",gg)
 		    for {
-			    if NeedPreSignForBip32(pub) && GetPreSigal(pub) {
+			    index,need := NeedPreSignForBip32(rootpubkey,inputcode,gg)
+			    if need && index != -1 && GetPreSigal(pub) {
 				    tt := fmt.Sprintf("%v",time.Now().UnixNano()/1e6)
 				    nonce := Keccak256Hash([]byte(strings.ToLower(pub + tt))).Hex()
 				    ps := &PreSign{Pub:rootpubkey,InputCode:inputcode,Gid:gg,Nonce:nonce}
 
-				    val,err := Encode2(ps)
+				    m := make(map[string]string)
+				    psjson,err := ps.MarshalJSON()
+				    if err == nil {
+					m["PreSign"] = string(psjson) 
+				    }
+				    m["Type"] = "PreSign"
+				    val,err := json.Marshal(m)
 				    if err != nil {
-					common.Info("=====================GetBip32ChildKey========================","pub",pub,"pubkey",rootpubkey,"input code",inputcode,"err",err)
 					time.Sleep(time.Duration(10000000))
 					continue 
 				    }
-				    SendMsgToSmpcGroup(val,gg)
+				    SendMsgToSmpcGroup(string(val),gg)
 
 				    rch := make(chan interface{}, 1)
-				    SetUpMsgList3(val,cur_enode,rch)
-				    _, _,cherr := GetChannelValue(waitall+10,rch)
+				    SetUpMsgList3(string(val),cur_enode,rch)
+				    _, _,cherr := GetChannelValue(ch_t+10,rch)
 				    if cherr != nil {
-					common.Info("=====================GetBip32ChildKey in genkey fail========================","pub",pub,"pubkey",rootpubkey,"input code",inputcode,"err",cherr)
+					common.Error("=====================ExcutePreSignData, failed to pre-generate sign data.========================","pubkey",rootpubkey,"err",cherr,"Index",index)
 				    }
 
-				    common.Info("===================generate pre-sign data for bip32===============","current total number of the data ",GetTotalCount(pub),"the number of remaining pre-sign data",(PreBip32DataCount-GetTotalCount(pub)),"pub",pub,"pubkey",rootpubkey,"sub-groupid",gg)
+				    common.Info("===================generate pre-sign data for bip32===============","current total number of the data ",GetTotalCount(rootpubkey,inputcode,gg),"the number of remaining pre-sign data",(PreBip32DataCount-GetTotalCount(rootpubkey,inputcode,gg)),"pub",pub,"pubkey",rootpubkey,"inputcode",inputcode,"sub-groupid",gg)
 			    } 
 
 			    time.Sleep(time.Duration(1000000))
 		    }
 		}(gid)
 	    //}
-	}
+	//}
     }
     //
 

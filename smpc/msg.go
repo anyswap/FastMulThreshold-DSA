@@ -732,10 +732,17 @@ func InitPreSign(raw string,workid int,sender string,ch chan interface{}) bool {
 	return false
     }
     
-    m, err2 := Decode2(raw, "PreSign")
-    if err2 == nil {
-	ps,ok := m.(*PreSign)
-	if ok {
+    msgmap := make(map[string]string)
+    err := json.Unmarshal([]byte(raw), &msgmap)
+    if err != nil {
+	res := RpcSmpcRes{Ret: "", Tip: "init presign fail.", Err: fmt.Errorf("init presign fail")}
+	ch <- res
+	return false
+    }
+    
+    if msgmap["Type"] == "PreSign" {
+	ps := &PreSign{}
+	if err = ps.UnmarshalJSON([]byte(msgmap["PreSign"]));err == nil {
 		w := workers[workid]
 		w.sid = ps.Nonce 
 		w.groupid = ps.Gid
@@ -848,27 +855,14 @@ func InitPreSign(raw string,workid int,sender string,ch chan interface{}) bool {
 			    pre.Key = w.sid
 			    pre.Gid = w.groupid
 			    pre.Used = false
-			    
-			    DtPreSign.Lock()
-			    var pub string
-			    if ps.InputCode != "" {
-				pub = Keccak256Hash([]byte(strings.ToLower(ps.Pub + ":" + ps.InputCode + ":" + ps.Gid))).Hex()
-			    } else {
-				pub = Keccak256Hash([]byte(strings.ToLower(ps.Pub + ":" + ps.Gid))).Hex()
-			    }
+			    pre.Index = ps.Index
 
-			    _,err = Encode2(pre)
-			    common.Debug("========================InitPreSign,finish,ecode pre-sign data.=================","err",err,"pick key",pre.Key)
-			    if err == nil {
-				err = PutPreSignDataIntoDb(strings.ToLower(pub),pre)
-				if err == nil {
-				    PutPreSign(pub,pre)
-				} else {
-				    common.Error("========================PreSign at RecvMsg.Run,put pre-sign data into db fail.=================","err",err,"pick key",pre.Key)
-				}
-			    }
-				
-			    DtPreSign.Unlock()
+			    err = PutPreSignData(ps.Pub,ps.InputCode,ps.Gid,ps.Index,pre)
+			    if err != nil {
+				res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+				ch <- res
+				return false
+ 			    }
 		    //}
 
 		    fmt.Printf("=================InitPreSign,finish,it is success. =================\n",)
@@ -890,26 +884,19 @@ func InitSignData(raw string,workid int,sender string,ch chan interface{}) bool 
 	return false
     }
     
-    m, err := Decode2(raw, "SignData")
-    if err == nil {
-	sd,ok := m.(*SignData)
-	if ok {
+    msgmap := make(map[string]string)
+    err := json.Unmarshal([]byte(raw), &msgmap)
+    if err != nil {
+	res := RpcSmpcRes{Ret: "", Tip: "init sign data fail.", Err: fmt.Errorf("init sign data fail")}
+	ch <- res
+	return false
+    }
 
+    if msgmap["Type"] == "SignData" {
+	sd := &SignData{}
+	if err = sd.UnmarshalJSON([]byte(msgmap["SignData"]));err == nil {
 	    ys := secp256k1.S256().Marshal(sd.Pkx, sd.Pky)
 	    pubkeyhex := hex.EncodeToString(ys)
-	    var pub string
-	    if sd.InputCodeT != "" {
-		pub = Keccak256Hash([]byte(strings.ToLower(pubkeyhex + ":" + sd.InputCodeT + ":" + sd.GroupId))).Hex()
-	    } else {
-		pub = Keccak256Hash([]byte(strings.ToLower(pubkeyhex + ":" + sd.GroupId))).Hex()
-	    }
-	    pre := GetPrePubDataBak(pub,sd.PickKey)
-	    if pre == nil {
-			common.Info("=============== InitSignData,it is signdata, get pre sign data fail===================","msgprex",sd.MsgPrex,"key",sd.Key,"pick key",sd.PickKey,"pub",pub)
-			res2 := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get pre sign data fail", Err: fmt.Errorf("get pre sign data fail")}
-			ch <- res2
-			return false
-	    }
 
 	    w := workers[workid]
 	    w.sid = sd.Key
@@ -991,7 +978,7 @@ func InitSignData(raw string,workid int,sender string,ch chan interface{}) bool 
 
 		//w.Clear2()
 		//Sign_ec2(sd.Key, sd.Save, sd.Sku1, sd.Txhash, sd.Keytype, sd.Pkx, sd.Pky, ch1, workid)
-		Sign_ec3(sd.Key,sd.Txhash,sd.Keytype,sd.Save,childPKx,childPKy,ch1,workid,pre)
+		Sign_ec3(sd.Key,sd.Txhash,sd.Keytype,sd.Save,childPKx,childPKy,ch1,workid,sd.Pre)
 		common.Info("=============== InitSignData, ec3 sign finish ===================","WaitMsgTimeGG20",WaitMsgTimeGG20)
 		ret, _, cherr := GetChannelValue(WaitMsgTimeGG20 + 10, ch1)
 		if ret != "" && cherr == nil {
@@ -1085,156 +1072,139 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 	////////
 
 	common.Debug("================RecvMsg.Run,begin to decode msg =================","res",res)
-	m, err2 := Decode2(res, "SignData")
-	if err2 == nil {
-	    sd,ok := m.(*SignData)
-	    if ok {
-		common.Debug("===============RecvMsg.Run,it is signdata===================","msgprex",sd.MsgPrex,"key",sd.Key)
+	if err == nil {
+	    if msgmap["Type"] == "SignData" {
+		sd := &SignData{}
+		if err = sd.UnmarshalJSON([]byte(msgmap["SignData"]));err == nil {
+		    common.Debug("===============RecvMsg.Run,it is signdata===================","msgprex",sd.MsgPrex,"key",sd.Key,"pkx",sd.Pkx,"pky",sd.Pky)
 
-		ys := secp256k1.S256().Marshal(sd.Pkx, sd.Pky)
-		pubkeyhex := hex.EncodeToString(ys)
-		var pub string
-		if sd.InputCodeT != "" {
-		    pub = Keccak256Hash([]byte(strings.ToLower(pubkeyhex + ":" + sd.InputCodeT + ":" + sd.GroupId))).Hex()
-		} else {
-		    pub = Keccak256Hash([]byte(strings.ToLower(pubkeyhex + ":" + sd.GroupId))).Hex()
-		}
-		pre := GetPrePubDataBak(pub,sd.PickKey)
-		if pre == nil {
-			    common.Info("===============RecvMsg.Run,it is signdata, get pre sign data fail===================","msgprex",sd.MsgPrex,"key",sd.Key,"pick key",sd.PickKey,"pub",pub)
-			    res2 := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get pre sign data fail", Err: fmt.Errorf("get pre sign data fail")}
-			    ch <- res2
-			    return false
-		}
+		    ys := secp256k1.S256().Marshal(sd.Pkx, sd.Pky)
+		    pubkeyhex := hex.EncodeToString(ys)
 
-		w := workers[workid]
-		///////bug
-		fmt.Printf("===============RecvMsg.Run, sign data, begin to check sid, key = %v =====================\n",sd.Key)
-		for k,v := range workers {
-		    if strings.EqualFold(v.sid, sd.Key) {
-			b := InitSignData(res,k,self.sender,ch)
-			v.bwire <-true //add for smpc-lib
-			return b
+		    w := workers[workid]
+		    fmt.Printf("===============RecvMsg.Run, sign data, begin to check sid, key = %v =====================\n",sd.Key)
+		    for k,v := range workers {
+			if strings.EqualFold(v.sid, sd.Key) {
+			    b := InitSignData(res,k,self.sender,ch)
+			    v.bwire <-true //add for smpc-lib
+			    return b
+			}
 		    }
-		}
-		fmt.Printf("===============RecvMsg.Run, sign data, end to check sid, key = %v =====================\n",sd.Key)
-		//////////
+		    fmt.Printf("===============RecvMsg.Run, sign data, end to check sid, key = %v =====================\n",sd.Key)
 
-		w.sid = sd.Key
-		w.groupid = sd.GroupId
-		
-		w.NodeCnt = sd.NodeCnt
-		w.ThresHold = sd.ThresHold
-		
-		w.SmpcFrom = sd.SmpcFrom
+		    w.sid = sd.Key
+		    w.groupid = sd.GroupId
+		    
+		    w.NodeCnt = sd.NodeCnt
+		    w.ThresHold = sd.ThresHold
+		    
+		    w.SmpcFrom = sd.SmpcFrom
 
-		smpcpks, _ := hex.DecodeString(pubkeyhex)
-		exsit,da := GetPubKeyDataFromLocalDb(string(smpcpks[:]))
-		if exsit {
-			pd,ok := da.(*PubKeyData)
-			if ok {
-			    exsit,da2 := GetValueFromPubKeyData(pd.Key)
-			    if exsit {
-				    ac,ok := da2.(*AcceptReqAddrData)
-				    if ok {
-					HandleC1Data(ac,sd.Key,workid)
-				    }
+		    smpcpks, _ := hex.DecodeString(pubkeyhex)
+		    exsit,da := GetPubKeyDataFromLocalDb(string(smpcpks[:]))
+		    if exsit {
+			    pd,ok := da.(*PubKeyData)
+			    if ok {
+				exsit,da2 := GetValueFromPubKeyData(pd.Key)
+				if exsit {
+					ac,ok := da2.(*AcceptReqAddrData)
+					if ok {
+					    HandleC1Data(ac,sd.Key,workid)
+					}
+				}
+
+			    }
+		    }
+
+		    childPKx := sd.Pkx
+		    childPKy := sd.Pky 
+		    if sd.InputCodeT != "" {
+			da3 := GetBip32CFromLocalDb(string(smpcpks[:]))
+			if da3 == nil {
+			    res := RpcSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
+			    ch <- res
+			    return false
+			}
+			bip32c := new(big.Int).SetBytes(da3)
+			if bip32c == nil {
+			    res := RpcSmpcRes{Ret: "", Tip: "presign get bip32 error", Err: fmt.Errorf("presign get bip32 error")}
+			    ch <- res
+			    return false
+			}
+			
+			indexs := strings.Split(sd.InputCodeT, "/")
+			TRb := bip32c.Bytes()
+			childSKU1 := sd.Sku1
+			for idxi := 1; idxi <len(indexs); idxi++ {
+				h := hmac.New(sha512.New, TRb)
+			    h.Write(childPKx.Bytes())
+			    h.Write(childPKy.Bytes())
+			    h.Write([]byte(indexs[idxi]))
+				T := h.Sum(nil)
+				TRb = T[32:]
+				TL := new(big.Int).SetBytes(T[:32])
+
+				childSKU1 = new(big.Int).Add(TL, childSKU1)
+				childSKU1 = new(big.Int).Mod(childSKU1, secp256k1.S256().N)
+
+				TLGx, TLGy := secp256k1.S256().ScalarBaseMult(TL.Bytes())
+				childPKx, childPKy = secp256k1.S256().Add(TLGx, TLGy, childPKx, childPKy)
+			}
+		    }
+		    
+		    childpub := secp256k1.S256().Marshal(childPKx,childPKy)
+		    childpubkeyhex := hex.EncodeToString(childpub)
+		    addr,_,err := GetSmpcAddr(childpubkeyhex)
+		    if err != nil {
+			res := RpcSmpcRes{Ret: "", Tip: "get pubkey error", Err: fmt.Errorf("get pubkey error")}
+			ch <- res
+			return false
+		    }
+		    fmt.Printf("===================RecvMsg.Run, sign, pubkey = %v, inputcode = %v, addr = %v ===================\n",childpubkeyhex,sd.InputCodeT,addr)
+     
+		    var ch1 = make(chan interface{}, 1)
+		    for i:=0;i < recalc_times;i++ {
+			common.Debug("===============RecvMsg.Run,sign recalc===================","i",i,"msgprex",sd.MsgPrex,"key",sd.Key)
+			if len(ch1) != 0 {
+			    <-ch1
+			}
+
+			//w.Clear2()
+			//Sign_ec2(sd.Key, sd.Save, sd.Sku1, sd.Txhash, sd.Keytype, sd.Pkx, sd.Pky, ch1, workid)
+			Sign_ec3(sd.Key,sd.Txhash,sd.Keytype,sd.Save,childPKx,childPKy,ch1,workid,sd.Pre)
+			common.Info("===============RecvMsg.Run, ec3 sign finish ===================","WaitMsgTimeGG20",WaitMsgTimeGG20)
+			ret, _, cherr := GetChannelValue(WaitMsgTimeGG20 + 10, ch1)
+			if ret != "" && cherr == nil {
+
+			    ww, err2 := FindWorker(sd.MsgPrex)
+			    if err2 != nil || ww == nil {
+				res2 := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker", Err: fmt.Errorf("no find worker")}
+				ch <- res2
+				return false
 			    }
 
-			}
-		}
+			    common.Info("===============RecvMsg.Run, ec3 sign success ===================","i",i,"get ret",ret,"cherr",cherr,"msgprex",sd.MsgPrex,"key",sd.Key)
 
-		childPKx := sd.Pkx
-		childPKy := sd.Pky 
-		if sd.InputCodeT != "" {
-		    da3 := GetBip32CFromLocalDb(string(smpcpks[:]))
-		    if da3 == nil {
-			res := RpcSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
-			ch <- res
-			return false
-		    }
-		    bip32c := new(big.Int).SetBytes(da3)
-		    if bip32c == nil {
-			res := RpcSmpcRes{Ret: "", Tip: "presign get bip32 error", Err: fmt.Errorf("presign get bip32 error")}
-			ch <- res
-			return false
-		    }
-		    
-		    indexs := strings.Split(sd.InputCodeT, "/")
-		    TRb := bip32c.Bytes()
-		    childSKU1 := sd.Sku1
-		    for idxi := 1; idxi <len(indexs); idxi++ {
-			    h := hmac.New(sha512.New, TRb)
-			h.Write(childPKx.Bytes())
-			h.Write(childPKy.Bytes())
-			h.Write([]byte(indexs[idxi]))
-			    T := h.Sum(nil)
-			    TRb = T[32:]
-			    TL := new(big.Int).SetBytes(T[:32])
-
-			    childSKU1 = new(big.Int).Add(TL, childSKU1)
-			    childSKU1 = new(big.Int).Mod(childSKU1, secp256k1.S256().N)
-
-			    TLGx, TLGy := secp256k1.S256().ScalarBaseMult(TL.Bytes())
-			    childPKx, childPKy = secp256k1.S256().Add(TLGx, TLGy, childPKx, childPKy)
-		    }
-		}
-		
-		childpub := secp256k1.S256().Marshal(childPKx,childPKy)
-		childpubkeyhex := hex.EncodeToString(childpub)
-		addr,_,err := GetSmpcAddr(childpubkeyhex)
-		if err != nil {
-		    res := RpcSmpcRes{Ret: "", Tip: "get pubkey error", Err: fmt.Errorf("get pubkey error")}
-		    ch <- res
-		    return false
-		}
-		fmt.Printf("===================RecvMsg.Run, sign, pubkey = %v, inputcode = %v, addr = %v ===================\n",childpubkeyhex,sd.InputCodeT,addr)
- 
-		var ch1 = make(chan interface{}, 1)
-		for i:=0;i < recalc_times;i++ {
-		    common.Debug("===============RecvMsg.Run,sign recalc===================","i",i,"msgprex",sd.MsgPrex,"key",sd.Key)
-		    if len(ch1) != 0 {
-			<-ch1
-		    }
-
-		    //w.Clear2()
-		    //Sign_ec2(sd.Key, sd.Save, sd.Sku1, sd.Txhash, sd.Keytype, sd.Pkx, sd.Pky, ch1, workid)
-		    Sign_ec3(sd.Key,sd.Txhash,sd.Keytype,sd.Save,childPKx,childPKy,ch1,workid,pre)
-		    common.Info("===============RecvMsg.Run, ec3 sign finish ===================","WaitMsgTimeGG20",WaitMsgTimeGG20)
-		    ret, _, cherr := GetChannelValue(WaitMsgTimeGG20 + 10, ch1)
-		    if ret != "" && cherr == nil {
-
-			ww, err2 := FindWorker(sd.MsgPrex)
-			if err2 != nil || ww == nil {
-			    res2 := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker", Err: fmt.Errorf("no find worker")}
+			    ww.rsv.PushBack(ret)
+			    res2 := RpcSmpcRes{Ret: ret, Tip: "", Err: nil}
 			    ch <- res2
-			    return false
+			    return true 
 			}
-
-			common.Info("===============RecvMsg.Run, ec3 sign success ===================","i",i,"get ret",ret,"cherr",cherr,"msgprex",sd.MsgPrex,"key",sd.Key)
-
-			ww.rsv.PushBack(ret)
-			res2 := RpcSmpcRes{Ret: ret, Tip: "", Err: nil}
-			ch <- res2
-			return true 
-		    }
+			
+			common.Info("===============RecvMsg.Run,ec3 sign fail===================","ret",ret,"cherr",cherr,"msgprex",sd.MsgPrex,"key",sd.Key)
+			//time.Sleep(time.Duration(3) * time.Second) //1000 == 1s
+		    }	
 		    
-		    common.Info("===============RecvMsg.Run,ec3 sign fail===================","ret",ret,"cherr",cherr,"msgprex",sd.MsgPrex,"key",sd.Key)
-		    //time.Sleep(time.Duration(3) * time.Second) //1000 == 1s
-		}	
-		
-		res2 := RpcSmpcRes{Ret: "", Tip: "sign fail", Err: fmt.Errorf("sign fail")}
-		ch <- res2
-		return false 
+		    res2 := RpcSmpcRes{Ret: "", Tip: "sign fail", Err: fmt.Errorf("sign fail")}
+		    ch <- res2
+		    return false 
+		}
 	    }
-	}
-	
-	m, err2 = Decode2(res, "PreSign")
-	if err2 == nil {
-	    ps,ok := m.(*PreSign)
-	    if ok {
+	    
+	    if msgmap["Type"] == "PreSign" {
+		ps := &PreSign{}
+		if err = ps.UnmarshalJSON([]byte(msgmap["PreSign"]));err == nil {
 		    w := workers[workid]
-		    ///////bug
 		    for k,v := range workers {
 			if strings.EqualFold(v.sid, ps.Nonce) {
 			    b := InitPreSign(res,k,self.sender,ch)
@@ -1242,7 +1212,6 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 			    return b
 			}
 		    }
-		    //////////
 
 		    w.sid = ps.Nonce 
 		    w.groupid = ps.Gid
@@ -1355,47 +1324,70 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 				pre.Key = w.sid
 				pre.Gid = w.groupid
 				pre.Used = false
-				
-				DtPreSign.Lock()
-				var pub string
-				if ps.InputCode != "" {
-				    pub = Keccak256Hash([]byte(strings.ToLower(ps.Pub + ":" + ps.InputCode + ":" + ps.Gid))).Hex()
-				} else {
-				    pub = Keccak256Hash([]byte(strings.ToLower(ps.Pub + ":" + ps.Gid))).Hex()
-				}
+				pre.Index = ps.Index
 
-				_,err := Encode2(pre)
-				common.Debug("========================PreSign at RecvMsg.Run finish,ecode pre-sign data.=================","err",err,"pick key",pre.Key)
-				if err == nil {
-				    err = PutPreSignDataIntoDb(strings.ToLower(pub),pre)
-				    if err == nil {
-					PutPreSign(pub,pre)
-				    } else {
-					common.Error("========================PreSign at RecvMsg.Run,put pre-sign data into db fail.=================","err",err,"pick key",pre.Key)
-				    }
+				err = PutPreSignData(ps.Pub,ps.InputCode,ps.Gid,ps.Index,pre)
+				if err != nil {
+				    res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+				    ch <- res
+				    return false
 				}
-				
-				DtPreSign.Unlock()
 			//}
 
 			res := RpcSmpcRes{Ret: "success", Tip: "", Err: nil}
 			ch <- res
 			return true
+		}
 	    }
 	}
 
-	signbrocast,err := UnCompressSignBrocastData(res)
-	if err == nil {
-		errtmp := InitAcceptData2(signbrocast,workid,self.sender,ch)
+	if msgmap["Type"] == "ComSignBrocastData" {
+	    signbrocast,err := UnCompressSignBrocastData(msgmap["ComSignBrocastData"])
+	    if err == nil {
+		_,_,_,txdata,err := CheckRaw(signbrocast.Raw)
+		if err == nil {
+		    sig,ok := txdata.(*TxDataSign)
+		    if ok {
+			pickdata := make([]*PickHashData,0)
+			for _,vv := range signbrocast.PickHash {
+			    pre := GetPreSignData(sig.PubKey,sig.InputCode,sig.GroupId,vv.PickKey)
+			    if pre == nil {
+				res := RpcSmpcRes{Ret: "", Tip: "dcrm back-end internal error:get pre-sign data fail", Err: fmt.Errorf("get pre-sign data fail.")}
+				ch <- res
+				return false
+			    }
+
+			    pd := &PickHashData{Hash:vv.Hash,Pre:pre}
+			    pickdata = append(pickdata,pd)
+			    DeletePreSignData(sig.PubKey,sig.InputCode,sig.GroupId,vv.PickKey)
+			}
+
+			signpick := &SignPickData{Raw:signbrocast.Raw,PickData:pickdata}
+			errtmp := InitAcceptData2(signpick,workid,self.sender,ch)
+			if errtmp == nil {
+			    return true
+			}
+
+			return false
+		    }
+		}
+ 	    }
+	}
+
+	if msgmap["Type"] == "ComSignData" {
+	    signpick,err := UnCompressSignData(msgmap["ComSignData"])
+	    if err == nil {
+		errtmp := InitAcceptData2(signpick,workid,self.sender,ch)
 		if errtmp == nil {
 		    return true
 		}
 
 		return false
-	}
-
+	    }
+ 	}
 	////////////////////////////
 
+	//Excluding sign
 	errtmp := InitAcceptData(res,workid,self.sender,ch)
 	if errtmp == nil {
 	    return true
@@ -1736,11 +1728,14 @@ func IsGenKeyCmd(raw string) (bool,string) {
 }
 
 func IsPreGenSignData(raw string) (string,bool) {
-    m, err := Decode2(raw, "PreSign")
+    msgmap := make(map[string]string)
+    err := json.Unmarshal([]byte(raw), &msgmap)
     if err == nil {
-	ps,ok := m.(*PreSign)
-	if ok {
-	    return ps.Nonce,true
+	if msgmap["Type"] == "PreSign" {
+	    sd := &PreSign{}
+	    if err = sd.UnmarshalJSON([]byte(msgmap["SignData"]));err == nil {
+	    return sd.Nonce,true
+	    }
 	}
     }
 
@@ -1772,11 +1767,15 @@ func IsEDSignCmd(raw string) (string,bool) {
 }
 
 func IsSignDataCmd(raw string) (string,bool) {
-    m, err := Decode2(raw, "SignData")
+    msgmap := make(map[string]string)
+    err := json.Unmarshal([]byte(raw), &msgmap)
+
     if err == nil {
-	sd,ok := m.(*SignData)
-	if ok {
+	if msgmap["Type"] == "SignData" {
+	    sd := &SignData{}
+	    if err = sd.UnmarshalJSON([]byte(msgmap["SignData"]));err == nil {
 	    return sd.Key,true
+	    }
 	}
     }
 
@@ -1909,7 +1908,6 @@ func ReshareInitAcceptData(raw string,workid int,sender string,ch chan interface
 	    <-timeout
 
 	    if !reply {
-		    //////////////////////reshare result start/////////////////////////
 		    if tip == "get other node accept reshare result timeout" {
 			    ars := GetAllReplyFromGroup(workid,rh.GroupId,Rpc_RESHARE,sender)
 			    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold, rh.Mode,"false", "", "Timeout", "", "get other node accept reshare result timeout", "get other node accept reshare result timeout", ars,workid)
@@ -2159,67 +2157,6 @@ func KeyInitAcceptData(raw string,workid int,sender string,ch chan interface{}) 
 				ch <- res
 				return cherr 
 			}
-
-			////////ec3////
-		       /*if strings.EqualFold(sender,cur_enode) {
-				go func() {
-					PutPreSigal(chret,true)
-
-					for {
-						if NeedPreSign(chret) && GetPreSigal(chret) {
-							//one,_ := new(big.Int).SetString("1",0)
-							//PreSignNonce = new(big.Int).Add(PreSignNonce,one)
-							tt := fmt.Sprintf("%v",time.Now().UnixNano()/1e6)
-							nonce := Keccak256Hash([]byte(strings.ToLower(chret + req.GroupId + tt))).Hex()
-							index := 0
-							ids := GetIds2("EC256K1", req.GroupId)
-							for kk, id := range ids {
-								enodes := GetEnodesByUid(id, "EC256K1", req.GroupId)
-								if IsCurNode(enodes, cur_enode) {
-									if kk >= 2 {
-										index = kk - 2
-									} else {
-										index = kk
-									}
-									break
-								}
-
-							}
-							tmp := ids[index:index+3]
-							ps := &PreSign{Pub:chret,Gid:req.GroupId,Nonce:nonce,Index:index}
-
-							val,err := Encode2(ps)
-							if err != nil {
-								common.Debug("=====================PreSign========================","err",err)
-								time.Sleep(time.Duration(10000000))
-							    continue 
-							}
-							
-							for _, id := range tmp {
-								enodes := GetEnodesByUid(id, "EC256K1", req.GroupId)
-								common.Info("===============PreSign in genkey,get enodes===============","enodes",enodes,"index",index)
-								if IsCurNode(enodes, cur_enode) {
-									common.Debug("===============PreSign in genkey,get cur enodes===============","enodes",enodes)
-									continue
-								}
-								SendMsgToPeer(enodes, val)
-							}
-
-							rch := make(chan interface{}, 1)
-							SetUpMsgList3(val,cur_enode,rch)
-							_, _,cherr := GetChannelValue(waitall+10,rch)
-							if cherr != nil {
-								common.Debug("=====================PreSign in genkey fail========================","cherr",cherr)
-							}
-
-							common.Info("===================generate pre-sign data===============","current total number of the data ",GetTotalCount(chret),"the number of remaining pre-sign data",(PrePubDataCount-GetTotalCount(chret)),"pubkey",chret)
-						} 
-
-						time.Sleep(time.Duration(1000000))
-					}
-				}()
-		       }*/
-			////////////
 
 			res := RpcSmpcRes{Ret: strconv.Itoa(workid) + common.Sep + "rpc_req_smpcaddr" + common.Sep + chret, Tip: "", Err: nil}
 			ch <- res
@@ -2502,7 +2439,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 		    common.Info("===================call SaveAcceptReqAddrData finish====================","account ",from,"err ",err,"key ",key)
 		   if err == nil {
 			rch := make(chan interface{}, 1)
-			///////bug
 			for k,v := range workers {
 			    if strings.EqualFold(v.sid, key) {
 				err = KeyInitAcceptData(raw,k,sender,ch)
@@ -2510,7 +2446,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 				return err
 			    }
 			}
-			//////////
 
 			w := workers[workid]
 			w.sid = key 
@@ -2681,67 +2616,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 				return cherr 
 			}
 
-			////////ec3////
-		       /*if strings.EqualFold(sender,cur_enode) {
-				go func() {
-					PutPreSigal(chret,true)
-
-					for {
-						if NeedPreSign(chret) && GetPreSigal(chret) {
-							//one,_ := new(big.Int).SetString("1",0)
-							//PreSignNonce = new(big.Int).Add(PreSignNonce,one)
-							tt := fmt.Sprintf("%v",time.Now().UnixNano()/1e6)
-							nonce := Keccak256Hash([]byte(strings.ToLower(chret + req.GroupId + tt))).Hex()
-							index := 0
-							ids := GetIds2("EC256K1", req.GroupId)
-							for kk, id := range ids {
-								enodes := GetEnodesByUid(id, "EC256K1", req.GroupId)
-								if IsCurNode(enodes, cur_enode) {
-									if kk >= 2 {
-										index = kk - 2
-									} else {
-										index = kk
-									}
-									break
-								}
-
-							}
-							tmp := ids[index:index+3]
-							ps := &PreSign{Pub:chret,Gid:req.GroupId,Nonce:nonce,Index:index}
-
-							val,err := Encode2(ps)
-							if err != nil {
-								common.Debug("=====================PreSign========================","err",err)
-								time.Sleep(time.Duration(10000000))
-							    continue 
-							}
-							
-							for _, id := range tmp {
-								enodes := GetEnodesByUid(id, "EC256K1", req.GroupId)
-								common.Info("===============PreSign in genkey,get enodes===============","enodes",enodes,"index",index)
-								if IsCurNode(enodes, cur_enode) {
-									common.Debug("===============PreSign in genkey,get cur enodes===============","enodes",enodes)
-									continue
-								}
-								SendMsgToPeer(enodes, val)
-							}
-
-							rch := make(chan interface{}, 1)
-							SetUpMsgList3(val,cur_enode,rch)
-							_, _,cherr := GetChannelValue(waitall+10,rch)
-							if cherr != nil {
-								common.Debug("=====================PreSign in genkey fail========================","cherr",cherr)
-							}
-
-							common.Info("===================generate pre-sign data===============","current total number of the data ",GetTotalCount(chret),"the number of remaining pre-sign data",(PrePubDataCount-GetTotalCount(chret)),"pubkey",chret)
-						} 
-
-						time.Sleep(time.Duration(1000000))
-					}
-				}()
-		       }*/
-			////////////
-
 			res := RpcSmpcRes{Ret: strconv.Itoa(workid) + common.Sep + "rpc_req_smpcaddr" + common.Sep + chret, Tip: "", Err: nil}
 			ch <- res
 			return nil
@@ -2770,7 +2644,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 		    err = SaveAcceptSignData(ac)
 		    if err == nil {
 			common.Debug("===============InitAcceptData,save sign accept data finish===================","ars ",ars,"key ",key)
-			///////bug
 			for k,v := range workers {
 			    if strings.EqualFold(v.sid, key) {
 				err = SignInitAcceptData(raw,k,sender,ch)
@@ -2778,7 +2651,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 				return err
 			    }
 			}
-			//////////
 
 			w := workers[workid]
 			w.sid = key 
@@ -2978,7 +2850,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	err = SaveAcceptReShareData(ac)
 	common.Info("===================finish call SaveAcceptReShareData======================","err ",err,"workid ",workid,"account ",from,"group id ",rh.GroupId,"pubkey ",rh.PubKey,"threshold ",rh.ThresHold,"key ",key)
 	if err == nil {
-	    ///////bug
 	    for k,v := range workers {
 		if strings.EqualFold(v.sid, key) {
 		    err = ReshareInitAcceptData(raw,k,sender,ch)
@@ -2986,7 +2857,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 		    return err
 		}
 	    }
-	    //////////
 
 	    w := workers[workid]
 	    w.sid = key 
@@ -3084,7 +2954,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	    <-timeout
 
 	    if !reply {
-		    //////////////////////reshare result start/////////////////////////
 		    if tip == "get other node accept reshare result timeout" {
 			    ars := GetAllReplyFromGroup(workid,rh.GroupId,Rpc_RESHARE,sender)
 			    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold, rh.Mode,"false", "", "Timeout", "", "get other node accept reshare result timeout", "get other node accept reshare result timeout", ars,workid)

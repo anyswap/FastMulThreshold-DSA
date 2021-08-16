@@ -268,7 +268,7 @@ func GetCurNodeReqAddrInfo(geter_acc string) ([]*ReqAddrReply, string, error) {
 
 //ec2
 //msgprex = hash
-//cointype == keytype    //ec||ed25519
+//cointype == keytype    //EC256K1||ed25519
 func smpc_genPubKey(msgprex string, account string, cointype string, ch chan interface{}, mode string, nonce string) {
 
 	wk, err := FindWorker(msgprex)
