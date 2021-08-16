@@ -8,6 +8,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
+	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
 var (
@@ -63,11 +64,14 @@ func (round *round1) Start() error {
 
 	round.temp.w1 = w1
 
-	u1K := smpc.GetRandomIntFromZn(secp256k1.S256().N)
-	u1Gamma := smpc.GetRandomIntFromZn(secp256k1.S256().N)
+	u1K := random.GetRandomIntFromZn(secp256k1.S256().N)
+	u1Gamma := random.GetRandomIntFromZn(secp256k1.S256().N)
 
 	u1GammaGx, u1GammaGy := secp256k1.S256().ScalarBaseMult(u1Gamma.Bytes())
 	commitU1GammaG := new(ec2.Commitment).Commit(u1GammaGx, u1GammaGy)
+	if commitU1GammaG == nil {
+	    return errors.New(" Error generating commitment data in signing round 1")
+	}
 
 	round.temp.u1K = u1K
 	round.temp.u1Gamma = u1Gamma

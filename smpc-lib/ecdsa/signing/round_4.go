@@ -7,6 +7,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
+	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
 func (round *round4) Start() error {
@@ -74,7 +75,7 @@ func (round *round4) Start() error {
 	betaU1Star := make([]*big.Int, round.threshold)
 	betaU1 := make([]*big.Int,round.threshold)
 	for i := 0; i < round.threshold; i++ {
-		beta1U1Star := smpc.GetRandomIntFromZn(NSubN2)
+		beta1U1Star := random.GetRandomIntFromZn(NSubN2)
 		beta1U1 := new(big.Int).Mul(MinusOne, beta1U1Star)
 		betaU1Star[i] = beta1U1Star
 		betaU1[i] = beta1U1
@@ -83,7 +84,7 @@ func (round *round4) Start() error {
 	vU1Star := make([]*big.Int,round.threshold)
 	vU1 := make([]*big.Int, round.threshold)
 	for i := 0; i < round.threshold; i++ {
-		v1U1Star := smpc.GetRandomIntFromZn(NSubN2)
+		v1U1Star := random.GetRandomIntFromZn(NSubN2)
 		v1U1 := new(big.Int).Mul(MinusOne, v1U1Star)
 		vU1Star[i] = v1U1Star
 		vU1[i] = v1U1

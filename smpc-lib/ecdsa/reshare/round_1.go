@@ -67,6 +67,10 @@ func (round *round1) Start() error {
 		u1CommitValues = append(u1CommitValues, skP1PolyG.PolyG[i][1])
 	}
 	commitSkP1G := new(ec2.Commitment).Commit(u1CommitValues...)
+	if commitSkP1G == nil {
+	    return errors.New(" Error generating commitment data in reshare round 1")
+	}
+
 	round.temp.comd = commitSkP1G.D
 	round.temp.skP1Poly = skP1Poly
 	round.temp.skP1PolyG = skP1PolyG.PolyG

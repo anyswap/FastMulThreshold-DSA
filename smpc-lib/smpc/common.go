@@ -13,61 +13,6 @@ import (
     "github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 )
 
-/*func Encode(obj interface{}) (string, error) {
-    switch ch := obj.(type) {
-    case *keygen.KGRound1Message:
-
-	    var buff bytes.Buffer
-	    enc := gob.NewEncoder(&buff)
-
-	    err := enc.Encode(ch)
-	    if err != nil {
-		return "", err
-	    }
-	    return buff.String(), nil
-    case *keygen.LocalDNodeSaveData:
-	    ch2 := obj.(*keygen.LocalDNodeSaveData)
-	    ret,err := json.Marshal(ch2)
-	    if err != nil {
-		return "",err
-	    }
-	    return string(ret),nil
-    default:
-	    return "", fmt.Errorf("encode obj fail.")
-    }
-}
-
-func Decode(s string, datatype string) (interface{}, error) {
-
-	if datatype == "KGRound1Message" {
-		var data bytes.Buffer
-		data.Write([]byte(s))
-
-		dec := gob.NewDecoder(&data)
-
-		var res keygen.KGRound1Message
-		err := dec.Decode(&res)
-		if err != nil {
-			return nil, err
-		}
-
-		return &res, nil
-	}
-
-	if datatype == "LocalDNodeSaveData" {
-		var m keygen.LocalDNodeSaveData
-		err := json.Unmarshal([]byte(s), &m)
-		if err != nil {
-		    return nil,err
-		}
-
-		return &m,nil
-	}
-
-	return nil, fmt.Errorf("decode obj fail.")
-}
-*/
-
 type SortableIDSSlice []*big.Int
 
 func (s SortableIDSSlice) Len() int {
@@ -104,20 +49,6 @@ func GetRandomInt(length int) *big.Int {
 	}
 
 	return rndNum
-}
-
-func GetRandomIntFromZn(n *big.Int) *big.Int {
-	var rndNumZn *big.Int
-	zero := big.NewInt(0)
-
-	for {
-		rndNumZn = GetRandomInt(n.BitLen())
-		if rndNumZn.Cmp(n) < 0 && rndNumZn.Cmp(zero) >= 0 {
-			break
-		}
-	}
-
-	return rndNumZn
 }
 
 func DECDSA_Sign_Calc_v(r, deltaGammaGy, pkx, pky, R, S *big.Int, hashBytes []byte, invert bool) int {

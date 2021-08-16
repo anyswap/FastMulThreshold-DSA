@@ -7,6 +7,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
+	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
 func (round *round1) Start() error {
@@ -18,8 +19,8 @@ func (round *round1) Start() error {
 	round.started = true
 	round.resetOK()
 
-	u1 := smpc.GetRandomIntFromZn(secp256k1.S256().N)
-	c1 := smpc.GetRandomIntFromZn(secp256k1.S256().N)
+	u1 := random.GetRandomIntFromZn(secp256k1.S256().N)
+	c1 := random.GetRandomIntFromZn(secp256k1.S256().N)
 	u1Poly, u1PolyG, _ := ec2.Vss2Init(u1, round.threshold)
 	_, c1PolyG, _ := ec2.Vss2Init(c1, round.threshold)
 	
@@ -46,6 +47,14 @@ func (round *round1) Start() error {
 
 	// 3. generate their own paillier public key and private key
 	u1PaillierPk, u1PaillierSk := ec2.GenerateKeyPair(round.paillierkeylength)
+
+	if u1PaillierPk == nil || u1PaillierSk == nil {
+	    return errors.New(" Error generating Paillier pubkey/private data ")
+	}
+
+	if commitU1G == nil || commitC1G == nil {
+	    return errors.New(" Error generating commitment/bip32-commitment data ")
+	}
 
 	round.temp.u1 = u1
 	round.temp.u1Poly = u1Poly

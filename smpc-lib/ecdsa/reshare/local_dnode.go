@@ -6,6 +6,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
+	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 	"math/big"
 	"errors"
 )
@@ -83,7 +84,7 @@ func NewLocalDNode(
 	if sd != nil {
 	    id = fmt.Sprintf("%v",sd.CurDNodeID)
 	} else {
-	    uid := smpc.GetRandomIntFromZn(secp256k1.S256().N)
+	    uid := random.GetRandomIntFromZn(secp256k1.S256().N)
 	    id = fmt.Sprintf("%v",uid)
 	}
     	
