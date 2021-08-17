@@ -99,6 +99,7 @@ func Start(params *LunchParams) {
 	PreBip32DataCount = int(params.Bip32Pre)
 	
 	LdbPubKeyData = GetAllPubKeyDataFromDb()
+	AutoPreGenSignData()
 
 	go HandleRpcSign()
 

@@ -27,6 +27,7 @@ import (
 	"sync"
 	"strconv"
 	"encoding/json"
+	dberrors "github.com/syndtr/goleveldb/leveldb/errors"
 )
 
 var (
@@ -428,8 +429,8 @@ func NeedPreSign(pubkey string,inputcode string,gid string) (int,bool) {
 		return
 	    }
 
-	    exsit, err := predb.Has([]byte(key))
-	    if !exsit || err != nil {
+	    _,err = predb.Get([]byte(key))
+	    if IsNotFoundErr(err) {
 		if len(idx) == 0 {
 		    idx <- index
 		}
@@ -437,14 +438,14 @@ func NeedPreSign(pubkey string,inputcode string,gid string) (int,bool) {
 	}(i)
     }
 
-    WaitTime := 30 * time.Second
+    WaitTime := 60 * time.Second
     getIndexTimeOut := time.NewTicker(WaitTime)
     
     select {
 	case ret := <-idx:
 	    return ret,true
 	case <-getIndexTimeOut.C:
-	    common.Debug("=====================NeedPreSign,get index timeout.==========================","pubkey",pubkey,"gid",gid)
+	    //common.Debug("=====================NeedPreSign,get index timeout.==========================","pubkey",pubkey,"gid",gid)
 	    return -1,false
     }
 
@@ -490,8 +491,8 @@ func PutPreSignData(pubkey string,inputcode string,gid string,index int,val *Pre
 	return err
     }
 
-    exsit, err := predb.Has([]byte(key))
-    if !exsit || err != nil {
+    _,err = predb.Get([]byte(key))
+    if IsNotFoundErr(err) {
 	value,err := val.MarshalJSON()
 	if err != nil {
 	    common.Error("====================PutPreSignData,marshal pre-sign data error ======================","pubkey",pubkey,"gid",gid,"index",index,"val",val,"err",err)
@@ -537,14 +538,14 @@ func GetPreSignData(pubkey string,inputcode string,gid string,datakey string) *P
 	}(i)
     }
 
-    WaitTime := 30 * time.Second
+    WaitTime := 60 * time.Second
     checkKeyTimeOut := time.NewTicker(WaitTime)
     
     select {
 	case ret := <-data:
 	    return ret
 	case <-checkKeyTimeOut.C:
-	    common.Debug("=====================GetPreSignData,get pre-sign data timeout.==========================","pubkey",pubkey,"gid",gid)
+	    //common.Debug("=====================GetPreSignData,get pre-sign data timeout.==========================","pubkey",pubkey,"gid",gid)
 	    return nil
     }
 
@@ -580,7 +581,7 @@ func DeletePreSignData(pubkey string,inputcode string,gid string,datakey string)
 	}(i)
     }
     
-    WaitTime := 30 * time.Second
+    WaitTime := 60 * time.Second
     checkKeyTimeOut := time.NewTicker(WaitTime)
     
     select {
@@ -592,7 +593,7 @@ func DeletePreSignData(pubkey string,inputcode string,gid string,datakey string)
 
 	    return err
 	case <-checkKeyTimeOut.C:
-	    common.Debug("=====================DeletePreSignData,delete pre-sign data from db timeout.==========================","pubkey",pubkey,"gid",gid)
+	    //common.Debug("=====================DeletePreSignData,delete pre-sign data from db timeout.==========================","pubkey",pubkey,"gid",gid)
 	    return fmt.Errorf("delete pre-sign data from db timeout.")
     }
 
@@ -628,7 +629,7 @@ func PickPreSignData(pubkey string,inputcode string,gid string) *PreSignData {
 	}(i)
     }
 
-    WaitTime := 30 * time.Second
+    WaitTime := 60 * time.Second
     pickTimeOut := time.NewTicker(WaitTime)
     
     select {
@@ -648,7 +649,7 @@ func PickPreSignData(pubkey string,inputcode string,gid string) *PreSignData {
 	    }
 
 	case <-pickTimeOut.C:
-	    common.Debug("=====================PickPreSignData,pick pre-sign data from db timeout.==========================","pubkey",pubkey,"gid",gid)
+	    //common.Debug("=====================PickPreSignData,pick pre-sign data from db timeout.==========================","pubkey",pubkey,"gid",gid)
 	    return nil
     }
     
@@ -698,8 +699,11 @@ func ExcutePreSignData(pre *TxDataPreSignData) {
 
 	    common.Info("===================ExcutePreSignData, before starting pre-generation of sign data ===============","current total number of the data ",GetTotalCount(pre.PubKey,"",gg),"the number of remaining pre-sign data",(PrePubDataCount-GetTotalCount(pre.PubKey,"",gg)),"pubkey",pre.PubKey,"sub-groupid",gg)
 	    for {
-		    index,need := NeedPreSign(pre.PubKey,"",gg)
-		    if need && index != -1 && GetPreSigal(pub) {
+		    b := GetPreSigal(pub)
+		    if b {
+			index,need := NeedPreSign(pre.PubKey,"",gg)
+
+			if need && index != -1 {
 			    tt := fmt.Sprintf("%v",time.Now().UnixNano()/1e6)
 			    nonce := Keccak256Hash([]byte(strings.ToLower(pub + tt + strconv.Itoa(index)))).Hex()
 			    ps := &PreSign{Pub:pre.PubKey,Gid:gg,Nonce:nonce,Index:index}
@@ -725,7 +729,8 @@ func ExcutePreSignData(pre *TxDataPreSignData) {
 			    }
 			    
 			    common.Info("===================ExcutePreSignData,after pre-generation of sign data===============","current total number of the data ",GetTotalCount(pre.PubKey,"",gg),"the number of remaining pre-sign data",(PrePubDataCount-GetTotalCount(pre.PubKey,"",gg)),"pubkey",pre.PubKey,"sub-groupid",gg,"Index",index)
-		    } 
+			}
+		    }
 
 		    time.Sleep(time.Duration(1000000))
 	    }
@@ -746,6 +751,7 @@ func AutoPreGenSignData() {
 	}
 
 	go func(val string) {
+	    common.Debug("======================AutoPreGenSignData=========================","val",val)
 	    tmp := strings.Split(val,":") // val = pubkey:gid
 	    if len(tmp) < 2 || tmp[0] == "" || tmp[1] == "" {
 		return
@@ -767,32 +773,30 @@ func SavePrekeyToDb(pubkey string,inputcode string,gid string) error {
     }
 
     var pub string
-    if inputcode != "" {
-	pub = strings.ToLower(Keccak256Hash([]byte(strings.ToLower(pubkey + ":" + inputcode + ":" + gid))).Hex())
-    } else {
-	pub = strings.ToLower(Keccak256Hash([]byte(strings.ToLower(pubkey + ":" + gid))).Hex())
-    }
-
     var val string
     if inputcode != "" {
+	pub = strings.ToLower(Keccak256Hash([]byte(strings.ToLower(pubkey + ":" + inputcode + ":" + gid))).Hex())
 	val = pubkey + ":" + inputcode + ":" + gid
     } else {
+	pub = strings.ToLower(Keccak256Hash([]byte(strings.ToLower(pubkey + ":" + gid))).Hex())
 	val = pubkey + ":" + gid
     }
 
-    exsit,err := prekey.Has([]byte(pub))
-    if exsit || err == nil {
-	common.Error("==================SavePrekeyToDb,already have the key in db.=====================","pub",pub,"pubkey",pubkey,"gid",gid)
-	return nil
-    }
-
-    err = prekey.Put([]byte(pub),[]byte(val))
-    if err != nil {
-	common.Error("==================SavePrekeyToDb, put prekey to db fail.=====================","pub",pub,"pubkey",pubkey,"gid",gid,"err",err)
-	return err
+    _,err := prekey.Get([]byte(pub))
+    if IsNotFoundErr(err) {
+	common.Debug("==================SavePrekeyToDb, Not Found pub.=====================","pub",pub,"pubkey",pubkey,"gid",gid)
+	err = prekey.Put([]byte(pub),[]byte(val))
+	if err != nil {
+	    common.Error("==================SavePrekeyToDb, put prekey to db fail.=====================","pub",pub,"pubkey",pubkey,"gid",gid,"err",err)
+	    return err
+	}
     }
 
     return nil
+}
+
+func IsNotFoundErr(err error) bool {
+    return errors.Is(err, dberrors.ErrNotFound)
 }
 
 //--------------------------------------------------------------
@@ -842,8 +846,8 @@ func NeedPreSignForBip32(pubkey string,inputcode string,gid string) (int,bool) {
 		return
 	    }
 
-	    exsit, err := predb.Has([]byte(key))
-	    if !exsit || err != nil {
+	    _,err = predb.Get([]byte(key))
+	    if IsNotFoundErr(err) {
 		if len(idx) == 0 {
 		    idx <- index
 		}
@@ -851,14 +855,14 @@ func NeedPreSignForBip32(pubkey string,inputcode string,gid string) (int,bool) {
 	}(i)
     }
 
-    WaitTime := 30 * time.Second
+    WaitTime := 60 * time.Second
     getIndexTimeOut := time.NewTicker(WaitTime)
     
     select {
 	case ret := <-idx:
 	    return ret,true
 	case <-getIndexTimeOut.C:
-	    common.Debug("=====================NeedPreSignForBip32,get index timeout.==========================","pubkey",pubkey,"inputcode",inputcode,"gid",gid)
+	    //common.Debug("=====================NeedPreSignForBip32,get index timeout.==========================","pubkey",pubkey,"inputcode",inputcode,"gid",gid)
 	    return -1,false
     }
 
