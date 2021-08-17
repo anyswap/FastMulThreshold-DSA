@@ -40,8 +40,7 @@ import (
 
 func GetReShareNonce(account string) (string, string, error) {
 	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + "RESHARE"))).Hex()
-	exsit,da := GetValueFromPubKeyData(key)
-	///////
+	exsit,da := GetPubKeyData([]byte(key))
 	if !exsit {
 		return "0", "", nil
 	}
@@ -54,9 +53,10 @@ func GetReShareNonce(account string) (string, string, error) {
 
 func SetReShareNonce(account string,nonce string) (string, error) {
 	key2 := Keccak256Hash([]byte(strings.ToLower(account + ":" + "RESHARE"))).Hex()
-	kd := KeyData{Key: []byte(key2), Data: nonce}
-	PubKeyDataChan <- kd
-	LdbPubKeyData.WriteMap(key2, []byte(nonce))
+	err := PutPubKeyData([]byte(key2),[]byte(nonce))
+	if err != nil {
+	    return err.Error(),err
+	}
 
 	return "", nil
 }
@@ -122,7 +122,7 @@ func RpcAcceptReShare(raw string) (string, string, error) {
 	return "Failure","check raw fail,it is not *TxDataAcceptReShare",fmt.Errorf("check raw fail,it is not *TxDataAcceptReShare")
     }
 
-    exsit,da := GetValueFromPubKeyData(acceptrh.Key)
+    exsit,da := GetPubKeyData([]byte(acceptrh.Key))
     if exsit {
 	ac,ok := da.(*AcceptReShareData)
 	if ok && ac != nil {
@@ -146,7 +146,7 @@ type ReShareStatus struct {
 }
 
 func GetReShareStatus(key string) (string, string, error) {
-	exsit,da := GetValueFromPubKeyData(key)
+	exsit,da := GetPubKeyData([]byte(key))
 	///////
 	if !exsit || da == nil  {
 		return "", "smpc back-end internal error:get reshare accept data fail from db when GetReShareStatus", fmt.Errorf("smpc back-end internal error:get reshare accept data fail from db when GetReShareStatus")
@@ -175,11 +175,19 @@ type ReShareCurNodeInfo struct {
 
 func GetCurNodeReShareInfo() ([]*ReShareCurNodeInfo, string, error) {
     var ret []*ReShareCurNodeInfo
+    data := make(chan *ReShareCurNodeInfo,1000)
+
     var wg sync.WaitGroup
-    LdbPubKeyData.RLock()
-    for k, v := range LdbPubKeyData.Map {
+    iter := db.NewIterator()
+    for iter.Next() {
+	key2 := []byte(string(iter.Key())) //must be deep copy,or show me the error: "panic: JSON decoder out of sync - data changing underfoot?"
+	exsit,da := GetPubKeyData(key2) 
+	if !exsit || da == nil {
+	    continue
+	}
+	
 	wg.Add(1)
-	go func(key string,value interface{}) {
+	go func(key string,value interface{},ch chan *ReShareCurNodeInfo) {
 	    defer wg.Done()
 
 	    vv,ok := value.(*AcceptReShareData)
@@ -197,12 +205,19 @@ func GetCurNodeReShareInfo() ([]*ReShareCurNodeInfo, string, error) {
 	    }
 
 	    los := &ReShareCurNodeInfo{Key: key, PubKey:vv.PubKey, GroupId:vv.GroupId, TSGroupId:vv.TSGroupId,ThresHold: vv.LimitNum, Account:vv.Account, Mode:vv.Mode, TimeStamp: vv.TimeStamp}
-	    ret = append(ret, los)
+	    ch <-los
 	    common.Debug("================GetCurNodeReShareInfo success return============================","key",key)
-	}(k,v)
+	}(string(key2),da,data)
     }
-    LdbPubKeyData.RUnlock()
+    iter.Release()
     wg.Wait()
+
+    l := len(data)
+    for i:=0;i<l;i++ {
+	info := <-data
+	ret = append(ret,info)
+    }
+
     return ret, "", nil
 }
 
@@ -321,12 +336,7 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 	}
 
 	smpcpks, _ := hex.DecodeString(pubkey)
-	exsit,da := GetPubKeyDataFromLocalDb(string(smpcpks[:]))
-	if !exsit {
-	    time.Sleep(time.Duration(5000000000))
-	    exsit,da = GetPubKeyDataFromLocalDb(string(smpcpks[:]))
-	}
-	///////
+	exsit,da := GetPubKeyData(smpcpks[:])
 	oldnode := true
 	if !exsit {
 	    oldnode = false
@@ -1779,8 +1789,12 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 	    dbsk = dbsktmp
 	}
 
-	sk := KeyData{Key: smpcpks[:], Data: string(newskU1.Bytes())}
-	SkU1Chan <- sk
+	err = putSkU1ToLocalDb(smpcpks[:],newskU1.Bytes()) 
+	if err != nil {
+	    res := RpcSmpcRes{Ret: "", Err: err}
+	    ch <- res
+	    return 
+	}
 
 	for _, ct := range coins.Cointypes {
 		if strings.EqualFold(ct, "ALL") {
@@ -1797,8 +1811,12 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 		}
 
 		key := Keccak256Hash([]byte(strings.ToLower(ctaddr))).Hex()
-		sk = KeyData{Key: []byte(key), Data: string(newskU1.Bytes())}
-		SkU1Chan <- sk
+		err = putSkU1ToLocalDb([]byte(key),newskU1.Bytes()) 
+		if err != nil {
+		    res := RpcSmpcRes{Ret: "", Err: err}
+		    ch <- res
+		    return 
+		}
 	}
 	//
 
@@ -1843,7 +1861,7 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 		return
 	}
 
-	exsit,pda := GetPubKeyDataFromLocalDb(string(smpcpks[:]))
+	exsit,pda := GetPubKeyData(smpcpks[:])
 	if exsit {
 	    daa,ok := pda.(*PubKeyData)
 	    if ok {
@@ -1863,17 +1881,17 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 		}
 		//
 
-		go LdbPubKeyData.DeleteMap(daa.Key)
-		kd := KeyData{Key: []byte(daa.Key), Data: "CLEAN"}
-		PubKeyDataChan <- kd
+		DeletePubKeyData([]byte(daa.Key))
 	    }
 	}
 	
-	kd := KeyData{Key: smpcpks[:], Data: ss1}
-	PubKeyDataChan <- kd
-	/////
-	LdbPubKeyData.WriteMap(string(smpcpks[:]), pubs)
-	////
+	err = PutPubKeyData(smpcpks[:],[]byte(ss1))
+	if err != nil {
+	    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put pubkey data fail", Err: fmt.Errorf("put pubkey data fail")}
+	    ch <- res
+	    return
+	}
+	
 	for _, ct := range coins.Cointypes {
 		if strings.EqualFold(ct, "ALL") {
 			continue
@@ -1889,11 +1907,12 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 		}
 
 		key := Keccak256Hash([]byte(strings.ToLower(ctaddr))).Hex()
-		kd = KeyData{Key: []byte(key), Data: ss1}
-		PubKeyDataChan <- kd
-		/////
-		LdbPubKeyData.WriteMap(key, pubs)
-		////
+		err = PutPubKeyData([]byte(key),[]byte(ss1))
+		if err != nil {
+		    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put pubkey data fail", Err: fmt.Errorf("put pubkey data fail")}
+		    ch <- res
+		    return
+		}
 	}
 	
 	_,err = SetReqAddrNonce(account,nonce)
@@ -1905,7 +1924,7 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 
 	wid := -1
 	var allreply []NodeReply
-	exsit,da2 := GetValueFromPubKeyData(msgprex)
+	exsit,da2 := GetPubKeyData([]byte(msgprex))
 	if exsit {
 	    acr,ok := da2.(*AcceptReShareData)
 	    if ok {
@@ -1928,11 +1947,14 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 	    cnt,_ := strconv.Atoi(sigs2[0])
 	    for j := 0;j<cnt;j++ {
 		fr := sigs2[2*j+2]
-		exsit,da := GetValueFromPubKeyData(strings.ToLower(fr))
+		exsit,da := GetPubKeyData([]byte(strings.ToLower(fr)))
 		if !exsit {
-		    kdtmp := KeyData{Key: []byte(strings.ToLower(fr)), Data: rk}
-		    PubKeyDataChan <- kdtmp
-		    LdbPubKeyData.WriteMap(strings.ToLower(fr), []byte(rk))
+		    err = PutPubKeyData([]byte(strings.ToLower(fr)),[]byte(rk))
+		    if err != nil {
+			res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put pubkey data fail", Err: fmt.Errorf("put pubkey data fail")}
+			ch <- res
+			return
+		    }
 		} else {
 		    //
 		    found := false
@@ -1947,18 +1969,24 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 
 		    if !found {
 			da2 := string(da.([]byte)) + ":" + rk
-			kdtmp := KeyData{Key: []byte(strings.ToLower(fr)), Data: da2}
-			PubKeyDataChan <- kdtmp
-			LdbPubKeyData.WriteMap(strings.ToLower(fr), []byte(da2))
+			err = PutPubKeyData([]byte(strings.ToLower(fr)),[]byte(da2))
+			if err != nil {
+			    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put pubkey data fail", Err: fmt.Errorf("put pubkey data fail")}
+			    ch <- res
+			    return
+			}
 		    }
 		}
 	    }
 	} else {
-	    exsit,da := GetValueFromPubKeyData(strings.ToLower(account))
+	    exsit,da := GetPubKeyData([]byte(strings.ToLower(account)))
 	    if !exsit {
-		kdtmp := KeyData{Key: []byte(strings.ToLower(account)), Data: rk}
-		PubKeyDataChan <- kdtmp
-		LdbPubKeyData.WriteMap(strings.ToLower(account), []byte(rk))
+		err = PutPubKeyData([]byte(strings.ToLower(account)),[]byte(rk))
+		if err != nil {
+		    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put pubkey data fail", Err: fmt.Errorf("put pubkey data fail")}
+		    ch <- res
+		    return
+		}
 	    } else {
 		//
 		found := false
@@ -1973,9 +2001,12 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 
 		if !found {
 		    da2 := string(da.([]byte)) + ":" + rk
-		    kdtmp := KeyData{Key: []byte(strings.ToLower(account)), Data: da2}
-		    PubKeyDataChan <- kdtmp
-		    LdbPubKeyData.WriteMap(strings.ToLower(account), []byte(da2))
+		    err = PutPubKeyData([]byte(strings.ToLower(account)),[]byte(da2))
+		    if err != nil {
+			res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put pubkey data fail", Err: fmt.Errorf("put pubkey data fail")}
+			ch <- res
+			return
+		    }
 		}
 
 		}

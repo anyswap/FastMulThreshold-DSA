@@ -19,9 +19,6 @@ import (
     "github.com/anyswap/Anyswap-MPCNode/internal/common"
     "strings"
     "fmt"
-    "math/big"
-    "time"
-    "container/list"
 )
 
 type TxDataAcceptReqAddr struct {
@@ -33,7 +30,7 @@ type TxDataAcceptReqAddr struct {
 
 func AcceptReqAddr(initiator string,account string, cointype string, groupid string, nonce string, threshold string, mode string, deal string, accept string, status string, pubkey string, tip string, errinfo string, allreply []NodeReply, workid int,sigs string) (string, error) {
 	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + cointype + ":" + groupid + ":" + nonce + ":" + threshold + ":" + mode))).Hex()
-	exsit,da := GetValueFromPubKeyData(key)
+	exsit,da := GetPubKeyData([]byte(key))
 	///////
 	if !exsit {
 		common.Info("=====================AcceptReqAddr,no exist key=======================","key",key)
@@ -109,103 +106,13 @@ func AcceptReqAddr(initiator string,account string, cointype string, groupid str
 		return "smpc back-end internal error:compress accept data fail", err
 	}
 
-	kdtmp := KeyData{Key: []byte(key), Data: es}
-	PubKeyDataChan <- kdtmp
-
-	LdbPubKeyData.WriteMap(key, ac2)
+	err = PutPubKeyData([]byte(key),[]byte(es))
+	if err != nil {
+	    common.Error("===================================AcceptReqAddr,put pubkey data fail===========================","err",err,"key",key)
+	    return err.Error(),err
+	}
+	
 	common.Debug("=====================AcceptReqAddr,write map success====================","status",ac2.Status,"key",key)
-	return "", nil
-}
-
-type TxDataAcceptLockOut struct {
-    TxType string
-    Key string
-    SmpcTo string
-    Value string
-    Cointype string
-    Mode string
-    Accept string
-    TimeStamp string
-}
-
-func AcceptLockOut(initiator string,account string, groupid string, nonce string, smpcfrom string, threshold string, deal string, accept string, status string, outhash string, tip string, errinfo string, allreply []NodeReply, workid int) (string, error) {
-	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + groupid + ":" + nonce + ":" + smpcfrom + ":" + threshold))).Hex()
-	exsit,da := GetValueFromPubKeyData(key)
-	///////
-	if !exsit {
-		common.Debug("=====================AcceptLockOut,no exist key=======================","key",key)
-		return "smpc back-end internal error:get accept data fail from db", fmt.Errorf("smpc back-end internal error:get accept data fail from db")
-	}
-
-	ac,ok := da.(*AcceptLockOutData)
-
-	if !ok {
-		return "smpc back-end internal error:get accept data fail from db", fmt.Errorf("smpc back-end internal error:get accept data fail from db")
-	}
-
-	in := ac.Initiator
-	if initiator != "" {
-	    in = initiator
-	}
-
-	de := ac.Deal
-	if deal != "" {
-	    de = deal
-	}
-
-	acp := ac.Accept
-	if accept != "" {
-		acp = accept
-	}
-
-	ah := ac.OutTxHash
-	if outhash != "" {
-		ah = outhash
-	}
-
-	ttip := ac.Tip
-	if tip != "" {
-		ttip = tip
-	}
-
-	eif := ac.Error
-	if errinfo != "" {
-		eif = errinfo
-	}
-
-	sts := ac.Status
-	if status != "" {
-		sts = status
-	}
-
-	arl := ac.AllReply
-	if allreply != nil {
-		arl = allreply
-	}
-
-	wid := ac.WorkId
-	if workid >= 0 {
-		wid = workid
-	}
-
-	ac2 := &AcceptLockOutData{Initiator:in,Account: ac.Account, GroupId: ac.GroupId, Nonce: ac.Nonce, PubKey:ac.PubKey, SmpcTo: ac.SmpcTo, Value: ac.Value, Cointype: ac.Cointype, LimitNum: ac.LimitNum, Mode: ac.Mode, TimeStamp: ac.TimeStamp, Deal: de, Accept: acp, Status: sts, OutTxHash: ah, Tip: ttip, Error: eif, AllReply: arl, WorkId: wid}
-
-	e, err := Encode2(ac2)
-	if err != nil {
-		common.Debug("=====================AcceptLockOut,encode fail=======================","err",err,"key",key)
-		return "smpc back-end internal error:encode accept data fail", err
-	}
-
-	es, err := Compress([]byte(e))
-	if err != nil {
-		common.Debug("=====================AcceptLockOut,compress fail=======================","err",err,"key",key)
-		return "smpc back-end internal error:compress accept data fail", err
-	}
-
-	kdtmp := KeyData{Key: []byte(key), Data: es}
-	PubKeyDataChan <- kdtmp
-
-	LdbPubKeyData.WriteMap(key, ac2)
 	return "", nil
 }
 
@@ -220,8 +127,8 @@ type TxDataAcceptSign struct {
 
 func AcceptSign(initiator string,account string, pubkey string,msghash []string,keytype string,groupid string, nonce string,threshold string,mode string, deal string, accept string, status string, rsv string, tip string, errinfo string, allreply []NodeReply, workid int) (string, error) {
 	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + nonce + ":" + pubkey + ":" + get_sign_hash(msghash,keytype) + ":" + keytype + ":" + groupid + ":" + threshold + ":" + mode))).Hex()
-	exsit,da := GetValueFromPubKeyData(key)
-	///////
+	
+	exsit,da := GetPubKeyData([]byte(key))
 	if !exsit {
 		common.Info("=====================AcceptSign,no exist key=======================","key",key)
 		return "smpc back-end internal error:get accept data fail from db", fmt.Errorf("smpc back-end internal error:get accept data fail from db")
@@ -230,7 +137,6 @@ func AcceptSign(initiator string,account string, pubkey string,msghash []string,
 	ac,ok := da.(*AcceptSignData)
 
 	if !ok {
-		common.Info("=====================AcceptLockOut, accept data error=======================","key",key)
 		return "smpc back-end internal error:get accept data fail from db", fmt.Errorf("smpc back-end internal error:get accept data fail from db")
 	}
 
@@ -293,8 +199,7 @@ func AcceptSign(initiator string,account string, pubkey string,msghash []string,
 		return "smpc back-end internal error:compress accept data fail", err
 	}
 
-	//////bug///////
-	exsit,da = GetValueFromPubKeyData(key)
+	exsit,da = GetPubKeyData([]byte(key))
 	if exsit {
 		ac,ok = da.(*AcceptSignData)
 		if ok {
@@ -304,13 +209,12 @@ func AcceptSign(initiator string,account string, pubkey string,msghash []string,
 			}
 		}
 	}
-	////////////////
 
-	LdbPubKeyData.WriteMap(key, ac2)
-	go func() {
-	    kdtmp := KeyData{Key: []byte(key), Data: es}
-	    PubKeyDataChan <- kdtmp
-	}()
+	err = PutPubKeyData([]byte(key),[]byte(es))
+	if err != nil {
+	    common.Error("========================AcceptSign,put accept sign data fail.=======================","key",key,"err",err)
+	    return err.Error(),err
+	}
 
 	common.Debug("=====================AcceptSign,finish.========================","key",key)
 	return "", nil
@@ -358,65 +262,13 @@ func SaveAcceptReqAddrData(ac *AcceptReqAddrData) error {
 		return err
 	}
 
-	kdtmp := KeyData{Key: []byte(key), Data: ss}
-	PubKeyDataChan <- kdtmp
-
-	LdbPubKeyData.WriteMap(key, ac)
-	return nil
-}
-
-type AcceptLockOutData struct {
-        Initiator string //enode
-	Account   string
-	GroupId   string
-	Nonce     string
-	PubKey  string
-	SmpcTo    string
-	Value     string
-	Cointype  string
-	LimitNum  string
-	Mode      string
-	TimeStamp string
-
-	Deal   string 
-	Accept string
-
-	Status    string
-	OutTxHash string
-	Tip       string
-	Error     string
-
-	AllReply []NodeReply
-	WorkId   int
-}
-
-func SaveAcceptLockOutData(ac *AcceptLockOutData) error {
-	if ac == nil {
-		return fmt.Errorf("no accept data.")
-	}
-
-	smpcaddr,_,err := GetAddr(ac.PubKey,ac.Cointype)
+	err = PutPubKeyData([]byte(key),[]byte(ss))
 	if err != nil {
-		return fmt.Errorf("get smpc addr fail")
+	    common.Error("===============================SaveAcceptReqAddrData,put accept reqaddr data to db fail===========================","key",key,"err",err)
+	    return err
 	}
-
-	key := Keccak256Hash([]byte(strings.ToLower(ac.Account + ":" + ac.GroupId + ":" + ac.Nonce + ":" + smpcaddr + ":" + ac.LimitNum))).Hex()
-
-	alos, err := Encode2(ac)
-	if err != nil {
-		return err
-	}
-
-	ss, err := Compress([]byte(alos))
-	if err != nil {
-		return err
-	}
-
-	kdtmp := KeyData{Key: []byte(key), Data: ss}
-	PubKeyDataChan <- kdtmp
-
-	LdbPubKeyData.WriteMap(key, ac)
-	return nil
+	
+return nil
 }
 
 type AcceptSignData struct {
@@ -444,11 +296,6 @@ type AcceptSignData struct {
 	WorkId   int
 }
 
-type SignBak struct {
-	Key string
-	Ac *AcceptSignData
-}
-
 func SaveAcceptSignData(ac *AcceptSignData) error {
 	if ac == nil {
 	    return fmt.Errorf("no accept data.")
@@ -469,65 +316,12 @@ func SaveAcceptSignData(ac *AcceptSignData) error {
 		return err
 	}
 
-	LdbPubKeyData.WriteMap(key, ac)
-	go func() {
-	    kdtmp := KeyData{Key: []byte(key), Data: ss}
-	    PubKeyDataChan <- kdtmp
-	}()
 
-	go func() {
-		delsign.Lock()
-		if signtodel != nil {
-			signtodel.PushBack(key)
-			if signtodel.Len() >= count_to_del_sign {
-				var next *list.Element
-				for e := signtodel.Front(); e != nil; e = next {
-					next = e.Next()
-					if e.Value == nil {
-						continue
-					}
-
-					val := e.Value.(string)
-					if val != "" {
-						tmp, exist := LdbPubKeyData.ReadMap(val)
-						if exist {
-							tmp2,ok := tmp.(*AcceptSignData)
-							if ok && tmp2 != nil && tmp2.Status != "Pending" {
-							    if tmp2.TimeStamp == "" {
-								continue
-							    }
-
-								t1,ok := new(big.Int).SetString(tmp2.TimeStamp,10)
-								if !ok || t1 == nil {
-								    continue
-								}
-
-								durmi,err := time.ParseDuration("-10m")
-								if  err != nil {
-								    continue
-								}
-
-								t := time.Now()
-								ta := t.Add(durmi)
-								tatmp := fmt.Sprintf("%v",ta)
-								t2,ok := new(big.Int).SetString(tatmp,10)
-								if !ok || t2 == nil {
-								    continue
-								}
-
-								if t2.Cmp(t1) >= 0 {
-									common.Info("========================SaveAcceptSignData, delete sign data from ldb======================","key",val)
-									signtodel.Remove(e)
-									LdbPubKeyData.DeleteMap(val)
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-		delsign.Unlock()
-	}()
+	err = PutPubKeyData([]byte(key),[]byte(ss))
+	if err != nil {
+	    common.Error("========================SaveAcceptSignData,put accept sign data to db fail======================","err",err,"key",key)
+	    return err
+	}
 
 	return nil
 }
@@ -575,10 +369,11 @@ func SaveAcceptReShareData(ac *AcceptReShareData) error {
 		return err
 	}
 
-	kdtmp := KeyData{Key: []byte(key), Data: ss}
-	PubKeyDataChan <- kdtmp
-
-	LdbPubKeyData.WriteMap(key, ac)
+	err = PutPubKeyData([]byte(key),[]byte(ss))
+	if err != nil {
+	    return err
+	}
+	
 	return nil
 }
 
@@ -591,7 +386,7 @@ type TxDataAcceptReShare struct {
 
 func AcceptReShare(initiator string,account string, groupid string, tsgroupid string,pubkey string, threshold string,mode string,deal string, accept string, status string, newsk string, tip string, errinfo string, allreply []NodeReply, workid int) (string, error) {
     key := Keccak256Hash([]byte(strings.ToLower(account + ":" + groupid + ":" + tsgroupid + ":" + pubkey + ":" + threshold + ":" + mode))).Hex()
-	exsit,da := GetValueFromPubKeyData(key)
+	exsit,da := GetPubKeyData([]byte(key))
 	///////
 	if !exsit {
 		common.Debug("=====================AcceptReShare, no exist======================","key",key)
@@ -663,10 +458,11 @@ func AcceptReShare(initiator string,account string, groupid string, tsgroupid st
 		return "smpc back-end internal error:compress accept data fail", err
 	}
 
-	kdtmp := KeyData{Key: []byte(key), Data: es}
-	PubKeyDataChan <- kdtmp
-
-	LdbPubKeyData.WriteMap(key, ac2)
+	err = PutPubKeyData([]byte(key),[]byte(es))
+	if err != nil {
+	    return err.Error(),err
+	}
+	
 	return "", nil
 }
 

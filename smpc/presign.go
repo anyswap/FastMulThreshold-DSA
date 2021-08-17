@@ -69,9 +69,8 @@ type RpcSignData struct {
 
 func GetSignNonce(account string) (string, string, error) {
 	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + "Sign"))).Hex()
-	exsit,da := GetValueFromPubKeyData(key)
-	///////
-	if !exsit {
+	exsit,da := GetPubKeyData([]byte(key))
+	if !exsit || da == nil {
 	    return "0", "", nil
 	}
 
@@ -83,9 +82,11 @@ func GetSignNonce(account string) (string, string, error) {
 
 func SetSignNonce(account string,nonce string) (string, error) {
 	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + "Sign"))).Hex()
-	kd := KeyData{Key: []byte(key), Data: nonce}
-	PubKeyDataChan <- kd
-	LdbPubKeyData.WriteMap(key, []byte(nonce))
+	err := PutPubKeyData([]byte(key),[]byte(nonce))
+	if err != nil {
+	    return err.Error(),err
+	}
+
 	return "", nil
 }
 
@@ -108,7 +109,7 @@ func SignInitAcceptData2(sbd *SignPickData,workid int,sender string,ch chan inte
     sig,ok := txdata.(*TxDataSign)
     if ok {
 	common.Debug("=============== SignInitAcceptData2, it is sign txdata and check sign raw success==================","key ",key,"from ",from,"nonce ",nonce)
-	exsit,_ := GetValueFromPubKeyData(key)
+	exsit,_ := GetPubKeyData([]byte(key))
 	if !exsit {
 	    cur_nonce, _, _ := GetSignNonce(from)
 	    cur_nonce_num, _ := new(big.Int).SetString(cur_nonce, 10)
@@ -218,7 +219,7 @@ func SignInitAcceptData2(sbd *SignPickData,workid int,sender string,ch chan inte
 				    return fmt.Errorf("get reqaddr key fail") 
 				}
 
-				exsit,da := GetValueFromPubKeyData(reqaddrkey)
+				exsit,da := GetPubKeyData([]byte(reqaddrkey))
 				if !exsit {
 				    common.Debug("=============== SignInitAcceptData2, get req addr key by other key fail ===================","key ",key)
 				    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
@@ -326,7 +327,7 @@ func InitAcceptData2(sbd *SignPickData,workid int,sender string,ch chan interfac
     sig,ok := txdata.(*TxDataSign)
     if ok {
 	common.Debug("===============InitAcceptData2, it is sign txdata and check sign raw success==================","key ",key,"from ",from,"nonce ",nonce)
-	exsit,_ := GetValueFromPubKeyData(key)
+	exsit,_ := GetPubKeyData([]byte(key))
 	if !exsit {
 	    cur_nonce, _, _ := GetSignNonce(from)
 	    cur_nonce_num, _ := new(big.Int).SetString(cur_nonce, 10)
@@ -444,7 +445,7 @@ func InitAcceptData2(sbd *SignPickData,workid int,sender string,ch chan interfac
 				    return fmt.Errorf("get reqaddr key fail") 
 				}
 
-				exsit,da := GetValueFromPubKeyData(reqaddrkey)
+				exsit,da := GetPubKeyData([]byte(reqaddrkey))
 				if !exsit {
 					common.Debug("===============InitAcceptData2, get req addr key by other key fail ===================","key ",key)
 				    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
@@ -554,7 +555,7 @@ func RpcAcceptSign(raw string) (string, string, error) {
 	return "Failure","check accept raw data fail",fmt.Errorf("check accept raw data fail")
     }
 
-    exsit,da := GetValueFromPubKeyData(acceptsig.Key)
+    exsit,da := GetPubKeyData([]byte(acceptsig.Key))
     if exsit {
 	ac,ok := da.(*AcceptSignData)
 	if ok && ac != nil {
@@ -612,7 +613,7 @@ func HandleRpcSign() {
 		rsd := <-SignChan
 	
 		smpcpks, _ := hex.DecodeString(rsd.PubKey)
-		exsit,da := GetPubKeyDataFromLocalDb(string(smpcpks[:]))
+		exsit,da := GetPubKeyData(smpcpks[:])
 		common.Debug("=========================HandleRpcSign======================","rsd.Pubkey",rsd.PubKey,"key",rsd.Key,"exsit",exsit)
 		if exsit {
 			_,ok := da.(*PubKeyData)
@@ -723,7 +724,7 @@ type SignStatus struct {
 }
 
 func GetSignStatus(key string) (string, string, error) {
-	exsit,da := GetValueFromPubKeyData(key)
+	exsit,da := GetPubKeyData([]byte(key))
 	///////
 	if !exsit || da == nil {
 		common.Info("=================GetSignStatus,get sign accept data fail from db================","key",key)
@@ -758,11 +759,18 @@ type SignCurNodeInfo struct {
 
 func GetCurNodeSignInfo(geter_acc string) ([]*SignCurNodeInfo, string, error) {
 	var ret []*SignCurNodeInfo
-	data := make(chan *SignCurNodeInfo, LdbPubKeyData.MapLength())
+	data := make(chan *SignCurNodeInfo, 1000)
 
 	var wg sync.WaitGroup
-	LdbPubKeyData.RLock()
-	for k, v := range LdbPubKeyData.Map {
+	iter := db.NewIterator()
+	for iter.Next() {
+	    key2 := []byte(string(iter.Key())) //must be deep copy,or show me the error: "panic: JSON decoder out of sync - data changing underfoot?"
+	    exsit,da := GetPubKeyData(key2) 
+	    if !exsit || da == nil {
+		fmt.Printf("=========================GetCurNodeSignInfo,get pubkey data fail, key = %v============================\n",string(key2))
+		continue
+	    }
+	    
 	    wg.Add(1)
 	    go func(key string,value interface{},ch chan *SignCurNodeInfo) {
 		defer wg.Done()
@@ -788,9 +796,9 @@ func GetCurNodeSignInfo(geter_acc string) ([]*SignCurNodeInfo, string, error) {
 		los := &SignCurNodeInfo{Key: key, Account: vv.Account, PubKey:vv.PubKey, MsgHash:vv.MsgHash, MsgContext:vv.MsgContext, KeyType:vv.Keytype, GroupId: vv.GroupId, Nonce: vv.Nonce, ThresHold: vv.LimitNum, Mode: vv.Mode, TimeStamp: vv.TimeStamp}
 		ch <-los
 		common.Debug("================GetCurNodeSignInfo success return=======================","key",key)
-	    }(k,v,data)
+	    }(string(key2),da,data)
 	}
-	LdbPubKeyData.RUnlock()
+	iter.Release()
 	wg.Wait()
 
 	l := len(data)
@@ -1518,12 +1526,7 @@ func Sign_ed(msgprex string, save string, sku1 *big.Int, message string, cointyp
 
 func sign(wsid string,account string,pubkey string,inputcode string,unsignhash []string,keytype string,nonce string,mode string,pickdata []*PickHashData,ch chan interface{}) {
 	smpcpks, _ := hex.DecodeString(pubkey)
-	exsit,da := GetPubKeyDataFromLocalDb(string(smpcpks[:]))
-	if !exsit {
-	    time.Sleep(time.Duration(5000000000))
-	    exsit,da = GetPubKeyDataFromLocalDb(string(smpcpks[:]))
-	}
-	///////
+	exsit,da := GetPubKeyData(smpcpks[:])
 	if !exsit {
 	    common.Debug("============================sign,not exist sign data===========================","pubkey",pubkey,"key",wsid)
 	    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get sign data from db fail", Err: fmt.Errorf("get sign data from db fail")}
@@ -1550,7 +1553,7 @@ func sign(wsid string,account string,pubkey string,inputcode string,unsignhash [
 	}
 
 	///sku1
-	da2 := GetSkU1FromLocalDb(string(smpcpks[:]))
+	da2 := getSkU1FromLocalDb(smpcpks[:])
 	if da2 == nil {
 		res := RpcSmpcRes{Ret: "", Tip: "lockout get sku1 fail", Err: fmt.Errorf("lockout get sku1 fail")}
 		ch <- res

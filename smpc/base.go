@@ -76,9 +76,6 @@ func Start(params *LunchParams) {
 	
 	cur_enode = p2psmpc.GetSelfID()
 	
-	go SavePubKeyDataToDb()
-	go SaveSkU1ToDb()
-	go SaveBip32CToDb()
 	go smpclibec2.GenRandomSafePrime()
 	
 	common.Info("======================smpc.Start======================","cache",cache,"handles",handles,"cur enode",cur_enode)
@@ -98,7 +95,6 @@ func Start(params *LunchParams) {
 	WaitAgree = int(params.WaitAgree)
 	PreBip32DataCount = int(params.Bip32Pre)
 	
-	LdbPubKeyData = GetAllPubKeyDataFromDb()
 	AutoPreGenSignData()
 
 	go HandleRpcSign()
@@ -140,24 +136,22 @@ type SmpcPubkeyRes struct {
 	SmpcAddress map[string]string
 }
 
-func GetPubKeyData(key string, account string, cointype string) (string, string, error) {
+func GetPubKeyData2(key string, account string, cointype string) (string, string, error) {
 	if key == "" || cointype == "" {
-		return "", "smpc back-end internal error:parameter error in func GetPubKeyData", fmt.Errorf("get pubkey data param error.")
+		return "", "smpc back-end internal error:parameter error", fmt.Errorf("get pubkey data param error.")
 	}
 
-	exsit,da := GetValueFromPubKeyData(key)
-	///////
+	exsit,da := GetPubKeyData([]byte(key))
 	if !exsit {
-		return "", "smpc back-end internal error:get data from db fail in func GetPubKeyData", fmt.Errorf("smpc back-end internal error:get data from db fail in func GetPubKeyData")
+		return "", "dcrm back-end internal error:get data from db fail ", fmt.Errorf("dcrm back-end internal error:get data from db fail")
 	}
 
 	pubs,ok := da.(*PubKeyData)
 	if !ok {
-		return "", "smpc back-end internal error:get data from db fail in func GetPubKeyData", fmt.Errorf("smpc back-end internal error:get data from db fail in func GetPubKeyData")
+		return "", "dcrm back-end internal error:get data from db fail", fmt.Errorf("dcrm back-end internal error:get data from db fail")
 	}
 
 	pubkey := hex.EncodeToString([]byte(pubs.Pub))
-	///////////
 	var m interface{}
 	if !strings.EqualFold(cointype, "ALL") {
 
@@ -205,11 +199,11 @@ func CheckAccept(pubkey string,mode string,account string) bool {
     }
 
     smpcpks, _ := hex.DecodeString(pubkey)
-    exsit,da := GetValueFromPubKeyData(string(smpcpks[:]))
+    exsit,da := GetPubKeyData(smpcpks[:])
     if exsit {
 	pd,ok := da.(*PubKeyData)
 	if ok {
-	    exsit,da2 := GetValueFromPubKeyData(pd.Key)
+	    exsit,da2 := GetPubKeyData([]byte(pd.Key))
 	    if exsit {
 		ac,ok := da2.(*AcceptReqAddrData)
 		if ok {
@@ -309,113 +303,6 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 	return key,from.Hex(),fmt.Sprintf("%v", Nonce),&req,nil
     }
     
-    /*lo := TxDataLockOut{}
-    err = json.Unmarshal(tx.Data(), &lo)
-    if err == nil && lo.TxType == "LOCKOUT" {
-	smpcaddr := lo.SmpcAddr
-	smpcto := lo.SmpcTo
-	value := lo.Value
-	cointype := lo.Cointype
-	groupid := lo.GroupId
-	threshold := lo.ThresHold
-	mode := lo.Mode
-	timestamp := lo.TimeStamp
-	Nonce := tx.Nonce()
-
-	if from.Hex() == "" || smpcaddr == "" || smpcto == "" || cointype == "" || value == "" || groupid == "" || threshold == "" || mode == "" || timestamp == "" {
-		return "","","",nil,fmt.Errorf("param error.")
-	}
-
-	////
-	nums := strings.Split(threshold, "/")
-	if len(nums) != 2 {
-		return "","","",nil,fmt.Errorf("tx.data error.")
-	}
-	nodecnt, err := strconv.Atoi(nums[1])
-	if err != nil {
-		return "","","",nil,err
-	}
-	limit, err := strconv.Atoi(nums[0])
-	if err != nil {
-		return "","","",nil,err
-	}
-	if nodecnt < limit || limit < 2 {
-	    return "","","",nil,fmt.Errorf("threshold format error")
-	}
-
-	nc,_ := GetGroup(groupid)
-	if nc < limit || nc > nodecnt {
-	    return "","","",nil,fmt.Errorf("check group node count error")
-	}
-	
-	if !CheckGroupEnode(groupid) {
-	    return "","","",nil,fmt.Errorf("there is same enodeID in group")
-	}
-	
-	////
-
-	//check mode
-	key2 := Keccak256Hash([]byte(strings.ToLower(smpcaddr))).Hex()
-	exsit,da := GetValueFromPubKeyData(key2)
-	if !exsit {
-		return "","","",nil,fmt.Errorf("smpc back-end internal error:get data from db fail in lockout")
-	}
-
-	pubs,ok := da.(*PubKeyData)
-	if pubs == nil || !ok {
-		return "","","",nil,fmt.Errorf("smpc back-end internal error:get data from db fail in func lockout")
-	}
-
-	if pubs.Key != "" && pubs.Mode != mode {
-	    return "","","",nil,fmt.Errorf("can not lockout with different mode in smpc addr.")
-	}
-
-	////bug:check accout
-	if pubs.Key != "" && pubs.Mode == "1" && !strings.EqualFold(pubs.Account,from.Hex()) {
-	    return "","","",nil,fmt.Errorf("invalid lockout account")
-	}
-
-	if pubs.Key != "" {
-	    exsit,da = GetValueFromPubKeyData(pubs.Key)
-	    if !exsit {
-		return "","","",nil,fmt.Errorf("no exist smpc addr pubkey data")
-	    }
-
-	    if da == nil {
-		return "","","",nil,fmt.Errorf("no exist smpc addr pubkey data")
-	    }
-
-	    ac,ok := da.(*AcceptReqAddrData)
-	    if !ok {
-		return "","","",nil,fmt.Errorf("no exist smpc addr pubkey data")
-	    }
-
-	    if ac == nil {
-		return "","","",nil,fmt.Errorf("no exist smpc addr pubkey data")
-	    }
-
-//	    common.Debug("================CheckRaw=============","cur_enode ",cur_enode,"from ",from.Hex(),"ac.Sigs ",ac.Sigs)
-	    if pubs.Mode == "0" && !CheckAcc(cur_enode,from.Hex(),ac.Sigs) {
-		return "","","",nil,fmt.Errorf("invalid lockout account")
-	    }
-	}
-
-	//check to addr
-	validator := coins.NewSmpcAddressValidator(cointype)
-	if validator == nil {
-	    return "","","",nil,fmt.Errorf("unsupported cointype")
-	}
-	if !validator.IsValidAddress(smpcto) {
-	    return "","","",nil,fmt.Errorf("invalid to addr")
-	}
-	//
-
-	key := Keccak256Hash([]byte(strings.ToLower(from.Hex() + ":" + groupid + ":" + fmt.Sprintf("%v", Nonce) + ":" + smpcaddr + ":" + threshold))).Hex()
-
-//	common.Debug("=================CheckRaw, it is lockout tx================","raw ",raw,"key ",key,"lo ",&lo)
-	return key,from.Hex(),fmt.Sprintf("%v", Nonce),&lo,nil
-    }*/
-
     sig := TxDataSign{}
     err = json.Unmarshal(tx.Data(), &sig)
     if err == nil && sig.TxType == "SIGN" {
@@ -470,7 +357,7 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 	
 	//check mode
 	smpcpks, _ := hex.DecodeString(pubkey)
-	exsit,da := GetValueFromPubKeyData(string(smpcpks[:]))
+	exsit,da := GetPubKeyData([]byte(smpcpks[:]))
 	if !exsit {
 	    return "","","",nil,fmt.Errorf("get data from db fail in func sign")
 	}
@@ -512,11 +399,7 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 	//
 
 	smpcpks, _ := hex.DecodeString(pubkey)
-	exsit,_ := GetPubKeyDataFromLocalDb(string(smpcpks[:]))
-	if !exsit {
-	    time.Sleep(time.Duration(5000000000))
-	    exsit,_ = GetPubKeyDataFromLocalDb(string(smpcpks[:])) //try again
-	}
+	exsit,_ := GetPubKeyData(smpcpks[:])
 	if !exsit {
 		return "","","",nil,fmt.Errorf("invalid pubkey")
 	}
@@ -573,7 +456,7 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 	    return "","","",nil,fmt.Errorf("transaction data format error,the lastest segment is not AGREE or DISAGREE")
 	}
 
-	exsit,da := GetValueFromPubKeyData(acceptreq.Key)
+	exsit,da := GetPubKeyData([]byte(acceptreq.Key))
 	if !exsit {
 	    return "","","",nil,fmt.Errorf("get accept data fail from db in checking raw reqaddr accept data")
 	}
@@ -594,36 +477,6 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 
 //	common.Debug("=================CheckRaw, it is acceptreqaddr tx====================","raw ",raw,"key ",acceptreq.Key,"acceptreq ",&acceptreq)
 	return "",from.Hex(),"",&acceptreq,nil
-    }
-
-    acceptlo := TxDataAcceptLockOut{}
-    err = json.Unmarshal(tx.Data(), &acceptlo)
-    if err == nil && acceptlo.TxType == "ACCEPTLOCKOUT" {
-
-	if acceptlo.Accept != "AGREE" && acceptlo.Accept != "DISAGREE" {
-	    return "","","",nil,fmt.Errorf("transaction data format error,the lastest segment is not AGREE or DISAGREE")
-	}
-
-	exsit,da := GetValueFromPubKeyData(acceptlo.Key)
-	if !exsit {
-	    return "","","",nil,fmt.Errorf("get accept data fail from db in checking raw lockout accept data")
-	}
-
-	ac,ok := da.(*AcceptLockOutData)
-	if !ok || ac == nil {
-	    return "","","",nil,fmt.Errorf("decode accept data fail")
-	}
-
-	if ac.Mode == "1" {
-	    return "","","",nil,fmt.Errorf("mode = 1,do not need to accept")
-	}
-	
-	if !CheckAccept(ac.PubKey,ac.Mode,from.Hex()) {
-	    return "","","",nil,fmt.Errorf("invalid accept account")
-	}
-
-//	common.Debug("=================CheckRaw, it is acceptlockout tx================","raw ",raw,"key ",acceptlo.Key,"acceptlo ",&acceptlo)
-	return "",from.Hex(),"",&acceptlo,nil
     }
 
     acceptsig := TxDataAcceptSign{}
@@ -647,7 +500,7 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 	    return "","","",nil,fmt.Errorf("transaction data format error,the lastest segment is not AGREE or DISAGREE")
 	}
 
-	exsit,da := GetValueFromPubKeyData(acceptsig.Key)
+	exsit,da := GetPubKeyData([]byte(acceptsig.Key))
 	if !exsit {
 	    return "","","",nil,fmt.Errorf("get accept result from db fail")
 	}
@@ -676,7 +529,7 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 	    return "","","",nil,fmt.Errorf("transaction data format error,the lastest segment is not AGREE or DISAGREE")
 	}
 
-	exsit,da := GetValueFromPubKeyData(acceptrh.Key)
+	exsit,da := GetPubKeyData([]byte(acceptrh.Key))
 	if !exsit {
 	    return "","","",nil,fmt.Errorf("get accept result from db fail")
 	}
@@ -707,7 +560,7 @@ func GetAccountsBalance(pubkey string, geter_acc string) (interface{}, string, e
 		return nil, "decode pubkey fail", err2
 	}
 
-	ret, tip, err := GetPubKeyData(string(keytmp), pubkey, "ALL")
+	ret, tip, err := GetPubKeyData2(string(keytmp), pubkey, "ALL")
 	var m interface{}
 	if err == nil {
 		dp := SmpcPubkeyRes{}
@@ -1138,7 +991,7 @@ func GetAllReplyFromGroup(wid int,gid string,rt RpcType,initiator string) []Node
 		    mdss := iter.Value.(string)
 		    key,_,_,_,_ := CheckRaw(mdss)
 		    key2 := GetReqAddrKeyByOtherKey(key,rt)
-		    exsit,da := GetValueFromPubKeyData(key2)
+		    exsit,da := GetPubKeyData([]byte(key2))
 		    if exsit {
 			ac,ok := da.(*AcceptReqAddrData)
 			if ok && ac != nil {
@@ -1257,7 +1110,7 @@ func GetAllReplyFromGroup(wid int,gid string,rt RpcType,initiator string) []Node
 		mdss := iter.Value.(string)
 		common.Debug("===================== GetAllReplyFromGroup call CheckRaw,it is Rpc_REQADDR ================")
 		key,_,_,_,_ := CheckRaw(mdss)
-		exsit,da := GetValueFromPubKeyData(key)
+		exsit,da := GetPubKeyData([]byte(key))
 		if exsit {
 		    ac,ok := da.(*AcceptReqAddrData)
 		    if ok && ac != nil {
@@ -1297,30 +1150,13 @@ func GetReqAddrKeyByOtherKey(key string,rt RpcType) string {
 	return ""
     }
 
-    if rt == Rpc_LOCKOUT {
-	exsit,da := GetValueFromPubKeyData(key)
-	if exsit {
-	    ad,ok := da.(*AcceptLockOutData)
-	    if ok && ad != nil {
-		smpcpks, _ := hex.DecodeString(ad.PubKey)
-		exsit,da2 := GetValueFromPubKeyData(string(smpcpks[:]))
-		if exsit && da2 != nil {
-		    pd,ok := da2.(*PubKeyData)
-		    if ok && pd != nil {
-			return pd.Key
-		    }
-		}
-	    }
-	}
-    }
-
     if rt == Rpc_SIGN {
-	exsit,da := GetValueFromPubKeyData(key)
+	exsit,da := GetPubKeyData([]byte(key))
 	if exsit {
 	    ad,ok := da.(*AcceptSignData)
 	    if ok && ad != nil {
 		smpcpks, _ := hex.DecodeString(ad.PubKey)
-		exsit,da2 := GetValueFromPubKeyData(string(smpcpks[:]))
+		exsit,da2 := GetPubKeyData(smpcpks[:])
 		if exsit && da2 != nil {
 		    pd,ok := da2.(*PubKeyData)
 		    if ok && pd != nil {
@@ -1439,10 +1275,15 @@ type PubKeyInfo struct {
 
 func GetAccounts(geter_acc, mode string) (interface{}, string, error) {
 	gp  := common.NewSafeMap(10)
-	//gp := make(map[string][]PubKeyInfo)
 	var wg sync.WaitGroup
-	LdbPubKeyData.RLock()
-	for k, v := range LdbPubKeyData.Map {
+	iter := db.NewIterator()
+	for iter.Next() {
+	    key2 := []byte(string(iter.Key())) //must be deep copy,or show me the error: "panic: JSON decoder out of sync - data changing underfoot?"
+	    exsit,da := GetPubKeyData(key2) 
+	    if !exsit || da == nil {
+		continue
+	    }
+	    
 	    wg.Add(1)
 	    go func(key string,value interface{}) {
 		defer wg.Done()
@@ -1463,7 +1304,7 @@ func GetAccounts(geter_acc, mode string) (interface{}, string, error) {
 		}
 
 		smpcpks, _ := hex.DecodeString(vv.PubKey)
-		exsit,data2 := GetValueFromPubKeyData(string(smpcpks[:]))
+		exsit,data2 := GetPubKeyData(smpcpks[:])
 		if !exsit || data2 == nil {
 		    return
 		}
@@ -1495,9 +1336,9 @@ func GetAccounts(geter_acc, mode string) (interface{}, string, error) {
 				//gp[gid] = a
 			}
 		}
-	    }(k,v)
+	    }(string(key2),da)
 	}
-	LdbPubKeyData.RUnlock()
+	iter.Release()
 	wg.Wait()
 	
 	als := make([]AccountsList, 0)
@@ -1535,12 +1376,7 @@ func GetBip32ChildKey(rootpubkey string,inputcode string) (string,string,error) 
     }
 
     smpcpks, _ := hex.DecodeString(rootpubkey)
-    exsit,da := GetPubKeyDataFromLocalDb(string(smpcpks[:]))
-    if !exsit {
-	time.Sleep(time.Duration(5000000000))
-	exsit,da = GetPubKeyDataFromLocalDb(string(smpcpks[:]))
-    }
-    ///////
+    exsit,da := GetPubKeyData(smpcpks[:])
     if !exsit {
 	common.Debug("============================get bip32 child key,not exist pubkey data===========================","pubkey",rootpubkey)
 	return "","get bip32 child key,not exist pubkey data",fmt.Errorf("get bip32 child key,not exist pubkey data")
@@ -1556,7 +1392,7 @@ func GetBip32ChildKey(rootpubkey string,inputcode string) (string,string,error) 
     smpcpkx, smpcpky := secp256k1.S256().Unmarshal(([]byte(smpcpub))[:])
 
     ///sku1
-    da2 := GetSkU1FromLocalDb(string(smpcpks[:]))
+    da2 := getSkU1FromLocalDb(smpcpks[:])
     if da2 == nil {
 	return "","get sku1 fail",fmt.Errorf("get sku1 fail")
     }
@@ -1565,7 +1401,7 @@ func GetBip32ChildKey(rootpubkey string,inputcode string) (string,string,error) 
 	return "","get sku1 error",fmt.Errorf("get sku1 error")
     }
     //bip32c
-    da3 := GetBip32CFromLocalDb(string(smpcpks[:]))
+    da3 := getBip32cFromLocalDb(smpcpks[:])
     if da3 == nil {
 	return "","get bip32c fail",fmt.Errorf("get bip32c fail")
     }

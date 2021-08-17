@@ -283,27 +283,6 @@ func GetRawReply(l *list.List) map[string]*RawReply {
 	    }
 	}
 	
-	acceptlockout,ok := txdata.(*TxDataAcceptLockOut)
-	if ok {
-	    accept := "false"
-	    if acceptlockout.Accept == "AGREE" {
-		    accept = "true"
-	    }
-
-	    reply := &RawReply{From:from,Accept:accept,TimeStamp:acceptlockout.TimeStamp}
-	    tmp,ok := ret[from]
-	    if !ok {
-		ret[from] = reply
-	    } else {
-		t1,_ := new(big.Int).SetString(reply.TimeStamp,10)
-		t2,_ := new(big.Int).SetString(tmp.TimeStamp,10)
-		if t1.Cmp(t2) > 0 {
-		    ret[from] = reply
-		}
-
-	    }
-	}
-	
 	acceptsig,ok := txdata.(*TxDataAcceptSign)
 	if ok {
 	    common.Info("=================GetRawReply,the list item is TxDataAcceptSign================","key",keytmp,"from",from,"accept",acceptsig.Accept,"raw",raw)
@@ -358,7 +337,7 @@ func CheckReply(l *list.List,rt RpcType,key string) bool {
 
     /////reshare only
     if rt == Rpc_RESHARE {
-	exsit,da := GetValueFromPubKeyData(key)
+	exsit,da := GetPubKeyData([]byte(key))
 	if !exsit {
 	    return false
 	}
@@ -412,7 +391,7 @@ func CheckReply(l *list.List,rt RpcType,key string) bool {
 	return false
     }
 
-    exsit,da := GetValueFromPubKeyData(k)
+    exsit,da := GetPubKeyData([]byte(k))
     if !exsit {
 	return false
     }
@@ -456,57 +435,11 @@ func CheckReply(l *list.List,rt RpcType,key string) bool {
 	return true
     }
 
-    if rt == Rpc_LOCKOUT {
-	exsit,data := GetValueFromPubKeyData(key)
-	if !exsit {
-	    return false
-	}
-
-	lo,ok := data.(*AcceptLockOutData)
-	if !ok || lo == nil {
-	    return false
-	}
-
-	mms := strings.Split(ac.Sigs, common.Sep)
-	_, enodes := GetGroup(lo.GroupId)
-	nodes := strings.Split(enodes, common.Sep2)
-	for _, node := range nodes {
-	    node2 := ParseNode(node)
-	    foundeid := false
-	    for kk,v := range mms {
-		if strings.EqualFold(v,node2) {
-		    foundeid = true
-		    found := false
-		    for _,vv := range ret {
-			    common.Debug("===================== CheckReply,lockout===============","ac.Sigs",ac.Sigs,"kk",kk,"key",key,"vv.From",vv.From,"mms[kk+1]",mms[kk+1])
-			if strings.EqualFold(vv.From,mms[kk+1]) { //allow user login diffrent node
-			    found = true
-			    break
-			}
-		    }
-
-		    if !found {
-			common.Debug("===================== CheckReply,lockout,return false==================","ac.Sigs",ac.Sigs,"kk",kk,"key",key)
-			return false
-		    }
-
-		    break
-		}
-	    }
-
-	    if !foundeid {
-		return false
-	    }
-	}
-
-	return true
-    }
-
     if rt == Rpc_SIGN {
-    common.Debug("===================== CheckReply,get raw reply finish================","key",key)
-	exsit,data := GetValueFromPubKeyData(key)
+	common.Debug("===================== CheckReply,get raw reply finish================","key",key)
+	exsit,data := GetPubKeyData([]byte(key))
 	if !exsit {
-    common.Debug("===================== CheckReply,get raw reply finish and get value by key fail================","key",key)
+	    common.Debug("===================== CheckReply,get raw reply finish and get value by key fail================","key",key)
 	    return false
 	}
 
@@ -752,12 +685,7 @@ func InitPreSign(raw string,workid int,sender string,ch chan interface{}) bool {
 		w.ThresHold = gcnt
 
 		smpcpks, _ := hex.DecodeString(ps.Pub)
-		exsit,da := GetPubKeyDataFromLocalDb(string(smpcpks[:]))
-		if !exsit {
-		    time.Sleep(time.Duration(5000000000))
-		    exsit,da = GetPubKeyDataFromLocalDb(string(smpcpks[:]))
-		}
-		///////
+		exsit,da := GetPubKeyData(smpcpks[:])
 		if !exsit {
 		    common.Debug("============================PreSign at RecvMsg.Run,not exist presign data===========================","pubkey",ps.Pub)
 		    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get presign data from db fail", Err: fmt.Errorf("get presign data from db fail")}
@@ -799,7 +727,7 @@ func InitPreSign(raw string,workid int,sender string,ch chan interface{}) bool {
 		
 		childSKU1 := sku1
 		if ps.InputCode != "" {
-		    da4 := GetBip32CFromLocalDb(string(smpcpks[:]))
+		    da4 := getBip32cFromLocalDb(smpcpks[:])
 		    if da4 == nil {
 			res := RpcSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
 			ch <- res
@@ -836,7 +764,7 @@ func InitPreSign(raw string,workid int,sender string,ch chan interface{}) bool {
 		}
 		//
 
-		exsit,da3 := GetValueFromPubKeyData(pd.Key)
+		exsit,da3 := GetPubKeyData([]byte(pd.Key))
 		ac,ok := da3.(*AcceptReqAddrData)
 		if ok {
 		    HandleC1Data(ac,w.sid,workid)
@@ -908,11 +836,11 @@ func InitSignData(raw string,workid int,sender string,ch chan interface{}) bool 
 	    w.SmpcFrom = sd.SmpcFrom
 
 	    smpcpks, _ := hex.DecodeString(pubkeyhex)
-	    exsit,da := GetPubKeyDataFromLocalDb(string(smpcpks[:]))
+	    exsit,da := GetPubKeyData(smpcpks[:])
 	    if exsit {
 		    pd,ok := da.(*PubKeyData)
 		    if ok {
-			exsit,da2 := GetValueFromPubKeyData(pd.Key)
+			exsit,da2 := GetPubKeyData([]byte(pd.Key))
 			if exsit {
 				ac,ok := da2.(*AcceptReqAddrData)
 				if ok {
@@ -926,7 +854,7 @@ func InitSignData(raw string,workid int,sender string,ch chan interface{}) bool 
 	    childPKx := sd.Pkx
 	    childPKy := sd.Pky 
 	    if sd.InputCodeT != "" {
-		da3 := GetBip32CFromLocalDb(string(smpcpks[:]))
+		da3 := getBip32cFromLocalDb(smpcpks[:])
 		if da3 == nil {
 		    res := RpcSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
 		    ch <- res
@@ -1101,11 +1029,11 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		    w.SmpcFrom = sd.SmpcFrom
 
 		    smpcpks, _ := hex.DecodeString(pubkeyhex)
-		    exsit,da := GetPubKeyDataFromLocalDb(string(smpcpks[:]))
+		    exsit,da := GetPubKeyData(smpcpks[:])
 		    if exsit {
 			    pd,ok := da.(*PubKeyData)
 			    if ok {
-				exsit,da2 := GetValueFromPubKeyData(pd.Key)
+				exsit,da2 := GetPubKeyData([]byte(pd.Key))
 				if exsit {
 					ac,ok := da2.(*AcceptReqAddrData)
 					if ok {
@@ -1119,7 +1047,7 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		    childPKx := sd.Pkx
 		    childPKy := sd.Pky 
 		    if sd.InputCodeT != "" {
-			da3 := GetBip32CFromLocalDb(string(smpcpks[:]))
+			da3 := getBip32cFromLocalDb(smpcpks[:])
 			if da3 == nil {
 			    res := RpcSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
 			    ch <- res
@@ -1221,12 +1149,7 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		    w.ThresHold = gcnt
 
 		    smpcpks, _ := hex.DecodeString(ps.Pub)
-		    exsit,da := GetPubKeyDataFromLocalDb(string(smpcpks[:]))
-		    if !exsit {
-			time.Sleep(time.Duration(5000000000))
-			exsit,da = GetPubKeyDataFromLocalDb(string(smpcpks[:]))
-		    }
-		    ///////
+		    exsit,da := GetPubKeyData(smpcpks[:])
 		    if !exsit {
 			common.Debug("============================PreSign at RecvMsg.Run,not exist presign data===========================","pubkey",ps.Pub)
 			res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get presign data from db fail", Err: fmt.Errorf("get presign data from db fail")}
@@ -1268,7 +1191,7 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		    
 		    childSKU1 := sku1
 		    if ps.InputCode != "" {
-			da4 := GetBip32CFromLocalDb(string(smpcpks[:]))
+			da4 := getBip32cFromLocalDb(smpcpks[:])
 			if da4 == nil {
 			    res := RpcSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
 			    ch <- res
@@ -1305,7 +1228,7 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		    }
 		    //
 
-		    exsit,da3 := GetValueFromPubKeyData(pd.Key)
+		    exsit,da3 := GetPubKeyData([]byte(pd.Key))
 		    ac,ok := da3.(*AcceptReqAddrData)
 		    if ok {
 			HandleC1Data(ac,w.sid,workid)
@@ -1400,7 +1323,7 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 func HandleC1Data(ac *AcceptReqAddrData,key string,workid int) {
     //reshare only
     if ac == nil {
-	exsit,da := GetValueFromPubKeyData(key)
+	exsit,da := GetPubKeyData([]byte(key))
 	if !exsit {
 	    return
 	}
@@ -1531,7 +1454,7 @@ func DisAcceptMsg(raw string,workid int) {
 	    }
 
 	    w.bacceptreqaddrres <- true
-	    exsit,da := GetValueFromPubKeyData(key)
+	    exsit,da := GetPubKeyData([]byte(key))
 	    if !exsit {
 		return
 	    }
@@ -1563,7 +1486,7 @@ func DisAcceptMsg(raw string,workid int) {
 
 	    //common.Info("=====================DisAcceptMsg,check reply success and will set timeout channel===================","key",key,"from",from)
 	    w.bacceptsignres <- true
-	    exsit,da := GetValueFromPubKeyData(key)
+	    exsit,da := GetPubKeyData([]byte(key))
 	    if !exsit {
 		return
 	    }
@@ -1590,7 +1513,7 @@ func DisAcceptMsg(raw string,workid int) {
 	    }
 
 	    w.bacceptreshareres <- true
-	    exsit,da := GetValueFromPubKeyData(key)
+	    exsit,da := GetPubKeyData([]byte(key))
 	    if !exsit {
 		return
 	    }
@@ -1617,7 +1540,7 @@ func DisAcceptMsg(raw string,workid int) {
 	    }
 
 	    w.bacceptreqaddrres <- true
-	    exsit,da := GetValueFromPubKeyData(acceptreq.Key)
+	    exsit,da := GetPubKeyData([]byte(acceptreq.Key))
 	    if !exsit {
 		return
 	    }
@@ -1649,7 +1572,7 @@ func DisAcceptMsg(raw string,workid int) {
 
 	    common.Info("======================DisAcceptMsg,the msg is accept sign tx,and check reply success and will set timeout channel.===========================","sig key",acceptsig.Key,"from",from)
 	    w.bacceptsignres <- true
-	    exsit,da := GetValueFromPubKeyData(acceptsig.Key)
+	    exsit,da := GetPubKeyData([]byte(acceptsig.Key))
 	    if !exsit {
 		return
 	    }
@@ -1676,7 +1599,7 @@ func DisAcceptMsg(raw string,workid int) {
 	    }
 
 	    w.bacceptreshareres <- true
-	    exsit,da := GetValueFromPubKeyData(acceptreshare.Key)
+	    exsit,da := GetPubKeyData([]byte(acceptreshare.Key))
 	    if !exsit {
 		return
 	    }
@@ -1966,7 +1889,7 @@ func KeyInitAcceptData(raw string,workid int,sender string,ch chan interface{}) 
     req,ok := txdata.(*TxDataReqAddr)
     if ok {
 	common.Info("===============KeyInitAcceptData, check reqaddr raw success==================","raw ",raw,"key ",key,"from ",from,"nonce ",nonce,"txdata ",req)
-	exsit,_ := GetValueFromPubKeyData(key)
+	exsit,_ := GetPubKeyData([]byte(key))
 	if !exsit {
 	    cur_nonce, _, _ := GetReqAddrNonce(from)
 	    cur_nonce_num, _ := new(big.Int).SetString(cur_nonce, 10)
@@ -2192,7 +2115,7 @@ func SignInitAcceptData(raw string,workid int,sender string,ch chan interface{})
     sig,ok := txdata.(*TxDataSign)
     if ok {
 	common.Debug("===============SignInitAcceptData, it is sign txdata and check sign raw success==================","key ",key,"from ",from,"nonce ",nonce)
-	exsit,_ := GetValueFromPubKeyData(key)
+	exsit,_ := GetPubKeyData([]byte(key))
 	if !exsit {
 	    cur_nonce, _, _ := GetSignNonce(from)
 	    cur_nonce_num, _ := new(big.Int).SetString(cur_nonce, 10)
@@ -2306,7 +2229,7 @@ func SignInitAcceptData(raw string,workid int,sender string,ch chan interface{})
 				    return fmt.Errorf("get reqaddr key fail") 
 				}
 
-				exsit,da := GetValueFromPubKeyData(reqaddrkey)
+				exsit,da := GetPubKeyData([]byte(reqaddrkey))
 				if !exsit {
 					common.Debug("===============SignInitAcceptData, get req addr key by other key fail ===================","key ",key)
 				    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
@@ -2416,7 +2339,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
     if ok {
 
 	common.Info("===============InitAcceptData, check reqaddr raw success==================","raw ",raw,"key ",key,"from ",from,"nonce ",nonce,"txdata ",req)
-	exsit,_ := GetValueFromPubKeyData(key)
+	exsit,_ := GetPubKeyData([]byte(key))
 	if !exsit {
 	    cur_nonce, _, _ := GetReqAddrNonce(from)
 	    cur_nonce_num, _ := new(big.Int).SetString(cur_nonce, 10)
@@ -2629,7 +2552,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
     sig,ok := txdata.(*TxDataSign)
     if ok {
 	common.Debug("===============InitAcceptData, it is sign txdata and check sign raw success==================","key ",key,"from ",from,"nonce ",nonce)
-	exsit,_ := GetValueFromPubKeyData(key)
+	exsit,_ := GetPubKeyData([]byte(key))
 	if !exsit {
 	    cur_nonce, _, _ := GetSignNonce(from)
 	    cur_nonce_num, _ := new(big.Int).SetString(cur_nonce, 10)
@@ -2751,7 +2674,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 				    return fmt.Errorf("get reqaddr key fail") 
 				}
 
-				exsit,da := GetValueFromPubKeyData(reqaddrkey)
+				exsit,da := GetPubKeyData([]byte(reqaddrkey))
 				if !exsit {
 					common.Debug("===============InitAcceptData, get req addr key by other key fail ===================","key ",key)
 				    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
@@ -3002,7 +2925,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	    return fmt.Errorf("get reqaddr accept data fail from db when no find worker.")
 	}
 
-	exsit,da := GetValueFromPubKeyData(acceptreq.Key)
+	exsit,da := GetPubKeyData([]byte(acceptreq.Key))
 	if !exsit {
 	    res := RpcSmpcRes{Ret:"Failure", Tip: "smpc back-end internal error:get reqaddr accept data fail from db", Err: fmt.Errorf("get reqaddr accept data fail from db in init accept data")}
 	    ch <- res
@@ -3041,78 +2964,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	return nil
     }
 
-    acceptlo,ok := txdata.(*TxDataAcceptLockOut)
-    if ok {
-	common.Debug("===============InitAcceptData, check accept lockout raw success=================","raw ",raw,"key ",acceptlo.Key,"from ",from,"txdata ",acceptlo)
-	w, err := FindWorker(acceptlo.Key)
-	if err != nil || w == nil {
-	    c1data := acceptlo.Key + "-" + from
-	    C1Data.WriteMap(strings.ToLower(c1data),raw)
-	    res := RpcSmpcRes{Ret:"Failure", Tip: "get lockout accept data fail from db when no find worker.", Err: fmt.Errorf("get lockout accept data fail from db when no find worker")}
-	    ch <- res
-	    return fmt.Errorf("get lockout accept data fail from db when no find worker.")
-	}
-
-	exsit,da := GetValueFromPubKeyData(acceptlo.Key)
-	if !exsit {
-	    res := RpcSmpcRes{Ret:"Failure", Tip: "smpc back-end internal error:get lockout accept data fail from db in init accept data", Err: fmt.Errorf("get lockout accept data fail from db in init accept data")}
-	    ch <- res
-	    return fmt.Errorf("get lockout accept data fail from db in init accept data.")
-	}
-
-	ac,ok := da.(*AcceptLockOutData)
-	if !ok || ac == nil {
-	    res := RpcSmpcRes{Ret:"Failure", Tip: "smpc back-end internal error:decode accept data fail", Err: fmt.Errorf("decode accept data fail")}
-	    ch <- res
-	    return fmt.Errorf("decode accept data fail")
-	}
-
-	smpcaddr,_,err := GetAddr(ac.PubKey,ac.Cointype)
-	if err != nil {
-	    res := RpcSmpcRes{Ret:"Failure", Tip: "smpc back-end internal error:get smpc addr fail", Err: fmt.Errorf("get smpc addr fail")}
-	    ch <- res
-	    return fmt.Errorf("get smpc addr fail")
-	}
-
-	status := "Pending"
-	accept := "false"
-	if acceptlo.Accept == "AGREE" {
-		accept = "true"
-	} else {
-		status = "Failure"
-	}
-
-	id,_ := GetWorkerId(w)
-	DisAcceptMsg(raw,id)
-	reqaddrkey := GetReqAddrKeyByOtherKey(acceptlo.Key,Rpc_LOCKOUT)
-	exsit,da = GetValueFromPubKeyData(reqaddrkey)
-	if !exsit {
-	    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
-	    ch <- res
-	    return fmt.Errorf("get reqaddr sigs data fail") 
-	}
-	acceptreqdata,ok := da.(*AcceptReqAddrData)
-	if !ok || acceptreqdata == nil {
-	    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
-	    ch <- res
-	    return fmt.Errorf("get reqaddr sigs data fail") 
-	}
-
-	HandleC1Data(acceptreqdata,acceptlo.Key,id)
-
-	ars := GetAllReplyFromGroup(id,ac.GroupId,Rpc_LOCKOUT,ac.Initiator)
-	tip, err := AcceptLockOut(ac.Initiator,ac.Account, ac.GroupId, ac.Nonce, smpcaddr, ac.LimitNum, "false", accept, status, "", "", "", ars, ac.WorkId)
-	if err != nil {
-	    res := RpcSmpcRes{Ret:"Failure", Tip: tip, Err: err}
-	    ch <- res
-	    return err 
-	}
-
-	res := RpcSmpcRes{Ret:"Success", Tip: "", Err: nil}
-	ch <- res
-	return nil
-    }
-
     acceptsig,ok := txdata.(*TxDataAcceptSign)
     if ok {
 	common.Info("===============InitAcceptData, it is acceptsign and check accept sign raw success=====================","key ",acceptsig.Key,"from ",from,"accept",acceptsig.Accept,"raw",raw)
@@ -3126,7 +2977,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	    return fmt.Errorf("get sign accept data fail from db when no find worker.")
 	}
 
-	exsit,da := GetValueFromPubKeyData(acceptsig.Key)
+	exsit,da := GetPubKeyData([]byte(acceptsig.Key))
 	if !exsit {
 		common.Info("===============InitAcceptData, it is acceptsign and get sign accept data fail from db=====================","key ",acceptsig.Key,"from ",from)
 	    res := RpcSmpcRes{Ret:"Failure", Tip: "smpc back-end internal error:get sign accept data fail from db in init accept data", Err: fmt.Errorf("get sign accept data fail from db in init accept data")}
@@ -3160,7 +3011,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	id,_ := GetWorkerId(w)
 	DisAcceptMsg(raw,id)
 	reqaddrkey := GetReqAddrKeyByOtherKey(acceptsig.Key,Rpc_SIGN)
-	exsit,da = GetValueFromPubKeyData(reqaddrkey)
+	exsit,da = GetPubKeyData([]byte(reqaddrkey))
 	if !exsit {
 		common.Debug("===============InitAcceptData, it is acceptsign and get reqaddr sigs data fail=====================","key ",acceptsig.Key,"from ",from)
 	    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
@@ -3210,7 +3061,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	    return fmt.Errorf("get reshare accept data fail from db whern no find worker.")
 	}
 
-	exsit,da := GetValueFromPubKeyData(acceptrh.Key)
+	exsit,da := GetPubKeyData([]byte(acceptrh.Key))
 	if !exsit {
 	    res := RpcSmpcRes{Ret:"Failure", Tip: "smpc back-end internal error:get reshare accept data fail from db in init accept data", Err: fmt.Errorf("get reshare accept data fail from db in init accept data")}
 	    ch <- res

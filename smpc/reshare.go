@@ -296,8 +296,10 @@ func processReshare(msgprex string,groupid string,pubkey string,account string,m
 			    dbsk = dbsktmp
 			}
 
-			sk := KeyData{Key: smpcpks[:], Data: string(msg.SkU1.Bytes())}
-			SkU1Chan <- sk
+			err = putSkU1ToLocalDb(smpcpks[:],msg.SkU1.Bytes()) 
+			if err != nil {
+			    return nil,err 
+			}
 
 			for _, ct := range coins.Cointypes {
 				if strings.EqualFold(ct, "ALL") {
@@ -314,8 +316,11 @@ func processReshare(msgprex string,groupid string,pubkey string,account string,m
 				}
 
 				key := Keccak256Hash([]byte(strings.ToLower(ctaddr))).Hex()
-				sk = KeyData{Key: []byte(key), Data: string(msg.SkU1.Bytes())}
-				SkU1Chan <- sk
+				err = putSkU1ToLocalDb([]byte(key),msg.SkU1.Bytes()) 
+				if err != nil {
+				    return nil,err 
+				}
+
 			}
 			//
 
@@ -362,7 +367,7 @@ func processReshare(msgprex string,groupid string,pubkey string,account string,m
 			    return nil,errors.New("compress PubKeyData fail in req ec2 pubkey")
 			}
 
-			exsit,pda := GetPubKeyDataFromLocalDb(string(smpcpks[:]))
+			exsit,pda := GetPubKeyData(smpcpks[:])
 			if exsit {
 			    daa,ok := pda.(*PubKeyData)
 			    if ok {
@@ -378,17 +383,15 @@ func processReshare(msgprex string,groupid string,pubkey string,account string,m
 				}
 				//
 
-				go LdbPubKeyData.DeleteMap(daa.Key)
-				kd := KeyData{Key: []byte(daa.Key), Data: "CLEAN"}
-				PubKeyDataChan <- kd
+				DeletePubKeyData([]byte(daa.Key))
 			    }
 			}
 			
-			kd := KeyData{Key: smpcpks[:], Data: ss1}
-			PubKeyDataChan <- kd
-			/////
-			LdbPubKeyData.WriteMap(string(smpcpks[:]), pubs)
-			////
+			err = PutPubKeyData(smpcpks[:],[]byte(ss1))
+			if err != nil {
+			    return nil,err
+			}
+			
 			for _, ct := range coins.Cointypes {
 				if strings.EqualFold(ct, "ALL") {
 					continue
@@ -404,11 +407,10 @@ func processReshare(msgprex string,groupid string,pubkey string,account string,m
 				}
 
 				key := Keccak256Hash([]byte(strings.ToLower(ctaddr))).Hex()
-				kd = KeyData{Key: []byte(key), Data: ss1}
-				PubKeyDataChan <- kd
-				/////
-				LdbPubKeyData.WriteMap(key, pubs)
-				////
+				err = PutPubKeyData([]byte(key),[]byte(ss1))
+				if err != nil {
+				    return nil,err
+				}
 			}
 			
 			_,err = SetReqAddrNonce(account,nonce)
@@ -418,7 +420,7 @@ func processReshare(msgprex string,groupid string,pubkey string,account string,m
 
 			wid := -1
 			var allreply []NodeReply
-			exsit,da2 := GetValueFromPubKeyData(msgprex)
+			exsit,da2 := GetPubKeyData([]byte(msgprex))
 			if exsit {
 			    acr,ok := da2.(*AcceptReShareData)
 			    if ok {
@@ -438,11 +440,12 @@ func processReshare(msgprex string,groupid string,pubkey string,account string,m
 			    cnt,_ := strconv.Atoi(sigs2[0])
 			    for j := 0;j<cnt;j++ {
 				fr := sigs2[2*j+2]
-				exsit,da := GetValueFromPubKeyData(strings.ToLower(fr))
+				exsit,da := GetPubKeyData([]byte(strings.ToLower(fr)))
 				if !exsit {
-				    kdtmp := KeyData{Key: []byte(strings.ToLower(fr)), Data: rk}
-				    PubKeyDataChan <- kdtmp
-				    LdbPubKeyData.WriteMap(strings.ToLower(fr), []byte(rk))
+				    err = PutPubKeyData([]byte(strings.ToLower(fr)),[]byte(rk))
+				    if err != nil {
+					return nil,err
+				    }
 				} else {
 				    //
 				    found := false
@@ -457,18 +460,20 @@ func processReshare(msgprex string,groupid string,pubkey string,account string,m
 
 				    if !found {
 					da2 := string(da.([]byte)) + ":" + rk
-					kdtmp := KeyData{Key: []byte(strings.ToLower(fr)), Data: da2}
-					PubKeyDataChan <- kdtmp
-					LdbPubKeyData.WriteMap(strings.ToLower(fr), []byte(da2))
+					err = PutPubKeyData([]byte(strings.ToLower(fr)),[]byte(da2))
+					if err != nil {
+					    return nil,err
+					}
 				    }
 				}
 			    }
 			} else {
-			    exsit,da := GetValueFromPubKeyData(strings.ToLower(account))
+			    exsit,da := GetPubKeyData([]byte(strings.ToLower(account)))
 			    if !exsit {
-				kdtmp := KeyData{Key: []byte(strings.ToLower(account)), Data: rk}
-				PubKeyDataChan <- kdtmp
-				LdbPubKeyData.WriteMap(strings.ToLower(account), []byte(rk))
+				err = PutPubKeyData([]byte(strings.ToLower(account)),[]byte(rk))
+				if err != nil {
+				    return nil,err
+				}
 			    } else {
 				//
 				found := false
@@ -483,9 +488,10 @@ func processReshare(msgprex string,groupid string,pubkey string,account string,m
 
 				if !found {
 				    da2 := string(da.([]byte)) + ":" + rk
-				    kdtmp := KeyData{Key: []byte(strings.ToLower(account)), Data: da2}
-				    PubKeyDataChan <- kdtmp
-				    LdbPubKeyData.WriteMap(strings.ToLower(account), []byte(da2))
+				    err = PutPubKeyData([]byte(strings.ToLower(account)),[]byte(da2))
+				    if err != nil {
+					return nil,err
+				    }
 				}
 
 				}
