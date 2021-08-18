@@ -156,7 +156,7 @@ func RpcAcceptReqAddr(raw string) (string, string, error) {
 	return "Failure","check raw fail,it is not *TxDataAcceptReqAddr",fmt.Errorf("check raw fail,it is not *TxDataAcceptReqAddr")
     }
 
-    exsit,da := GetPubKeyData([]byte(acceptreq.Key))
+    exsit,da := GetReqAddrInfoData([]byte(acceptreq.Key))
     if exsit {
 	ac,ok := da.(*AcceptReqAddrData)
 	if ok && ac != nil {
@@ -222,14 +222,14 @@ func GetCurNodeReqAddrInfo(geter_acc string) ([]*ReqAddrReply, string, error) {
 	data := make(chan *ReqAddrReply,1000)
 
 	var wg sync.WaitGroup
-	iter := db.NewIterator()
+	iter := reqaddrinfodb.NewIterator()
 	for iter.Next() {
 	    key2 := []byte(string(iter.Key())) //must be deep copy,or show me the error: "panic: JSON decoder out of sync - data changing underfoot?"
 	    if len(key2) == 0 {
 		continue
 	    }
 
-	    exsit,da := GetPubKeyData(key2) 
+	    exsit,da := GetReqAddrInfoData(key2) 
 	    if !exsit || da == nil {
 		continue
 	    }

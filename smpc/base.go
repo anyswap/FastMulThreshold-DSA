@@ -26,6 +26,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"os"
 	"bytes"
 
 	"github.com/fsn-dev/cryptoCoins/coins"
@@ -83,6 +84,7 @@ func Start(params *LunchParams) {
 	if err != nil {
 	    info := "======================smpc.Start," + err.Error() + ",so terminate smpc node startup"
 	    common.Error(info)
+	    os.Exit(1)
 	    return
 	}
 
@@ -299,7 +301,7 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 	
 	key := Keccak256Hash([]byte(strings.ToLower(from.Hex() + ":" + req.Keytype + ":" + groupid + ":" + fmt.Sprintf("%v", Nonce) + ":" + threshold + ":" + mode))).Hex()
 
-//	common.Debug("================CheckRaw, it is reqaddr tx=================","raw ",raw,"key ",key,"req ",&req)
+	common.Debug("================CheckRaw, it is reqaddr tx=================","raw ",raw,"key ",key,"req ",&req)
 	return key,from.Hex(),fmt.Sprintf("%v", Nonce),&req,nil
     }
     
@@ -381,7 +383,7 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 	}
 
 	key := Keccak256Hash([]byte(strings.ToLower(from.Hex() + ":" + fmt.Sprintf("%v", Nonce) + ":" + pubkey + ":" + get_sign_hash(hash,keytype) + ":" + keytype + ":" + groupid + ":" + threshold + ":" + mode))).Hex()
-//	common.Debug("=================CheckRaw, it is sign tx==================","raw ",raw,"key ",key,"sig ",&sig)
+	common.Debug("=================CheckRaw, it is sign tx==================","raw ",raw,"key ",key,"sig ",&sig)
 	return key,from.Hex(),fmt.Sprintf("%v", Nonce),&sig,nil
     }
 
@@ -404,7 +406,7 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 		return "","","",nil,fmt.Errorf("invalid pubkey")
 	}
 
-//	common.Debug("=================CheckRaw, it is presigndata tx==================","raw ",raw,"pre ",&pre)
+	common.Debug("=================CheckRaw, it is presigndata tx==================","raw ",raw,"pre ",&pre)
 	return "",from.Hex(),fmt.Sprintf("%v", Nonce),&pre,nil
     }
 
@@ -456,7 +458,7 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 	    return "","","",nil,fmt.Errorf("transaction data format error,the lastest segment is not AGREE or DISAGREE")
 	}
 
-	exsit,da := GetPubKeyData([]byte(acceptreq.Key))
+	exsit,da := GetReqAddrInfoData([]byte(acceptreq.Key))
 	if !exsit {
 	    return "","","",nil,fmt.Errorf("get accept data fail from db in checking raw reqaddr accept data")
 	}
@@ -475,8 +477,8 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 	    return "","","",nil,fmt.Errorf("invalid accept account")
 	}
 
-//	common.Debug("=================CheckRaw, it is acceptreqaddr tx====================","raw ",raw,"key ",acceptreq.Key,"acceptreq ",&acceptreq)
-	return "",from.Hex(),"",&acceptreq,nil
+	common.Debug("=================CheckRaw, it is acceptreqaddr tx====================","raw ",raw,"key ",acceptreq.Key,"acceptreq ",&acceptreq)
+	return acceptreq.Key,from.Hex(),"",&acceptreq,nil
     }
 
     acceptsig := TxDataAcceptSign{}
@@ -500,7 +502,7 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 	    return "","","",nil,fmt.Errorf("transaction data format error,the lastest segment is not AGREE or DISAGREE")
 	}
 
-	exsit,da := GetPubKeyData([]byte(acceptsig.Key))
+	exsit,da := GetSignInfoData([]byte(acceptsig.Key))
 	if !exsit {
 	    return "","","",nil,fmt.Errorf("get accept result from db fail")
 	}
@@ -518,7 +520,7 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 	    return "","","",nil,fmt.Errorf("invalid accepter")
 	}
 	
-//	common.Debug("=================CheckRaw, it is acceptsign tx====================","raw ",raw,"key ",acceptsig.Key,"acceptsig ",&acceptsig)
+	common.Debug("=================CheckRaw, it is acceptsign tx====================","raw ",raw,"key ",acceptsig.Key,"acceptsig ",&acceptsig)
 	return acceptsig.Key,from.Hex(),"",&acceptsig,nil
     }
 
@@ -529,7 +531,7 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 	    return "","","",nil,fmt.Errorf("transaction data format error,the lastest segment is not AGREE or DISAGREE")
 	}
 
-	exsit,da := GetPubKeyData([]byte(acceptrh.Key))
+	exsit,da := GetReShareInfoData([]byte(acceptrh.Key))
 	if !exsit {
 	    return "","","",nil,fmt.Errorf("get accept result from db fail")
 	}
@@ -547,8 +549,8 @@ func CheckRaw(raw string) (string,string,string,interface{},error) {
 	  //  return "","","",nil,fmt.Errorf("check current enode account fail from raw data")
 	//}
 
-//	common.Debug("=================CheckRaw, it is acceptreshare tx=====================","raw ",raw,"key ",acceptrh.Key,"acceptrh ",&acceptrh)
-	return "",from.Hex(),"",&acceptrh,nil
+	common.Debug("=================CheckRaw, it is acceptreshare tx=====================","raw ",raw,"key ",acceptrh.Key,"acceptrh ",&acceptrh)
+	return acceptrh.Key,from.Hex(),"",&acceptrh,nil
     }
 
     return "","","",nil,fmt.Errorf("check fail")
@@ -1110,7 +1112,11 @@ func GetAllReplyFromGroup(wid int,gid string,rt RpcType,initiator string) []Node
 		mdss := iter.Value.(string)
 		common.Debug("===================== GetAllReplyFromGroup call CheckRaw,it is Rpc_REQADDR ================")
 		key,_,_,_,_ := CheckRaw(mdss)
-		exsit,da := GetPubKeyData([]byte(key))
+		exsit,da := GetReqAddrInfoData([]byte(key))
+		if !exsit || da == nil {
+		    exsit,da = GetPubKeyData([]byte(key))
+		}
+
 		if exsit {
 		    ac,ok := da.(*AcceptReqAddrData)
 		    if ok && ac != nil {
@@ -1151,7 +1157,10 @@ func GetReqAddrKeyByOtherKey(key string,rt RpcType) string {
     }
 
     if rt == Rpc_SIGN {
-	exsit,da := GetPubKeyData([]byte(key))
+	exsit,da := GetSignInfoData([]byte(key))
+	if !exsit {
+	    exsit,da = GetPubKeyData([]byte(key))
+	}
 	if exsit {
 	    ad,ok := da.(*AcceptSignData)
 	    if ok && ad != nil {

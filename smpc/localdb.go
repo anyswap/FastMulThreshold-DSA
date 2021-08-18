@@ -34,6 +34,10 @@ var (
 	dbbip32 *ethdb.LDBDatabase
 	predb *ethdb.LDBDatabase
 	prekey *ethdb.LDBDatabase
+	
+	reqaddrinfodb *ethdb.LDBDatabase
+	signinfodb *ethdb.LDBDatabase
+	reshareinfodb *ethdb.LDBDatabase
 )
 
 func makeDatabaseHandles() int {
@@ -268,6 +272,201 @@ func deleteBip32cFromLocalDb(key []byte) error {
     return err
 }
 
+//-------------------------------------------------------------
+
+func GetReqAddrInfoData(key []byte) (bool,interface{}) {
+    if key == nil || reqaddrinfodb == nil {
+	    common.Error("========================GetReqAddrInfoData, param err=======================","key",string(key))
+	return false,nil
+    }
+	
+    da, err := reqaddrinfodb.Get(key)
+    if da == nil || err != nil {
+	common.Error("========================GetReqAddrInfoData, get reqaddr info from local db fail =======================","key",string(key))
+	return false,nil
+    }
+ 
+    ss, err := UnCompress(string(da))
+    if err != nil {
+	common.Error("========================GetReqAddrInfoData, uncompress err=======================","err",err,"key",string(key))
+	return true,da
+    }
+ 
+    pubs, err := Decode2(ss, "AcceptReqAddrData")
+    if err == nil {
+	pd,ok := pubs.(*AcceptReqAddrData)
+	if ok {
+	    return true,pd
+ 	}
+    }
+    
+    return false,nil
+}
+
+//----------------------------------------------------------------
+
+func PutReqAddrInfoData(key []byte,value []byte) error {
+    if reqaddrinfodb == nil || key == nil || value == nil {
+	return fmt.Errorf("put reqaddr info to db fail")
+    }
+ 
+    err := reqaddrinfodb.Put(key,value)
+    if err == nil {
+	common.Debug("===============PutReqAddrInfoData, put reqaddr info into db success.=================","key",string(key))
+	return nil	
+    }
+	
+    common.Error("===============PutReqAddrInfoData, put reqaddr info into db fail.=================","key",string(key),"err",err)
+    return err
+}
+
+//----------------------------------------------------------------
+
+func DeleteReqAddrInfoData(key []byte) error {
+    if key == nil || reqaddrinfodb == nil {
+	return fmt.Errorf("delete reqaddr info from db fail.")
+    }
+ 
+    err := reqaddrinfodb.Delete(key)
+    if err == nil {
+	common.Debug("===============DeleteReqAddrInfoData, del reqaddr info from db success.=================","key",string(key))
+	return nil
+    }
+ 
+    common.Error("===============DeleteReqAddrInfoData, delete reqaddr info from db fail.=================","key",string(key),"err",err)
+    return err
+}
+
+//--------------------------------------------------------------
+
+func GetSignInfoData(key []byte) (bool,interface{}) {
+    if key == nil || signinfodb == nil {
+	    common.Error("========================GetSignInfoData, param err=======================","key",string(key))
+	return false,nil
+    }
+	
+    da, err := signinfodb.Get(key)
+    if da == nil || err != nil {
+	common.Error("========================GetSignInfoData, get sign info from local db fail =======================","key",string(key))
+	return false,nil
+    }
+ 
+    ss, err := UnCompress(string(da))
+    if err != nil {
+	common.Error("========================GetSignInfoData, uncompress err=======================","err",err,"key",string(key))
+	return true,da
+    }
+ 
+    pubs, err := Decode2(ss, "AcceptSignData")
+    if err == nil {
+	pd,ok := pubs.(*AcceptSignData)
+	if ok && pd.Keytype != "" {
+	    return true,pd
+ 	}
+    }
+    
+    return false,nil
+}
+
+//-------------------------------------------------------
+
+func PutSignInfoData(key []byte,value []byte) error {
+    if signinfodb == nil || key == nil || value == nil {
+	return fmt.Errorf("put sign info to db fail")
+    }
+ 
+    err := signinfodb.Put(key,value)
+    if err == nil {
+	common.Debug("===============PutSignInfoData, put sign info into db success.=================","key",string(key))
+	return nil	
+    }
+	
+    common.Error("===============PutSignInfoData, put sign info into db fail.=================","key",string(key),"err",err)
+    return err
+}
+
+//-----------------------------------------------------------
+
+func DeleteSignInfoData(key []byte) error {
+    if key == nil || signinfodb == nil {
+	return fmt.Errorf("delete sign info from db fail.")
+    }
+ 
+    err := signinfodb.Delete(key)
+    if err == nil {
+	common.Debug("===============DeleteSignInfoData, del sign info from db success.=================","key",string(key))
+	return nil
+    }
+ 
+    common.Error("===============DeleteSignInfoData, delete sign info from db fail.=================","key",string(key),"err",err)
+    return err
+}
+
+//------------------------------------------------------
+
+func GetReShareInfoData(key []byte) (bool,interface{}) {
+    if key == nil || reshareinfodb == nil {
+	    common.Error("========================GetReShareInfoData, param err=======================","key",string(key))
+	return false,nil
+    }
+	
+    da, err := reshareinfodb.Get(key)
+    if da == nil || err != nil {
+	common.Error("========================GetReShareInfoData, get reshare info from local db fail =======================","key",string(key))
+	return false,nil
+    }
+ 
+    ss, err := UnCompress(string(da))
+    if err != nil {
+	common.Error("========================GetReShareInfoData, uncompress err=======================","err",err,"key",string(key))
+	return true,da
+    }
+ 
+    pubs, err := Decode2(ss, "AcceptReShareData")
+    if err == nil {
+	pd,ok := pubs.(*AcceptReShareData)
+	if ok && pd.TSGroupId != "" {
+	    return true,pd
+ 	}
+    }
+    
+    return false,nil
+}
+
+//-------------------------------------------------------
+
+func PutReShareInfoData(key []byte,value []byte) error {
+    if reshareinfodb == nil || key == nil || value == nil {
+	return fmt.Errorf("put reshare info to db fail")
+    }
+ 
+    err := reshareinfodb.Put(key,value)
+    if err == nil {
+	common.Debug("===============PutReShareInfoData, put reshare info into db success.=================","key",string(key))
+	return nil	
+    }
+	
+    common.Error("===============PutReShareInfoData, put reshare info into db fail.=================","key",string(key),"err",err)
+    return err
+}
+
+//-------------------------------------------------------
+
+func DeleteReShareInfoData(key []byte) error {
+    if key == nil || reshareinfodb == nil {
+	return fmt.Errorf("delete reshare info from db fail.")
+    }
+ 
+    err := reshareinfodb.Delete(key)
+    if err == nil {
+	common.Debug("===============DeleteReShareInfoData, del reshare info from db success.=================","key",string(key))
+	return nil
+    }
+ 
+    common.Error("===============DeleteReShareInfoData, delete reshare info from db fail.=================","key",string(key),"err",err)
+    return err
+}
+
 //-------------------------------------------------------
 
 func GetGroupDir() string { //TODO
@@ -371,6 +570,64 @@ func GetSmpcPreKeyDb() *ethdb.LDBDatabase {
     return prekey
 }
 
+//---------------------------------------------------------------
+
+func GetReqAddrInfoDir() string {
+         dir := common.DefaultDataDir()
+         dir += "/smpcdata/smpcreqaddrinfo" + cur_enode
+         return dir
+} 
+
+
+func GetSmpcReqAddrInfoDb() *ethdb.LDBDatabase {
+    dir := GetReqAddrInfoDir()
+    reqaddrinfodb, err := ethdb.NewLDBDatabase(dir, cache, handles)
+    if err != nil {
+	common.Error("======================smpc.Start,open reqaddrinfodb fail======================","err",err,"dir",dir)
+	return nil
+    }
+
+    return reqaddrinfodb
+}
+
+//--------------------------------------------------------------
+
+func GetSignInfoDir() string {
+         dir := common.DefaultDataDir()
+         dir += "/smpcdata/smpcsigninfo" + cur_enode
+         return dir
+} 
+
+func GetSmpcSignInfoDb() *ethdb.LDBDatabase {
+    dir := GetSignInfoDir()
+    signinfodb, err := ethdb.NewLDBDatabase(dir, cache, handles)
+    if err != nil {
+	common.Error("======================smpc.Start,open signinfodb fail======================","err",err,"dir",dir)
+	return nil
+    }
+
+    return signinfodb
+}
+
+//--------------------------------------------------------------
+
+func GetReShareInfoDir() string {
+         dir := common.DefaultDataDir()
+         dir += "/smpcdata/smpcreshareinfo" + cur_enode
+         return dir
+} 
+
+func GetSmpcReShareInfoDb() *ethdb.LDBDatabase {
+    dir := GetReShareInfoDir()
+    reshareinfodb, err := ethdb.NewLDBDatabase(dir, cache, handles)
+    if err != nil {
+	common.Error("======================smpc.Start,open reshareinfodb fail======================","err",err,"dir",dir)
+	return nil
+    }
+
+    return reshareinfodb
+}
+
 //--------------------------------------------------------------
 
 func StartSmpcLocalDb() error {
@@ -402,6 +659,24 @@ func StartSmpcLocalDb() error {
     if prekey == nil {
 	common.Error("======================StartSmpcLocalDb,open prekey fail=====================")
 	return errors.New("open prekey fail")
+    }
+
+    reqaddrinfodb = GetSmpcReqAddrInfoDb()
+    if reqaddrinfodb == nil {
+	common.Error("======================StartSmpcLocalDb,open reqaddrinfodb fail=====================")
+	return errors.New("open reqaddrinfodb fail")
+    }
+
+    signinfodb = GetSmpcSignInfoDb()
+    if signinfodb == nil {
+	common.Error("======================StartSmpcLocalDb,open signinfodb fail=====================")
+	return errors.New("open signinfodb fail")
+    }
+
+    reshareinfodb = GetSmpcReShareInfoDb()
+    if reshareinfodb == nil {
+	common.Error("======================StartSmpcLocalDb,open reshareinfodb fail=====================")
+	return errors.New("open reshareinfodb fail")
     }
 
     return nil

@@ -17,11 +17,9 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/fsn-dev/cryptoCoins/coins"
-	"github.com/anyswap/Anyswap-MPCNode/ethdb"
 )
 
 //ec
-
 func ReshareProcessInboundMessages(msgprex string,finishChan chan struct{},wg *sync.WaitGroup,ch chan interface{}) {
     defer wg.Done()
     fmt.Printf("start processing inbound messages\n")
@@ -277,25 +275,6 @@ func processReshare(msgprex string,groupid string,pubkey string,account string,m
 			}
 
 			//set new sk
-			dir := GetSkU1Dir()
-			dbsktmp, err := ethdb.NewLDBDatabase(dir, cache, handles)
-			//bug
-			if err != nil {
-				for i := 0; i < 100; i++ {
-					dbsktmp, err = ethdb.NewLDBDatabase(dir, cache, handles)
-					if err == nil {
-						break
-					}
-
-					time.Sleep(time.Duration(1000000))
-				}
-			}
-			if err != nil {
-			    //dbsk = nil
-			} else {
-			    dbsk = dbsktmp
-			}
-
 			err = putSkU1ToLocalDb(smpcpks[:],msg.SkU1.Bytes()) 
 			if err != nil {
 			    return nil,err 
@@ -323,25 +302,6 @@ func processReshare(msgprex string,groupid string,pubkey string,account string,m
 
 			}
 			//
-
-			dir = GetDbDir()
-			dbtmp, err := ethdb.NewLDBDatabase(dir, cache, handles)
-			//bug
-			if err != nil {
-				for i := 0; i < 100; i++ {
-					dbtmp, err = ethdb.NewLDBDatabase(dir, cache, handles)
-					if err == nil {
-						break
-					}
-
-					time.Sleep(time.Duration(1000000))
-				}
-			}
-			if err != nil {
-			    //dbsk = nil
-			} else {
-			    db = dbtmp
-			}
 
 			nonce,_,err := GetReqAddrNonce(account) //reqaddr nonce
 			if err != nil {
@@ -420,7 +380,7 @@ func processReshare(msgprex string,groupid string,pubkey string,account string,m
 
 			wid := -1
 			var allreply []NodeReply
-			exsit,da2 := GetPubKeyData([]byte(msgprex))
+			exsit,da2 := GetReShareInfoData([]byte(msgprex))
 			if exsit {
 			    acr,ok := da2.(*AcceptReShareData)
 			    if ok {
@@ -497,6 +457,7 @@ func processReshare(msgprex string,groupid string,pubkey string,account string,m
 				}
 			}
 			
+			AcceptReqAddr("",account, "ALL", groupid, nonce, w.limitnum, mode, "true", "true", "Success", pubkey, "", "", nil, w.id,"")
 			return msg.SkU1,nil
 		}
 	}

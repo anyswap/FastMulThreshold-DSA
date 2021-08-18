@@ -109,7 +109,7 @@ func SignInitAcceptData2(sbd *SignPickData,workid int,sender string,ch chan inte
     sig,ok := txdata.(*TxDataSign)
     if ok {
 	common.Debug("=============== SignInitAcceptData2, it is sign txdata and check sign raw success==================","key ",key,"from ",from,"nonce ",nonce)
-	exsit,_ := GetPubKeyData([]byte(key))
+	exsit,_ := GetSignInfoData([]byte(key))
 	if !exsit {
 	    cur_nonce, _, _ := GetSignNonce(from)
 	    cur_nonce_num, _ := new(big.Int).SetString(cur_nonce, 10)
@@ -327,7 +327,7 @@ func InitAcceptData2(sbd *SignPickData,workid int,sender string,ch chan interfac
     sig,ok := txdata.(*TxDataSign)
     if ok {
 	common.Debug("===============InitAcceptData2, it is sign txdata and check sign raw success==================","key ",key,"from ",from,"nonce ",nonce)
-	exsit,_ := GetPubKeyData([]byte(key))
+	exsit,_ := GetSignInfoData([]byte(key))
 	if !exsit {
 	    cur_nonce, _, _ := GetSignNonce(from)
 	    cur_nonce_num, _ := new(big.Int).SetString(cur_nonce, 10)
@@ -555,7 +555,7 @@ func RpcAcceptSign(raw string) (string, string, error) {
 	return "Failure","check accept raw data fail",fmt.Errorf("check accept raw data fail")
     }
 
-    exsit,da := GetPubKeyData([]byte(acceptsig.Key))
+    exsit,da := GetSignInfoData([]byte(acceptsig.Key))
     if exsit {
 	ac,ok := da.(*AcceptSignData)
 	if ok && ac != nil {
@@ -759,18 +759,17 @@ type SignCurNodeInfo struct {
 
 func GetCurNodeSignInfo(geter_acc string) ([]*SignCurNodeInfo, string, error) {
 	var ret []*SignCurNodeInfo
-	data := make(chan *SignCurNodeInfo, 1000)
+	data := make(chan *SignCurNodeInfo,1000)
 
 	var wg sync.WaitGroup
-	iter := db.NewIterator()
+	iter := signinfodb.NewIterator()
 	for iter.Next() {
 	    key2 := []byte(string(iter.Key())) //must be deep copy,or show me the error: "panic: JSON decoder out of sync - data changing underfoot?"
-	    exsit,da := GetPubKeyData(key2) 
-	    if !exsit || da == nil {
-		fmt.Printf("=========================GetCurNodeSignInfo,get pubkey data fail, key = %v============================\n",string(key2))
+	    exsit,val := GetSignInfoData(key2)
+	    if !exsit || val == nil {
 		continue
 	    }
-	    
+
 	    wg.Add(1)
 	    go func(key string,value interface{},ch chan *SignCurNodeInfo) {
 		defer wg.Done()
@@ -796,7 +795,7 @@ func GetCurNodeSignInfo(geter_acc string) ([]*SignCurNodeInfo, string, error) {
 		los := &SignCurNodeInfo{Key: key, Account: vv.Account, PubKey:vv.PubKey, MsgHash:vv.MsgHash, MsgContext:vv.MsgContext, KeyType:vv.Keytype, GroupId: vv.GroupId, Nonce: vv.Nonce, ThresHold: vv.LimitNum, Mode: vv.Mode, TimeStamp: vv.TimeStamp}
 		ch <-los
 		common.Debug("================GetCurNodeSignInfo success return=======================","key",key)
-	    }(string(key2),da,data)
+	    }(string(key2),val,data)
 	}
 	iter.Release()
 	wg.Wait()

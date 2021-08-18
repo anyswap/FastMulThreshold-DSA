@@ -122,7 +122,7 @@ func RpcAcceptReShare(raw string) (string, string, error) {
 	return "Failure","check raw fail,it is not *TxDataAcceptReShare",fmt.Errorf("check raw fail,it is not *TxDataAcceptReShare")
     }
 
-    exsit,da := GetPubKeyData([]byte(acceptrh.Key))
+    exsit,da := GetReShareInfoData([]byte(acceptrh.Key))
     if exsit {
 	ac,ok := da.(*AcceptReShareData)
 	if ok && ac != nil {
@@ -178,10 +178,10 @@ func GetCurNodeReShareInfo() ([]*ReShareCurNodeInfo, string, error) {
     data := make(chan *ReShareCurNodeInfo,1000)
 
     var wg sync.WaitGroup
-    iter := db.NewIterator()
+    iter := reshareinfodb.NewIterator()
     for iter.Next() {
 	key2 := []byte(string(iter.Key())) //must be deep copy,or show me the error: "panic: JSON decoder out of sync - data changing underfoot?"
-	exsit,da := GetPubKeyData(key2) 
+	exsit,da := GetReShareInfoData(key2) 
 	if !exsit || da == nil {
 	    continue
 	}
@@ -1770,25 +1770,6 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 	}
 
 	//set new sk
-	dir := GetSkU1Dir()
-	dbsktmp, err := ethdb.NewLDBDatabase(dir, cache, handles)
-	//bug
-	if err != nil {
-		for i := 0; i < 100; i++ {
-			dbsktmp, err = ethdb.NewLDBDatabase(dir, cache, handles)
-			if err == nil {
-				break
-			}
-
-			time.Sleep(time.Duration(1000000))
-		}
-	}
-	if err != nil {
-	    //dbsk = nil
-	} else {
-	    dbsk = dbsktmp
-	}
-
 	err = putSkU1ToLocalDb(smpcpks[:],newskU1.Bytes()) 
 	if err != nil {
 	    res := RpcSmpcRes{Ret: "", Err: err}
@@ -1819,25 +1800,6 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 		}
 	}
 	//
-
-	dir = GetDbDir()
-	dbtmp, err := ethdb.NewLDBDatabase(dir, cache, handles)
-	//bug
-	if err != nil {
-		for i := 0; i < 100; i++ {
-			dbtmp, err = ethdb.NewLDBDatabase(dir, cache, handles)
-			if err == nil {
-				break
-			}
-
-			time.Sleep(time.Duration(1000000))
-		}
-	}
-	if err != nil {
-	    //dbsk = nil
-	} else {
-	    db = dbtmp
-	}
 
 	nonce,_,err := GetReqAddrNonce(account) //reqaddr nonce
 	if err != nil {
@@ -1924,7 +1886,7 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 
 	wid := -1
 	var allreply []NodeReply
-	exsit,da2 := GetPubKeyData([]byte(msgprex))
+	exsit,da2 := GetReShareInfoData([]byte(msgprex))
 	if exsit {
 	    acr,ok := da2.(*AcceptReShareData)
 	    if ok {
@@ -2011,13 +1973,13 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 
 		}
 	}
-	//AcceptReqAddr("",account, "ALL", groupid, nonce, w.limitnum, mode, "true", "true", "Success", pubkey, "", "", nil, w.id,"")
+	
+	AcceptReqAddr("",account, "ALL", groupid, nonce, w.limitnum, mode, "true", "true", "Success", pubkey, "", "", nil, w.id,"")
 	/////////////////////
 	common.Info("=====================ReShare_ec2===================","gen newsku1",newskU1,"key",msgprex)
 
 	res := RpcSmpcRes{Ret: fmt.Sprintf("%v",newskU1), Err: nil}
 	ch <- res
-	////////////////////////////////
 	*/
 }
 
