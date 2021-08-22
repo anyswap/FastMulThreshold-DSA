@@ -272,19 +272,44 @@ func processKeyGen(msgprex string,errChan chan struct{},outCh <-chan smpclib.Mes
 
 			w.pkx.PushBack(fmt.Sprintf("%v",msg.Pkx))
 			w.pky.PushBack(fmt.Sprintf("%v",msg.Pky))
-			w.bip32c.PushBack(fmt.Sprintf("%v",msg.C))
-			w.sku1.PushBack(fmt.Sprintf("%v",msg.SkU1))
+			//w.bip32c.PushBack(fmt.Sprintf("%v",msg.C))
+			//w.sku1.PushBack(fmt.Sprintf("%v",msg.SkU1))
+			w.bip32c.PushBack(string(msg.C.Bytes()))
+			w.sku1.PushBack(string(msg.SkU1.Bytes()))
 			fmt.Printf("\n===========keygen finished successfully, pkx = %v,pky = %v ===========\n",msg.Pkx,msg.Pky)
 
-			kgsave := &KGLocalDBSaveData{Save:(&msg),MsgToEnode:w.MsgToEnode}
+			/*kgsave := &KGLocalDBSaveData{Save:(&msg),MsgToEnode:w.MsgToEnode}
 			//sdout := (&msg).OutMap()
 			sdout := kgsave.OutMap()
 			s,err := json.Marshal(sdout)
 			if err != nil {
 			    return err
+			}*/
+
+			ss := "XXX"
+			ss = ss + common.SepSave
+			s1 := msg.U1PaillierSk.Length
+			s2 := string(msg.U1PaillierSk.L.Bytes())
+			s3 := string(msg.U1PaillierSk.U.Bytes())
+			ss = ss + s1 + common.SepSave + s2 + common.SepSave + s3 + common.SepSave
+			
+			for _,v := range msg.U1PaillierPk {
+			    s1 = v.Length
+			    s2 = string(v.N.Bytes())
+			    s3 = string(v.G.Bytes())
+			    s4 := string(v.N2.Bytes())
+			    ss = ss + s1 + common.SepSave + s2 + common.SepSave + s3 + common.SepSave + s4 + common.SepSave
 			}
 
-			w.save.PushBack(string(s))
+			for _,v := range msg.U1NtildeH1H2 {
+			    s1 = string(v.Ntilde.Bytes())
+			    s2 = string(v.H1.Bytes())
+			    s3 = string(v.H2.Bytes())
+			    ss = ss + s1 + common.SepSave + s2 + common.SepSave + s3 + common.SepSave
+			}
+
+			ss += "NULL"
+			w.save.PushBack(string(ss))
 
 			return nil
 		}
@@ -501,14 +526,15 @@ func processKeyGen_EDDSA(msgprex string,errChan chan struct{},outCh <-chan smpcl
 			w.edsku1.PushBack(string(msg.Sk[:]))
 			w.edpk.PushBack(string(msg.FinalPkBytes[:]))
 			
-			kgsave := &KGLocalDBSaveData_ed{Save:(&msg),MsgToEnode:w.MsgToEnode}
+			/*kgsave := &KGLocalDBSaveData_ed{Save:(&msg),MsgToEnode:w.MsgToEnode}
 			sdout := kgsave.OutMap()
 			s,err := json.Marshal(sdout)
 			if err != nil {
 			    fmt.Printf("=======================processKeyGen_EDDSA,finish ed keygen, err = %v =======================\n",err)
 			    return err
-			}
+			}*/
 
+			s := "XXX" + common.Sep11 + string(msg.Pk[:]) + common.Sep11 + string(msg.TSk[:]) + common.Sep11 + string(msg.FinalPkBytes[:])
 			w.edsave.PushBack(string(s))
 			fmt.Printf("=======================processKeyGen_EDDSA,success finish ed keygen =======================\n")
 			return nil

@@ -43,6 +43,9 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/signing"
 	edsigning "github.com/anyswap/Anyswap-MPCNode/smpc-lib/eddsa/signing"
 	smpclib "github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
+	edkeygen "github.com/anyswap/Anyswap-MPCNode/smpc-lib/eddsa/keygen"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
 	//"github.com/fsn-dev/cryptoCoins/coins"
 	//"crypto/sha512"
 	//"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
@@ -695,9 +698,9 @@ func HandleRpcSign() {
 }
 
 func get_sign_hash(hash []string,keytype string) string {
-    var ids sortableIDSSlice
+    var ids smpclib.SortableIDSSlice
     for _, v := range hash {
-	    uid := DoubleHash2(v, keytype)
+	    uid := DoubleHash(v, keytype)
 	    ids = append(ids, uid)
     }
     sort.Sort(ids)
@@ -889,7 +892,7 @@ func Sign_ed(msgprex string, save string, sku1 *big.Int, message string, cointyp
 		return ""
 	}
 
-	msgmap := make(map[string]string)
+	/*msgmap := make(map[string]string)
 	err := json.Unmarshal([]byte(save), &msgmap)
 	if err != nil {
 	    res := RpcSmpcRes{Ret: "", Tip: "ed presign get local save data fail", Err: fmt.Errorf("ed presign get local save data fail")}
@@ -902,9 +905,53 @@ func Sign_ed(msgprex string, save string, sku1 *big.Int, message string, cointyp
 	    ch <- res
 	    return ""
 	}
-	sd := kgsave.Save
+	sd := kgsave.Save*/
 	
-	idsign := GetIdSignByGroupId_ed(sd.Ids,kgsave.MsgToEnode,w.groupid)
+	mm := strings.Split(save, common.Sep11)
+	if len(mm) == 0 {
+		res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("ed get save data fail")}
+		ch <- res
+		return "" 
+	}
+
+	smpcpks, _ := hex.DecodeString(w.SmpcFrom)
+	exsit,da := GetPubKeyData(smpcpks[:])
+	if !exsit || da == nil {
+	    res := RpcSmpcRes{Ret: "", Tip: "ed sign get local save data fail", Err: fmt.Errorf("ed sign get local save data fail")}
+	    ch <- res
+	    return "" 
+	}
+
+	pubs,ok := da.(*PubKeyData)
+	if !ok || pubs.GroupId == "" {
+	    res := RpcSmpcRes{Ret: "", Tip: "ed sign get local save data fail", Err: fmt.Errorf("ed sign get local save data fail")}
+	    ch <- res
+	    return ""
+	}
+
+	sd := &edkeygen.LocalDNodeSaveData{}
+	
+	var sk [64]byte
+	va := sku1.Bytes()
+	copy(sk[:], va[:64])
+	var tsk [32]byte
+	va = []byte(mm[2])
+	copy(tsk[:], va[:32])
+	var pkfinal [32]byte
+	va = []byte(mm[3])
+	copy(pkfinal[:], va[:32])
+
+	sd.Sk = sk
+	sd.TSk = tsk
+	sd.FinalPkBytes = pkfinal
+	sd.Ids = GetIds(cointype,pubs.GroupId)
+	sd.CurDNodeID = DoubleHash(cur_enode,cointype)
+	
+	msgtoenode := GetMsgToEnode(cointype,pubs.GroupId)
+	kgsave := &KGLocalDBSaveData_ed{Save:sd,MsgToEnode:msgtoenode}
+
+	//idsign := GetIdSignByGroupId_ed(sd.Ids,kgsave.MsgToEnode,w.groupid)
+	idsign := GetIds(cointype,w.groupid)
 
 	mMtA, _ := new(big.Int).SetString(message, 16)
 	fmt.Printf("==============Sign_ed, w.groupid = %v, message = %v ==============\n",w.groupid,message)
@@ -916,6 +963,7 @@ func Sign_ed(msgprex string, save string, sku1 *big.Int, message string, cointyp
 	errChan := make(chan struct{})
 	signDNode := edsigning.NewLocalDNode(outCh,endCh,sd,idsign,sd.CurDNodeID,w.ThresHold,PaillierKeyLength,false,nil,mMtA,finalize_endCh)
 	w.DNode = signDNode
+	signDNode.SetDNodeID(fmt.Sprintf("%v",DoubleHash(cur_enode,"ED25519")))
 	
 	var signWg sync.WaitGroup
 	signWg.Add(2)
@@ -1554,7 +1602,7 @@ func sign(wsid string,account string,pubkey string,inputcode string,unsignhash [
 	///sku1
 	da2 := getSkU1FromLocalDb(smpcpks[:])
 	if da2 == nil {
-		res := RpcSmpcRes{Ret: "", Tip: "lockout get sku1 fail", Err: fmt.Errorf("lockout get sku1 fail")}
+		res := RpcSmpcRes{Ret: "", Tip: "sign get sku1 fail", Err: fmt.Errorf("sign get sku1 fail")}
 		ch <- res
 		return
 	}
@@ -2655,6 +2703,107 @@ func GetIdSignByGroupId_ed(ids smpclib.SortableIDSSlice,msgtoenode map[string]st
     return signids
 }
 
+//--------------------------------------------------------------------------------
+
+func GetPaillierPkByIndexFromSaveData(save string, index int) *ec2.PublicKey {
+	if save == "" || index < 0 {
+		return nil
+	}
+
+	mm := strings.Split(save, common.SepSave)
+	s := 4 + 4*index
+	if len(mm) < (s + 4) {
+		return nil
+	}
+
+	l := mm[s]
+	n := new(big.Int).SetBytes([]byte(mm[s+1]))
+	g := new(big.Int).SetBytes([]byte(mm[s+2]))
+	n2 := new(big.Int).SetBytes([]byte(mm[s+3]))
+	publicKey := &ec2.PublicKey{Length: l, N: n, G: g, N2: n2}
+
+	fmt.Printf("================================GetPaillierPkByIndexFromSaveData, index = %v,paillierPk.Len = %v,paillierPk.N = %v,paillierPk.G = %v,paillierPk.N2 = %v======================\n",index,l,n,g,n2)
+	return publicKey
+}
+
+func GetCurNodeIndex(gid string,keytype string) int {
+    if gid == "" || keytype == "" {
+	return -1
+    }
+
+    uid := DoubleHash(cur_enode,keytype)
+
+    ids := GetIds(keytype,gid)
+    fmt.Printf("=============================GetCurNodeIndex, gid = %v, keytype = %v, cur_enode = %v,uid = %v,ids = %v====================================\n",gid,keytype,cur_enode,uid,ids)
+    for k,v := range ids {
+	if v.Cmp(uid) == 0 {
+	    return k
+	}
+    }
+
+    return -1
+}
+
+//gid is not the sub-gid
+func GetCurNodePaillierSkFromSaveData(save string, gid string,keytype string) *ec2.PrivateKey {
+    	if save == "" || gid == "" || keytype == "" {
+	    return nil
+	}
+
+    	cur_index := GetCurNodeIndex(gid,keytype)
+	publicKey := GetPaillierPkByIndexFromSaveData(save,cur_index)
+	if publicKey != nil {
+		mm := strings.Split(save, common.SepSave)
+		if len(mm) < 4 {
+			return nil
+		}
+
+		l := mm[1]
+		ll := new(big.Int).SetBytes([]byte(mm[2]))
+		uu := new(big.Int).SetBytes([]byte(mm[3]))
+		privateKey := &ec2.PrivateKey{Length: l, PublicKey: *publicKey, L: ll, U: uu}
+		fmt.Printf("==================================GetCurNodePaillierSkFromSaveData,cur_index = %v,gid = %v,keytype = %v,pailliersk.Len = %v,pailliersk.L = %v,pailliersk.U = %v===============================\n",cur_index,gid,keytype,l,ll,uu)
+		return privateKey
+	}
+
+	return nil
+}
+
+func GetNtildeByIndexFromSaveData(save string, index int, NodeCnt int) *ec2.NtildeH1H2 {
+	if save == "" || index < 0 || NodeCnt < 0 {
+	    return nil
+	}
+
+	mm := strings.Split(save, common.SepSave)
+	s := 4 + 4*NodeCnt + 3*index
+	if len(mm) < (s + 3) {
+	    return nil
+	}
+
+	ntilde := new(big.Int).SetBytes([]byte(mm[s]))
+	h1 := new(big.Int).SetBytes([]byte(mm[s+1]))
+	h2 := new(big.Int).SetBytes([]byte(mm[s+2]))
+	ntildeh1h2 := &ec2.NtildeH1H2{Ntilde: ntilde, H1: h1, H2: h2}
+
+	fmt.Printf("===============================GetNtildeByIndexFromSaveData,index = %v,NodeCnt = %v,ntilde = %v,h1 = %v,h2 = %v==================================\n",index,NodeCnt,ntilde,h1,h2)
+	return ntildeh1h2
+}
+
+func GetMsgToEnode(keytype string, groupid string) map[string]string {
+	msgtoenode := make(map[string]string)
+	_, nodes := GetGroup(groupid)
+	others := strings.Split(nodes, common.Sep2)
+	for _, v := range others {
+		node2 := ParseNode(v)
+		uid := DoubleHash(node2, keytype)
+		msgtoenode[fmt.Sprintf("%v",uid)] = node2
+	}
+	
+	return msgtoenode
+}
+
+//-----------------------------------------------------------------------------------------------------
+
 //msgprex = hash
 //return value is the backup for the smpc sig
 func PreSign_ec3(msgprex string, save string, sku1 *big.Int, cointype string, ch chan interface{},id int)  *PreSignData {
@@ -2670,16 +2819,14 @@ func PreSign_ec3(msgprex string, save string, sku1 *big.Int, cointype string, ch
 		return nil
 	}
 
-	/*mm := strings.Split(save, common.SepSave)
+	mm := strings.Split(save, common.SepSave)
 	if len(mm) == 0 {
 		res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("get save data fail")}
 		ch <- res
 		return nil
-	}*/
+	}
 
-	//time.Sleep(time.Duration(20) * time.Second) //tmp code
-	
-	msgmap := make(map[string]string)
+	/*msgmap := make(map[string]string)
 	err := json.Unmarshal([]byte(save), &msgmap)
 	if err != nil {
 	    res := RpcSmpcRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
@@ -2691,8 +2838,41 @@ func PreSign_ec3(msgprex string, save string, sku1 *big.Int, cointype string, ch
 	    res := RpcSmpcRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
 	    ch <- res
 	    return nil
+	}*/
+	sd := &keygen.LocalDNodeSaveData{}
+	sd.SkU1 = sku1
+
+	smpcpks, _ := hex.DecodeString(w.SmpcFrom)
+	exsit,da := GetPubKeyData(smpcpks[:])
+	if !exsit || da == nil {
+	    res := RpcSmpcRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
+	    ch <- res
+	    return nil
 	}
-	sd := kgsave.Save
+
+	pubs,ok := da.(*PubKeyData)
+	if !ok || pubs.GroupId == "" {
+	    res := RpcSmpcRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
+	    ch <- res
+	    return nil
+	}
+
+	sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save,pubs.GroupId,cointype)
+
+	U1PaillierPk := make([]*ec2.PublicKey,w.NodeCnt)
+	U1NtildeH1H2 := make([]*ec2.NtildeH1H2,w.NodeCnt)
+	for i:=0;i<w.NodeCnt;i++ {
+	    U1PaillierPk[i] = GetPaillierPkByIndexFromSaveData(save,i)
+	    U1NtildeH1H2[i] = GetNtildeByIndexFromSaveData(save,i,w.NodeCnt)
+	}
+	sd.U1PaillierPk = U1PaillierPk
+	sd.U1NtildeH1H2 = U1NtildeH1H2
+
+	sd.Ids = GetIds(cointype,pubs.GroupId)
+	sd.CurDNodeID = DoubleHash(cur_enode,cointype)
+	
+	msgtoenode := GetMsgToEnode(cointype,pubs.GroupId)
+	kgsave := &KGLocalDBSaveData{Save:sd,MsgToEnode:msgtoenode}
 	
 	// [Notes]
 	// 1. assume the nodes who take part in the signature generation as follows
@@ -2701,7 +2881,8 @@ func PreSign_ec3(msgprex string, save string, sku1 *big.Int, cointype string, ch
 
 	//common.Info("===================PreSign_ec3 start=================","index",index,"w.groupid",w.groupid,"key",msgprex)
 	//*******************!!!Distributed ECDSA Sign Start!!!**********************************
-	idsign := GetIdSignByGroupId(kgsave.MsgToEnode,w.groupid)
+	//idsign := GetIdSignByGroupId(kgsave.MsgToEnode,w.groupid)
+	idsign := GetIds(cointype,w.groupid)
 
 	commStopChan := make(chan struct{})
 	outCh := make(chan smpclib.Message, w.ThresHold)
@@ -2710,6 +2891,7 @@ func PreSign_ec3(msgprex string, save string, sku1 *big.Int, cointype string, ch
 	errChan := make(chan struct{})
 	signDNode := signing.NewLocalDNode(outCh,endCh,sd,idsign,sd.CurDNodeID,w.ThresHold,PaillierKeyLength,false,nil,nil,finalize_endCh)
 	w.DNode = signDNode
+	signDNode.SetDNodeID(fmt.Sprintf("%v",sd.CurDNodeID))
 	
 	var signWg sync.WaitGroup
 	signWg.Add(2)
@@ -2883,7 +3065,7 @@ func Sign_ec3(msgprex string, message string, cointype string,save string, pkx *
 
 	//*******************!!!Distributed ECDSA Sign Start!!!**********************************
 
-	msgmap := make(map[string]string)
+	/*msgmap := make(map[string]string)
 	err := json.Unmarshal([]byte(save), &msgmap)
 	if err != nil {
 	    res := RpcSmpcRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
@@ -2896,10 +3078,68 @@ func Sign_ec3(msgprex string, message string, cointype string,save string, pkx *
 	    ch <- res
 	    return ""
 	}
-	sd := kgsave.Save
+	sd := kgsave.Save*/
+	mm := strings.Split(save, common.SepSave)
+	if len(mm) == 0 {
+		res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("get save data fail")}
+		ch <- res
+		return "" 
+	}
+
+	sd := &keygen.LocalDNodeSaveData{}
+	sd.Pkx = pkx
+	sd.Pky = pky
+
+	ys := secp256k1.S256().Marshal(pkx,pky)
+	exsit,da := GetPubKeyData(ys)
+	if !exsit || da == nil {
+	    res := RpcSmpcRes{Ret: "", Tip: "sign get local pubkey data fail", Err: fmt.Errorf("sign get local pubkey data fail")}
+	    ch <- res
+	    return ""
+	}
+
+	pubs,ok := da.(*PubKeyData)
+	if !ok || pubs.GroupId == "" {
+	    res := RpcSmpcRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
+	    ch <- res
+	    return ""
+	}
+
+	///sku1
+	da2 := getSkU1FromLocalDb(ys)
+	if da2 == nil {
+		res := RpcSmpcRes{Ret: "", Tip: "sign get sku1 fail", Err: fmt.Errorf("sign get sku1 fail")}
+		ch <- res
+		return ""
+	}
+	sku1 := new(big.Int).SetBytes(da2)
+	if sku1 == nil {
+		res := RpcSmpcRes{Ret: "", Tip: "sign get sku1 fail", Err: fmt.Errorf("sign get sku1 fail")}
+		ch <- res
+		return ""
+	}
+	//
+	sd.SkU1 = sku1
+
+	sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save,pubs.GroupId,cointype)
+
+	U1PaillierPk := make([]*ec2.PublicKey,w.NodeCnt)
+	U1NtildeH1H2 := make([]*ec2.NtildeH1H2,w.NodeCnt)
+	for i:=0;i<w.NodeCnt;i++ {
+	    U1PaillierPk[i] = GetPaillierPkByIndexFromSaveData(save,i)
+	    U1NtildeH1H2[i] = GetNtildeByIndexFromSaveData(save,i,w.NodeCnt)
+	}
+	sd.U1PaillierPk = U1PaillierPk
+	sd.U1NtildeH1H2 = U1NtildeH1H2
+
+	sd.Ids = GetIds(cointype,pubs.GroupId)
+	sd.CurDNodeID = DoubleHash(cur_enode,cointype)
 	
-	fmt.Printf("==============Sign_ec3, 222222  w.groupid = %v ==============\n",w.groupid)
-	idsign := GetIdSignByGroupId(kgsave.MsgToEnode,w.groupid)
+	msgtoenode := GetMsgToEnode(cointype,pubs.GroupId)
+	kgsave := &KGLocalDBSaveData{Save:sd,MsgToEnode:msgtoenode}
+	
+	//idsign := GetIdSignByGroupId(kgsave.MsgToEnode,w.groupid)
+	idsign := GetIds(cointype,w.groupid)
 
 	commStopChan := make(chan struct{})
 	outCh := make(chan smpclib.Message, w.ThresHold)
@@ -2909,6 +3149,7 @@ func Sign_ec3(msgprex string, message string, cointype string,save string, pkx *
 	predata := &signing.PrePubData{K1:pre.K1,R:pre.R,Ry:pre.Ry,Sigma1:pre.Sigma1}
 	signDNode := signing.NewLocalDNode(outCh,endCh,sd,idsign,sd.CurDNodeID,w.ThresHold,PaillierKeyLength,true,predata,mMtA,finalize_endCh)
 	w.DNode = signDNode
+	signDNode.SetDNodeID(fmt.Sprintf("%v",DoubleHash(cur_enode,"EC256K1")))
 	
 	var signWg sync.WaitGroup
 	signWg.Add(2)
@@ -3025,7 +3266,7 @@ func Sign_ec3(msgprex string, message string, cointype string,save string, pkx *
 	common.Info("=====================Sign_ec3,first get recid =================","recid",recid,"key",msgprex)
 	
 	////check v
-	ys := secp256k1.S256().Marshal(pkx,pky)
+	ys = secp256k1.S256().Marshal(pkx,pky)
 	pubkeyhex := hex.EncodeToString(ys)
 	pbhs := []rune(pubkeyhex)
 	if string(pbhs[0:2]) == "0x" {

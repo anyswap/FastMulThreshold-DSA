@@ -471,6 +471,11 @@ func DeleteReShareInfoData(key []byte) error {
 
 func GetGroupDir() string { //TODO
 	dir := common.DefaultDataDir()
+	tmp := dir + "/dcrmdata/dcrmdb" + discover.GetLocalID().String() + "group"
+	if common.FileExist(tmp) == true {
+	    return tmp
+	}
+
 	dir += "/smpcdata/smpcdb" + discover.GetLocalID().String() + "group"
 	return dir
 }
@@ -479,6 +484,11 @@ func GetGroupDir() string { //TODO
 
 func GetDbDir() string {
 	dir := common.DefaultDataDir()
+	tmp := dir + "/dcrmdata/dcrmdb" + cur_enode
+	if common.FileExist(tmp) == true {
+	    return tmp
+	}
+	
 	dir += "/smpcdata/smpcdb" + cur_enode
 	return dir
 }
@@ -498,6 +508,11 @@ func GetSmpcDb() *ethdb.LDBDatabase {
 
 func GetSkU1Dir() string {
 	dir := common.DefaultDataDir()
+	tmp := dir + "/dcrmdata/sk" + cur_enode
+	if common.FileExist(tmp) == true {
+	    return tmp
+	}
+	
 	dir += "/smpcdata/sk" + cur_enode
 	return dir
 }

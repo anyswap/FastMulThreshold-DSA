@@ -685,13 +685,13 @@ func InitPreSign(raw string,workid int,sender string,ch chan interface{}) bool {
 		w.groupid = ps.Gid
 		w.SmpcFrom = ps.Pub
 		gcnt, _ := GetGroup(w.groupid)
-		w.NodeCnt = gcnt //TODO
+		w.NodeCnt = gcnt
 		w.ThresHold = gcnt
 
 		smpcpks, _ := hex.DecodeString(ps.Pub)
 		exsit,da := GetPubKeyData(smpcpks[:])
 		if !exsit {
-		    common.Debug("============================PreSign at RecvMsg.Run,not exist presign data===========================","pubkey",ps.Pub)
+		    common.Error("============================PreSign at RecvMsg.Run,not exist presign data===========================","pubkey",ps.Pub)
 		    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get presign data from db fail", Err: fmt.Errorf("get presign data from db fail")}
 		    ch <- res
 		    return false
@@ -699,14 +699,18 @@ func InitPreSign(raw string,workid int,sender string,ch chan interface{}) bool {
 
 		pd,ok := da.(*PubKeyData)
 		if !ok {
-		    common.Debug("============================PreSign at RecvMsg.Run,presign data error==========================","pubkey",ps.Pub)
+		    common.Error("============================PreSign at RecvMsg.Run,presign data error==========================","pubkey",ps.Pub)
 		    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get presign data from db fail", Err: fmt.Errorf("get presign data from db fail")}
 		    ch <- res
 		    return false
 		}
 
-		save := (da.(*PubKeyData)).Save
-		msgmap := make(map[string]string)
+		nodecount, _ := GetGroup(pd.GroupId)
+		w.NodeCnt = nodecount
+
+		save := pd.Save
+		common.Debug("============================InitPreSign==========================","w.SmpcFrom",w.SmpcFrom,"w.groupid",w.groupid,"w.NodeCnt",w.NodeCnt,"pd.GroupId",pd.GroupId)
+		/*msgmap := make(map[string]string)
 		err := json.Unmarshal([]byte(save), &msgmap)
 		if err != nil {
 		    res := RpcSmpcRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
@@ -725,9 +729,20 @@ func InitPreSign(raw string,workid int,sender string,ch chan interface{}) bool {
 		    ch <- res
 		    return false
 		}
-		sku1 := sd.SkU1
-		fmt.Printf("===================InitPreSign, local save data = %v ===================\n",sd)
-		//////////////
+		sku1 := sd.SkU1*/
+		///sku1
+		da2 := getSkU1FromLocalDb(smpcpks[:])
+		if da2 == nil {
+			res := RpcSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
+			ch <- res
+			return false
+		}
+		sku1 := new(big.Int).SetBytes(da2)
+		if sku1 == nil {
+			res := RpcSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
+			ch <- res
+			return false
+		}
 		
 		childSKU1 := sku1
 		if ps.InputCode != "" {
@@ -1149,7 +1164,7 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		    w.groupid = ps.Gid
 		    w.SmpcFrom = ps.Pub
 		    gcnt, _ := GetGroup(w.groupid)
-		    w.NodeCnt = gcnt //TODO
+		    w.NodeCnt = gcnt
 		    w.ThresHold = gcnt
 
 		    smpcpks, _ := hex.DecodeString(ps.Pub)
@@ -1169,8 +1184,12 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 			return false
 		    }
 
-		    save := (da.(*PubKeyData)).Save
-		    msgmap := make(map[string]string)
+		    nodecount, _ := GetGroup(pd.GroupId)
+		    w.NodeCnt = nodecount
+
+		    save := pd.Save
+		    common.Debug("============================RecvMsg.Run==========================","w.SmpcFrom",w.SmpcFrom,"w.groupid",w.groupid,"w.NodeCnt",w.NodeCnt,"pd.GroupId",pd.GroupId)
+		    /*msgmap := make(map[string]string)
 		    err = json.Unmarshal([]byte(save), &msgmap)
 		    if err != nil {
 			res := RpcSmpcRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
@@ -1189,10 +1208,21 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 			ch <- res
 			return false
 		    }
-		    sku1 := sd.SkU1
-		    fmt.Printf("===================RecvMsg.Run,local save data = %v ===================\n",sd)
-		    //////////////
-		    
+		    sku1 := sd.SkU1*/
+		    ///sku1
+		    da2 := getSkU1FromLocalDb(smpcpks[:])
+		    if da2 == nil {
+			    res := RpcSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
+			    ch <- res
+			    return false
+		    }
+		    sku1 := new(big.Int).SetBytes(da2)
+		    if sku1 == nil {
+			    res := RpcSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
+			    ch <- res
+			    return false
+		    }
+
 		    childSKU1 := sku1
 		    if ps.InputCode != "" {
 			da4 := getBip32cFromLocalDb(smpcpks[:])
@@ -3183,6 +3213,7 @@ func GetGroupSigsDataByRaw(raw string) (string,error) {
     _, enodes := GetGroup(groupid)
     nodes := strings.Split(enodes, common.Sep2)
     if nodecnt != len(sigs) {
+	fmt.Printf("============================GetGroupSigsDataByRaw,nodecnt = %v,common.Sep2 = %v,enodes = %v,groupid = %v,sigs len = %v,groupsigs = %v========================\n",nodecnt,common.Sep2,enodes,groupid,len(sigs),groupsigs)
 	return "",fmt.Errorf("group sigs error")
     }
 
@@ -3193,12 +3224,14 @@ func GetGroupSigsDataByRaw(raw string) (string,error) {
 	    node2 := ParseNode(node)
 	    enId := strings.Split(en[0],"//")
 	    if len(enId) < 2 {
+		fmt.Printf("==========================GetGroupSigsDataByRaw,len enid = %v========================\n",len(enId))
 		return "",fmt.Errorf("group sigs error")
 	    }
 
 	    if strings.EqualFold(node2, enId[1]) {
 		enodesigs := []rune(sigs[j])
 		if len(enodesigs) <= len(node) {
+		    fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v========================\n",node,enodesigs,len(node),len(enodesigs),enodes,groupsigs)
 		    return "",fmt.Errorf("group sigs error")
 		}
 
@@ -3206,11 +3239,13 @@ func GetGroupSigsDataByRaw(raw string) (string,error) {
 		//sigbit, _ := hex.DecodeString(string(sig[:]))
 		sigbit := common.FromHex(string(sig[:]))
 		if sigbit == nil {
+		    fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v,sig = %v========================\n",node,enodesigs,len(node),len(enodesigs),enodes,groupsigs,sig)
 		    return "",fmt.Errorf("group sigs error")
 		}
 
 		pub,err := secp256k1.RecoverPubkey(crypto.Keccak256([]byte(node2)),sigbit)
 		if err != nil {
+		    fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v,sig = %v,err = %v========================\n",node,enodesigs,len(node),len(enodesigs),enodes,groupsigs,sig,err)
 		    return "",err
 		}
 		
@@ -3219,6 +3254,7 @@ func GetGroupSigsDataByRaw(raw string) (string,error) {
 		    pubkey := hex.EncodeToString(pub)
 		    from, err := h.PublicKeyToAddress(pubkey)
 		    if err != nil {
+			fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v,sig = %v,err = %v, pubkey = %v========================\n",node,enodesigs,len(node),len(enodesigs),enodes,groupsigs,sig,err,pubkey)
 			return "",err
 		    }
 		    
@@ -3233,6 +3269,7 @@ func GetGroupSigsDataByRaw(raw string) (string,error) {
     }
 
     tmps := strings.Split(sstmp,common.Sep)
+    fmt.Printf("===========================GetGroupSigsDataByRaw,sstmp = %v,common.Sep = %v,tmps len = %v,nodecnt = %v==========================\n",sstmp,common.Sep,len(tmps),nodecnt)
     if len(tmps) == (2*nodecnt + 1) {
 	return sstmp,nil
     }

@@ -55,7 +55,6 @@ func (round *round2) Start() error {
 	    u1nt := round.save.U1NtildeH1H2[index]
 	    u1u1MtAZK1Proof := ec2.MtAZK1Prove_nhh(round.temp.u1K,round.temp.ukc2,u1PaillierPk,u1nt)
 	   
-	    fmt.Printf("==============round2.start,cur_index = %v,oldindex = %v,index = %v, u1K = %v, ukc = %v, ukc2 = %v, pk = %v, ntilde = %v, u1u1MtAZK1Proof = %v ============\n",cur_index,oldindex,index,round.temp.u1K,round.temp.ukc,round.temp.ukc2,u1PaillierPk,u1nt,u1u1MtAZK1Proof)
 	    srm := &SignRound2Message{
 		SignRoundMessage: new(SignRoundMessage),
 		U1u1MtAZK1Proof: u1u1MtAZK1Proof,

@@ -25,8 +25,6 @@ import (
 	//"io"
 	"math/big"
 	//"strconv"
-	"sort"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
 	"strings"
 	"time"
 	"encoding/json"
@@ -39,7 +37,6 @@ import (
 	keygen "github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
 	edkeygen "github.com/anyswap/Anyswap-MPCNode/smpc-lib/eddsa/keygen"
 	//"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
 )
 
 var (
@@ -292,7 +289,6 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 	cur_enode = GetSelfEnode()
 
-	//fmt.Printf("====================smpc_genPubKey,cointype = %v ================\n",cointype)
 	if cointype == "ED25519" {
 		ok2 := false
 		for j := 0;j < recalc_times;j++ { //try 20 times
@@ -337,20 +333,13 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 		}
 
 		sedsku1 := itertmp.Value.(string)
-		////////
 		tt := fmt.Sprintf("%v",time.Now().UnixNano()/1e6)
-		//rk := Keccak256Hash([]byte(strings.ToLower(account + ":" + cointype + ":" + wk.groupid + ":" + nonce + ":" + wk.limitnum + ":" + mode))).Hex()
-
 		pubkeyhex := hex.EncodeToString(sedpk)
-		
-		//smpcaddrs,_,_ := GetSmpcAddr(pubkeyhex)
-		//solana_addr,_ := PubkeyHexToAddress(pubkeyhex)
-		//fmt.Printf("====================smpc_genPubKey,success get pubkey = %v,smpc addr = %v, solana addr = %v =====================\n",pubkeyhex,smpcaddrs,solana_addr)
 		
 		pubs := &PubKeyData{Key:msgprex,Account: account, Pub: string(sedpk), Save: sedsave, Nonce: nonce, GroupId: wk.groupid, LimitNum: wk.limitnum, Mode: mode,KeyGenTime:tt}
 		epubs, err := Encode2(pubs)
 		if err != nil {
-			common.Debug("===============smpc_genPubKey,encode fail=================","err",err,"account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",msgprex)
+			common.Error("===============smpc_genPubKey,encode fail=================","err",err,"account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",msgprex)
 			res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:encode PubKeyData fail in req ed pubkey", Err: err}
 			ch <- res
 			return
@@ -358,7 +347,7 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 		ss, err := Compress([]byte(epubs))
 		if err != nil {
-			common.Debug("===============smpc_genPubKey,commpress fail=================","err",err,"account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",msgprex)
+			common.Error("===============smpc_genPubKey,commpress fail=================","err",err,"account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",msgprex)
 			res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:compress PubKeyData fail in req ed pubkey", Err: err}
 			ch <- res
 			return
@@ -367,7 +356,7 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 		common.Info("===============smpc_genPubKey,start call AcceptReqAddr to update success status=================","account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",msgprex)
 		tip, reply := AcceptReqAddr("",account, cointype, wk.groupid, nonce, wk.limitnum, mode, "true", "true", "Success", pubkeyhex, "", "", nil, id,"")
 		if reply != nil {
-			common.Info("===============smpc_genPubKey,update reqaddr status=================","err",reply,"account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",msgprex)
+			common.Error("===============smpc_genPubKey,update reqaddr status=================","err",reply,"account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",msgprex)
 			res := RpcSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("update req addr status error.")}
 			ch <- res
 			return
@@ -436,7 +425,6 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 	    }
 	    
 	    wk.Clear2()
-	    //time.Sleep(time.Duration(3) * time.Second) //1000 == 1s
 	}
 
 	if !ok {
@@ -507,7 +495,7 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 	pubs := &PubKeyData{Key:msgprex,Account: account, Pub: string(ys), Save: save, Nonce: nonce, GroupId: wk.groupid, LimitNum: wk.limitnum, Mode: mode,KeyGenTime:tt}
 	epubs, err := Encode2(pubs)
 	if err != nil {
-		common.Debug("===============smpc_genPubKey,encode fail===================","err",err,"account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",rk)
+		common.Error("===============smpc_genPubKey,encode fail===================","err",err,"account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",rk)
 		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:encode PubKeyData fail in req ec2 pubkey", Err: err}
 		ch <- res
 		return
@@ -533,7 +521,7 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 	err = PutPubKeyData(ys,[]byte(ss))
 	if err != nil {
-	    common.Info("================================dcrm_genPubKey,put pubkey data fail,111111=========================","err",err,"key",msgprex)
+	    common.Error("================================dcrm_genPubKey,put pubkey data fail,111111=========================","err",err,"key",msgprex)
 	    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put pubkey data fail", Err: err}
 	    ch <- res
 	    return
@@ -560,7 +548,7 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 	    err = PutPubKeyData([]byte(key),[]byte(ss))
 	    if err != nil {
-		common.Info("================================dcrm_genPubKey,put pubkey data fail,222222=========================","err",err,"key",msgprex)
+		common.Error("================================dcrm_genPubKey,put pubkey data fail,222222=========================","err",err,"key",msgprex)
 		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put pubkey data fail", Err: err}
 		ch <- res
 		return
@@ -568,7 +556,7 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 	    err = putSkU1ToLocalDb([]byte(key),[]byte(sku1))
 	    if err != nil {
-		common.Info("================================dcrm_genPubKey,put sku1 data fail,=========================","err",err,"key",msgprex)
+		common.Error("================================dcrm_genPubKey,put sku1 data fail,=========================","err",err,"key",msgprex)
 		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put sku1 data fail", Err: err}
 		ch <- res
 		return
@@ -576,7 +564,7 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 	    
 	    err = putBip32cToLocalDb([]byte(key),[]byte(bip32c))
 	    if err != nil {
-		common.Info("================================dcrm_genPubKey,put bip32c fail,=========================","err",err,"key",msgprex)
+		common.Error("================================dcrm_genPubKey,put bip32c fail,=========================","err",err,"key",msgprex)
 		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put bip32c fail", Err: err}
 		ch <- res
 		return
@@ -586,74 +574,6 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 	res := RpcSmpcRes{Ret: pubkeyhex, Tip: "", Err: nil}
 	ch <- res
-}
-
-func GetIds(keytype string, groupid string) sortableIDSSlice {
-	var ids sortableIDSSlice
-	_, nodes := GetGroup(groupid)
-	others := strings.Split(nodes, common.Sep2)
-	for _, v := range others {
-		node2 := ParseNode(v) //bug??
-		uid := DoubleHash(node2, keytype)
-		ids = append(ids, uid)
-	}
-	sort.Sort(ids)
-	return ids
-}
-
-func DoubleHash(id string, keytype string) *big.Int {
-	// Generate the random num
-
-	// First, hash with the keccak256
-	keccak256 := sha3.NewKeccak256()
-	_,err := keccak256.Write([]byte(id))
-	if err != nil {
-	    return nil
-	}
-
-
-	digestKeccak256 := keccak256.Sum(nil)
-
-	//second, hash with the SHA3-256
-	sha3256 := sha3.New256()
-
-	_,err = sha3256.Write(digestKeccak256)
-	if err != nil {
-	    return nil
-	}
-
-	if keytype == "ED25519" {
-	    var digest [32]byte
-	    copy(digest[:], sha3256.Sum(nil))
-
-	    //////
-	    var zero [32]byte
-	    var one [32]byte
-	    one[0] = 1
-	    ed.ScMulAdd(&digest, &digest, &one, &zero)
-	    //////
-	    digestBigInt := new(big.Int).SetBytes(digest[:])
-	    return digestBigInt
-	}
-
-	digest := sha3256.Sum(nil)
-	// convert the hash ([]byte) to big.Int
-	digestBigInt := new(big.Int).SetBytes(digest)
-	return digestBigInt
-}
-
-func GetEnodesByUid(uid *big.Int, keytype string, groupid string) string {
-	_, nodes := GetGroup(groupid)
-	others := strings.Split(nodes, common.Sep2)
-	for _, v := range others {
-		node2 := ParseNode(v) //bug??
-		id := DoubleHash(node2, keytype)
-		if id.Cmp(uid) == 0 {
-			return v
-		}
-	}
-
-	return ""
 }
 
 //ed
@@ -687,6 +607,7 @@ func KeyGenerate_DEDDSA(msgprex string, ch chan interface{}, id int, cointype st
 	errChan := make(chan struct{})
 	keyGenDNode := edkeygen.NewLocalDNode(outCh,endCh,ns,w.ThresHold)
 	w.DNode = keyGenDNode
+	keyGenDNode.SetDNodeID(fmt.Sprintf("%v",DoubleHash(cur_enode,"ED25519")))
 
 	w.MsgToEnode[w.DNode.DNodeID()] = cur_enode
 
@@ -1374,8 +1295,8 @@ func KeyGenerate_DECDSA(msgprex string, ch chan interface{}, id int, cointype st
 	errChan := make(chan struct{})
 	keyGenDNode := keygen.NewLocalDNode(outCh,endCh,ns,w.ThresHold,2048)
 	w.DNode = keyGenDNode
-	//keyGenDNode.SetDNodeID(fmt.Sprintf("%v",DoubleHash2(cur_enode,"ECDSA")))
-	//fmt.Printf("=========== keygen, node uid = %v ===========\n",keyGenDNode.DNodeID())
+	keyGenDNode.SetDNodeID(fmt.Sprintf("%v",DoubleHash(cur_enode,"EC256K1")))
+	fmt.Printf("=========== keygen, node uid = %v ===========\n",keyGenDNode.DNodeID())
 	
 	uid,_ := new(big.Int).SetString(w.DNode.DNodeID(),10)
 	w.MsgToEnode[fmt.Sprintf("%v",uid)] = cur_enode

@@ -36,6 +36,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 	"github.com/fsn-dev/cryptoCoins/coins"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 )
 
 func GetReShareNonce(account string) (string, string, error) {
@@ -344,14 +345,14 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 
 	if oldnode {
 	    _,ok := da.(*PubKeyData)
-	    if !ok {
+	    if !ok || (da.(*PubKeyData)).GroupId == "" {
 		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get sign data from db fail", Err: fmt.Errorf("get sign data from db fail")}
 		ch <- res
 		return
 	    }
 
 	    save := (da.(*PubKeyData)).Save
-	    msgmap := make(map[string]string)
+	    /*msgmap := make(map[string]string)
 	    err := json.Unmarshal([]byte(save), &msgmap)
 	    if err != nil {
 		res := RpcSmpcRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
@@ -364,7 +365,50 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 		ch <- res
 		return
 	    }
-	    sd := kgsave.Save
+	    sd := kgsave.Save*/
+	    mm := strings.Split(save, common.SepSave)
+	    if len(mm) == 0 {
+		    res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("reshare get save data fail")}
+		    ch <- res
+		    return 
+	    }
+	    
+	    sd := &keygen.LocalDNodeSaveData{}
+	    ///sku1
+	    da2 := getSkU1FromLocalDb(smpcpks[:])
+	    if da2 == nil {
+		    res := RpcSmpcRes{Ret: "", Tip: "reshare get sku1 fail", Err: fmt.Errorf("reshare get sku1 fail")}
+		    ch <- res
+		    return 
+	    }
+	    sku1 := new(big.Int).SetBytes(da2)
+	    if sku1 == nil {
+		    res := RpcSmpcRes{Ret: "", Tip: "reshare get sku1 fail", Err: fmt.Errorf("reshare get sku1 fail")}
+		    ch <- res
+		    return 
+	    }
+	    //
+	    sd.SkU1 = sku1
+	    pkx, pky := secp256k1.S256().Unmarshal(smpcpks[:])
+	    sd.Pkx = pkx
+	    sd.Pky = pky
+
+	    sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save,(da.(*PubKeyData)).GroupId,"EC256K1")
+
+	    U1PaillierPk := make([]*ec2.PublicKey,w.NodeCnt)
+	    U1NtildeH1H2 := make([]*ec2.NtildeH1H2,w.NodeCnt)
+	    for i:=0;i<w.NodeCnt;i++ {
+		U1PaillierPk[i] = GetPaillierPkByIndexFromSaveData(save,i)
+		U1NtildeH1H2[i] = GetNtildeByIndexFromSaveData(save,i,w.NodeCnt)
+	    }
+	    sd.U1PaillierPk = U1PaillierPk
+	    sd.U1NtildeH1H2 = U1NtildeH1H2
+
+	    sd.Ids = GetIds("EC256K1",(da.(*PubKeyData)).GroupId)
+	    sd.CurDNodeID = DoubleHash(cur_enode,"EC256K1")
+	
+	    msgtoenode := GetMsgToEnode("EC256K1",(da.(*PubKeyData)).GroupId)
+	    kgsave := &KGLocalDBSaveData{Save:sd,MsgToEnode:msgtoenode}
 	    
 	    found := false
 	    idreshare := GetIdReshareByGroupId(kgsave.MsgToEnode,w.groupid)
@@ -387,6 +431,7 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 		errChan := make(chan struct{})
 		reshareDNode := reshare.NewLocalDNode(outCh,endCh,ns,w.ThresHold,2048,sd,true)
 		w.DNode = reshareDNode
+		reshareDNode.SetDNodeID(fmt.Sprintf("%v",DoubleHash(cur_enode,"EC256K1")))
 		
 		uid,_ := new(big.Int).SetString(w.DNode.DNodeID(),10)
 		w.MsgToEnode[fmt.Sprintf("%v",uid)] = cur_enode
@@ -429,6 +474,7 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 	errChan := make(chan struct{})
 	reshareDNode := reshare.NewLocalDNode(outCh,endCh,ns,w.ThresHold,2048,nil,false)
 	w.DNode = reshareDNode
+	reshareDNode.SetDNodeID(fmt.Sprintf("%v",DoubleHash(cur_enode,"EC256K1")))
 	
 	uid,_ := new(big.Int).SetString(w.DNode.DNodeID(),10)
 	w.MsgToEnode[fmt.Sprintf("%v",uid)] = cur_enode

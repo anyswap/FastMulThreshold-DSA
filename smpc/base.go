@@ -46,6 +46,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha512"
 	smpclibec2 "github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
+	smpclib "github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"sort"
 )
 
 var (
@@ -1507,7 +1510,7 @@ func GetBip32ChildKey(rootpubkey string,inputcode string) (string,string,error) 
     return pubkeyhex,"",nil
 }
 
-type sortableIDSSlice []*big.Int
+/*type sortableIDSSlice []*big.Int
 
 func (s sortableIDSSlice) Len() int {
 	return len(s)
@@ -1519,9 +1522,9 @@ func (s sortableIDSSlice) Less(i, j int) bool {
 
 func (s sortableIDSSlice) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
-}
+}*/
 
-func DoubleHash2(id string, keytype string) *big.Int {
+func DoubleHash(id string, keytype string) *big.Int {
 	// Generate the random num
 
 	// First, hash with the keccak256
@@ -1542,9 +1545,50 @@ func DoubleHash2(id string, keytype string) *big.Int {
 	    return nil
 	}
 
+	if keytype == "ED25519" {
+	    var digest [32]byte
+	    copy(digest[:], sha3256.Sum(nil))
+
+	    //////
+	    var zero [32]byte
+	    var one [32]byte
+	    one[0] = 1
+	    ed.ScMulAdd(&digest, &digest, &one, &zero)
+	    //////
+	    digestBigInt := new(big.Int).SetBytes(digest[:])
+	    return digestBigInt
+	}
+
 	digest := sha3256.Sum(nil)
 	// convert the hash ([]byte) to big.Int
 	digestBigInt := new(big.Int).SetBytes(digest)
 	return digestBigInt
+}
+
+func GetIds(keytype string, groupid string) smpclib.SortableIDSSlice {
+	var ids smpclib.SortableIDSSlice
+	_, nodes := GetGroup(groupid)
+	others := strings.Split(nodes, common.Sep2)
+	for _, v := range others {
+		node2 := ParseNode(v) //bug??
+		uid := DoubleHash(node2, keytype)
+		ids = append(ids, uid)
+	}
+	sort.Sort(ids)
+	return ids
+}
+
+func GetEnodesByUid(uid *big.Int, keytype string, groupid string) string {
+	_, nodes := GetGroup(groupid)
+	others := strings.Split(nodes, common.Sep2)
+	for _, v := range others {
+		node2 := ParseNode(v) //bug??
+		id := DoubleHash(node2, keytype)
+		if id.Cmp(uid) == 0 {
+			return v
+		}
+	}
+
+	return ""
 }
 
