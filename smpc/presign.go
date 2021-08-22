@@ -329,6 +329,7 @@ func InitAcceptData2(sbd *SignPickData,workid int,sender string,ch chan interfac
     
     sig,ok := txdata.(*TxDataSign)
     if ok {
+	time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 	common.Debug("===============InitAcceptData2, it is sign txdata and check sign raw success==================","key ",key,"from ",from,"nonce ",nonce)
 	exsit,_ := GetSignInfoData([]byte(key))
 	if !exsit {
@@ -347,6 +348,7 @@ func InitAcceptData2(sbd *SignPickData,workid int,sender string,ch chan interfac
 			common.Info("===============InitAcceptDatai2,save sign accept data finish===================","ars ",ars,"key ",key,"tx data",sig)
 			for k,v := range workers {
 			    if strings.EqualFold(v.sid, key) {
+				MergeAllPreSaveMsgToWorkerId(k)
 				err = SignInitAcceptData(sbd.Raw,k,sender,ch)
 				v.bwire <-true //add for smpc-lib
 				return err 

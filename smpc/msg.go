@@ -546,9 +546,10 @@ func Call(msg interface{}, enode string) {
 	    w, err := FindWorker(key)
 	    if err == nil {
 		fmt.Printf("\n============Call,keygen cmd arrive after smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
+		MergeAllPreSaveMsgToWorkerId(w.id)
 		ch := make(chan interface{}, 1)
 		KeyInitAcceptData(s,w.id,enode,ch)
-		w.bwire <-true //add for smpc-lib
+		w.bwire <-true //Release the worker thread
 	    } else {
 		fmt.Printf("\n============Call,keygen cmd arrive before smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
 		SetUpMsgList(s, enode)
@@ -562,9 +563,10 @@ func Call(msg interface{}, enode string) {
 	    w, err := FindWorker(key)
 	    if err == nil {
 		fmt.Printf("\n============Call,reshare cmd arrive after dcrm msg. key = %v, msg = %v ==============\n",key,msgmap)
+		MergeAllPreSaveMsgToWorkerId(w.id)
 		ch := make(chan interface{}, 1)
 		ReshareInitAcceptData(s,w.id,enode,ch)
-		w.bwire <-true //add for dcrm-lib
+		w.bwire <-true //Release the worker thread
 	    } else {
 		fmt.Printf("\n============Call,reshare cmd arrive before dcrm msg. key = %v, msg = %v ==============\n",key,msgmap)
 		SetUpMsgList(s, enode)
@@ -578,9 +580,10 @@ func Call(msg interface{}, enode string) {
 	    w, err := FindWorker(key)
 	    if err == nil {
 		fmt.Printf("\n============Call,presign cmd arrive after smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
+		MergeAllPreSaveMsgToWorkerId(w.id)
 		ch := make(chan interface{}, 1)
 		InitPreSign(s,w.id,enode,ch)
-		w.bwire <-true //add for smpc-lib
+		w.bwire <-true //Release the worker thread
 	    } else {
 		fmt.Printf("\n============Call,presign cmd arrive before smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
 		SetUpMsgList(s, enode)
@@ -595,9 +598,10 @@ func Call(msg interface{}, enode string) {
 	    w, err := FindWorker(key)
 	    if err == nil {
 		fmt.Printf("\n============Call,sign cmd arrive after smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
+		MergeAllPreSaveMsgToWorkerId(w.id)
 		ch := make(chan interface{}, 1)
 		SignInitAcceptData(s,w.id,enode,ch)
-		w.bwire <-true //add for smpc-lib
+		w.bwire <-true //Release the worker thread
 	    } else {
 		fmt.Printf("\n============Call,sign cmd arrive before smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
 		SetUpMsgList(s, enode)
@@ -611,9 +615,10 @@ func Call(msg interface{}, enode string) {
 	    w, err := FindWorker(key)
 	    if err == nil {
 		fmt.Printf("\n============Call,signdata cmd arrive after smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
+		MergeAllPreSaveMsgToWorkerId(w.id)
 		ch := make(chan interface{}, 1)
 		InitSignData(s,w.id,enode,ch)
-		w.bwire <-true //add for smpc-lib
+		w.bwire <-true //Release the worker thread
 	    } else {
 		fmt.Printf("\n============Call,signdata cmd arrive before smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
 		SetUpMsgList(s, enode)
@@ -624,6 +629,32 @@ func Call(msg interface{}, enode string) {
 	/////
 
 	SetUpMsgList(s,enode)
+}
+
+func MergeAllPreSaveMsgToWorkerId(wid int) {
+    if wid < 0 || wid >= len(workers){
+	return
+    }
+
+    w := workers[wid]
+    if w == nil || w.sid == "" {
+	return
+    }
+
+    for k,v := range workers {
+	if v == nil || v.sid == "" {
+	    continue
+	}
+
+	if k == wid {
+	    continue
+	}
+
+	if strings.EqualFold(v.sid, w.sid) {
+	    w.PreSaveSmpcMsg = append(w.PreSaveSmpcMsg,v.PreSaveSmpcMsg...)
+	    v.bwire <-true // Release the worker thread 
+	}
+    }
 }
 
 func SetUpMsgList(msg string, enode string) {
@@ -1032,8 +1063,9 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		    fmt.Printf("===============RecvMsg.Run, sign data, begin to check sid, key = %v =====================\n",sd.Key)
 		    for k,v := range workers {
 			if strings.EqualFold(v.sid, sd.Key) {
+			    MergeAllPreSaveMsgToWorkerId(k)
 			    b := InitSignData(res,k,self.sender,ch)
-			    v.bwire <-true //add for smpc-lib
+			    v.bwire <-true //Release the worker thread
 			    return b
 			}
 		    }
@@ -1154,8 +1186,9 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		    w := workers[workid]
 		    for k,v := range workers {
 			if strings.EqualFold(v.sid, ps.Nonce) {
+			    MergeAllPreSaveMsgToWorkerId(k)
 			    b := InitPreSign(res,k,self.sender,ch)
-			    v.bwire <-true //add for smpc-lib
+			    v.bwire <-true //Release the worker thread
 			    return b
 			}
 		    }
@@ -1931,15 +1964,15 @@ func KeyInitAcceptData(raw string,workid int,sender string,ch chan interface{}) 
     req,ok := txdata.(*TxDataReqAddr)
     if ok {
 	common.Info("===============KeyInitAcceptData, check reqaddr raw success==================","raw ",raw,"key ",key,"from ",from,"nonce ",nonce,"txdata ",req)
-	exsit,_ := GetReqAddrInfoData([]byte(key))
-	if !exsit {
-	    cur_nonce, _, _ := GetReqAddrNonce(from)
-	    cur_nonce_num, _ := new(big.Int).SetString(cur_nonce, 10)
-	    new_nonce_num, _ := new(big.Int).SetString(nonce, 10)
-	    common.Debug("===============KeyInitAcceptData============","reqaddr cur_nonce_num ",cur_nonce_num,"reqaddr new_nonce_num ",new_nonce_num,"key ",key)
-	    if new_nonce_num.Cmp(cur_nonce_num) >= 0 {
-		_, err := SetReqAddrNonce(from,nonce)
-		if err == nil {
+	//exsit,_ := GetReqAddrInfoData([]byte(key))
+	//if !exsit {
+	    //cur_nonce, _, _ := GetReqAddrNonce(from)
+	    //cur_nonce_num, _ := new(big.Int).SetString(cur_nonce, 10)
+	    //new_nonce_num, _ := new(big.Int).SetString(nonce, 10)
+	    //common.Debug("===============KeyInitAcceptData============","reqaddr cur_nonce_num ",cur_nonce_num,"reqaddr new_nonce_num ",new_nonce_num,"key ",key)
+	    //if new_nonce_num.Cmp(cur_nonce_num) >= 0 {
+		//_, err := SetReqAddrNonce(from,nonce)
+		//if err == nil {
 		    ars := GetAllReplyFromGroup(workid,req.GroupId,Rpc_REQADDR,sender)
 		    sigs,err := GetGroupSigsDataByRaw(raw) 
 		    common.Info("=================KeyInitAcceptData================","get group sigs ",sigs,"err ",err,"key ",key)
@@ -2128,9 +2161,9 @@ func KeyInitAcceptData(raw string,workid int,sender string,ch chan interface{}) 
 			return nil
 			/////////////
 		   }
-		}
-	    }
-	}
+		//}
+	    //}
+	//}
     }
     
     res := RpcSmpcRes{Ret: "", Tip: "init accept data fail.", Err: fmt.Errorf("init accept data fail")}
@@ -2157,16 +2190,16 @@ func SignInitAcceptData(raw string,workid int,sender string,ch chan interface{})
     sig,ok := txdata.(*TxDataSign)
     if ok {
 	common.Debug("===============SignInitAcceptData, it is sign txdata and check sign raw success==================","key ",key,"from ",from,"nonce ",nonce)
-	exsit,_ := GetSignInfoData([]byte(key))
-	if !exsit {
-	    cur_nonce, _, _ := GetSignNonce(from)
-	    cur_nonce_num, _ := new(big.Int).SetString(cur_nonce, 10)
-	    new_nonce_num, _ := new(big.Int).SetString(nonce, 10)
-	    common.Debug("===============SignInitAcceptData===============","sign cur_nonce_num ",cur_nonce_num,"sign new_nonce_num ",new_nonce_num,"key ",key)
+	//exsit,_ := GetSignInfoData([]byte(key))
+	//if !exsit {
+	    //cur_nonce, _, _ := GetSignNonce(from)
+	    //cur_nonce_num, _ := new(big.Int).SetString(cur_nonce, 10)
+	    //new_nonce_num, _ := new(big.Int).SetString(nonce, 10)
+	    //common.Debug("===============SignInitAcceptData===============","sign cur_nonce_num ",cur_nonce_num,"sign new_nonce_num ",new_nonce_num,"key ",key)
 	    //if new_nonce_num.Cmp(cur_nonce_num) >= 0 {
 		//_, err := SetSignNonce(from,nonce)
-		_, err := SetSignNonce(from,cur_nonce) //bug
-		if err == nil {
+		//_, err := SetSignNonce(from,cur_nonce) //bug
+		//if err == nil {
 		    ars := GetAllReplyFromGroup(workid,sig.GroupId,Rpc_SIGN,sender)
 		    ac := &AcceptSignData{Initiator:sender,Account: from, GroupId: sig.GroupId, Nonce: nonce, PubKey: sig.PubKey, MsgHash: sig.MsgHash, MsgContext: sig.MsgContext, Keytype: sig.Keytype, LimitNum: sig.ThresHold, Mode: sig.Mode, TimeStamp: sig.TimeStamp, Deal: "false", Accept: "false", Status: "Pending", Rsv: "", Tip: "", Error: "", AllReply: ars, WorkId:workid}
 		    err = SaveAcceptSignData(ac)
@@ -2346,13 +2379,13 @@ func SignInitAcceptData(raw string,workid int,sender string,ch chan interface{})
 		    } else {
 			common.Debug("===============SignInitAcceptData, it is sign txdata,but save accept data fail==================","key ",key,"from ",from)
 		    }
-		} else {
-			common.Debug("===============SignInitAcceptData, it is sign txdata,but set nonce fail==================","key ",key,"from ",from)
-		}
+		//} else {
+		//	common.Debug("===============SignInitAcceptData, it is sign txdata,but set nonce fail==================","key ",key,"from ",from)
+		//}
 	    //}
-	} else {
-		common.Debug("===============SignInitAcceptData, it is sign txdata,but has handled before==================","key ",key,"from ",from)
-	}
+	//} else {
+	//	common.Debug("===============SignInitAcceptData, it is sign txdata,but has handled before==================","key ",key,"from ",from)
+	//}
     }
 
     common.Debug("===============SignInitAcceptData, it is not sign txdata and return fail ==================","key ",key,"from ",from,"nonce ",nonce)
@@ -2380,6 +2413,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
     req,ok := txdata.(*TxDataReqAddr)
     if ok {
 
+	time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 	common.Info("===============InitAcceptData, check reqaddr raw success==================","raw ",raw,"key ",key,"from ",from,"nonce ",nonce,"txdata ",req)
 	exsit,_ := GetReqAddrInfoData([]byte(key))
 	if !exsit {
@@ -2406,8 +2440,9 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 			rch := make(chan interface{}, 1)
 			for k,v := range workers {
 			    if strings.EqualFold(v.sid, key) {
+				MergeAllPreSaveMsgToWorkerId(k)
 				err = KeyInitAcceptData(raw,k,sender,ch)
-				v.bwire <-true //add for smpc-lib
+				v.bwire <-true //Release the worker thread
 				return err
 			    }
 			}
@@ -2593,6 +2628,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 
     sig,ok := txdata.(*TxDataSign)
     if ok {
+	time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 	common.Debug("===============InitAcceptData, it is sign txdata and check sign raw success==================","key ",key,"from ",from,"nonce ",nonce)
 	exsit,_ := GetSignInfoData([]byte(key))
 	if !exsit {
@@ -2611,8 +2647,9 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 			common.Debug("===============InitAcceptData,save sign accept data finish===================","ars ",ars,"key ",key)
 			for k,v := range workers {
 			    if strings.EqualFold(v.sid, key) {
+				MergeAllPreSaveMsgToWorkerId(k)
 				err = SignInitAcceptData(raw,k,sender,ch)
-				v.bwire <-true //add for smpc-lib
+				v.bwire <-true //Release the worker thread
 				return err
 			    }
 			}
@@ -2802,6 +2839,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 
     rh,ok := txdata.(*TxDataReShare)
     if ok {
+	time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 	ars := GetAllReplyFromGroup(workid,rh.GroupId,Rpc_RESHARE,sender)
 	sigs,err := GetGroupSigsDataByRaw(raw) 
 	common.Debug("=================InitAcceptData,reshare=================","get group sigs ",sigs,"err ",err,"key ",key)
@@ -2817,8 +2855,9 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	if err == nil {
 	    for k,v := range workers {
 		if strings.EqualFold(v.sid, key) {
+		    MergeAllPreSaveMsgToWorkerId(k)
 		    err = ReshareInitAcceptData(raw,k,sender,ch)
-		    v.bwire <-true //add for smpc-lib
+		    v.bwire <-true //Release the worker thread
 		    return err
 		}
 	    }
