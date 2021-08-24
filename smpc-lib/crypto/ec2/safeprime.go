@@ -2,9 +2,6 @@ package ec2
 
 import (
 	"math/big"
-	//"fmt"
-	//"encoding/json"
-
 	"time"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
@@ -16,6 +13,9 @@ const (
 
 var (
 	SafePrimeCh = make(chan SafePrime, 4)
+	zero = big.NewInt(0)
+	one  = big.NewInt(1)
+	two  = big.NewInt(2)
 )
 
 type SafePrime struct {
@@ -23,29 +23,29 @@ type SafePrime struct {
     p *big.Int // p = 2q+1
 }
 
-func (sp *SafePrime) Prime() *big.Int {
-	return sp.q
+func (sp *SafePrime) Q() *big.Int {
+    return sp.q
 }
 
-func (sp *SafePrime) SafePrime() *big.Int {
-	return sp.p
+func (sp *SafePrime) P() *big.Int {
+    return sp.p
 }
 
 func (sp *SafePrime) CheckValidate() bool {
-	return probablyPrime(sp.q) &&
-		getSafePrime(sp.q).Cmp(sp.p) == 0 &&
-		probablyPrime(sp.p)
+    return probablyPrime(sp.q) &&
+	    getSafePrime(sp.q).Cmp(sp.p) == 0 &&
+	    probablyPrime(sp.p)
 }
 
 func getSafePrime(p *big.Int) *big.Int {
-	i := new(big.Int)
-	i.Mul(p, two)
-	i.Add(i, one)
-	return i
+    i := new(big.Int)
+    i.Mul(p, two)
+    i.Add(i, one)
+    return i
 }
 
 func probablyPrime(prime *big.Int) bool {
-	return prime != nil && prime.ProbablyPrime(PrimeTestTimes)
+    return prime != nil && prime.ProbablyPrime(PrimeTestTimes)
 }
 
 //------------------------------------------------------

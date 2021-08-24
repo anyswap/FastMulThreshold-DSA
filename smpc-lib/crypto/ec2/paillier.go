@@ -133,6 +133,8 @@ func (publicKey *PublicKey) HomoMul(cipher, k *big.Int) *big.Int {
 	return newCipher
 }
 
+//------------------------------------------------------------------------------
+
 type ZkFactProof struct {
 	H1 *big.Int
 	H2 *big.Int
@@ -183,6 +185,8 @@ func (publicKey *PublicKey) ZkFactVerify(zkFactProof *ZkFactProof) bool {
 	}
 }
 
+//---------------------------------------------------------------------------
+
 func (publicKey *PublicKey) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Length string `json:"Length"`
@@ -215,7 +219,7 @@ func (publicKey *PublicKey) UnmarshalJSON(raw []byte) error {
 	return nil
 }
 
-/////
+//--------------------------------------------------------------------------
 
 func (privateKey *PrivateKey) MarshalJSON() ([]byte, error) {
     pk,err := (&(privateKey.PublicKey)).MarshalJSON()
@@ -259,4 +263,48 @@ func (privateKey *PrivateKey) UnmarshalJSON(raw []byte) error {
 	privateKey.U,_ = new(big.Int).SetString(pri.U,10)
 	return nil
 }
+
+//-----------------------------------------------------------------------
+
+func GetRandomPrime() (*big.Int,*big.Int) {
+    q,p := random.GetSafeRandomPrimeInt()
+    if q != nil && p != nil {
+	//check p < 2^(L/2),   L = 2048
+	two := big.NewInt(2)
+	lhalf := big.NewInt(1024)
+	 m := new(big.Int).Exp(two,lhalf,nil)
+	 if p.Cmp(m) < 0 {
+	    return q,p 
+	 }
+    }
+
+    return nil,nil
+}
+
+func CreatPair(length int) (*PublicKey, *PrivateKey) {
+	one := big.NewInt(1)
+
+	_,p := GetRandomPrime()
+	_,q := GetRandomPrime()
+
+	if p == nil || q == nil {
+		return nil, nil
+	}
+
+	n := new(big.Int).Mul(p, q)
+	n2 := new(big.Int).Mul(n, n)
+	g := new(big.Int).Add(n, one)
+
+	pMinus1 := new(big.Int).Sub(p, one)
+	qMinus1 := new(big.Int).Sub(q, one)
+
+	l := new(big.Int).Mul(pMinus1, qMinus1)
+	u := new(big.Int).ModInverse(l, n)
+
+	publicKey := &PublicKey{Length: strconv.Itoa(length), N: n, G: g, N2: n2}
+	privateKey := &PrivateKey{Length: strconv.Itoa(length), PublicKey: *publicKey, L: l, U: u}
+
+	return publicKey, privateKey
+}
+
 

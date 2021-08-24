@@ -85,6 +85,8 @@ func (p *NtildeProof) Verify(h1, h2, N *big.Int) bool {
 	return true
 }
 
+//-------------------------------------------------------------------------------
+
 func (p *NtildeProof) MarshalJSON() ([]byte, error) {
     l := len(p.Alpha)
     var alpha string
@@ -150,16 +152,10 @@ func (p *NtildeProof) UnmarshalJSON(raw []byte) error {
 	return nil
 }
 
-//=========================================================
+//-------------------------------------------------------------------------------------------
 
 // modInt is a *big.Int that performs all of its arithmetic with modular reduction.
 type modInt big.Int
-
-var (
-	zero = big.NewInt(0)
-	one  = big.NewInt(1)
-	two  = big.NewInt(2)
-)
 
 func ModInt(mod *big.Int) *modInt {
 	return (*modInt)(mod)
@@ -211,7 +207,7 @@ func (mi *modInt) i() *big.Int {
 	return (*big.Int)(mi)
 }
 
-//============================================================
+//-----------------------------------------------------------------------------------------------------
 
 // MustGetRandomInt panics if it is unable to gather entropy from `rand.Reader` or when `bits` is <= 0
 func MustGetRandomInt(bits int) *big.Int {
@@ -296,7 +292,7 @@ func GetRandomGeneratorOfTheQuadraticResidue(n *big.Int) *big.Int {
 	return fSq.Mod(fSq, n)
 }
 
-//=================================================================
+//---------------------------------------------------------------------------------------------------------
 
 // SHA-512/256 is protected against length extension attacks and is more performant than SHA-256 on 64-bit architectures.
 // https://en.wikipedia.org/wiki/Template:Comparison_of_SHA_functions

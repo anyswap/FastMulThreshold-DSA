@@ -20,6 +20,14 @@ type ShareStruct2 struct {
 	Share *big.Int
 }
 
+func GetSharesId(ss *ShareStruct2) *big.Int {
+	if ss != nil {
+		return ss.Id
+	}
+
+	return nil
+}
+
 func Vss2Init(secret *big.Int, t int) (*PolyStruct2, *PolyGStruct2, error) {
 
 	poly := make([]*big.Int, 0)
