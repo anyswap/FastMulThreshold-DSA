@@ -31,6 +31,14 @@ func (sp *SafePrime) P() *big.Int {
     return sp.p
 }
 
+func (sp *SafePrime) SetQ(q *big.Int) {
+    sp.q = q
+}
+
+func (sp *SafePrime) SetP(p *big.Int) {
+    sp.p = p
+}
+
 func (sp *SafePrime) CheckValidate() bool {
     if sp.p == nil || sp.q == nil {
 	return false
@@ -41,14 +49,14 @@ func (sp *SafePrime) CheckValidate() bool {
      m := new(big.Int).Exp(two,lhalf,nil)
      if sp.p.Cmp(m) < 0 {
 	return probablyPrime(sp.q) &&
-	    getP(sp.q).Cmp(sp.p) == 0 &&
+	    GetP(sp.q).Cmp(sp.p) == 0 &&
 	    probablyPrime(sp.p)
      }
 
      return false
 }
 
-func getP(q *big.Int) *big.Int {
+func GetP(q *big.Int) *big.Int {
     i := new(big.Int)
     i.Mul(q, two)
     i.Add(i, one)

@@ -38,18 +38,20 @@ type ZkABProof struct {
 	U     *big.Int
 }
 
+//------------------------------------------------------------------------------------
+
 func ZkUProve(u *big.Int) *ZkUProof {
 	r := random.GetRandomIntFromZn(s256.S256().N)
 	rGx, rGy := s256.S256().ScalarBaseMult(r.Bytes())
 	uGx, uGy := s256.S256().ScalarBaseMult(u.Bytes())
 
-	hellofusion := "hello fusion"
+	hellomulti := "hello multichain"
 	sha3256 := sha3.New256()
 	sha3256.Write(rGx.Bytes())
 	sha3256.Write(rGy.Bytes())
 	sha3256.Write(uGx.Bytes())
 	sha3256.Write(uGy.Bytes())
-	sha3256.Write([]byte(hellofusion))
+	sha3256.Write([]byte(hellomulti))
 	eBytes := sha3256.Sum(nil)
 
 	e := new(big.Int).SetBytes(eBytes)
@@ -71,13 +73,13 @@ func ZkUVerify(uG []*big.Int, zkUProof *ZkUProof) bool {
 	eUx, eUy := s256.S256().ScalarMult(uG[0], uG[1], minusE.Bytes())
 	rGx, rGy := s256.S256().Add(sGx, sGy, eUx, eUy)
 
-	hellofusion := "hello fusion"
+	hellomulti := "hello multichain"
 	sha3256 := sha3.New256()
 	sha3256.Write(rGx.Bytes())
 	sha3256.Write(rGy.Bytes())
 	sha3256.Write(uG[0].Bytes())
 	sha3256.Write(uG[1].Bytes())
-	sha3256.Write([]byte(hellofusion))
+	sha3256.Write([]byte(hellomulti))
 	eBytes := sha3256.Sum(nil)
 
 	e := new(big.Int).SetBytes(eBytes)
@@ -89,52 +91,7 @@ func ZkUVerify(uG []*big.Int, zkUProof *ZkUProof) bool {
 	}
 }
 
-/*func ZkUProve(u *big.Int) *ZkUProof {
-	r := random.GetRandomIntFromZn(s256.S256().N)
-	rGx, rGy := s256.S256().ScalarBaseMult(r.Bytes())
-
-	hellofusion := "hello fusion"
-	sha3256 := sha3.New256()
-	sha3256.Write(rGx.Bytes())
-	sha3256.Write(rGy.Bytes())
-	sha3256.Write([]byte(hellofusion))
-	eBytes := sha3256.Sum(nil)
-
-	e := new(big.Int).SetBytes(eBytes)
-
-	s := new(big.Int).Mul(e, u)
-	s = new(big.Int).Add(r, s)
-	s = new(big.Int).Mod(s, s256.S256().N)
-
-	zkUProof := &ZkUProof{E: e, S: s}
-	return zkUProof
-}
-
-func ZkUVerify(uG []*big.Int, zkUProof *ZkUProof) bool {
-	sGx, sGy := s256.S256().ScalarBaseMult(zkUProof.S.Bytes())
-
-	minusE := new(big.Int).Mul(big.NewInt(-1), zkUProof.E)
-	minusE = new(big.Int).Mod(minusE, s256.S256().N)
-
-	eUx, eUy := s256.S256().ScalarMult(uG[0], uG[1], minusE.Bytes())
-	rGx, rGy := s256.S256().Add(sGx, sGy, eUx, eUy)
-
-	hellofusion := "hello fusion"
-	sha3256 := sha3.New256()
-	sha3256.Write(rGx.Bytes())
-	sha3256.Write(rGy.Bytes())
-	sha3256.Write([]byte(hellofusion))
-	eBytes := sha3256.Sum(nil)
-
-	e := new(big.Int).SetBytes(eBytes)
-
-	if e.Cmp(zkUProof.E) == 0 {
-		return true
-	} else {
-		return false
-	}
-}
-*/
+//-----------------------------------------------------------------------------------------
 
 // a(rho) b(l)
 func ZkABProve(a *big.Int, b *big.Int, s *big.Int, R []*big.Int) *ZkABProof {
@@ -150,7 +107,7 @@ func ZkABProve(a *big.Int, b *big.Int, s *big.Int, R []*big.Int) *ZkABProof {
 
 	bAx, bAy := s256.S256().ScalarMult(aGx, aGy, b.Bytes())
 
-	hellofusion := "hello fusion"
+	hellomulti := "hello multichain"
 	sha3256 := sha3.New256()
 	sha3256.Write(alphax.Bytes())
 	sha3256.Write(alphay.Bytes())
@@ -161,7 +118,7 @@ func ZkABProve(a *big.Int, b *big.Int, s *big.Int, R []*big.Int) *ZkABProof {
 	sha3256.Write(aGy.Bytes())
 	sha3256.Write(bAx.Bytes())
 	sha3256.Write(bAy.Bytes())
-	sha3256.Write([]byte(hellofusion))
+	sha3256.Write([]byte(hellomulti))
 	eBytes := sha3256.Sum(nil)
 	e := new(big.Int).SetBytes(eBytes)
 
@@ -179,7 +136,7 @@ func ZkABProve(a *big.Int, b *big.Int, s *big.Int, R []*big.Int) *ZkABProof {
 
 func ZkABVerify(A []*big.Int, B []*big.Int, V []*big.Int, R []*big.Int, zkABProof *ZkABProof) bool {
 
-	hellofusion := "hello fusion"
+	hellomulti := "hello multichain"
 	sha3256 := sha3.New256()
 	sha3256.Write(zkABProof.Alpha[0].Bytes())
 	sha3256.Write(zkABProof.Alpha[1].Bytes())
@@ -190,7 +147,7 @@ func ZkABVerify(A []*big.Int, B []*big.Int, V []*big.Int, R []*big.Int, zkABProo
 	sha3256.Write(A[1].Bytes())
 	sha3256.Write(B[0].Bytes())
 	sha3256.Write(B[1].Bytes())
-	sha3256.Write([]byte(hellofusion))
+	sha3256.Write([]byte(hellomulti))
 	eBytes := sha3256.Sum(nil)
 	e := new(big.Int).SetBytes(eBytes)
 
@@ -224,6 +181,8 @@ func ZkABVerify(A []*big.Int, B []*big.Int, V []*big.Int, R []*big.Int, zkABProo
 
 	return true
 }
+
+//----------------------------------------------------------------------------------
 
 func (zku *ZkUProof) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
