@@ -28,14 +28,19 @@ func GenerateNtildeH1H2(length int) (*NtildeH1H2,*big.Int,*big.Int,*big.Int,*big
 
 	NTildei := new(big.Int).Mul(sp1.P(),sp2.P())
 	modNTildeI := ModInt(NTildei)
+	//fmt.Printf("=============================GenerateNtildeH1H2,p1 = %v,p2 = %v,NTildei = %v,modNTildeI = %v==========================\n",sp1.P(),sp2.P(),NTildei,modNTildeI)
 
 	modPQ := ModInt(new(big.Int).Mul(sp1.Q(),sp2.Q()))
 	f1 := GetRandomPositiveRelativelyPrimeInt(NTildei)
 	alpha := GetRandomPositiveRelativelyPrimeInt(NTildei)
 	beta := modPQ.Inverse(alpha)
+	//fmt.Printf("=============================GenerateNtildeH1H2,q1 = %v,q2 = %v,modPQ = %v,f1 = %v,alpha = %v,beta = %v==========================\n",sp1.Q(),sp2.Q(),modPQ,f1,alpha,beta)
+
 	h1i := modNTildeI.Mul(f1, f1)
+	//fmt.Printf("=============================GenerateNtildeH1H2,h1i = %v,modNTildeI = %v==========================\n",h1i,modNTildeI)
 	h2i := modNTildeI.Exp(h1i, alpha)
 
+	//fmt.Printf("=============================GenerateNtildeH1H2,h2i = %v,modNTildeI = %v==========================\n",h2i,modNTildeI)
 
 	ntildeH1H2 := &NtildeH1H2{Ntilde: NTildei, H1: h1i, H2: h2i}
 

@@ -46,9 +46,10 @@ func NewNtildeProof(h1, h2, x, p, q, N *big.Int) *NtildeProof {
 	for i := range alpha {
 		a[i] = GetRandomPositiveInt(pMulQ)
 		alpha[i] = modN.Exp(h1, a[i])
+		//fmt.Printf("==========================NewNtildeProof,i = %v,alphai = %v==========================\n",i,alpha[i])
 	}
 	msg := append([]*big.Int{h1, h2, N}, alpha[:]...)
-	fmt.Printf("==================NewNtildeProof, h1 = %v, h2 = %v, N = %v, alpha len = %v, alpha[0] = %v, alpha[end] = %v ====================\n",h1,h2,N,len(alpha),alpha[0],alpha[len(alpha)-1])
+	//fmt.Printf("==================NewNtildeProof, h1 = %v, h2 = %v, N = %v, alpha len = %v, alpha[0] = %v, alpha[end] = %v ====================\n",h1,h2,N,len(alpha),alpha[0],alpha[len(alpha)-1])
 	c := SHA512_256i(msg...)
 	t := [Iterations]*big.Int{}
 	cIBI := new(big.Int)
@@ -56,6 +57,7 @@ func NewNtildeProof(h1, h2, x, p, q, N *big.Int) *NtildeProof {
 		cI := c.Bit(i)
 		cIBI = cIBI.SetInt64(int64(cI))
 		t[i] = modPQ.Add(a[i], modPQ.Mul(cIBI, x))
+		//fmt.Printf("==========================NewNtildeProof,i = %v,ti = %v==========================\n",i,t[i])
 	}
 	return &NtildeProof{alpha, t}
 }
@@ -66,11 +68,12 @@ func (p *NtildeProof) Verify(h1, h2, N *big.Int) bool {
 	}
 	modN := ModInt(N)
 	msg := append([]*big.Int{h1, h2, N}, p.Alpha[:]...)
-	fmt.Printf("==================NtildeProof.Verify, h1 = %v, h2 = %v, N = %v, alpha len = %v, alpha[0] = %v, alpha[end] = %v ====================\n",h1,h2,N,len(p.Alpha),p.Alpha[0],p.Alpha[len(p.Alpha)-1])
+	//fmt.Printf("==================NtildeProof.Verify, h1 = %v, h2 = %v, N = %v, alpha len = %v, alpha[0] = %v, alpha[end] = %v ====================\n",h1,h2,N,len(p.Alpha),p.Alpha[0],p.Alpha[len(p.Alpha)-1])
 	c := SHA512_256i(msg...)
 	cIBI := new(big.Int)
 	for i := 0; i < Iterations; i++ {
 		if p.Alpha[i] == nil || p.T[i] == nil {
+		    //fmt.Printf("==========================NtildeProof.Verify,pai = %v,pti = %v========================\n",p.Alpha[i],p.T[i])
 			return false
 		}
 		cI := c.Bit(i)
@@ -79,6 +82,7 @@ func (p *NtildeProof) Verify(h1, h2, N *big.Int) bool {
 		h2ExpCi := modN.Exp(h2, cIBI)
 		alphaIMulH2ExpCi := modN.Mul(p.Alpha[i], h2ExpCi)
 		if h1ExpTi.Cmp(alphaIMulH2ExpCi) != 0 {
+		    //fmt.Printf("==========================NtildeProof.Verify,i = %v,alphaIMulH2ExpCi = %v,h1ExpTi = %v========================\n",i,alphaIMulH2ExpCi,h1ExpTi)
 			return false
 		}
 	}
@@ -268,6 +272,7 @@ func GetRandomPositiveRelativelyPrimeInt(n *big.Int) *big.Int {
 	for {
 		try = MustGetRandomInt(n.BitLen())
 		if IsNumberInMultiplicativeGroup(n, try) {
+		    fmt.Printf("=======================GetRandomPositiveRelativelyPrimeInt,n = %v,try = %v,n.BitLen = %v===================\n",n,try,n.BitLen())
 			break
 		}
 	}

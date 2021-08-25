@@ -3,8 +3,8 @@ package ec2
 import (
 	"math/big"
 	"time"
+	"fmt"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 )
 
 const (
@@ -32,14 +32,25 @@ func (sp *SafePrime) P() *big.Int {
 }
 
 func (sp *SafePrime) CheckValidate() bool {
-    return probablyPrime(sp.q) &&
-	    getSafePrime(sp.q).Cmp(sp.p) == 0 &&
+    if sp.p == nil || sp.q == nil {
+	return false
+    }
+
+     //check p < 2^(L/2),   L = 2048
+    lhalf := big.NewInt(1024)
+     m := new(big.Int).Exp(two,lhalf,nil)
+     if sp.p.Cmp(m) < 0 {
+	return probablyPrime(sp.q) &&
+	    getP(sp.q).Cmp(sp.p) == 0 &&
 	    probablyPrime(sp.p)
+     }
+
+     return false
 }
 
-func getSafePrime(p *big.Int) *big.Int {
+func getP(q *big.Int) *big.Int {
     i := new(big.Int)
-    i.Mul(p, two)
+    i.Mul(q, two)
     i.Add(i, one)
     return i
 }
@@ -54,15 +65,10 @@ func GenRandomSafePrime() {
      for {
          if len(SafePrimeCh) < 4 {
              q,p := random.GetSafeRandomPrimeInt()
-	     if q != nil && p != nil {
-		 //check p < 2^(L/2),   L = 2048
-		two := big.NewInt(2)
-		lhalf := big.NewInt(1024)
-		 m := new(big.Int).Exp(two,lhalf,nil)
-		 if p.Cmp(m) < 0 {
-		    common.Info("================================Success Generate Safe Random Prime.==============================")
-		    SafePrimeCh <- SafePrime{q:q,p:p}
-		 }
+	     sp := SafePrime{q:q,p:p}
+	     if sp.CheckValidate() {
+		 fmt.Printf("=============================Success Generate Safe Random Prime.=============================\n")
+		 SafePrimeCh <- sp
 	     }
          }
 	
@@ -72,6 +78,17 @@ func GenRandomSafePrime() {
 	 
 	time.Sleep(time.Duration(1000000)) //1000 000 000 == 1s
      }
+}
+
+//add for go test
+func GetRandomPrime() (*big.Int,*big.Int) {
+    q,p := random.GetSafeRandomPrimeInt()
+     sp := SafePrime{q:q,p:p}
+     if sp.CheckValidate() {
+	 return q,p
+     }
+
+    return nil,nil
 }
 
 

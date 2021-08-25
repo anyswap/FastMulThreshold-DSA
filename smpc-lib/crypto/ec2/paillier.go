@@ -266,21 +266,6 @@ func (privateKey *PrivateKey) UnmarshalJSON(raw []byte) error {
 
 //-----------------------------------------------------------------------
 
-func GetRandomPrime() (*big.Int,*big.Int) {
-    q,p := random.GetSafeRandomPrimeInt()
-    if q != nil && p != nil {
-	//check p < 2^(L/2),   L = 2048
-	two := big.NewInt(2)
-	lhalf := big.NewInt(1024)
-	 m := new(big.Int).Exp(two,lhalf,nil)
-	 if p.Cmp(m) < 0 {
-	    return q,p 
-	 }
-    }
-
-    return nil,nil
-}
-
 func CreatPair(length int) (*PublicKey, *PrivateKey) {
 	one := big.NewInt(1)
 
