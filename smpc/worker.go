@@ -27,8 +27,8 @@ import (
 var (
 	RPCReqQueueCache = make(chan RPCReq, RPCMaxQueue)
 	//rpc-req //smpc node
-	RPCMaxWorker = 30000
-	RPCMaxQueue  = 30000
+	RPCMaxWorker = 2000
+	RPCMaxQueue  = 2000
 	RPCReqQueue  chan RPCReq
 	workers      []*RPCReqWorker
 )
@@ -62,10 +62,12 @@ type RPCReqWorker struct {
 	SmpcFrom         string
 	NodeCnt          int
 	ThresHold        int
+	sid string //save the key
 	//
 	msg_acceptreqaddrres      *list.List
 	msg_acceptreshareres      *list.List
 	msg_acceptsignres      *list.List
+	
 	msg_c1      *list.List
 	msg_kc      *list.List
 	msg_mkg      *list.List
@@ -117,8 +119,6 @@ type RPCReqWorker struct {
 	bpaillierkey               chan bool
 	bc11              chan bool
 	bd11_1            chan bool
-
-	sid string //save the key
 
 	//ed
 	bedc11       chan bool
@@ -190,7 +190,7 @@ func (d *ReqDispatcher) Run() {
 }
 
 func (d *ReqDispatcher) dispatch() {
-	/*for {
+	for {
 		select {
 		case req := <-RPCReqQueue:
 			// a job request has been received
@@ -204,9 +204,8 @@ func (d *ReqDispatcher) dispatch() {
 			}(req)
 		}
 	}
-	*/
 
-	for {
+	/*for {
 	    req := <-RPCReqQueue
 	    // a job request has been received
 	    go func(req RPCReq) {
@@ -217,7 +216,7 @@ func (d *ReqDispatcher) dispatch() {
 		    // dispatch the job to the worker job channel
 		    reqChannel <- req
 	    }(req)
-	}
+	}*/
 }
 
 func FindWorker(sid string) (*RPCReqWorker, error) {
@@ -237,7 +236,7 @@ func FindWorker(sid string) (*RPCReqWorker, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("no find worker.")
+	return nil, fmt.Errorf(" The worker with the specified worker id was not found .")
 }
 
 func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {

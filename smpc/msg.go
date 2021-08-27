@@ -40,12 +40,12 @@ import (
 )
 
 var (
-	C1Data  = common.NewSafeMap(10)
 	ch_t                     = 300 
 	WaitMsgTimeGG20                     = 100
 	waitall                     = ch_t * recalc_times
 	waitallgg20                     = WaitMsgTimeGG20 * recalc_times
 	WaitAgree = 120
+	C1Data = common.NewSafeMap(10) 
 	
 	//callback
 	GetGroup               func(string) (int, string)
@@ -208,24 +208,6 @@ func GetRawReply(l *list.List) map[string]*RawReply {
 
 	    continue
 	}
-	
-	/*lo,ok := txdata.(*TxDataLockOut)
-	if ok {
-	    reply := &RawReply{From:from,Accept:"true",TimeStamp:lo.TimeStamp}
-	    tmp,ok := ret[from]
-	    if !ok {
-		ret[from] = reply
-	    } else {
-		t1,_ := new(big.Int).SetString(reply.TimeStamp,10)
-		t2,_ := new(big.Int).SetString(tmp.TimeStamp,10)
-		if t1.Cmp(t2) > 0 {
-		    ret[from] = reply
-		}
-
-	    }
-
-	    continue
-	}*/
 	
 	sig,ok := txdata.(*TxDataSign)
 	if ok {
@@ -492,24 +474,51 @@ func CheckReply(l *list.List,rt RpcType,key string) bool {
     return false 
 }
 
-//=========================================
+//-------------------------------------------------------------
+
+func GetCmdKey(msg string) string {
+    if msg == "" {
+	return ""
+    }
+
+    ok,key := IsGenKeyCmd(msg)
+    if ok {
+	return key
+    }
+
+    ok,key = IsReshareCmd(msg)
+    if ok {
+	return key
+    }
+
+    key,ok = IsPreGenSignData(msg)
+    if ok {
+	return key
+    }
+
+    key,ok = IsEDSignCmd(msg)
+    if ok {
+	return key
+    }
+
+    key,ok = IsSignDataCmd(msg)
+    if ok {
+	return key
+    }
+
+    return ""
+}
 
 func Call(msg interface{}, enode string) {
-	common.Debug("====================Call===================","get msg",msg,"sender node",enode)
+	common.Debug("====================Call===================","get p2p msg ",msg,"sender node",enode)
 	s := msg.(string)
 	if s == "" {
 	    return
 	}
-
-	fmt.Printf("==============Call,get msg = %v ============\n",s)
-
-	////////
 	raw,err := UnCompress(s)
 	if err == nil {
 	    s = raw
 	}
-	////////
-
 	msgdata, errdec := DecryptMsg(s) //for SendMsgToPeer
 	if errdec == nil {
 		s = msgdata
@@ -517,116 +526,31 @@ func Call(msg interface{}, enode string) {
 	
 	msgmap := make(map[string]string)
 	err = json.Unmarshal([]byte(s), &msgmap)
-	//fmt.Printf("\n============Call, unmarshal msg. msgmap = %v, err = %v ==============\n",msgmap,err)
-
 	if err == nil {
 	    val,ok := msgmap["Key"]
 	    if ok {
 		w, err := FindWorker(val)
 		if err == nil {
 		    if w.DNode != nil && w.DNode.Round() != nil {
-			fmt.Printf("\n============Call,set smpc msg success. key = %v, msg = %v ==============\n",val,msgmap)
 			w.SmpcMsg <- s
 		    } else {
-			//fmt.Printf("\n============Call,set smpc msg success, 2222222. key = %v, msg = %v, len w.PreSaveSmpcMsg = %v ==============\n",val,msgmap,len(w.PreSaveSmpcMsg))
-			w.PreSaveSmpcMsg = append(w.PreSaveSmpcMsg,s)
+			from := msgmap["FromID"]
+			msgtype := msgmap["Type"]
+			key := strings.ToLower(val + "-" + from + "-" + msgtype)
+			C1Data.WriteMap(key,s)
+			fmt.Printf("===============================Call, pre-save p2p msg, worker found, key = %v,fromId = %v,msgtype = %v, msg = %v========================\n",val,from,msgtype,s)
 		    }
 		} else {
-		    fmt.Printf("\n============Call,smpc msg arrive before cmd. key = %v, msg = %v ==============\n",val,msgmap)
-		    SetUpMsgList(s, enode)
+		    from := msgmap["FromID"]
+		    msgtype := msgmap["Type"]
+		    key := strings.ToLower(val + "-" + from + "-" + msgtype)
+		    C1Data.WriteMap(key,s)
+		    fmt.Printf("===============================Call, pre-save p2p msg, worker not found, key = %v,fromId = %v,msgtype = %v, msg = %v========================\n",val,from,msgtype,s)
 		}
 		
 		return
 	    }
 	}
-
-	/////
-	ok,key := IsGenKeyCmd(s)
-	if ok {
-	    w, err := FindWorker(key)
-	    if err == nil {
-		fmt.Printf("\n============Call,keygen cmd arrive after smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
-		MergeAllPreSaveMsgToWorkerId(w.id)
-		ch := make(chan interface{}, 1)
-		KeyInitAcceptData(s,w.id,enode,ch)
-		w.bwire <-true //Release the worker thread
-	    } else {
-		fmt.Printf("\n============Call,keygen cmd arrive before smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
-		SetUpMsgList(s, enode)
-	    }
-	    
-	    return
-	}
-
-	ok,key = IsReshareCmd(s)
-	if ok {
-	    w, err := FindWorker(key)
-	    if err == nil {
-		fmt.Printf("\n============Call,reshare cmd arrive after dcrm msg. key = %v, msg = %v ==============\n",key,msgmap)
-		MergeAllPreSaveMsgToWorkerId(w.id)
-		ch := make(chan interface{}, 1)
-		ReshareInitAcceptData(s,w.id,enode,ch)
-		w.bwire <-true //Release the worker thread
-	    } else {
-		fmt.Printf("\n============Call,reshare cmd arrive before dcrm msg. key = %v, msg = %v ==============\n",key,msgmap)
-		SetUpMsgList(s, enode)
-	    }
-	    
-	    return
-	}
-	
-	key,ok = IsPreGenSignData(s)
-	if ok {
-	    w, err := FindWorker(key)
-	    if err == nil {
-		fmt.Printf("\n============Call,presign cmd arrive after smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
-		MergeAllPreSaveMsgToWorkerId(w.id)
-		ch := make(chan interface{}, 1)
-		InitPreSign(s,w.id,enode,ch)
-		w.bwire <-true //Release the worker thread
-	    } else {
-		fmt.Printf("\n============Call,presign cmd arrive before smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
-		SetUpMsgList(s, enode)
-	    }
-	    
-	    return
-	}
-	
-	key,ok = IsEDSignCmd(s)
-	//fmt.Printf("================Call,IsEDSignCmd, ok = %v, key = %v ==================\n",ok,key)
-	if ok {
-	    w, err := FindWorker(key)
-	    if err == nil {
-		fmt.Printf("\n============Call,sign cmd arrive after smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
-		MergeAllPreSaveMsgToWorkerId(w.id)
-		ch := make(chan interface{}, 1)
-		SignInitAcceptData(s,w.id,enode,ch)
-		w.bwire <-true //Release the worker thread
-	    } else {
-		fmt.Printf("\n============Call,sign cmd arrive before smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
-		SetUpMsgList(s, enode)
-	    }
-	    
-	    return
-	}
-	
-	key,ok = IsSignDataCmd(s)
-	if ok {
-	    w, err := FindWorker(key)
-	    if err == nil {
-		fmt.Printf("\n============Call,signdata cmd arrive after smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
-		MergeAllPreSaveMsgToWorkerId(w.id)
-		ch := make(chan interface{}, 1)
-		InitSignData(s,w.id,enode,ch)
-		w.bwire <-true //Release the worker thread
-	    } else {
-		fmt.Printf("\n============Call,signdata cmd arrive before smpc msg. key = %v, msg = %v ==============\n",key,msgmap)
-		SetUpMsgList(s, enode)
-	    }
-	    
-	    return
-	}
-	/////
 
 	SetUpMsgList(s,enode)
 }
@@ -674,332 +598,26 @@ func SetUpMsgList3(msg string, enode string,rch chan interface{}) {
 	RPCReqQueue <- req
 }
 
-//==================================================================
+//-----------------------------------------------------------------
 
 type WorkReq interface {
     Run(workid int, ch chan interface{}) bool
 }
 
-//RecvMsg
 type RecvMsg struct {
 	msg    string
 	sender string
 }
 
-type SendMsg struct {
-	MsgType string
-	Nonce   string
-	WorkId  int
-	Msg     string
-}
-
-func InitPreSign(raw string,workid int,sender string,ch chan interface{}) bool {
-    if raw == "" || workid < 0 || sender == "" {
-	res := RpcSmpcRes{Ret: "", Tip: "init accept data fail.", Err: fmt.Errorf("init accept data fail")}
-	ch <- res
-	return false
-    }
-    
-    msgmap := make(map[string]string)
-    err := json.Unmarshal([]byte(raw), &msgmap)
-    if err != nil {
-	res := RpcSmpcRes{Ret: "", Tip: "init presign fail.", Err: fmt.Errorf("init presign fail")}
-	ch <- res
-	return false
-    }
-    
-    if msgmap["Type"] == "PreSign" {
-	ps := &PreSign{}
-	if err = ps.UnmarshalJSON([]byte(msgmap["PreSign"]));err == nil {
-		w := workers[workid]
-		w.sid = ps.Nonce 
-		w.groupid = ps.Gid
-		w.SmpcFrom = ps.Pub
-		gcnt, _ := GetGroup(w.groupid)
-		w.NodeCnt = gcnt
-		w.ThresHold = gcnt
-
-		smpcpks, _ := hex.DecodeString(ps.Pub)
-		exsit,da := GetPubKeyData(smpcpks[:])
-		if !exsit {
-		    common.Error("============================PreSign at RecvMsg.Run,not exist presign data===========================","pubkey",ps.Pub)
-		    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get presign data from db fail", Err: fmt.Errorf("get presign data from db fail")}
-		    ch <- res
-		    return false
-		}
-
-		pd,ok := da.(*PubKeyData)
-		if !ok {
-		    common.Error("============================PreSign at RecvMsg.Run,presign data error==========================","pubkey",ps.Pub)
-		    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get presign data from db fail", Err: fmt.Errorf("get presign data from db fail")}
-		    ch <- res
-		    return false
-		}
-
-		nodecount, _ := GetGroup(pd.GroupId)
-		w.NodeCnt = nodecount
-
-		save := pd.Save
-		common.Debug("============================InitPreSign==========================","w.SmpcFrom",w.SmpcFrom,"w.groupid",w.groupid,"w.NodeCnt",w.NodeCnt,"pd.GroupId",pd.GroupId)
-		/*msgmap := make(map[string]string)
-		err := json.Unmarshal([]byte(save), &msgmap)
-		if err != nil {
-		    res := RpcSmpcRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
-		    ch <- res
-		    return false
-		}
-		kgsave := GetKGLocalDBSaveData(msgmap)
-		if kgsave == nil {
-		    res := RpcSmpcRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
-		    ch <- res
-		    return false
-		}
-		sd := kgsave.Save
-		if sd.SkU1 == nil {
-		    res := RpcSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
-		    ch <- res
-		    return false
-		}
-		sku1 := sd.SkU1*/
-		///sku1
-		da2 := getSkU1FromLocalDb(smpcpks[:])
-		if da2 == nil {
-			res := RpcSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
-			ch <- res
-			return false
-		}
-		sku1 := new(big.Int).SetBytes(da2)
-		if sku1 == nil {
-			res := RpcSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
-			ch <- res
-			return false
-		}
-		
-		childSKU1 := sku1
-		if ps.InputCode != "" {
-		    da4 := getBip32cFromLocalDb(smpcpks[:])
-		    if da4 == nil {
-			res := RpcSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
-			ch <- res
-			return false
-		    }
-		    bip32c := new(big.Int).SetBytes(da4)
-		    if bip32c == nil {
-			res := RpcSmpcRes{Ret: "", Tip: "presign get bip32 error", Err: fmt.Errorf("presign get bip32 error")}
-		    ch <- res
-		    return false
-		    }
-		    
-		    smpcpub := (da.(*PubKeyData)).Pub
-		    smpcpkx, smpcpky := secp256k1.S256().Unmarshal(([]byte(smpcpub))[:])
-		    indexs := strings.Split(ps.InputCode, "/")
-		    TRb := bip32c.Bytes()
-		    childPKx := smpcpkx
-		    childPKy := smpcpky 
-		    for idxi := 1; idxi <len(indexs); idxi++ {
-			    h := hmac.New(sha512.New, TRb)
-			h.Write(childPKx.Bytes())
-			h.Write(childPKy.Bytes())
-			h.Write([]byte(indexs[idxi]))
-			    T := h.Sum(nil)
-			    TRb = T[32:]
-			    TL := new(big.Int).SetBytes(T[:32])
-
-			    childSKU1 = new(big.Int).Add(TL, childSKU1)
-			    childSKU1 = new(big.Int).Mod(childSKU1, secp256k1.S256().N)
-
-			    TLGx, TLGy := secp256k1.S256().ScalarBaseMult(TL.Bytes())
-			    childPKx, childPKy = secp256k1.S256().Add(TLGx, TLGy, childPKx, childPKy)
-		    }
-		}
-		//
-
-		exsit,da3 := GetPubKeyData([]byte(pd.Key))
-		ac,ok := da3.(*AcceptReqAddrData)
-		if ok {
-		    HandleC1Data(ac,w.sid,workid)
-		}
-
-		    var ch1 = make(chan interface{}, 1)
-		    //pre := PreSign_ec3(w.sid,save,sku1,"ECDSA",ch1,workid)
-		    pre := PreSign_ec3(w.sid,save,childSKU1,"EC256K1",ch1,workid)
-		    if pre == nil {
-			    res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
-			    ch <- res
-			    return false
-		    }
-
-		    //if NeedPreSign(ps.Pub) {
-			    pre.Key = w.sid
-			    pre.Gid = w.groupid
-			    pre.Used = false
-			    pre.Index = ps.Index
-
-			    err = PutPreSignData(ps.Pub,ps.InputCode,ps.Gid,ps.Index,pre)
-			    if err != nil {
-				res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
-				ch <- res
-				return false
- 			    }
-		    //}
-
-		    fmt.Printf("=================InitPreSign,finish,it is success. =================\n",)
-		    res := RpcSmpcRes{Ret: "success", Tip: "", Err: nil}
-		    ch <- res
-		    return true
-	}
-    }
-
-    res := RpcSmpcRes{Ret: "", Tip: "init presign fail.", Err: fmt.Errorf("init presign fail")}
-    ch <- res
-    return false
-}
-
-func InitSignData(raw string,workid int,sender string,ch chan interface{}) bool {
-    if raw == "" || workid < 0 || sender == "" {
-	res := RpcSmpcRes{Ret: "", Tip: "init accept data fail.", Err: fmt.Errorf("init accept data fail")}
-	ch <- res
-	return false
-    }
-    
-    msgmap := make(map[string]string)
-    err := json.Unmarshal([]byte(raw), &msgmap)
-    if err != nil {
-	res := RpcSmpcRes{Ret: "", Tip: "init sign data fail.", Err: fmt.Errorf("init sign data fail")}
-	ch <- res
-	return false
-    }
-
-    if msgmap["Type"] == "SignData" {
-	sd := &SignData{}
-	if err = sd.UnmarshalJSON([]byte(msgmap["SignData"]));err == nil {
-	    ys := secp256k1.S256().Marshal(sd.Pkx, sd.Pky)
-	    pubkeyhex := hex.EncodeToString(ys)
-
-	    w := workers[workid]
-	    w.sid = sd.Key
-	    w.groupid = sd.GroupId
-	    
-	    w.NodeCnt = sd.NodeCnt
-	    w.ThresHold = sd.ThresHold
-	    
-	    w.SmpcFrom = sd.SmpcFrom
-
-	    smpcpks, _ := hex.DecodeString(pubkeyhex)
-	    exsit,da := GetPubKeyData(smpcpks[:])
-	    if exsit {
-		    pd,ok := da.(*PubKeyData)
-		    if ok {
-			exsit,da2 := GetPubKeyData([]byte(pd.Key))
-			if exsit {
-				ac,ok := da2.(*AcceptReqAddrData)
-				if ok {
-				    HandleC1Data(ac,sd.Key,workid)
-				}
-			}
-
-		    }
-	    }
-
-	    childPKx := sd.Pkx
-	    childPKy := sd.Pky 
-	    if sd.InputCodeT != "" {
-		da3 := getBip32cFromLocalDb(smpcpks[:])
-		if da3 == nil {
-		    res := RpcSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
-		    ch <- res
-		    return false
-		}
-		bip32c := new(big.Int).SetBytes(da3)
-		if bip32c == nil {
-		    res := RpcSmpcRes{Ret: "", Tip: "presign get bip32 error", Err: fmt.Errorf("presign get bip32 error")}
-		    ch <- res
-		    return false
-		}
-		
-		indexs := strings.Split(sd.InputCodeT, "/")
-		TRb := bip32c.Bytes()
-		childSKU1 := sd.Sku1
-		for idxi := 1; idxi <len(indexs); idxi++ {
-			h := hmac.New(sha512.New, TRb)
-		    h.Write(childPKx.Bytes())
-		    h.Write(childPKy.Bytes())
-		    h.Write([]byte(indexs[idxi]))
-			T := h.Sum(nil)
-			TRb = T[32:]
-			TL := new(big.Int).SetBytes(T[:32])
-
-			childSKU1 = new(big.Int).Add(TL, childSKU1)
-			childSKU1 = new(big.Int).Mod(childSKU1, secp256k1.S256().N)
-
-			TLGx, TLGy := secp256k1.S256().ScalarBaseMult(TL.Bytes())
-			childPKx, childPKy = secp256k1.S256().Add(TLGx, TLGy, childPKx, childPKy)
-		}
-	    }
-	    
-	    childpub := secp256k1.S256().Marshal(childPKx,childPKy)
-	    childpubkeyhex := hex.EncodeToString(childpub)
-	    addr,_,err := GetSmpcAddr(childpubkeyhex)
-	    if err != nil {
-		res := RpcSmpcRes{Ret: "", Tip: "get pubkey error", Err: fmt.Errorf("get pubkey error")}
-		ch <- res
-		return false
-	    }
-	    fmt.Printf("=================== InitSignData, sign, pubkey = %v, inputcode = %v, addr = %v ===================\n",childpubkeyhex,sd.InputCodeT,addr)
-
-	    var ch1 = make(chan interface{}, 1)
-	    for i:=0;i < recalc_times;i++ {
-		common.Debug("=============== InitSignData,sign recalc===================","i",i,"msgprex",sd.MsgPrex,"key",sd.Key)
-		if len(ch1) != 0 {
-		    <-ch1
-		}
-
-		//w.Clear2()
-		//Sign_ec2(sd.Key, sd.Save, sd.Sku1, sd.Txhash, sd.Keytype, sd.Pkx, sd.Pky, ch1, workid)
-		Sign_ec3(sd.Key,sd.Txhash,sd.Keytype,sd.Save,childPKx,childPKy,ch1,workid,sd.Pre)
-		common.Info("=============== InitSignData, ec3 sign finish ===================","WaitMsgTimeGG20",WaitMsgTimeGG20)
-		ret, _, cherr := GetChannelValue(WaitMsgTimeGG20 + 10, ch1)
-		if ret != "" && cherr == nil {
-
-		    ww, err := FindWorker(sd.MsgPrex)
-		    if err != nil || ww == nil {
-			res2 := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker", Err: fmt.Errorf("no find worker")}
-			ch <- res2
-			return false
-		    }
-
-		    common.Info("=============== InitSignData, ec3 sign success ===================","i",i,"get ret",ret,"cherr",cherr,"msgprex",sd.MsgPrex,"key",sd.Key)
-
-		    ww.rsv.PushBack(ret)
-		    res2 := RpcSmpcRes{Ret: ret, Tip: "", Err: nil}
-		    ch <- res2
-		    return true 
-		}
-		
-		common.Info("=============== InitSignData,ec3 sign fail===================","ret",ret,"cherr",cherr,"msgprex",sd.MsgPrex,"key",sd.Key)
-		//time.Sleep(time.Duration(3) * time.Second) //1000 == 1s
-	    }	
-	    
-	    res2 := RpcSmpcRes{Ret: "", Tip: "sign fail", Err: fmt.Errorf("sign fail")}
-	    ch <- res2
-	    return false 
-	}
-    }
-    
-    res := RpcSmpcRes{Ret: "", Tip: "init sign data fail.", Err: fmt.Errorf("init sign data fail")}
-    ch <- res
-    return false
-}
- 
 func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
-	if workid < 0 || workid >= RPCMaxWorker { //TODO
+	if workid < 0 || workid >= RPCMaxWorker {
 		res2 := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get worker id fail", Err: fmt.Errorf("no find worker.")}
 		ch <- res2
 		return false
 	}
 
 	res := self.msg
-	if res == "" { //TODO
+	if res == "" {
 		res2 := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get data fail in RecvMsg.Run", Err: fmt.Errorf("no find worker.")}
 		ch <- res2
 		return false
@@ -1020,36 +638,8 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		return true
 	}
 
-	////////decode p2p smpc msg
 	msgmap := make(map[string]string)
 	err := json.Unmarshal([]byte(res), &msgmap)
-	if err == nil {
-	    val,ok := msgmap["Key"]
-	    if ok {
-		fmt.Printf("===============RecvMsg.Run, smpc msg,begin to check sid, key = %v =====================\n",val)
-		for _,v := range workers {
-		    if strings.EqualFold(v.sid, val) {
-			fmt.Printf("===============RecvMsg.Run, smpc msg,sid check success, key = %v =====================\n",val)
-			if v.DNode != nil && v.DNode.Round() != nil {
-			    v.SmpcMsg <- res 
-			} else {
-			    v.PreSaveSmpcMsg = append(v.PreSaveSmpcMsg,res)
-			}
-			return true
-		    }
-		}
-		fmt.Printf("===============RecvMsg.Run, smpc msg,end to check sid, key = %v =====================\n",val)
-
-		w := workers[workid]
-		w.sid = val 
-		w.PreSaveSmpcMsg = append(w.PreSaveSmpcMsg,res)
-		<-w.bwire
-		return true
-	    }
-	}
-	////////
-
-	common.Debug("================RecvMsg.Run,begin to decode msg =================","res",res)
 	if err == nil {
 	    if msgmap["Type"] == "SignData" {
 		sd := &SignData{}
@@ -1060,17 +650,6 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		    pubkeyhex := hex.EncodeToString(ys)
 
 		    w := workers[workid]
-		    fmt.Printf("===============RecvMsg.Run, sign data, begin to check sid, key = %v =====================\n",sd.Key)
-		    for k,v := range workers {
-			if strings.EqualFold(v.sid, sd.Key) {
-			    MergeAllPreSaveMsgToWorkerId(k)
-			    b := InitSignData(res,k,self.sender,ch)
-			    v.bwire <-true //Release the worker thread
-			    return b
-			}
-		    }
-		    fmt.Printf("===============RecvMsg.Run, sign data, end to check sid, key = %v =====================\n",sd.Key)
-
 		    w.sid = sd.Key
 		    w.groupid = sd.GroupId
 		    
@@ -1088,7 +667,7 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 				if exsit {
 					ac,ok := da2.(*AcceptReqAddrData)
 					if ok {
-					    HandleC1Data(ac,sd.Key,workid)
+					    HandleC1Data(ac,sd.Key)
 					}
 				}
 
@@ -1171,7 +750,6 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 			}
 			
 			common.Info("===============RecvMsg.Run,ec3 sign fail===================","ret",ret,"cherr",cherr,"msgprex",sd.MsgPrex,"key",sd.Key)
-			//time.Sleep(time.Duration(3) * time.Second) //1000 == 1s
 		    }	
 		    
 		    res2 := RpcSmpcRes{Ret: "", Tip: "sign fail", Err: fmt.Errorf("sign fail")}
@@ -1184,15 +762,6 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		ps := &PreSign{}
 		if err = ps.UnmarshalJSON([]byte(msgmap["PreSign"]));err == nil {
 		    w := workers[workid]
-		    for k,v := range workers {
-			if strings.EqualFold(v.sid, ps.Nonce) {
-			    MergeAllPreSaveMsgToWorkerId(k)
-			    b := InitPreSign(res,k,self.sender,ch)
-			    v.bwire <-true //Release the worker thread
-			    return b
-			}
-		    }
-
 		    w.sid = ps.Nonce 
 		    w.groupid = ps.Gid
 		    w.SmpcFrom = ps.Pub
@@ -1293,101 +862,129 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 				childPKx, childPKy = secp256k1.S256().Add(TLGx, TLGy, childPKx, childPKy)
 			}
 		    }
-		    //
 
 		    exsit,da3 := GetPubKeyData([]byte(pd.Key))
 		    ac,ok := da3.(*AcceptReqAddrData)
 		    if ok {
-			HandleC1Data(ac,w.sid,workid)
+			HandleC1Data(ac,w.sid)
 		    }
 
-			var ch1 = make(chan interface{}, 1)
-			//pre := PreSign_ec3(w.sid,save,sku1,"ECDSA",ch1,workid)
-			pre := PreSign_ec3(w.sid,save,childSKU1,"EC256K1",ch1,workid)
-			if pre == nil {
-				res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
-				ch <- res
-				return false
-			}
+		    var ch1 = make(chan interface{}, 1)
+		    //pre := PreSign_ec3(w.sid,save,sku1,"ECDSA",ch1,workid)
+		    pre := PreSign_ec3(w.sid,save,childSKU1,"EC256K1",ch1,workid)
+		    if pre == nil {
+			    res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+			    ch <- res
+			    return false
+		    }
 
-			//if NeedPreSign(ps.Pub) {
-				pre.Key = w.sid
-				pre.Gid = w.groupid
-				pre.Used = false
-				pre.Index = ps.Index
+		    pre.Key = w.sid
+		    pre.Gid = w.groupid
+		    pre.Used = false
+		    pre.Index = ps.Index
 
-				err = PutPreSignData(ps.Pub,ps.InputCode,ps.Gid,ps.Index,pre)
-				if err != nil {
-				    res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+		    err = PutPreSignData(ps.Pub,ps.InputCode,ps.Gid,ps.Index,pre)
+		    if err != nil {
+			res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+			ch <- res
+			return false
+		    }
+
+		    res := RpcSmpcRes{Ret: "success", Tip: "", Err: nil}
+		    ch <- res
+		    return true
+		}
+	    }
+	    
+	    if msgmap["Type"] == "ComSignBrocastData" {
+		signbrocast,err := UnCompressSignBrocastData(msgmap["ComSignBrocastData"])
+		if err == nil {
+		    _,_,_,txdata,err := CheckRaw(signbrocast.Raw)
+		    if err == nil {
+			sig,ok := txdata.(*TxDataSign)
+			if ok {
+			    pickdata := make([]*PickHashData,0)
+			    for _,vv := range signbrocast.PickHash {
+				pre := GetPreSignData(sig.PubKey,sig.InputCode,sig.GroupId,vv.PickKey)
+				if pre == nil {
+				    res := RpcSmpcRes{Ret: "", Tip: "dcrm back-end internal error:get pre-sign data fail", Err: fmt.Errorf("get pre-sign data fail.")}
 				    ch <- res
 				    return false
 				}
-			//}
 
-			res := RpcSmpcRes{Ret: "success", Tip: "", Err: nil}
-			ch <- res
-			return true
-		}
-	    }
-	}
-
-	if msgmap["Type"] == "ComSignBrocastData" {
-	    signbrocast,err := UnCompressSignBrocastData(msgmap["ComSignBrocastData"])
-	    if err == nil {
-		_,_,_,txdata,err := CheckRaw(signbrocast.Raw)
-		if err == nil {
-		    sig,ok := txdata.(*TxDataSign)
-		    if ok {
-			pickdata := make([]*PickHashData,0)
-			for _,vv := range signbrocast.PickHash {
-			    pre := GetPreSignData(sig.PubKey,sig.InputCode,sig.GroupId,vv.PickKey)
-			    if pre == nil {
-				res := RpcSmpcRes{Ret: "", Tip: "dcrm back-end internal error:get pre-sign data fail", Err: fmt.Errorf("get pre-sign data fail.")}
-				ch <- res
-				return false
+				pd := &PickHashData{Hash:vv.Hash,Pre:pre}
+				pickdata = append(pickdata,pd)
+				DeletePreSignData(sig.PubKey,sig.InputCode,sig.GroupId,vv.PickKey)
 			    }
 
-			    pd := &PickHashData{Hash:vv.Hash,Pre:pre}
-			    pickdata = append(pickdata,pd)
-			    DeletePreSignData(sig.PubKey,sig.InputCode,sig.GroupId,vv.PickKey)
-			}
+			    signpick := &SignPickData{Raw:signbrocast.Raw,PickData:pickdata}
+			    errtmp := InitAcceptData2(signpick,workid,self.sender,ch)
+			    if errtmp == nil {
+				return true
+			    }
 
-			signpick := &SignPickData{Raw:signbrocast.Raw,PickData:pickdata}
-			errtmp := InitAcceptData2(signpick,workid,self.sender,ch)
-			if errtmp == nil {
-			    return true
+			    return false
 			}
-
-			return false
 		    }
 		}
- 	    }
+	    }
+
+	    if msgmap["Type"] == "ComSignData" {
+		signpick,err := UnCompressSignData(msgmap["ComSignData"])
+		if err == nil {
+		    errtmp := InitAcceptData2(signpick,workid,self.sender,ch)
+		    if errtmp == nil {
+			return true
+		    }
+
+		    return false
+		}
+	    }
 	}
 
-	if msgmap["Type"] == "ComSignData" {
-	    signpick,err := UnCompressSignData(msgmap["ComSignData"])
-	    if err == nil {
-		errtmp := InitAcceptData2(signpick,workid,self.sender,ch)
-		if errtmp == nil {
-		    return true
-		}
-
-		return false
-	    }
- 	}
-	////////////////////////////
-
-	//Excluding sign
 	errtmp := InitAcceptData(res,workid,self.sender,ch)
 	if errtmp == nil {
 	    return true
 	}
-	common.Debug("================RecvMsg.Run, init accept data fail=================","res",res,"err",errtmp)
 
 	return false 
 }
 
-func HandleC1Data(ac *AcceptReqAddrData,key string,workid int) {
+func Handle(key string,c1data string) {
+    w, err := FindWorker(key)
+    if w == nil || err != nil {
+	return
+    }
+
+    val, exist := C1Data.ReadMap(c1data)
+    if exist {
+	if w.DNode != nil && w.DNode.Round() != nil {
+	    w.SmpcMsg <- val.(string)
+	    go C1Data.DeleteMap(c1data)
+	}
+    }
+}
+
+func HandleKG(key string,uid *big.Int) {
+    c1data := strings.ToLower(key + "-" + fmt.Sprintf("%v",uid) + "-" + "KGRound0Message")
+    Handle(key,c1data)
+    c1data = strings.ToLower(key + "-" + fmt.Sprintf("%v",uid) + "-" + "KGRound1Message")
+    Handle(key,c1data)
+}
+
+func HandleSign(key string,uid *big.Int) {
+    c1data := strings.ToLower(key + "-" + fmt.Sprintf("%v",uid) + "-" + "SignRound1Message")
+    Handle(key,c1data)
+    c1data = strings.ToLower(key + "-" + fmt.Sprintf("%v",uid) + "-" + "SignRound2Message")
+    Handle(key,c1data)
+}
+
+func HandleC1Data(ac *AcceptReqAddrData,key string) {
+    w, err := FindWorker(key)
+    if w == nil || err != nil {
+	return
+    }
+
     //reshare only
     if ac == nil {
 	exsit,da := GetReShareInfoData([]byte(key))
@@ -1415,11 +1012,11 @@ func HandleC1Data(ac *AcceptReqAddrData,key string,workid int) {
 		continue
 	    }
 
-	    c1data := key + "-" + fr
-	    c1, exist := C1Data.ReadMap(strings.ToLower(c1data))
+	    c1data := strings.ToLower(key + "-" + fr)
+	    c1, exist := C1Data.ReadMap(c1data)
 	    if exist {
-		DisAcceptMsg(c1.(string),workid)
-		go C1Data.DeleteMap(strings.ToLower(c1data))
+		DisAcceptMsg(c1.(string),w.id)
+		go C1Data.DeleteMap(c1data)
 	    }
 	}
 
@@ -1427,52 +1024,22 @@ func HandleC1Data(ac *AcceptReqAddrData,key string,workid int) {
     }
     //reshare only
 
-    if key == "" || workid < 0 || workid >= len(workers) {
+    if key == "" {
 	return
     }
    
-    /////////bug
-	_, enodes := GetGroup(ac.GroupId)
-	nodes := strings.Split(enodes, common.Sep2)
-	for _, node := range nodes {
-	    node2 := ParseNode(node)
-		c1data := key + "-" + node2 + common.Sep + "SS1"
-		//common.Debug("===============HandleC1Data====================","c1data",c1data)
-		c1, exist := C1Data.ReadMap(strings.ToLower(c1data))
-		if exist {
-		common.Info("===============HandleC1Data,exsit c1data in C1Data map for ss1====================","c1data",c1data)
-		    DisMsg(c1.(string))
-		    go C1Data.DeleteMap(strings.ToLower(c1data))
-		}
+    _, enodes := GetGroup(ac.GroupId)
+    nodes := strings.Split(enodes, common.Sep2)
+    
+    for _, node := range nodes {
+	node2 := ParseNode(node)
+	uid := DoubleHash(node2,"EC256K1")
+	HandleKG(key,uid)
+	HandleSign(key,uid)
+	uid = DoubleHash(node2,"ED25519")
+	HandleKG(key,uid)
+	HandleSign(key,uid)
     }
-	for _, node := range nodes {
-	    node2 := ParseNode(node)
-		c1data := key + "-" + node2 + common.Sep + "C11" 
-		c1, exist := C1Data.ReadMap(strings.ToLower(c1data))
-		if exist {
-		    DisMsg(c1.(string))
-		    go C1Data.DeleteMap(strings.ToLower(c1data))
-		}
-    }
-	for _, node := range nodes {
-	    node2 := ParseNode(node)
-		c1data := key + "-" + node2 + common.Sep + "CommitBigVAB" 
-		c1, exist := C1Data.ReadMap(strings.ToLower(c1data))
-		if exist {
-		    DisMsg(c1.(string))
-		    go C1Data.DeleteMap(strings.ToLower(c1data))
-		}
-    }
-	for _, node := range nodes {
-	    node2 := ParseNode(node)
-		c1data := key + "-" + node2 + common.Sep + "C1" 
-		c1, exist := C1Data.ReadMap(strings.ToLower(c1data))
-		if exist {
-		    DisMsg(c1.(string))
-		    go C1Data.DeleteMap(strings.ToLower(c1data))
-		}
-    }
-    ////////////
     
     mms := strings.Split(ac.Sigs, common.Sep)
     if len(mms) < 3 { //1:eid1:acc1
@@ -1482,11 +1049,11 @@ func HandleC1Data(ac *AcceptReqAddrData,key string,workid int) {
     count := (len(mms)-1)/2
     for j := 0;j<count;j++ {
 	from := mms[2*j+2]
-	c1data := key + "-" + from
-	c1, exist := C1Data.ReadMap(strings.ToLower(c1data))
+	c1data := strings.ToLower(key + "-" + from)
+	c1, exist := C1Data.ReadMap(c1data)
 	if exist {
-	    DisAcceptMsg(c1.(string),workid)
-	    go C1Data.DeleteMap(strings.ToLower(c1data))
+	    DisAcceptMsg(c1.(string),w.id)
+	    go C1Data.DeleteMap(c1data)
 	}
     }
 }
@@ -1551,11 +1118,9 @@ func DisAcceptMsg(raw string,workid int) {
 	w.msg_acceptsignres.PushBack(raw)
 	if w.msg_acceptsignres.Len() >= w.ThresHold {
 	    if !CheckReply(w.msg_acceptsignres,Rpc_SIGN,key) {
-		//common.Info("=====================DisAcceptMsg,check reply fail===================","key",key,"from",from)
 		return
 	    }
 
-	    //common.Info("=====================DisAcceptMsg,check reply success and will set timeout channel===================","key",key,"from",from)
 	    w.bacceptsignres <- true
 	    exsit,da := GetSignInfoData([]byte(key))
 	    if !exsit {
@@ -1641,7 +1206,6 @@ func DisAcceptMsg(raw string,workid int) {
 	w.msg_acceptsignres.PushBack(raw)
 	if w.msg_acceptsignres.Len() >= w.ThresHold {
 	    if !CheckReply(w.msg_acceptsignres,Rpc_SIGN,acceptsig.Key) {
-		    //common.Info("======================DisAcceptMsg,the msg is accept sign tx,and check reply fail.===========================","sig key",acceptsig.Key,"from",from)
 		return
 	    }
 
@@ -1746,14 +1310,12 @@ func IsEDSignCmd(raw string) (string,bool) {
     }
 
     key,_,_,txdata,err := CheckRaw(raw)
-    //fmt.Printf("================== IsEDSignCmd, txdata = %v, key = %v, err = %v ==================\n",txdata,key,err)
     if err != nil {
 	return "",false
     }
     
     sig,ok := txdata.(*TxDataSign)
     if ok {
-	//fmt.Printf("================== IsEDSignCmd, sig.Keytype = %v ==================\n",sig.Keytype)
 	if sig.Keytype == "ED25519" {
 	    return key,true
 	}
@@ -1780,620 +1342,6 @@ func IsSignDataCmd(raw string) (string,bool) {
     return "",false
 }
 
-func ReshareInitAcceptData(raw string,workid int,sender string,ch chan interface{}) error {
-    if raw == "" || workid < 0 || sender == "" {
-	res := RpcSmpcRes{Ret: "", Tip: "init accept data fail.", Err: fmt.Errorf("init accept data fail")}
-	ch <- res
-	return fmt.Errorf("init accept data fail")
-    }
-
-    key,from,_,txdata,err := CheckRaw(raw)
-    if err != nil {
-	res := RpcSmpcRes{Ret: "", Tip: err.Error(), Err: err}
-	ch <- res
-	return err
-    }
-    
-    rh,ok := txdata.(*TxDataReShare)
-    if ok {
-	ars := GetAllReplyFromGroup(workid,rh.GroupId,Rpc_RESHARE,sender)
-	sigs,err := GetGroupSigsDataByRaw(raw) 
-	common.Debug("=================ReshareInitAcceptData,reshare=================","get group sigs ",sigs,"err ",err,"key ",key)
-	if err != nil {
-	    res := RpcSmpcRes{Ret: "", Tip: err.Error(), Err: err}
-	    ch <- res
-	    return err
-	}
-
-	ac := &AcceptReShareData{Initiator:sender,Account: from, GroupId: rh.GroupId, TSGroupId:rh.TSGroupId, PubKey: rh.PubKey, LimitNum: rh.ThresHold, PubAccount:rh.Account, Mode:rh.Mode, Sigs:sigs, TimeStamp: rh.TimeStamp, Deal: "false", Accept: "false", Status: "Pending", NewSk: "", Tip: "", Error: "", AllReply: ars, WorkId:workid}
-	err = SaveAcceptReShareData(ac)
-	common.Info("===================finish call SaveAcceptReShareData======================","err ",err,"workid ",workid,"account ",from,"group id ",rh.GroupId,"pubkey ",rh.PubKey,"threshold ",rh.ThresHold,"key ",key)
-	if err == nil {
-	    w := workers[workid]
-	    w.sid = key 
-	    w.groupid = rh.TSGroupId 
-	    w.limitnum = rh.ThresHold
-	    gcnt, _ := GetGroup(w.groupid)
-	    w.NodeCnt = gcnt
-	    w.ThresHold = w.NodeCnt
-
-	    fmt.Printf("==================== reshare,gcnt = %v,w.NodeCnt = %v,w.ThresHold = %v,w.sid = %v ======================\n",gcnt,w.NodeCnt,w.ThresHold,w.sid)
-
-	    nums := strings.Split(w.limitnum, "/")
-	    if len(nums) == 2 {
-		nodecnt, err := strconv.Atoi(nums[1])
-		if err == nil {
-		    w.NodeCnt = nodecnt
-		}
-
-		w.ThresHold = gcnt
-		if w.ThresHold == 0 {
-		    th,_ := strconv.Atoi(nums[0])
-		    w.ThresHold = th
-		}
-		
-		fmt.Printf("==================== reshare,222222,gcnt = %v,w.NodeCnt = %v,w.ThresHold = %v,w.sid = %v ======================\n",gcnt,w.NodeCnt,w.ThresHold,w.sid)
-	    }
-
-	    w.SmpcFrom = rh.PubKey  // pubkey replace dcrmfrom in reshare 
-
-	    var reply bool
-	    var tip string
-	    timeout := make(chan bool, 1)
-	    go func(wid int) {
-		    cur_enode = discover.GetLocalID().String() //GetSelfEnode()
-		    agreeWaitTime := 10 * time.Minute
-		    agreeWaitTimeOut := time.NewTicker(agreeWaitTime)
-
-		    wtmp2 := workers[wid]
-
-		    for {
-			    select {
-			    case account := <-wtmp2.acceptReShareChan:
-				    common.Debug("(self *RecvMsg) Run(),", "account= ", account, "key = ", key)
-				    ars := GetAllReplyFromGroup(w.id,rh.GroupId,Rpc_RESHARE,sender)
-				    common.Info("================== ReshareInitAcceptData, get all AcceptReShareRes================","raw ",raw,"result ",ars,"key ",key)
-				    
-				    //bug
-				    reply = true
-				    for _,nr := range ars {
-					if !strings.EqualFold(nr.Status,"Agree") {
-					    reply = false
-					    break
-					}
-				    }
-				    //
-
-				    if !reply {
-					    tip = "don't accept reshare"
-					    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "false", "Failure", "", "don't accept reshare", "don't accept reshare", nil, wid)
-				    } else {
-					    tip = ""
-					    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "false", "pending", "", "", "", ars, wid)
-				    }
-
-				    if err != nil {
-					tip = tip + " and accept reshare data fail"
-				    }
-
-				    ///////
-				    timeout <- true
-				    return
-			    case <-agreeWaitTimeOut.C:
-				    common.Info("================== ReshareInitAcceptData, agree wait timeout===================","raw ",raw,"key ",key)
-				    ars := GetAllReplyFromGroup(w.id,rh.GroupId,Rpc_RESHARE,sender)
-				    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "false", "Timeout", "", "get other node accept reshare result timeout", "get other node accept reshare result timeout", ars, wid)
-				    reply = false
-				    tip = "get other node accept reshare result timeout"
-				    if err != nil {
-					tip = tip + " and accept reshare data fail"
-				    }
-				    //
-
-				    timeout <- true
-				    return
-			    }
-		    }
-	    }(workid)
-
-	    if len(workers[workid].acceptWaitReShareChan) == 0 {
-		    workers[workid].acceptWaitReShareChan <- "go on"
-	    }
-
-	    DisAcceptMsg(raw,workid)
-	    HandleC1Data(nil,key,workid)
-	    
-	    <-timeout
-
-	    if !reply {
-		    if tip == "get other node accept reshare result timeout" {
-			    ars := GetAllReplyFromGroup(workid,rh.GroupId,Rpc_RESHARE,sender)
-			    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold, rh.Mode,"false", "", "Timeout", "", "get other node accept reshare result timeout", "get other node accept reshare result timeout", ars,workid)
-		    } 
-
-		    res2 := RpcSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("don't accept reshare.")}
-		    ch <- res2
-		    return fmt.Errorf("don't accept reshare.")
-	    }
-
-	    rch := make(chan interface{}, 1)
-	    _reshare(w.sid,from,rh.GroupId,rh.PubKey,rh.Account,rh.Mode,sigs,rch)
-	    chret, tip, cherr := GetChannelValue(ch_t, rch)
-	    if chret != "" {
-		    res2 := RpcSmpcRes{Ret: chret, Tip: "", Err: nil}
-		    ch <- res2
-		    return nil 
-	    }
-
-	    if tip == "get other node accept reshare result timeout" {
-		    ars := GetAllReplyFromGroup(workid,rh.GroupId,Rpc_RESHARE,sender)
-		    _,err = AcceptReShare(sender,from, rh.GroupId, rh.TSGroupId,rh.PubKey, rh.ThresHold,rh.Mode,"false", "", "Timeout", "", "get other node accept reshare result timeout", "get other node accept reshare result timeout", ars,workid)
-	    } 
-
-	    if cherr != nil {
-		    res2 := RpcSmpcRes{Ret:"", Tip: tip, Err: cherr}
-		    ch <- res2
-		    return cherr 
-	    }
-
-	    res2 := RpcSmpcRes{Ret:"", Tip: tip, Err: fmt.Errorf("reshare fail.")}
-	    ch <- res2
-	    return fmt.Errorf("reshare fail.")
-	}
-    }
-
-    res := RpcSmpcRes{Ret: "", Tip: "init accept data fail.", Err: fmt.Errorf("init accept data fail")}
-    ch <- res
-    return fmt.Errorf("init accept data fail")
-}
-
-func KeyInitAcceptData(raw string,workid int,sender string,ch chan interface{}) error {
-    if raw == "" || workid < 0 || sender == "" {
-	res := RpcSmpcRes{Ret: "", Tip: "init accept data fail.", Err: fmt.Errorf("init accept data fail")}
-	ch <- res
-	return fmt.Errorf("init accept data fail")
-    }
-
-    key,from,nonce,txdata,err := CheckRaw(raw)
-    if err != nil {
-	res := RpcSmpcRes{Ret: "", Tip: err.Error(), Err: err}
-	ch <- res
-	return err
-    }
-    
-    req,ok := txdata.(*TxDataReqAddr)
-    if ok {
-	common.Info("===============KeyInitAcceptData, check reqaddr raw success==================","raw ",raw,"key ",key,"from ",from,"nonce ",nonce,"txdata ",req)
-	//exsit,_ := GetReqAddrInfoData([]byte(key))
-	//if !exsit {
-	    //cur_nonce, _, _ := GetReqAddrNonce(from)
-	    //cur_nonce_num, _ := new(big.Int).SetString(cur_nonce, 10)
-	    //new_nonce_num, _ := new(big.Int).SetString(nonce, 10)
-	    //common.Debug("===============KeyInitAcceptData============","reqaddr cur_nonce_num ",cur_nonce_num,"reqaddr new_nonce_num ",new_nonce_num,"key ",key)
-	    //if new_nonce_num.Cmp(cur_nonce_num) >= 0 {
-		//_, err := SetReqAddrNonce(from,nonce)
-		//if err == nil {
-		    ars := GetAllReplyFromGroup(workid,req.GroupId,Rpc_REQADDR,sender)
-		    sigs,err := GetGroupSigsDataByRaw(raw) 
-		    common.Info("=================KeyInitAcceptData================","get group sigs ",sigs,"err ",err,"key ",key)
-		    if err != nil {
-			res := RpcSmpcRes{Ret: "", Tip: err.Error(), Err: err}
-			ch <- res
-			return err
-		    }
-
-		    ac := &AcceptReqAddrData{Initiator:sender,Account: from, Cointype: req.Keytype, GroupId: req.GroupId, Nonce: nonce, LimitNum: req.ThresHold, Mode: req.Mode, TimeStamp: req.TimeStamp, Deal: "false", Accept: "false", Status: "Pending", PubKey: "", Tip: "", Error: "", AllReply: ars, WorkId: workid,Sigs:sigs}
-		    err = SaveAcceptReqAddrData(ac)
-		    common.Info("===================call SaveAcceptReqAddrData finish====================","account ",from,"err ",err,"key ",key)
-		   if err == nil {
-			rch := make(chan interface{}, 1)
-			w := workers[workid]
-			w.sid = key 
-			w.groupid = req.GroupId
-			w.limitnum = req.ThresHold
-			gcnt, _ := GetGroup(w.groupid)
-			w.NodeCnt = gcnt
-			w.ThresHold = w.NodeCnt
-
-			nums := strings.Split(w.limitnum, "/")
-			if len(nums) == 2 {
-			    nodecnt, err := strconv.Atoi(nums[1])
-			    if err == nil {
-				w.NodeCnt = nodecnt
-			    }
-
-			    th, err := strconv.Atoi(nums[0])
-			    if err == nil {
-				w.ThresHold = th 
-			    }
-			}
-
-			/////////////
-			if req.Mode == "0" { // self-group
-				////
-				var reply bool
-				var tip string
-				timeout := make(chan bool, 1)
-				go func(wid int) {
-					cur_enode = discover.GetLocalID().String() //GetSelfEnode()
-					agreeWaitTime := 10 * time.Minute
-					agreeWaitTimeOut := time.NewTicker(agreeWaitTime)
-					if wid < 0 || wid >= len(workers) || workers[wid] == nil {
-						ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)	
-						_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId, nonce, req.ThresHold, req.Mode, "false", "false", "Failure", "", "workid error", "workid error", ars, wid,"")
-						if err != nil {
-						    tip = "accept reqaddr error"
-						    reply = false
-						    timeout <- true
-						    return
-						}
-
-						tip = "worker id error"
-						reply = false
-						timeout <- true
-						return
-					}
-
-					wtmp2 := workers[wid]
-					for {
-						select {
-						case account := <-wtmp2.acceptReqAddrChan:
-							common.Debug("(self *RecvMsg) Run(),", "account= ", account, "key = ", key)
-							ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)
-							common.Info("================== KeyInitAcceptData,get all AcceptReqAddrRes====================","raw ",raw,"result ",ars,"key ",key)
-							
-							//bug
-							reply = true
-							for _,nr := range ars {
-							    if !strings.EqualFold(nr.Status,"Agree") {
-								reply = false
-								break
-							    }
-							}
-							//
-
-							if !reply {
-								tip = "don't accept req addr"
-								_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId,nonce, req.ThresHold, req.Mode, "false", "false", "Failure", "", "don't accept req addr", "don't accept req addr", ars, wid,"")
-								if err != nil {
-								    tip = "don't accept req addr and accept reqaddr error"
-								    timeout <- true
-								    return
-								}
-							} else {
-								tip = ""
-								_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId,nonce, req.ThresHold, req.Mode, "false", "true", "Pending", "", "", "", ars, wid,"")
-								if err != nil {
-								    tip = "accept reqaddr error"
-								    timeout <- true
-								    return
-								}
-							}
-
-							///////
-							timeout <- true
-							return
-						case <-agreeWaitTimeOut.C:
-							common.Info("================== KeyInitAcceptData, agree wait timeout==================","raw ",raw,"key ",key)
-							ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)
-							//bug: if self not accept and timeout
-							_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId, nonce, req.ThresHold, req.Mode, "false", "false", "Timeout", "", "get other node accept req addr result timeout", "get other node accept req addr result timeout", ars, wid,"")
-							if err != nil {
-							    tip = "get other node accept req addr result timeout and accept reqaddr fail"
-							    reply = false
-							    timeout <- true
-							    return
-							}
-
-							tip = "get other node accept req addr result timeout"
-							reply = false
-							//
-
-							timeout <- true
-							return
-						}
-					}
-				}(workid)
-
-				if len(workers[workid].acceptWaitReqAddrChan) == 0 {
-					workers[workid].acceptWaitReqAddrChan <- "go on"
-				}
-
-				DisAcceptMsg(raw,workid)
-				HandleC1Data(ac,key,workid)
-
-				<-timeout
-
-				common.Debug("================== KeyInitAcceptData======================","raw ",raw,"the terminal accept req addr result ",reply,"key ",key)
-
-				ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)
-				if !reply {
-					if tip == "get other node accept req addr result timeout" {
-						_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId, nonce, req.ThresHold, req.Mode, "false", "", "Timeout", "", tip, "don't accept req addr.", ars, workid,"")
-					} else {
-						_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId, nonce, req.ThresHold, req.Mode, "false", "", "Failure", "", tip, "don't accept req addr.", ars, workid,"")
-					}
-
-					if err != nil {
-					    res := RpcSmpcRes{Ret:"", Tip: tip, Err: fmt.Errorf("don't accept req addr.")}
-					    ch <- res
-					    return fmt.Errorf("don't accept req addr.")
-					}
-
-					res := RpcSmpcRes{Ret: strconv.Itoa(workid) + common.Sep + "rpc_req_smpcaddr", Tip: tip, Err: fmt.Errorf("don't accept req addr.")}
-					ch <- res
-					return fmt.Errorf("don't accept req addr.")
-				}
-			} else {
-				if len(workers[workid].acceptWaitReqAddrChan) == 0 {
-					workers[workid].acceptWaitReqAddrChan <- "go on"
-				}
-
-				ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)
-				_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId,nonce, req.ThresHold, req.Mode, "false", "true", "Pending", "", "", "", ars, workid,"")
-				if err != nil {
-				    res := RpcSmpcRes{Ret:"", Tip: err.Error(), Err: err}
-				    ch <- res
-				    return err
-				}
-			}
-
-			common.Info("================== KeyInitAcceptData, start call smpc_genPubKey====================","w.id ",w.id,"w.groupid ",w.groupid,"key ",key)
-			smpc_genPubKey(w.sid, from, req.Keytype, rch, req.Mode, nonce)
-			chret, tip, cherr := GetChannelValue(waitall, rch)
-			common.Info("================== KeyInitAcceptData , finish smpc_genPubKey ===================","get return value ",chret,"err ",cherr,"key ",key)
-			if cherr != nil {
-				ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)
-				_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId, nonce, req.ThresHold, req.Mode, "false", "", "Failure", "", tip, cherr.Error(), ars, workid,"")
-				if err != nil {
-				    res := RpcSmpcRes{Ret:"", Tip:err.Error(), Err:err}
-				    ch <- res
-				    return err
-				}
-
-				res := RpcSmpcRes{Ret: strconv.Itoa(workid) + common.Sep + "rpc_req_smpcaddr", Tip: tip, Err: cherr}
-				ch <- res
-				return cherr 
-			}
-
-			res := RpcSmpcRes{Ret: strconv.Itoa(workid) + common.Sep + "rpc_req_smpcaddr" + common.Sep + chret, Tip: "", Err: nil}
-			ch <- res
-			return nil
-			/////////////
-		   }
-		//}
-	    //}
-	//}
-    }
-    
-    res := RpcSmpcRes{Ret: "", Tip: "init accept data fail.", Err: fmt.Errorf("init accept data fail")}
-    ch <- res
-    return fmt.Errorf("init accept data fail")
-}
-
-func SignInitAcceptData(raw string,workid int,sender string,ch chan interface{}) error {
-    if raw == "" || workid < 0 || sender == "" {
-	res := RpcSmpcRes{Ret: "", Tip: "init accept data fail.", Err: fmt.Errorf("init accept data fail")}
-	ch <- res
-	return fmt.Errorf("init accept data fail")
-    }
-
-    key,from,nonce,txdata,err := CheckRaw(raw)
-    common.Info("=====================SignInitAcceptData,get result from call CheckRaw ================","key",key,"from",from,"err",err,"raw",raw)
-    if err != nil {
-	common.Info("===============SignInitAcceptData,check raw error===================","err ",err)
-	res := RpcSmpcRes{Ret: "", Tip: err.Error(), Err: err}
-	ch <- res
-	return err
-    }
-    
-    sig,ok := txdata.(*TxDataSign)
-    if ok {
-	common.Debug("===============SignInitAcceptData, it is sign txdata and check sign raw success==================","key ",key,"from ",from,"nonce ",nonce)
-	//exsit,_ := GetSignInfoData([]byte(key))
-	//if !exsit {
-	    //cur_nonce, _, _ := GetSignNonce(from)
-	    //cur_nonce_num, _ := new(big.Int).SetString(cur_nonce, 10)
-	    //new_nonce_num, _ := new(big.Int).SetString(nonce, 10)
-	    //common.Debug("===============SignInitAcceptData===============","sign cur_nonce_num ",cur_nonce_num,"sign new_nonce_num ",new_nonce_num,"key ",key)
-	    //if new_nonce_num.Cmp(cur_nonce_num) >= 0 {
-		//_, err := SetSignNonce(from,nonce)
-		//_, err := SetSignNonce(from,cur_nonce) //bug
-		//if err == nil {
-		    ars := GetAllReplyFromGroup(workid,sig.GroupId,Rpc_SIGN,sender)
-		    ac := &AcceptSignData{Initiator:sender,Account: from, GroupId: sig.GroupId, Nonce: nonce, PubKey: sig.PubKey, MsgHash: sig.MsgHash, MsgContext: sig.MsgContext, Keytype: sig.Keytype, LimitNum: sig.ThresHold, Mode: sig.Mode, TimeStamp: sig.TimeStamp, Deal: "false", Accept: "false", Status: "Pending", Rsv: "", Tip: "", Error: "", AllReply: ars, WorkId:workid}
-		    err = SaveAcceptSignData(ac)
-		    if err == nil {
-			common.Debug("===============SignInitAcceptData,save sign accept data finish===================","ars ",ars,"key ",key)
-			w := workers[workid]
-			w.sid = key 
-			w.groupid = sig.GroupId 
-			w.limitnum = sig.ThresHold
-			gcnt, _ := GetGroup(w.groupid)
-			w.NodeCnt = gcnt
-			w.ThresHold = w.NodeCnt
-
-			nums := strings.Split(w.limitnum, "/")
-			if len(nums) == 2 {
-			    nodecnt, err := strconv.Atoi(nums[1])
-			    if err == nil {
-				w.NodeCnt = nodecnt
-			    }
-
-			    w.ThresHold = gcnt
-			}
-
-			w.SmpcFrom = sig.PubKey  // pubkey replace smpcfrom in sign
-			
-			if sig.Mode == "0" { // self-group
-				////
-				var reply bool
-				var tip string
-				timeout := make(chan bool, 1)
-				go func(wid int) {
-					cur_enode = discover.GetLocalID().String() //GetSelfEnode()
-					agreeWaitTime := 2 * time.Minute
-					agreeWaitTimeOut := time.NewTicker(agreeWaitTime)
-
-					wtmp2 := workers[wid]
-
-					for {
-						select {
-						case account := <-wtmp2.acceptSignChan:
-							common.Debug("InitAcceptData,", "account= ", account, "key = ", key)
-							ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
-							common.Debug("================== SignInitAcceptData , get all AcceptSignRes===============","result ",ars,"key ",key)
-							
-							//TODO//
-							reply = true
-							recount := 0
-							for _,nr := range ars {
-							    if strings.EqualFold(nr.Status,"Agree") {
-								    recount++
-							    }
-							}
-							if recount < w.ThresHold {
-								reply = false
-							}
-							////////
-							//
-
-							if !reply {
-								tip = "don't accept sign"
-								_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "false", "Failure", "", "don't accept sign", "don't accept sign", ars,wid)
-							} else {
-							    	common.Debug("=======================SignInitAcceptData,11111111111111,set sign pending=============================","key",key)
-								tip = ""
-								_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"false", "true", "Pending", "", "", "", ars,wid)
-							}
-
-							if err != nil {
-							    tip = tip + " and accept sign data fail"
-							}
-
-							///////
-							timeout <- true
-							return
-						case <-agreeWaitTimeOut.C:
-							common.Debug("================== SignInitAcceptData , agree wait timeout=============","key ",key)
-							ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
-							_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "false", "Timeout", "", "get other node accept sign result timeout", "get other node accept sign result timeout", ars,wid)
-							reply = false
-							tip = "get other node accept sign result timeout"
-							if err != nil {
-							    tip = tip + " and accept sign data fail"
-							}
-							//
-
-							timeout <- true
-							return
-						}
-					}
-				}(workid)
-
-				if len(workers[workid].acceptWaitSignChan) == 0 {
-					workers[workid].acceptWaitSignChan <- "go on"
-				}
-
-				DisAcceptMsg(raw,workid)
-				common.Debug("===============SignInitAcceptData, call DisAcceptMsg finish===================","key ",key)
-				reqaddrkey := GetReqAddrKeyByOtherKey(key,Rpc_SIGN)
-				if reqaddrkey == "" {
-				    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get req addr key fail", Err: fmt.Errorf("get reqaddr key fail")}
-				    ch <- res
-				    return fmt.Errorf("get reqaddr key fail") 
-				}
-
-				exsit,da := GetPubKeyData([]byte(reqaddrkey))
-				if !exsit {
-					common.Debug("===============SignInitAcceptData, get req addr key by other key fail ===================","key ",key)
-				    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
-				    ch <- res
-				    return fmt.Errorf("get reqaddr sigs data fail") 
-				}
-
-				acceptreqdata,ok := da.(*AcceptReqAddrData)
-				if !ok || acceptreqdata == nil {
-					common.Debug("===============SignInitAcceptData, get req addr key by other key error ===================","key ",key)
-				    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
-				    ch <- res
-				    return fmt.Errorf("get reqaddr sigs data fail") 
-				}
-
-				common.Debug("===============SignInitAcceptData, start call HandleC1Data===================","reqaddrkey ",reqaddrkey,"key ",key)
-
-				HandleC1Data(acceptreqdata,key,workid)
-
-				<-timeout
-
-				if !reply {
-					if tip == "get other node accept sign result timeout" {
-						ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
-						_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", "get other node accept sign result timeout", "get other node accept sign result timeout", ars,workid)
-					} 
-
-					res := RpcSmpcRes{Ret:"", Tip: tip, Err: fmt.Errorf("don't accept sign.")}
-					ch <- res
-					return fmt.Errorf("don't accept sign.")
-				}
-			} else {
-				if len(workers[workid].acceptWaitSignChan) == 0 {
-					workers[workid].acceptWaitSignChan <- "go on"
-				}
-
-				ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
-				common.Debug("=======================SignInitAcceptData,2222222222222222222,set sign pending=============================","key",key)
-				_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"false", "true", "Pending", "", "","", ars,workid)
-				if err != nil {
-				    res := RpcSmpcRes{Ret:"", Tip: err.Error(), Err:err}
-				    ch <- res
-				    return err
-				}
-			}
-
-			common.Debug("===============SignInitAcceptData,begin to sign=================","sig.MsgHash ",sig.MsgHash,"sig.Mode ",sig.Mode,"key ",key)
-			rch := make(chan interface{}, 1)
-			sign(w.sid, from,sig.PubKey,"",sig.MsgHash,sig.Keytype,nonce,sig.Mode,nil,rch)
-			chret, tip, cherr := GetChannelValue(waitall, rch)
-			common.Debug("================== SignInitAcceptData,finish sig.================","return sign result ",chret,"err ",cherr,"key ",key)
-			if chret != "" {
-				res := RpcSmpcRes{Ret: chret, Tip: "", Err: nil}
-				ch <- res
-				return nil
-			}
-
-			ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
-			if tip == "get other node accept sign result timeout" {
-				_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", tip,cherr.Error(),ars,workid)
-			} 
-
-			if cherr != nil {
-				res := RpcSmpcRes{Ret: "", Tip: tip, Err: cherr}
-				ch <- res
-				return cherr
-			}
-
-			res := RpcSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("sign fail.")}
-			ch <- res
-			return fmt.Errorf("sign fail.")
-		    } else {
-			common.Debug("===============SignInitAcceptData, it is sign txdata,but save accept data fail==================","key ",key,"from ",from)
-		    }
-		//} else {
-		//	common.Debug("===============SignInitAcceptData, it is sign txdata,but set nonce fail==================","key ",key,"from ",from)
-		//}
-	    //}
-	//} else {
-	//	common.Debug("===============SignInitAcceptData, it is sign txdata,but has handled before==================","key ",key,"from ",from)
-	//}
-    }
-
-    common.Debug("===============SignInitAcceptData, it is not sign txdata and return fail ==================","key ",key,"from ",from,"nonce ",nonce)
-    res := RpcSmpcRes{Ret: "", Tip: "sign init accept data fail.", Err: fmt.Errorf("sign init accept data fail")}
-    ch <- res
-    return fmt.Errorf("sign init accept data fail")
-}
-
 func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) error {
     if raw == "" || workid < 0 || sender == "" {
 	res := RpcSmpcRes{Ret: "", Tip: "init accept data fail.", Err: fmt.Errorf("init accept data fail")}
@@ -2413,7 +1361,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
     req,ok := txdata.(*TxDataReqAddr)
     if ok {
 
-	time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 	common.Info("===============InitAcceptData, check reqaddr raw success==================","raw ",raw,"key ",key,"from ",from,"nonce ",nonce,"txdata ",req)
 	exsit,_ := GetReqAddrInfoData([]byte(key))
 	if !exsit {
@@ -2438,15 +1385,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 		    common.Info("===================call SaveAcceptReqAddrData finish====================","account ",from,"err ",err,"key ",key)
 		   if err == nil {
 			rch := make(chan interface{}, 1)
-			for k,v := range workers {
-			    if strings.EqualFold(v.sid, key) {
-				MergeAllPreSaveMsgToWorkerId(k)
-				err = KeyInitAcceptData(raw,k,sender,ch)
-				v.bwire <-true //Release the worker thread
-				return err
-			    }
-			}
-
 			w := workers[workid]
 			w.sid = key 
 			w.groupid = req.GroupId
@@ -2560,7 +1498,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 				}
 
 				DisAcceptMsg(raw,workid)
-				HandleC1Data(ac,key,workid)
+				HandleC1Data(ac,key)
 
 				<-timeout
 
@@ -2598,10 +1536,8 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 				}
 			}
 
-			common.Info("================== InitAcceptData, start call smpc_genPubKey====================","w.id ",w.id,"w.groupid ",w.groupid,"key ",key)
 			smpc_genPubKey(w.sid, from, req.Keytype, rch, req.Mode, nonce)
 			chret, tip, cherr := GetChannelValue(waitall, rch)
-			common.Info("================== InitAcceptData , finish smpc_genPubKey ===================","get return value ",chret,"err ",cherr,"key ",key)
 			if cherr != nil {
 				ars := GetAllReplyFromGroup(w.id,req.GroupId,Rpc_REQADDR,sender)
 				_,err = AcceptReqAddr(sender,from, req.Keytype, req.GroupId, nonce, req.ThresHold, req.Mode, "false", "", "Failure", "", tip, cherr.Error(), ars, workid,"")
@@ -2619,7 +1555,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 			res := RpcSmpcRes{Ret: strconv.Itoa(workid) + common.Sep + "rpc_req_smpcaddr" + common.Sep + chret, Tip: "", Err: nil}
 			ch <- res
 			return nil
-			/////////////
 		   }
 		}
 	    }
@@ -2628,7 +1563,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 
     sig,ok := txdata.(*TxDataSign)
     if ok {
-	time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 	common.Debug("===============InitAcceptData, it is sign txdata and check sign raw success==================","key ",key,"from ",from,"nonce ",nonce)
 	exsit,_ := GetSignInfoData([]byte(key))
 	if !exsit {
@@ -2645,15 +1579,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 		    err = SaveAcceptSignData(ac)
 		    if err == nil {
 			common.Debug("===============InitAcceptData,save sign accept data finish===================","ars ",ars,"key ",key)
-			for k,v := range workers {
-			    if strings.EqualFold(v.sid, key) {
-				MergeAllPreSaveMsgToWorkerId(k)
-				err = SignInitAcceptData(raw,k,sender,ch)
-				v.bwire <-true //Release the worker thread
-				return err
-			    }
-			}
-
 			w := workers[workid]
 			w.sid = key 
 			w.groupid = sig.GroupId 
@@ -2771,7 +1696,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 
 				common.Debug("===============InitAcceptData, start call HandleC1Data===================","reqaddrkey ",reqaddrkey,"key ",key)
 
-				HandleC1Data(acceptreqdata,key,workid)
+				HandleC1Data(acceptreqdata,key)
 
 				<-timeout
 
@@ -2839,7 +1764,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 
     rh,ok := txdata.(*TxDataReShare)
     if ok {
-	time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 	ars := GetAllReplyFromGroup(workid,rh.GroupId,Rpc_RESHARE,sender)
 	sigs,err := GetGroupSigsDataByRaw(raw) 
 	common.Debug("=================InitAcceptData,reshare=================","get group sigs ",sigs,"err ",err,"key ",key)
@@ -2853,15 +1777,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	err = SaveAcceptReShareData(ac)
 	common.Info("===================finish call SaveAcceptReShareData======================","err ",err,"workid ",workid,"account ",from,"group id ",rh.GroupId,"pubkey ",rh.PubKey,"threshold ",rh.ThresHold,"key ",key)
 	if err == nil {
-	    for k,v := range workers {
-		if strings.EqualFold(v.sid, key) {
-		    MergeAllPreSaveMsgToWorkerId(k)
-		    err = ReshareInitAcceptData(raw,k,sender,ch)
-		    v.bwire <-true //Release the worker thread
-		    return err
-		}
-	    }
-
 	    w := workers[workid]
 	    w.sid = key 
 	    w.groupid = rh.TSGroupId 
@@ -2869,7 +1784,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	    gcnt, _ := GetGroup(w.groupid)
 	    w.NodeCnt = gcnt
 	    w.ThresHold = w.NodeCnt
-	    //fmt.Printf("==================== reshare,gcnt = %v,w.NodeCnt = %v,w.ThresHold = %v,w.sid = %v ======================\n",gcnt,w.NodeCnt,w.ThresHold,w.sid)
 
 	    nums := strings.Split(w.limitnum, "/")
 	    if len(nums) == 2 {
@@ -2883,8 +1797,6 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 		    th,_ := strconv.Atoi(nums[0])
 		    w.ThresHold = th
 		}
-		
-		//fmt.Printf("==================== reshare,222222,gcnt = %v,w.NodeCnt = %v,w.ThresHold = %v,w.sid = %v ======================\n",gcnt,w.NodeCnt,w.ThresHold,w.sid)
 	    }
 
 	    w.SmpcFrom = rh.PubKey  // pubkey replace smpcfrom in reshare 
@@ -2953,7 +1865,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	    }
 
 	    DisAcceptMsg(raw,workid)
-	    HandleC1Data(nil,key,workid)
+	    HandleC1Data(nil,key)
 	    
 	    <-timeout
 
@@ -2999,8 +1911,8 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	common.Debug("===============InitAcceptData, check accept reqaddr raw success======================","raw ",raw,"key ",acceptreq.Key,"from ",from,"txdata ",acceptreq)
 	w, err := FindWorker(acceptreq.Key)
 	if err != nil || w == nil {
-	    c1data := acceptreq.Key + "-" + from
-	    C1Data.WriteMap(strings.ToLower(c1data),raw)
+	    c1data := strings.ToLower(acceptreq.Key + "-" + from)
+	    C1Data.WriteMap(c1data,raw)
 	    res := RpcSmpcRes{Ret:"Failure", Tip: "get reqaddr accept data fail from db.", Err: fmt.Errorf("get reqaddr accept data fail from db when no find worker")}
 	    ch <- res
 	    return fmt.Errorf("get reqaddr accept data fail from db when no find worker.")
@@ -3030,7 +1942,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 
 	id,_ := GetWorkerId(w)
 	DisAcceptMsg(raw,id)
-	HandleC1Data(ac,acceptreq.Key,id)
+	HandleC1Data(ac,acceptreq.Key)
 
 	ars := GetAllReplyFromGroup(id,ac.GroupId,Rpc_REQADDR,ac.Initiator)
 	tip, err := AcceptReqAddr(ac.Initiator,ac.Account, ac.Cointype, ac.GroupId, ac.Nonce, ac.LimitNum, ac.Mode, "false", accept, status, "", "", "", ars, ac.WorkId,"")
@@ -3051,8 +1963,8 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	w, err := FindWorker(acceptsig.Key)
 	if err != nil || w == nil {
 		common.Info("===============InitAcceptData, it is acceptsign and no find worker=====================","key ",acceptsig.Key,"from ",from)
-	    c1data := acceptsig.Key + "-" + from
-	    C1Data.WriteMap(strings.ToLower(c1data),raw)
+	    c1data := strings.ToLower(acceptsig.Key + "-" + from)
+	    C1Data.WriteMap(c1data,raw)
 	    res := RpcSmpcRes{Ret:"Failure", Tip: "get sign accept data fail from db when no find worker.", Err: fmt.Errorf("get sign accept data fail from db when no find worker")}
 	    ch <- res
 	    return fmt.Errorf("get sign accept data fail from db when no find worker.")
@@ -3107,7 +2019,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	    return fmt.Errorf("get reqaddr sigs data fail") 
 	}
 
-	HandleC1Data(acceptreqdata,acceptsig.Key,id)
+	HandleC1Data(acceptreqdata,acceptsig.Key)
 
 	ars := GetAllReplyFromGroup(id,ac.GroupId,Rpc_SIGN,ac.Initiator)
 	if ac.Deal == "true" || ac.Status == "Success" || ac.Status == "Failure" || ac.Status == "Timeout" {
@@ -3135,8 +2047,8 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 	common.Debug("===============InitAcceptData, check accept reshare raw success=====================","raw ",raw,"key ",acceptrh.Key,"from ",from,"txdata ",acceptrh)
 	w, err := FindWorker(acceptrh.Key)
 	if err != nil || w == nil {
-	    c1data := acceptrh.Key + "-" + from
-	    C1Data.WriteMap(strings.ToLower(c1data),raw)
+	    c1data := strings.ToLower(acceptrh.Key + "-" + from)
+	    C1Data.WriteMap(c1data,raw)
 	    res := RpcSmpcRes{Ret:"Failure", Tip: "get reshare accept data fail from db when no find worker.", Err: fmt.Errorf("get reshare accept data fail from db when no find worker")}
 	    ch <- res
 	    return fmt.Errorf("get reshare accept data fail from db whern no find worker.")
@@ -3166,7 +2078,7 @@ func InitAcceptData(raw string,workid int,sender string,ch chan interface{}) err
 
 	id,_ := GetWorkerId(w)
 	DisAcceptMsg(raw,id)
-	HandleC1Data(nil,acceptrh.Key,id)
+	HandleC1Data(nil,acceptrh.Key)
 
 	ars := GetAllReplyFromGroup(id,ac.GroupId,Rpc_RESHARE,ac.Initiator)
 	tip,err := AcceptReShare(ac.Initiator,ac.Account, ac.GroupId, ac.TSGroupId,ac.PubKey, ac.LimitNum, ac.Mode,"false", accept, status, "", "", "", ars,ac.WorkId)
@@ -3473,9 +2385,9 @@ func DisMsg(msg string) {
 	w, err := FindWorker(prexs[0])
 	if err != nil || w == nil {
 	    mmtmp := mm[0:2]
-	    ss := strings.Join(mmtmp, common.Sep)
-	    common.Debug("===============DisMsg,no find worker,so save the msg (c1 or accept res) to C1Data map=============","ss",strings.ToLower(ss),"msg",msg,"key",prexs[0])
-	    C1Data.WriteMap(strings.ToLower(ss),msg)
+	    ss := strings.ToLower(strings.Join(mmtmp, common.Sep))
+	    common.Debug("===============DisMsg,pre-save the p2p msg=============","ss",ss,"msg",msg,"key",prexs[0])
+	    C1Data.WriteMap(ss,msg)
 
 	    return
 	}

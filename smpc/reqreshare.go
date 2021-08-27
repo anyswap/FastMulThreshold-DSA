@@ -445,9 +445,7 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 				close(errChan)
 			}
 			
-			for _,v := range w.PreSaveSmpcMsg {
-			    w.SmpcMsg <- v 
-			}
+			HandleC1Data(nil,w.sid)
 		}()
 		go ReshareProcessInboundMessages(msgprex,commStopChan,&reshareWg,ch)
 		newsku1,err := processReshare(msgprex,groupid,pubkey,account,mode,sigs,errChan, outCh, endCh)
@@ -488,9 +486,7 @@ func ReShare_ec2(msgprex string, initator string, groupid string,pubkey string, 
 			close(errChan)
 		}
 		
-		for _,v := range w.PreSaveSmpcMsg {
-		    w.SmpcMsg <- v 
-		}
+		HandleC1Data(nil,w.sid)
 	}()
 	go ReshareProcessInboundMessages(msgprex,commStopChan,&reshareWg,ch)
 	newsku1,err := processReshare(msgprex,groupid,pubkey,account,mode,sigs,errChan,outCh,endCh)

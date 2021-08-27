@@ -93,224 +93,6 @@ func SetSignNonce(account string,nonce string) (string, error) {
 	return "", nil
 }
 
-func SignInitAcceptData2(sbd *SignPickData,workid int,sender string,ch chan interface{}) error {
-    if sbd == nil || workid < 0 || sender == "" || sbd.Raw == "" || sbd.PickData == nil {
-	res := RpcSmpcRes{Ret: "", Tip: "init accept data fail.", Err: fmt.Errorf("init accept data fail")}
-	ch <- res
-	return fmt.Errorf("init accept data fail")
-    }
-
-    key,from,nonce,txdata,err := CheckRaw(sbd.Raw)
-    common.Info("===================== SignInitAcceptData2,get result from call CheckRaw ================","key",key,"from",from,"err",err,"raw",sbd.Raw,"tx data",txdata)
-    if err != nil {
-	common.Debug("=============== SignInitAcceptData2,check raw===================","err ",err,"key",key,"from",from,"raw",sbd.Raw)
-	res := RpcSmpcRes{Ret: "", Tip: err.Error(), Err: err}
-	ch <- res
-	return err
-    }
-    
-    sig,ok := txdata.(*TxDataSign)
-    if ok {
-	common.Debug("=============== SignInitAcceptData2, it is sign txdata and check sign raw success==================","key ",key,"from ",from,"nonce ",nonce)
-	exsit,_ := GetSignInfoData([]byte(key))
-	if !exsit {
-	    cur_nonce, _, _ := GetSignNonce(from)
-	    cur_nonce_num, _ := new(big.Int).SetString(cur_nonce, 10)
-	    new_nonce_num, _ := new(big.Int).SetString(nonce, 10)
-	    common.Debug("===============SignInitAcceptData2===============","sign cur_nonce_num ",cur_nonce_num,"sign new_nonce_num ",new_nonce_num,"key ",key)
-	    //if new_nonce_num.Cmp(cur_nonce_num) >= 0 {
-		//_, err := SetSignNonce(from,nonce)
-		_, err := SetSignNonce(from,cur_nonce) //bug
-		if err == nil {
-		    ars := GetAllReplyFromGroup(workid,sig.GroupId,Rpc_SIGN,sender)
-		    ac := &AcceptSignData{Initiator:sender,Account: from, GroupId: sig.GroupId, Nonce: nonce, PubKey: sig.PubKey, MsgHash: sig.MsgHash, MsgContext: sig.MsgContext, Keytype: sig.Keytype, LimitNum: sig.ThresHold, Mode: sig.Mode, TimeStamp: sig.TimeStamp, Deal: "false", Accept: "false", Status: "Pending", Rsv: "", Tip: "", Error: "", AllReply: ars, WorkId:workid}
-		    err = SaveAcceptSignData(ac)
-		    if err == nil {
-			common.Info("=============== SignInitAcceptData2,save sign accept data finish===================","ars ",ars,"key ",key,"tx data",sig)
-			w := workers[workid]
-			w.sid = key 
-			w.groupid = sig.GroupId 
-			w.limitnum = sig.ThresHold
-			gcnt, _ := GetGroup(w.groupid)
-			w.NodeCnt = gcnt
-			w.ThresHold = w.NodeCnt
-
-			nums := strings.Split(w.limitnum, "/")
-			if len(nums) == 2 {
-			    nodecnt, err := strconv.Atoi(nums[1])
-			    if err == nil {
-				w.NodeCnt = nodecnt
-			    }
-
-			    w.ThresHold = gcnt
-			}
-
-			w.SmpcFrom = sig.PubKey  // pubkey replace smpcfrom in sign
-			
-			if sig.Mode == "0" { // self-group
-				////
-				var reply bool
-				var tip string
-				timeout := make(chan bool, 1)
-				go func(wid int) {
-					cur_enode = discover.GetLocalID().String() //GetSelfEnode()
-					agreeWaitTime := time.Duration(WaitAgree) * time.Second
-					agreeWaitTimeOut := time.NewTicker(agreeWaitTime)
-
-					wtmp2 := workers[wid]
-
-					for {
-						select {
-						case account := <-wtmp2.acceptSignChan:
-							common.Debug("InitAcceptData,", "account= ", account, "key = ", key)
-							ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
-							common.Info("================== SignInitAcceptData2, get all AcceptSignRes===============","result ",ars,"key ",key)
-							
-							//bug
-							reply = true
-							for _,nr := range ars {
-							    if !strings.EqualFold(nr.Status,"Agree") {
-								reply = false
-								break
-							    }
-							}
-							//
-
-							if !reply {
-								tip = "don't accept sign"
-								_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "false", "Failure", "", "don't accept sign", "don't accept sign", ars,wid)
-							} else {
-							    	common.Debug("======================= SignInitAcceptData2,11111111111111,set sign pending=============================","key",key)
-								tip = ""
-								_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"false", "true", "Pending", "", "", "", ars,wid)
-							}
-
-							if err != nil {
-							    tip = tip + " and accept sign data fail"
-							}
-
-							///////
-							timeout <- true
-							return
-						case <-agreeWaitTimeOut.C:
-							ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
-							common.Info("================== SignInitAcceptData2, agree wait timeout=============","ars",ars,"key ",key)
-							_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "false", "Timeout", "", "get other node accept sign result timeout", "get other node accept sign result timeout", ars,wid)
-							reply = false
-							tip = "get other node accept sign result timeout"
-							if err != nil {
-							    tip = tip + " and accept sign data fail"
-							}
-							//
-
-							timeout <- true
-							return
-						}
-					}
-				}(workid)
-
-				if len(workers[workid].acceptWaitSignChan) == 0 {
-					workers[workid].acceptWaitSignChan <- "go on"
-				}
-
-				DisAcceptMsg(sbd.Raw,workid)
-				common.Debug("===============SignInitAcceptData2, call DisAcceptMsg finish===================","key ",key)
-				reqaddrkey := GetReqAddrKeyByOtherKey(key,Rpc_SIGN)
-				if reqaddrkey == "" {
-				    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get req addr key fail", Err: fmt.Errorf("get reqaddr key fail")}
-				    ch <- res
-				    return fmt.Errorf("get reqaddr key fail") 
-				}
-
-				exsit,da := GetPubKeyData([]byte(reqaddrkey))
-				if !exsit {
-				    common.Debug("=============== SignInitAcceptData2, get req addr key by other key fail ===================","key ",key)
-				    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
-				    ch <- res
-				    return fmt.Errorf("get reqaddr sigs data fail") 
-				}
-
-				acceptreqdata,ok := da.(*AcceptReqAddrData)
-				if !ok || acceptreqdata == nil {
-				    common.Debug("=============== SignInitAcceptData2, get req addr key by other key error ===================","key ",key)
-				    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
-				    ch <- res
-				    return fmt.Errorf("get reqaddr sigs data fail") 
-				}
-
-				common.Debug("=============== SignInitAcceptData2, start call HandleC1Data===================","reqaddrkey ",reqaddrkey,"key ",key)
-
-				HandleC1Data(acceptreqdata,key,workid)
-
-				<-timeout
-
-				if !reply {
-					if tip == "get other node accept sign result timeout" {
-						ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
-						_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", "get other node accept sign result timeout", "get other node accept sign result timeout", ars,workid)
-					} 
-
-					res := RpcSmpcRes{Ret:"", Tip: tip, Err: fmt.Errorf("don't accept sign.")}
-					ch <- res
-					return fmt.Errorf("don't accept sign.")
-				}
-			} else {
-				if len(workers[workid].acceptWaitSignChan) == 0 {
-					workers[workid].acceptWaitSignChan <- "go on"
-				}
-
-				ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
-				_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"false", "true", "Pending", "", "","", ars,workid)
-				if err != nil {
-				    res := RpcSmpcRes{Ret:"", Tip: err.Error(), Err:err}
-				    ch <- res
-				    return err
-				}
-			}
-
-			common.Info("=============== SignInitAcceptData2,begin to sign=================","sig.MsgHash ",sig.MsgHash,"sig.Mode ",sig.Mode,"key ",key)
-			rch := make(chan interface{}, 1)
-			sign(w.sid, from,sig.PubKey,sig.InputCode,sig.MsgHash,sig.Keytype,nonce,sig.Mode,sbd.PickData,rch)
-			chret, tip, cherr := GetChannelValue(waitallgg20+20, rch)
-			common.Info("================== SignInitAcceptData2,finish sig.================","return sign result ",chret,"err ",cherr,"key ",key)
-			if chret != "" {
-				res := RpcSmpcRes{Ret: chret, Tip: "", Err: nil}
-				ch <- res
-				return nil
-			}
-
-			ars := GetAllReplyFromGroup(w.id,sig.GroupId,Rpc_SIGN,sender)
-			if tip == "get other node accept sign result timeout" {
-				_,err = AcceptSign(sender,from,sig.PubKey,sig.MsgHash,sig.Keytype,sig.GroupId,nonce,sig.ThresHold,sig.Mode,"true", "", "Timeout", "", tip,cherr.Error(),ars,workid)
-			} 
-
-			if cherr != nil {
-				res := RpcSmpcRes{Ret: "", Tip: tip, Err: cherr}
-				ch <- res
-				return cherr
-			}
-
-			res := RpcSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("sign fail.")}
-			ch <- res
-			return fmt.Errorf("sign fail.")
-		    } else {
-			common.Debug("=============== SignInitAcceptData2, it is sign txdata,but save accept data fail==================","key ",key,"from ",from)
-		    }
-		} else {
-			common.Debug("=============== SignInitAcceptData2, it is sign txdata,but set nonce fail==================","key ",key,"from ",from)
-		}
-	    //}
-	} else {
-		common.Info("=============== SignInitAcceptData2, it is sign txdata,but has handled before==================","key ",key,"from ",from)
-	}
-    }
-
-    common.Debug("=============== SignInitAcceptData2, it is not sign txdata and return fail ==================","key ",key,"from ",from,"nonce ",nonce)
-    res := RpcSmpcRes{Ret: "", Tip: "init accept data fail.", Err: fmt.Errorf("init accept data fail")}
-    ch <- res
-    return fmt.Errorf("init accept data fail")
-}
-
 func InitAcceptData2(sbd *SignPickData,workid int,sender string,ch chan interface{}) error {
     if sbd == nil || workid < 0 || sender == "" || sbd.Raw == "" || sbd.PickData == nil {
 	res := RpcSmpcRes{Ret: "", Tip: "init accept data fail.", Err: fmt.Errorf("init accept data fail")}
@@ -329,7 +111,6 @@ func InitAcceptData2(sbd *SignPickData,workid int,sender string,ch chan interfac
     
     sig,ok := txdata.(*TxDataSign)
     if ok {
-	time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 	common.Debug("===============InitAcceptData2, it is sign txdata and check sign raw success==================","key ",key,"from ",from,"nonce ",nonce)
 	exsit,_ := GetSignInfoData([]byte(key))
 	if !exsit {
@@ -346,15 +127,6 @@ func InitAcceptData2(sbd *SignPickData,workid int,sender string,ch chan interfac
 		    err = SaveAcceptSignData(ac)
 		    if err == nil {
 			common.Info("===============InitAcceptDatai2,save sign accept data finish===================","ars ",ars,"key ",key,"tx data",sig)
-			for k,v := range workers {
-			    if strings.EqualFold(v.sid, key) {
-				MergeAllPreSaveMsgToWorkerId(k)
-				err = SignInitAcceptData(sbd.Raw,k,sender,ch)
-				v.bwire <-true //add for smpc-lib
-				return err 
-			    }
-			}
-
 			w := workers[workid]
 			w.sid = key 
 			w.groupid = sig.GroupId 
@@ -468,7 +240,7 @@ func InitAcceptData2(sbd *SignPickData,workid int,sender string,ch chan interfac
 
 				common.Debug("===============InitAcceptData2, start call HandleC1Data===================","reqaddrkey ",reqaddrkey,"key ",key)
 
-				HandleC1Data(acceptreqdata,key,workid)
+				HandleC1Data(acceptreqdata,key)
 
 				<-timeout
 
@@ -976,10 +748,12 @@ func Sign_ed(msgprex string, save string, sku1 *big.Int, message string, cointyp
 			close(errChan)
 		}
 		
-		//fmt.Printf("=================ed sign, handle save msg 111111, len w.PreSaveSmpcMsg = %v, key = %v ===================\n",len(w.PreSaveSmpcMsg),msgprex)
-		for _,v := range w.PreSaveSmpcMsg {
-		    fmt.Printf("=================ed sign, handle save msg, v = %v, key = %v ===================\n",v,msgprex)
-		    w.SmpcMsg <- v 
+		exsit,da := GetPubKeyData([]byte(pubs.Key))
+		if exsit {
+		    acceptreqdata,ok := da.(*AcceptReqAddrData)
+		    if ok && acceptreqdata != nil {
+			HandleC1Data(acceptreqdata,w.sid)
+		    }
 		}
 	}()
 	go EdSignProcessInboundMessages(msgprex,commStopChan,&signWg,ch)
@@ -2724,7 +2498,6 @@ func GetPaillierPkByIndexFromSaveData(save string, index int) *ec2.PublicKey {
 	n2 := new(big.Int).SetBytes([]byte(mm[s+3]))
 	publicKey := &ec2.PublicKey{Length: l, N: n, G: g, N2: n2}
 
-	fmt.Printf("================================GetPaillierPkByIndexFromSaveData, index = %v,paillierPk.Len = %v,paillierPk.N = %v,paillierPk.G = %v,paillierPk.N2 = %v======================\n",index,l,n,g,n2)
 	return publicKey
 }
 
@@ -2736,7 +2509,6 @@ func GetCurNodeIndex(gid string,keytype string) int {
     uid := DoubleHash(cur_enode,keytype)
 
     ids := GetIds(keytype,gid)
-    fmt.Printf("=============================GetCurNodeIndex, gid = %v, keytype = %v, cur_enode = %v,uid = %v,ids = %v====================================\n",gid,keytype,cur_enode,uid,ids)
     for k,v := range ids {
 	if v.Cmp(uid) == 0 {
 	    return k
@@ -2764,7 +2536,6 @@ func GetCurNodePaillierSkFromSaveData(save string, gid string,keytype string) *e
 		ll := new(big.Int).SetBytes([]byte(mm[2]))
 		uu := new(big.Int).SetBytes([]byte(mm[3]))
 		privateKey := &ec2.PrivateKey{Length: l, PublicKey: *publicKey, L: ll, U: uu}
-		fmt.Printf("==================================GetCurNodePaillierSkFromSaveData,cur_index = %v,gid = %v,keytype = %v,pailliersk.Len = %v,pailliersk.L = %v,pailliersk.U = %v===============================\n",cur_index,gid,keytype,l,ll,uu)
 		return privateKey
 	}
 
@@ -2787,7 +2558,6 @@ func GetNtildeByIndexFromSaveData(save string, index int, NodeCnt int) *ec2.Ntil
 	h2 := new(big.Int).SetBytes([]byte(mm[s+2]))
 	ntildeh1h2 := &ec2.NtildeH1H2{Ntilde: ntilde, H1: h1, H2: h2}
 
-	fmt.Printf("===============================GetNtildeByIndexFromSaveData,index = %v,NodeCnt = %v,ntilde = %v,h1 = %v,h2 = %v==================================\n",index,NodeCnt,ntilde,h1,h2)
 	return ntildeh1h2
 }
 
@@ -2903,9 +2673,13 @@ func PreSign_ec3(msgprex string, save string, sku1 *big.Int, cointype string, ch
 		    fmt.Printf("==========sign node start err = %v ==========\n",err)
 			close(errChan)
 		}
-		
-		for _,v := range w.PreSaveSmpcMsg {
-		    w.SmpcMsg <- v 
+	
+		exsit,da := GetPubKeyData([]byte(pubs.Key))
+		if exsit {
+		    acceptreqdata,ok := da.(*AcceptReqAddrData)
+		    if ok && acceptreqdata != nil {
+			HandleC1Data(acceptreqdata,w.sid)
+		    }
 		}
 	}()
 	go SignProcessInboundMessages(msgprex,commStopChan,&signWg,ch)
@@ -3162,9 +2936,12 @@ func Sign_ec3(msgprex string, message string, cointype string,save string, pkx *
 			close(errChan)
 		}
 		
-		for _,v := range w.PreSaveSmpcMsg {
-		    fmt.Printf("============sign dnode start,handle pre-msg = %v ==============\n",v)
-		    w.SmpcMsg <- v 
+		exsit,da := GetPubKeyData([]byte(pubs.Key))
+		if exsit {
+		    acceptreqdata,ok := da.(*AcceptReqAddrData)
+		    if ok && acceptreqdata != nil {
+			HandleC1Data(acceptreqdata,w.sid)
+		    }
 		}
 	}()
 	go SignProcessInboundMessages(msgprex,commStopChan,&signWg,ch)

@@ -272,7 +272,6 @@ func GetRandomPositiveRelativelyPrimeInt(n *big.Int) *big.Int {
 	for {
 		try = MustGetRandomInt(n.BitLen())
 		if IsNumberInMultiplicativeGroup(n, try) {
-		    fmt.Printf("=======================GetRandomPositiveRelativelyPrimeInt,n = %v,try = %v,n.BitLen = %v===================\n",n,try,n.BitLen())
 			break
 		}
 	}

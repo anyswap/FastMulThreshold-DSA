@@ -619,9 +619,13 @@ func KeyGenerate_DEDDSA(msgprex string, ch chan interface{}, id int, cointype st
 		    fmt.Printf("==========ed,keygen node start err = %v, key = %v ==========\n",err,msgprex)
 			close(errChan)
 		}
-		
-		for _,v := range w.PreSaveSmpcMsg {
-		    w.SmpcMsg <- v 
+	
+		exsit,da := GetReqAddrInfoData([]byte(msgprex))
+		if exsit {
+		    ac,ok := da.(*AcceptReqAddrData)
+		    if ok && ac != nil {
+			HandleC1Data(ac,w.sid)
+		    }
 		}
 	}()
 	go ProcessInboundMessages_EDDSA(msgprex,commStopChan,&keyGenWg,ch)
@@ -1310,8 +1314,12 @@ func KeyGenerate_DECDSA(msgprex string, ch chan interface{}, id int, cointype st
 			close(errChan)
 		}
 		
-		for _,v := range w.PreSaveSmpcMsg {
-		    w.SmpcMsg <- v 
+		exsit,da := GetReqAddrInfoData([]byte(msgprex))
+		if exsit {
+		    ac,ok := da.(*AcceptReqAddrData)
+		    if ok && ac != nil {
+			HandleC1Data(ac,w.sid)
+		    }
 		}
 	}()
 	go ProcessInboundMessages(msgprex,commStopChan,&keyGenWg,ch)
