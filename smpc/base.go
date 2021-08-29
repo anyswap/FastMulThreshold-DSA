@@ -974,15 +974,14 @@ func GetAllReplyFromGroup(wid int,gid string,rt RpcType,initiator string) []Node
 			    mms := strings.Split(ac.Sigs, common.Sep)
 			    for k,mm := range mms {
 				if strings.EqualFold(mm,node2) {
-				    reply,ok := ret[mms[k+1]]
+				    reply,ok := ret.ReadMap(mms[k+1])
 				    if ok && reply != nil {
-					common.Info("===================GetAllReplyFromGroup,it is sign=================","key",key,"from",mms[k+1],"Accept",reply.Accept,"raw",mdss)
-					if reply.Accept == "true" {
+					if (reply.(*RawReply)).Accept == "true" {
 					    sta = "Agree"
 					} else {
 					    sta = "DisAgree"
 					}
-					ts = reply.TimeStamp
+					ts = (reply.(*RawReply)).TimeStamp
 				    }
 
 				    break
@@ -1097,14 +1096,14 @@ func GetAllReplyFromGroup(wid int,gid string,rt RpcType,initiator string) []Node
 			mms := strings.Split(ac.Sigs, common.Sep)
 			for k,mm := range mms {
 			    if strings.EqualFold(mm,node2) {
-				reply,ok := ret[mms[k+1]]
+				reply,ok := ret.ReadMap(mms[k+1])
 				if ok && reply != nil {
-				    if reply.Accept == "true" {
+				    if (reply.(*RawReply)).Accept == "true" {
 					sta = "Agree"
 				    } else {
 					sta = "DisAgree"
 				    }
-				    ts = reply.TimeStamp
+				    ts = (reply.(*RawReply)).TimeStamp
 				}
 
 				break

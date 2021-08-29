@@ -165,8 +165,8 @@ type RawReply struct {
     TimeStamp string
 }
 
-func GetRawReply(l *list.List) map[string]*RawReply {
-    ret := make(map[string]*RawReply)
+func GetRawReply(l *list.List) *common.SafeMap {
+    ret := common.NewSafeMap(10) 
     if l == nil {
 	return ret
     }
@@ -194,14 +194,17 @@ func GetRawReply(l *list.List) map[string]*RawReply {
 	req,ok := txdata.(*TxDataReqAddr)
 	if ok {
 	    reply := &RawReply{From:from,Accept:"true",TimeStamp:req.TimeStamp}
-	    tmp,ok := ret[from]
+	    tmp,ok := ret.ReadMap(from)
 	    if !ok {
-		ret[from] = reply
+		ret.WriteMap(from,reply)
 	    } else {
-		t1,_ := new(big.Int).SetString(reply.TimeStamp,10)
-		t2,_ := new(big.Int).SetString(tmp.TimeStamp,10)
-		if t1.Cmp(t2) > 0 {
-		    ret[from] = reply
+		tmp2,ok := tmp.(*RawReply)
+		if ok {
+		    t1,_ := new(big.Int).SetString(reply.TimeStamp,10)
+		    t2,_ := new(big.Int).SetString(tmp2.TimeStamp,10)
+		    if t1.Cmp(t2) > 0 {
+			ret.WriteMap(from,reply)
+		    }
 		}
 
 	    }
@@ -213,14 +216,17 @@ func GetRawReply(l *list.List) map[string]*RawReply {
 	if ok {
 	    common.Debug("=================GetRawReply,the list item is TxDataSign=================","key",keytmp,"from",from,"sig",sig)
 	    reply := &RawReply{From:from,Accept:"true",TimeStamp:sig.TimeStamp}
-	    tmp,ok := ret[from]
+	    tmp,ok := ret.ReadMap(from)
 	    if !ok {
-		ret[from] = reply
+		ret.WriteMap(from,reply)
 	    } else {
-		t1,_ := new(big.Int).SetString(reply.TimeStamp,10)
-		t2,_ := new(big.Int).SetString(tmp.TimeStamp,10)
-		if t1.Cmp(t2) > 0 {
-		    ret[from] = reply
+		tmp2,ok := tmp.(*RawReply)
+		if ok {
+		    t1,_ := new(big.Int).SetString(reply.TimeStamp,10)
+		    t2,_ := new(big.Int).SetString(tmp2.TimeStamp,10)
+		    if t1.Cmp(t2) > 0 {
+			ret.WriteMap(from,reply)
+		    }
 		}
 	    }
 
@@ -230,14 +236,17 @@ func GetRawReply(l *list.List) map[string]*RawReply {
 	rh,ok := txdata.(*TxDataReShare)
 	if ok {
 	    reply := &RawReply{From:from,Accept:"true",TimeStamp:rh.TimeStamp}
-	    tmp,ok := ret[from]
+	    tmp,ok := ret.ReadMap(from)
 	    if !ok {
-		ret[from] = reply
+		ret.WriteMap(from,reply)
 	    } else {
-		t1,_ := new(big.Int).SetString(reply.TimeStamp,10)
-		t2,_ := new(big.Int).SetString(tmp.TimeStamp,10)
-		if t1.Cmp(t2) > 0 {
-		    ret[from] = reply
+		tmp2,ok := tmp.(*RawReply)
+		if ok {
+		    t1,_ := new(big.Int).SetString(reply.TimeStamp,10)
+		    t2,_ := new(big.Int).SetString(tmp2.TimeStamp,10)
+		    if t1.Cmp(t2) > 0 {
+			ret.WriteMap(from,reply)
+		    }
 		}
 	    }
 
@@ -252,14 +261,17 @@ func GetRawReply(l *list.List) map[string]*RawReply {
 	    }
 
 	    reply := &RawReply{From:from,Accept:accept,TimeStamp:acceptreq.TimeStamp}
-	    tmp,ok := ret[from]
+	    tmp,ok := ret.ReadMap(from)
 	    if !ok {
-		ret[from] = reply
+		ret.WriteMap(from,reply)
 	    } else {
-		t1,_ := new(big.Int).SetString(reply.TimeStamp,10)
-		t2,_ := new(big.Int).SetString(tmp.TimeStamp,10)
-		if t1.Cmp(t2) > 0 {
-		    ret[from] = reply
+		tmp2,ok := tmp.(*RawReply)
+		if ok {
+		    t1,_ := new(big.Int).SetString(reply.TimeStamp,10)
+		    t2,_ := new(big.Int).SetString(tmp2.TimeStamp,10)
+		    if t1.Cmp(t2) > 0 {
+			ret.WriteMap(from,reply)
+		    }
 		}
 
 	    }
@@ -274,14 +286,17 @@ func GetRawReply(l *list.List) map[string]*RawReply {
 	    }
 
 	    reply := &RawReply{From:from,Accept:accept,TimeStamp:acceptsig.TimeStamp}
-	    tmp,ok := ret[from]
+	    tmp,ok := ret.ReadMap(from)
 	    if !ok {
-		ret[from] = reply
+		ret.WriteMap(from,reply)
 	    } else {
-		t1,_ := new(big.Int).SetString(reply.TimeStamp,10)
-		t2,_ := new(big.Int).SetString(tmp.TimeStamp,10)
-		if t1.Cmp(t2) > 0 {
-		    ret[from] = reply
+		tmp2,ok := tmp.(*RawReply)
+		if ok {
+		    t1,_ := new(big.Int).SetString(reply.TimeStamp,10)
+		    t2,_ := new(big.Int).SetString(tmp2.TimeStamp,10)
+		    if t1.Cmp(t2) > 0 {
+			ret.WriteMap(from,reply)
+		    }
 		}
 
 	    }
@@ -295,14 +310,17 @@ func GetRawReply(l *list.List) map[string]*RawReply {
 	    }
 
 	    reply := &RawReply{From:from,Accept:accept,TimeStamp:acceptrh.TimeStamp}
-	    tmp,ok := ret[from]
+	    tmp,ok := ret.ReadMap(from)
 	    if !ok {
-		ret[from] = reply
+		ret.WriteMap(from,reply)
 	    } else {
-		t1,_ := new(big.Int).SetString(reply.TimeStamp,10)
-		t2,_ := new(big.Int).SetString(tmp.TimeStamp,10)
-		if t1.Cmp(t2) > 0 {
-		    ret[from] = reply
+		tmp2,ok := tmp.(*RawReply)
+		if ok {
+		    t1,_ := new(big.Int).SetString(reply.TimeStamp,10)
+		    t2,_ := new(big.Int).SetString(tmp2.TimeStamp,10)
+		    if t1.Cmp(t2) > 0 {
+			ret.WriteMap(from,reply)
+		    }
 		}
 
 	    }
@@ -346,8 +364,9 @@ func CheckReply(l *list.List,rt RpcType,key string) bool {
 	    }
 
 	    found := false
-	    for _,v := range ret {
-		if strings.EqualFold(v.From,fr) {
+	    _,value := ret.ListMap()
+	    for _,v := range value {
+		if v != nil && strings.EqualFold((v.(*RawReply)).From,fr) {
 		    found = true
 		    break
 		}
@@ -404,9 +423,9 @@ func CheckReply(l *list.List,rt RpcType,key string) bool {
 
 	for j:=0;j<count;j++ {
 	    found := false
-	    for _,v := range ret {
-		    common.Debug("===================== CheckReply,reqaddr================","ac.Sigs",ac.Sigs,"count",count,"k",k,"key",key,"ret.v",v,"v.From",v.From,"mms[2j+2]",mms[2*j+2])
-		if strings.EqualFold(v.From,mms[2*j+2]) { //allow user login diffrent node
+	    _,value := ret.ListMap()
+	    for _,v := range value {
+		if v != nil && strings.EqualFold((v.(*RawReply)).From,mms[2*j+2]) { //allow user login diffrent node
 		    found = true
 		    break
 		}
@@ -445,9 +464,9 @@ func CheckReply(l *list.List,rt RpcType,key string) bool {
 		if strings.EqualFold(v,node2) {
 		    foundeid = true
 		    found := false
-		    for _,vv := range ret {
-			    common.Debug("===================== CheckReply, mms[kk+1] must in ret map===============","key",key,"ret[...]",vv.From,"mms[kk+1]",mms[kk+1],"ac.Sigs",ac.Sigs)
-			if strings.EqualFold(vv.From,mms[kk+1]) { //allow user login diffrent node
+		    _,value := ret.ListMap()
+		    for _,vv := range value {
+			if vv != nil && strings.EqualFold((vv.(*RawReply)).From,mms[kk+1]) { //allow user login diffrent node
 			    found = true
 			    break
 			}
