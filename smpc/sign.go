@@ -14,9 +14,10 @@ import (
 	edsigning "github.com/anyswap/Anyswap-MPCNode/smpc-lib/eddsa/signing"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
-	//"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
 	"encoding/hex"
 )
+
+//--------------------------------------------ECDSA start----------------------------------------------------------
 
 func SignProcessInboundMessages(msgprex string,finishChan chan struct{},wg *sync.WaitGroup,ch chan interface{}) {
     defer wg.Done()
@@ -76,7 +77,6 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
     //1 message
     if msg["Type"] == "SignRound1Message" {
-	    fmt.Printf("============ GetRealMessage, get real sign message 1 success, msg map = %v ===========\n",msg)
 	    c11,_ := new(big.Int).SetString(msg["C11"],10)
 	    srm := &signing.SignRound1Message{
 		SignRoundMessage:new(signing.SignRoundMessage),
@@ -93,7 +93,6 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 	proof := &ec2.MtAZK1Proof_nhh{}
 	if err := proof.UnmarshalJSON([]byte(msg["U1u1MtAZK1Proof"]));err == nil {
 
-	    fmt.Printf("============== SignGetRealMessage, U1u1MtAZK1Proof = %v, ==============\n",proof)
 	    srm := &signing.SignRound2Message{
 		SignRoundMessage:new(signing.SignRoundMessage),
 		U1u1MtAZK1Proof:proof,
@@ -102,7 +101,6 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 	    srm.SetFromIndex(index)
 	    srm.ToID = to
 	    
-	    fmt.Printf("============ SignGetRealMessage, get real message 2 success, msg map = %v ===========\n",msg)
 	    return srm
 	}
 
@@ -112,9 +110,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
     //3 message
     if msg["Type"] == "SignRound3Message" {
 
-	fmt.Printf("============ SignGetRealMessage, get real message 3 success, msg map = %v ===========\n",msg)
 	kc,_ := new(big.Int).SetString(msg["Kc"],10)
-	fmt.Printf("============ SignGetRealMessage, kc = %v ===========\n",kc)
 	srm := &signing.SignRound3Message{
 	    SignRoundMessage:new(signing.SignRoundMessage),
 	    Kc:kc,
@@ -129,8 +125,6 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
     if msg["Type"] == "SignRound4Message" {
 	proof := &ec2.MtAZK2Proof_nhh{}
 	if err := proof.UnmarshalJSON([]byte(msg["U1u1MtAZK2Proof"]));err == nil {
-	    fmt.Printf("============ GetRealMessage, get real message 4 success, msg map = %v ===========\n",msg)
-
 	    cipher,_ := new(big.Int).SetString(msg["U1KGamma1Cipher"],10)
 	    srm := &signing.SignRound4Message{
 		SignRoundMessage:new(signing.SignRoundMessage),
@@ -150,8 +144,6 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
     if msg["Type"] == "SignRound4Message1" {
 	proof := &ec2.MtAZK3Proof_nhh{}
 	if err := proof.UnmarshalJSON([]byte(msg["U1u1MtAZK3Proof"]));err == nil {
-	    fmt.Printf("============ GetRealMessage, get real message 4-1 success, msg map = %v ===========\n",msg)
-
 	    cipher,_ := new(big.Int).SetString(msg["U1Kw1Cipher"],10)
 	    srm := &signing.SignRound4Message1{
 		SignRoundMessage:new(signing.SignRoundMessage),
@@ -169,8 +161,6 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
     //5 message
     if msg["Type"] == "SignRound5Message" {
-	fmt.Printf("============ GetRealMessage, get real message 5 success, msg map = %v ===========\n",msg)
-
 	delta,_ := new(big.Int).SetString(msg["Delta1"],10)
 	srm := &signing.SignRound5Message{
 	    SignRoundMessage:new(signing.SignRoundMessage),
@@ -186,8 +176,6 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
     if msg["Type"] == "SignRound6Message" {
 	proof := &ec2.ZkUProof{}
 	if err := proof.UnmarshalJSON([]byte(msg["U1GammaZKProof"]));err == nil {
-	    fmt.Printf("============ GetRealMessage, get real message 6 success, msg map = %v ===========\n",msg)
-	   
 	    tmp := strings.Split(msg["CommU1D"],":")
 	    dtmp := make([]*big.Int,len(tmp))
 	    for k,v := range tmp {
@@ -210,8 +198,6 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
     //7 message
     if msg["Type"] == "SignRound7Message" {
-	fmt.Printf("============ GetRealMessage, get real message 7 success, msg map = %v ===========\n",msg)
-
 	us1,_ := new(big.Int).SetString(msg["Us1"],10)
 	srm := &signing.SignRound7Message{
 	    SignRoundMessage:new(signing.SignRoundMessage),
@@ -230,16 +216,16 @@ func processSign(msgprex string,msgtoenode map[string]string,errChan chan struct
 	for {
 		select {
 		case <-errChan: // when keyGenParty return
-		    fmt.Printf("=========== processSign,error channel closed fail to start local smpc node ===========\n")
+		    fmt.Printf("=========== processSign,error channel closed fail to start local smpc node, key = %v ===========\n",msgprex)
 			return nil,errors.New("error channel closed fail to start local smpc node")
 
 		case <-time.After(time.Second * 300):
-		    fmt.Printf("=========== processSign,sign timeout ===========\n")
+		    fmt.Printf("========================== processSign,sign timeout, key = %v ========================\n",msgprex)
 			return nil,errors.New("sign timeout") 
 		case msg := <-outCh:
 			err := SignProcessOutCh(msgprex,msgtoenode,msg,"")
 			if err != nil {
-			    fmt.Printf("======== processSign, sign process outch err = %v ==========\n",err)
+			    fmt.Printf("============================= processSign, sign process outch err = %v, key = %v =======================\n",err,msgprex)
 				return nil,err
 			}
 		case msg := <-endCh:
@@ -248,70 +234,26 @@ func processSign(msgprex string,msgtoenode map[string]string,errChan chan struct
 			    return nil,fmt.Errorf("get worker fail")
 			}
 
-			fmt.Printf("\n===========sign finished successfully,sig data = %v ===========\n",msg)
+			fmt.Printf("\n=========================sign finished successfully,sig data = %v, key = %v ===========================\n",msg,msgprex)
 			return &msg,nil 
 		}
 	}
-}
-
-func SignProcessOutCh(msgprex string,msgtoenode map[string]string,msg smpclib.Message,gid string) error {
-    if msg == nil {
-	return fmt.Errorf("smpc info error")
-    }
-
-    w, err := FindWorker(msgprex)
-    if w == nil || err != nil {
-	return fmt.Errorf("get worker fail")
-    }
-
-    msgmap := msg.OutMap()
-    msgmap["Key"] = msgprex
-    msgmap["ENode"] = cur_enode
-    s,err := json.Marshal(msgmap)
-    if err != nil {
-	return err
-    }
-
-    if gid == "" {
-	gid = w.groupid
-    }
-
-    if msg.IsBroadcast() {
-	fmt.Printf("=========== SignProcessOutCh,broacast msg = %v, group id = %v ===========\n",string(s),gid)
-	SendMsgToSmpcGroup(string(s), gid)
-    } else {
-	for _,v := range msg.GetToID() {
-	    enode := msgtoenode[v]
-	    _, enodes := GetGroup(gid)
-	    nodes := strings.Split(enodes, common.Sep2)
-	    for _, node := range nodes {
-		node2 := ParseNode(node)
-		if strings.EqualFold(enode,node2) {
-		    fmt.Printf("=========== ProcessOutCh,send msg = %v, group id = %v,send to peer = %v ===========\n",string(s),w.groupid,node)
-		    SendMsgToPeer(node,string(s))
-		    break
-		}
-	    }
-	}
-    }
-
-    return nil
 }
 
 func processSignFinalize(msgprex string,msgtoenode map[string]string,errChan chan struct{},outCh <-chan smpclib.Message,endCh <-chan *big.Int,gid string) (*big.Int,error) {
 	for {
 		select {
 		case <-errChan: // when keyGenParty return
-		    fmt.Printf("=========== processSign,error channel closed fail to start local smpc node ===========\n")
+		    fmt.Printf("=========== processSign,error channel closed fail to start local smpc node, key = %v ===========\n",msgprex)
 			return nil,errors.New("error channel closed fail to start local smpc node")
 
 		case <-time.After(time.Second * 300):
-		    fmt.Printf("=========== processSign,sign timeout ===========\n")
+		    fmt.Printf("========================== processSign,sign timeout, key = %v =========================\n",msgprex)
 			return nil,errors.New("sign timeout") 
 		case msg := <-outCh:
 			err := SignProcessOutCh(msgprex,msgtoenode,msg,gid)
 			if err != nil {
-			    fmt.Printf("======== processSign, sign process outch err = %v ==========\n",err)
+			    fmt.Printf("================================= processSign, sign process outch err = %v, key = %v ==========================\n",err,msgprex)
 				return nil,err
 			}
 		case msg := <-endCh:
@@ -320,11 +262,15 @@ func processSignFinalize(msgprex string,msgtoenode map[string]string,errChan cha
 			    return nil,fmt.Errorf("get worker fail")
 			}
 
-			fmt.Printf("\n===========sign finished successfully, s = %v ===========\n",msg)
+			fmt.Printf("\n=======================sign finished successfully, s = %v, key = %v =======================\n",msg,msgprex)
 			return msg,nil 
 		}
 	}
 }
+
+//--------------------------------------------------------ECDSA end-------------------------------------------------------
+
+//--------------------------------------------------------EDDSA start-------------------------------------------------------
 
 //ed
 func EdSignProcessInboundMessages(msgprex string,finishChan chan struct{},wg *sync.WaitGroup,ch chan interface{}) {
@@ -363,7 +309,7 @@ func EdSignProcessInboundMessages(msgprex string,finishChan chan struct{},wg *sy
 
 		_,err = w.DNode.Update(mm)
 		if err != nil {
-		    fmt.Printf("========== EdSignProcessInboundMessages, dnode update fail, receiv smpc msg = %v, err = %v ============\n",m,err)
+		    fmt.Printf("========== EdSignProcessInboundMessages, dnode update fail, receiv smpc msg = %v, err = %v, key = %v ============\n",m,err,msgprex)
 		    res := RpcSmpcRes{Ret: "", Err: err}
 		    ch <- res
 		    return
@@ -387,7 +333,6 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 
     //1 message
     if msg["Type"] == "SignRound1Message" {
-	    fmt.Printf("============ EdSignGetRealMessage, get real sign message 1 success, msg map = %v ===========\n",msg)
 	    cr, _ := hex.DecodeString(msg["CR"])
 	    var CR [32]byte
 	    copy(CR[:],cr[:])
@@ -417,7 +362,6 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 	    srm.SetFromIndex(index)
 	    srm.ToID = to
 	    
-	    fmt.Printf("============ EdSignGetRealMessage, get real message 2 success, msg map = %v ===========\n",msg)
 	    return srm
     }
 
@@ -435,7 +379,6 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 	    srm.SetFromIndex(index)
 	    srm.ToID = to
 	    
-	    fmt.Printf("============ EdSignGetRealMessage, get real message 3 success, msg map = %v ===========\n",msg)
 	    return srm
     }
 
@@ -453,7 +396,6 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 	    srm.SetFromIndex(index)
 	    srm.ToID = to
 	    
-	    fmt.Printf("============ EdSignGetRealMessage, get real message 4 success, msg map = %v ===========\n",msg)
 	    return srm
     }
 
@@ -471,7 +413,6 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 	    srm.SetFromIndex(index)
 	    srm.ToID = to
 	    
-	    fmt.Printf("============ EdSignGetRealMessage, get real message 5 success, msg map = %v ===========\n",msg)
 	    return srm
     }
 
@@ -489,7 +430,6 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 	    srm.SetFromIndex(index)
 	    srm.ToID = to
 	    
-	    fmt.Printf("============ EdSignGetRealMessage, get real message 6 success, msg map = %v ===========\n",msg)
 	    return srm
     }
 
@@ -500,16 +440,16 @@ func processSign_ed(msgprex string,msgtoenode map[string]string,errChan chan str
 	for {
 		select {
 		case <-errChan: // when keyGenParty return
-		    fmt.Printf("=========== processSign_ed,error channel closed fail to start local smpc node ===========\n")
+		    fmt.Printf("=========================== processSign_ed,error channel closed fail to start local smpc node, key = %v =====================\n",msgprex)
 			return nil,errors.New("error channel closed fail to start local smpc node")
 
 		case <-time.After(time.Second * 300):
-		    fmt.Printf("=========== processSign_ed,sign timeout ===========\n")
+		    fmt.Printf("========================== processSign_ed,sign timeout, key = %v ==========================\n",msgprex)
 			return nil,errors.New("ed sign timeout") 
 		case msg := <-outCh:
 			err := SignProcessOutCh(msgprex,msgtoenode,msg,"")
 			if err != nil {
-			    fmt.Printf("======== processSign_ed, sign process outch err = %v ==========\n",err)
+			    fmt.Printf("======================= processSign_ed, sign process outch err = %v, key = %v ====================\n",err,msgprex)
 			    return nil,err
 			}
 		case msg := <-endCh:
@@ -518,9 +458,53 @@ func processSign_ed(msgprex string,msgtoenode map[string]string,errChan chan str
 			    return nil,fmt.Errorf("get worker fail")
 			}
 
-			fmt.Printf("\n===========ed sign finished successfully,sig data = %v ===========\n",msg)
+			fmt.Printf("\n=======================ed sign finished successfully,sig data = %v, key = %v ======================\n",msg,msgprex)
 			return &msg,nil 
 		}
 	}
+}
+
+//-------------------------------------------------------EDDSA end---------------------------------------------------
+
+func SignProcessOutCh(msgprex string,msgtoenode map[string]string,msg smpclib.Message,gid string) error {
+    if msg == nil {
+	return fmt.Errorf("smpc info error")
+    }
+
+    w, err := FindWorker(msgprex)
+    if w == nil || err != nil {
+	return fmt.Errorf("get worker fail")
+    }
+
+    msgmap := msg.OutMap()
+    msgmap["Key"] = msgprex
+    msgmap["ENode"] = cur_enode
+    s,err := json.Marshal(msgmap)
+    if err != nil {
+	return err
+    }
+
+    if gid == "" {
+	gid = w.groupid
+    }
+
+    if msg.IsBroadcast() {
+	SendMsgToSmpcGroup(string(s), gid)
+    } else {
+	for _,v := range msg.GetToID() {
+	    enode := msgtoenode[v]
+	    _, enodes := GetGroup(gid)
+	    nodes := strings.Split(enodes, common.Sep2)
+	    for _, node := range nodes {
+		node2 := ParseNode(node)
+		if strings.EqualFold(enode,node2) {
+		    SendMsgToPeer(node,string(s))
+		    break
+		}
+	    }
+	}
+    }
+
+    return nil
 }
 

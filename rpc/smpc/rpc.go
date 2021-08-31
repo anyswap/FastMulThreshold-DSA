@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 2018-2019  Fusion Foundation Ltd. All rights reserved.
- *  Copyright (C) 2018-2019  caihaijun@fusion.org
+ *  Copyright (C) 2018-2019  haijun.cai@anyswap.exchange
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the Apache License, Version 2.0.
@@ -58,7 +58,7 @@ func (this *Service) ReqSmpcAddr(raw string) map[string]interface{} { //函数�
 		}
 	}
 
-	ret, tip, err := smpc.ReqSmpcAddr(raw)
+	ret, tip, err := smpc.Req_SmpcAddr(raw)
 	common.Info("=================ReqSmpcAddr,get result.==================","ret",ret,"tip",tip,"err",err,"raw",raw)
 	if err != nil {
 		data["result"] = ""

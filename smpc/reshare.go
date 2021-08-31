@@ -19,7 +19,8 @@ import (
 	"github.com/fsn-dev/cryptoCoins/coins"
 )
 
-//ec
+//----------------------------------------------------ECDSA start----------------------------------------------------------
+
 func ReshareProcessInboundMessages(msgprex string,finishChan chan struct{},wg *sync.WaitGroup,ch chan interface{}) {
     defer wg.Done()
     fmt.Printf("start processing inbound messages\n")
@@ -507,4 +508,6 @@ func ReshareProcessOutCh(msgprex string,groupid string,msg smpclib.Message) erro
 
     return nil
 }
+
+//-------------------------------------------------------ECDSA end-----------------------------------------------------------
 

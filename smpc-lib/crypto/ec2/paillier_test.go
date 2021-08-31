@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 2018-2019  Fusion Foundation Ltd. All rights reserved.
- *  Copyright (C) 2018-2019  changxing@fusion.org
+ *  Copyright (C) 2018-2019  changxing@anyswap.exchange
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the Apache License, Version 2.0.

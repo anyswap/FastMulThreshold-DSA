@@ -10,16 +10,14 @@ import (
 	"strconv"
 	"encoding/json"
 	"time"
-	//"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
 	smpclib "github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
 	edkeygen "github.com/anyswap/Anyswap-MPCNode/smpc-lib/eddsa/keygen"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
-	//"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
 )
 
-//ec
+//---------------------------------------ECDSA start-----------------------------------------------------------------------
 
 func ProcessInboundMessages(msgprex string,finishChan chan struct{},wg *sync.WaitGroup,ch chan interface{}) {
     defer wg.Done()
@@ -35,8 +33,6 @@ func ProcessInboundMessages(msgprex string,finishChan chan struct{},wg *sync.Wai
     for {
 	    select {
 	    case <-finishChan:
-		    //res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("finish to process inbound messages")}
-		    //ch <- res
 		    return
 	    case m := <- w.SmpcMsg:
 
@@ -51,7 +47,6 @@ func ProcessInboundMessages(msgprex string,finishChan chan struct{},wg *sync.Wai
 		    if msgmap["Type"] == "KGRound0Message" { //0 message
 			from := msgmap["FromID"]
 			id,_ := new(big.Int).SetString(from,10)
-			//fmt.Printf("========== ProcessInboundMessages, receiv id = %v, enode = %v ============\n",id,msgmap["ENode"])
 			w.MsgToEnode[fmt.Sprintf("%v",id)] = msgmap["ENode"]
 		    }
 
@@ -64,7 +59,7 @@ func ProcessInboundMessages(msgprex string,finishChan chan struct{},wg *sync.Wai
 
 		    _,err = w.DNode.Update(mm)
 		    if err != nil {
-			fmt.Printf("========== ProcessInboundMessages, dnode update fail, receiv smpc msg = %v, err = %v ============\n",m,err)
+			common.Error("====================ProcessInboundMessages,dnode update fail=======================","receiv msg",m,"err",err)
 			res := RpcSmpcRes{Ret: "", Err: err}
 			ch <- res
 			return
@@ -91,7 +86,6 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 	pub := &ec2.PublicKey{}
 	err := pub.UnmarshalJSON([]byte(msg["U1PaillierPk"]))
 	if err == nil {
-	    fmt.Printf("============ GetRealMessage, get real message 1 success, msg map = %v ===========\n",msg)
 	    comc,_ := new(big.Int).SetString(msg["ComC"],10)
 	    comc_bip32,_ := new(big.Int).SetString(msg["ComC_bip32"],10)
 	    kg := &keygen.KGRound1Message{
@@ -119,13 +113,11 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 	kg.SetFromID(from)
 	kg.SetFromIndex(index)
 	kg.ToID = to
-	fmt.Printf("============ GetRealMessage, get real message 2 success, share struct id = %v, share = %v, msg map = %v ===========\n",kg.Id,kg.Share,msg)
 	return kg
     }
 
     //2-1 message
     if msg["Type"] == "KGRound2Message1" {
-	    fmt.Printf("============ GetRealMessage, get real message 2-1 success, msg map = %v ===========\n",msg)
 	c1,_ := new(big.Int).SetString(msg["C1"],10)
 	kg := &keygen.KGRound2Message1{
 	    KGRoundMessage:new(keygen.KGRoundMessage),
@@ -139,7 +131,6 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 
     //3 message
     if msg["Type"] == "KGRound3Message" {
-	fmt.Printf("============ GetRealMessage, get real message 3 success, msg map = %v ===========\n",msg)
 	ugd := strings.Split(msg["ComU1GD"],":")
 	u1gd := make([]*big.Int,len(ugd))
 	for k,v := range ugd {
@@ -183,7 +174,6 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 	    if err := pf1.UnmarshalJSON([]byte(msg["NtildeProof1"]));err == nil {
 		pf2 := &ec2.NtildeProof{}
 		if err := pf2.UnmarshalJSON([]byte(msg["NtildeProof2"]));err == nil {
-		    fmt.Printf("============ GetRealMessage, get real message 4 success, msg map = %v ===========\n",msg)
 		    kg := &keygen.KGRound4Message{
 			KGRoundMessage:new(keygen.KGRoundMessage),
 			U1NtildeH1H2:nti,
@@ -203,21 +193,19 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
     if msg["Type"] == "KGRound5Message" {
 	zk := &ec2.ZkUProof{}
 	if err := zk.UnmarshalJSON([]byte(msg["U1zkUProof"]));err == nil {
-	    fmt.Printf("============ GetRealMessage, get real message 5 success, msg map = %v ===========\n",msg)
-	kg := &keygen.KGRound5Message{
-	    KGRoundMessage:new(keygen.KGRoundMessage),
-	    U1zkUProof:zk,
-	}
-	kg.SetFromID(from)
-	kg.SetFromIndex(index)
-	kg.ToID = to
-	return kg
+	    kg := &keygen.KGRound5Message{
+		KGRoundMessage:new(keygen.KGRoundMessage),
+		U1zkUProof:zk,
+	    }
+	    kg.SetFromID(from)
+	    kg.SetFromIndex(index)
+	    kg.ToID = to
+	    return kg
 	}
     }
 
     //6 message
     if msg["Type"] == "KGRound6Message" {
-	fmt.Printf("============ GetRealMessage, get real message 6 success, msg map = %v ===========\n",msg)
 	b := false
 	if msg["Check_Pubkey_Status"] == "true" {
 	    b = true
@@ -233,7 +221,6 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 	return kg
     }
 
-    fmt.Printf("============ GetRealMessage, get real message 0 success, msg map = %v ===========\n",msg)
     kg := &keygen.KGRound0Message{
 	KGRoundMessage: new(keygen.KGRoundMessage),
     }
@@ -248,20 +235,16 @@ func processKeyGen(msgprex string,errChan chan struct{},outCh <-chan smpclib.Mes
 	for {
 		select {
 		case <-errChan: // when keyGenParty return
-		    fmt.Printf("=========== processKeyGen,error channel closed fail to start local smpc node ===========\n")
+		    fmt.Printf("=========== processKeyGen,error channel closed fail to start local smpc node, key = %v ===========\n",msgprex)
 			return errors.New("error channel closed fail to start local smpc node")
 
-		//case <-tKeyGen.stopChan: // when GSMPC processor receive signal to quit
-		//	return nil, errors.New("received exit signal")
 		case <-time.After(time.Second * 300):
-		    fmt.Printf("=========== processKeyGen,keygen timeout ===========\n")
-			// we bail out after KeyGenTimeoutSeconds
+		    fmt.Printf("=========== processKeyGen,keygen timeout, key = %v ===========\n",msgprex)
 			return errors.New("keygen timeout") 
 		case msg := <-outCh:
-		    //fmt.Printf("======== processKeyGen,get msg = %v ==========\n",msg)
 			err := ProcessOutCh(msgprex,msg)
 			if err != nil {
-			    fmt.Printf("======== processKeyGen,process outch err = %v ==========\n",err)
+			    fmt.Printf("================ processKeyGen,process outch err = %v, key = %v ================\n",err,msgprex)
 				return err
 			}
 		case msg := <-endCh:
@@ -272,19 +255,9 @@ func processKeyGen(msgprex string,errChan chan struct{},outCh <-chan smpclib.Mes
 
 			w.pkx.PushBack(fmt.Sprintf("%v",msg.Pkx))
 			w.pky.PushBack(fmt.Sprintf("%v",msg.Pky))
-			//w.bip32c.PushBack(fmt.Sprintf("%v",msg.C))
-			//w.sku1.PushBack(fmt.Sprintf("%v",msg.SkU1))
 			w.bip32c.PushBack(string(msg.C.Bytes()))
 			w.sku1.PushBack(string(msg.SkU1.Bytes()))
-			fmt.Printf("\n===========keygen finished successfully, pkx = %v,pky = %v ===========\n",msg.Pkx,msg.Pky)
-
-			/*kgsave := &KGLocalDBSaveData{Save:(&msg),MsgToEnode:w.MsgToEnode}
-			//sdout := (&msg).OutMap()
-			sdout := kgsave.OutMap()
-			s,err := json.Marshal(sdout)
-			if err != nil {
-			    return err
-			}*/
+			fmt.Printf("\n=================keygen finished successfully, pkx = %v,pky = %v,key = %v =================\n",msg.Pkx,msg.Pky,msgprex)
 
 			ss := "XXX"
 			ss = ss + common.SepSave
@@ -341,7 +314,11 @@ func GetKGLocalDBSaveData(data map[string]string) *KGLocalDBSaveData {
     return kgsave
 }
 
-//ed
+//---------------------------------------ECDSA end-----------------------------------------------------------------------
+
+
+//---------------------------------------EDDSA start-----------------------------------------------------------------------
+
 func ProcessInboundMessages_EDDSA(msgprex string,finishChan chan struct{},wg *sync.WaitGroup,ch chan interface{}) {
     defer wg.Done()
     fmt.Printf("start processing inbound messages, key = %v \n",msgprex)
@@ -352,11 +329,10 @@ func ProcessInboundMessages_EDDSA(msgprex string,finishChan chan struct{},wg *sy
 	return 
     }
 
-    defer fmt.Printf("ed,stop processing inbound messages, key = %v \n",msgprex)
+    defer fmt.Printf("stop processing inbound messages, key = %v \n",msgprex)
     for {
 	    select {
 	    case <-finishChan:
-		    //ch <- res
 		    return
 	    case m := <- w.SmpcMsg:
 
@@ -370,7 +346,6 @@ func ProcessInboundMessages_EDDSA(msgprex string,finishChan chan struct{},wg *sy
 		    
 		    if msgmap["Type"] == "KGRound0Message" { //0 message
 			from := msgmap["FromID"]
-			//id,_ := new(big.Int).SetString(from,10)
 			w.MsgToEnode[from] = msgmap["ENode"]
 		    }
 
@@ -383,7 +358,7 @@ func ProcessInboundMessages_EDDSA(msgprex string,finishChan chan struct{},wg *sy
 
 		    _,err = w.DNode.Update(mm)
 		    if err != nil {
-			fmt.Printf("========== ed,ProcessInboundMessages, dnode update fail, receiv smpc msg = %v, err = %v, key = %v ============\n",m,err,msgprex)
+			common.Error("====================ProcessInboundMessages_EDDSA,dnode update fail=======================","receiv msg",m,"err",err)
 			res := RpcSmpcRes{Ret: "", Err: err}
 			ch <- res
 			return
@@ -407,7 +382,6 @@ func GetRealMessage_EDDSA(msg map[string]string) smpclib.Message {
 
     //1 message
     if msg["Type"] == "KGRound1Message" {
-	
 	cpks, _ := hex.DecodeString(msg["CPk"])
 	var temCpk [32]byte
 	copy(temCpk[:], cpks[:])
@@ -418,7 +392,6 @@ func GetRealMessage_EDDSA(msg map[string]string) smpclib.Message {
 	kg.SetFromID(from)
 	kg.SetFromIndex(index)
 	kg.ToID = to
-	//fmt.Printf("===================GetRealMessage_EDDSA,cpk = %v,index = %v =====================\n",temCpk,index)
 	return kg
     }
 
@@ -449,7 +422,6 @@ func GetRealMessage_EDDSA(msg map[string]string) smpclib.Message {
 	kg.SetFromID(from)
 	kg.SetFromIndex(index)
 	kg.ToID = to
-	//fmt.Printf("===================GetRealMessage_EDDSA,dpk = %v,index = %v =====================\n",temdpk,index)
 	return kg
     }
 
@@ -465,7 +437,6 @@ func GetRealMessage_EDDSA(msg map[string]string) smpclib.Message {
 	kg.SetFromID(from)
 	kg.SetFromIndex(index)
 	kg.ToID = to
-	//fmt.Printf("===================GetRealMessage_EDDSA,share = %v,index = %v =====================\n",temsh,index)
 	return kg
     }
 
@@ -490,7 +461,6 @@ func GetRealMessage_EDDSA(msg map[string]string) smpclib.Message {
 	return kg
     }
 
-    fmt.Printf("============ GetRealMessage_EDDSA, get real message 0 success, msg map = %v ===========\n",msg)
     kg := &edkeygen.KGRound0Message{
 	KGRoundMessage: new(edkeygen.KGRoundMessage),
     }
@@ -505,16 +475,16 @@ func processKeyGen_EDDSA(msgprex string,errChan chan struct{},outCh <-chan smpcl
 	for {
 		select {
 		case <-errChan: // when keyGenParty return
-		    fmt.Printf("=========== processKeyGen_EDDSA,error channel closed fail to start local smpc node ===========\n")
+		    fmt.Printf("=========== processKeyGen_EDDSA,error channel closed fail to start local smpc node, key = %v ===========\n",msgprex)
 			return errors.New("error channel closed fail to start local smpc node")
 
 		case <-time.After(time.Second * 300):
-		    fmt.Printf("=========== processKeyGen_EDDSA,ed keygen timeout ===========\n")
+		    fmt.Printf("====================== processKeyGen_EDDSA,ed keygen timeout, key = %v ====================\n",msgprex)
 			return errors.New("ed keygen timeout") 
 		case msg := <-outCh:
 			err := ProcessOutCh(msgprex,msg)
 			if err != nil {
-			    fmt.Printf("======== processKeyGen_EDDSA,process outch err = %v ==========\n",err)
+			    fmt.Printf("================= processKeyGen_EDDSA,process outch err = %v,key = %v ==========\n",err,msgprex)
 				return err
 			}
 		case msg := <-endCh:
@@ -526,17 +496,9 @@ func processKeyGen_EDDSA(msgprex string,errChan chan struct{},outCh <-chan smpcl
 			w.edsku1.PushBack(string(msg.Sk[:]))
 			w.edpk.PushBack(string(msg.FinalPkBytes[:]))
 			
-			/*kgsave := &KGLocalDBSaveData_ed{Save:(&msg),MsgToEnode:w.MsgToEnode}
-			sdout := kgsave.OutMap()
-			s,err := json.Marshal(sdout)
-			if err != nil {
-			    fmt.Printf("=======================processKeyGen_EDDSA,finish ed keygen, err = %v =======================\n",err)
-			    return err
-			}*/
-
 			s := "XXX" + common.Sep11 + string(msg.Pk[:]) + common.Sep11 + string(msg.TSk[:]) + common.Sep11 + string(msg.FinalPkBytes[:])
 			w.edsave.PushBack(string(s))
-			fmt.Printf("=======================processKeyGen_EDDSA,success finish ed keygen =======================\n")
+			fmt.Printf("=======================processKeyGen_EDDSA,success finish ed keygen, key = %v =======================\n",msgprex)
 			return nil
 		}
 	}
@@ -570,7 +532,7 @@ func GetKGLocalDBSaveData_ed(data map[string]string) *KGLocalDBSaveData_ed {
     return kgsave
 }
 
-//
+//---------------------------------------EDDSA end-----------------------------------------------------------------------
 
 func ProcessOutCh(msgprex string,msg smpclib.Message) error {
     if msg == nil {
@@ -587,25 +549,20 @@ func ProcessOutCh(msgprex string,msg smpclib.Message) error {
     msgmap["ENode"] = cur_enode
     s,err := json.Marshal(msgmap)
     if err != nil {
-	fmt.Printf("====================ProcessOutCh, marshal err = %v ========================\n",err)
+	fmt.Printf("====================ProcessOutCh, marshal err = %v, key = %v ========================\n",err,msgprex)
 	return err
     }
 
     if msg.IsBroadcast() {
-	fmt.Printf("=========== ProcessOutCh,broacast msg = %v, group id = %v ===========\n",string(s),w.groupid)
 	SendMsgToSmpcGroup(string(s), w.groupid)
     } else {
 	for _,v := range msg.GetToID() {
-	    fmt.Printf("===============ProcessOutCh, to id = %v,w.groupid = %v ==============\n",v,w.groupid)
 	    enode := w.MsgToEnode[v]
 	    _, enodes := GetGroup(w.groupid)
 	    nodes := strings.Split(enodes, common.Sep2)
 	    for _, node := range nodes {
 		node2 := ParseNode(node)
-		//fmt.Printf("===============ProcessOutCh, enode = %v,node2 = %v ==============\n",enode,node2)
-		
 		if strings.EqualFold(enode,node2) {
-		    fmt.Printf("=========== ProcessOutCh,send msg = %v, group id = %v,send to peer = %v ===========\n",string(s),w.groupid,node)
 		    SendMsgToPeer(node,string(s))
 		    break
 		}

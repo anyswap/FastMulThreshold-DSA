@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 2018-2019  Fusion Foundation Ltd. All rights reserved.
- *  Copyright (C) 2018-2019  caihaijun@fusion.org
+ *  Copyright (C) 2018-2019  haijun.cai@anyswap.exchange
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the Apache License, Version 2.0.
@@ -33,6 +33,17 @@ var (
 	workers      []*RPCReqWorker
 )
 
+//------------------------------------------------------------------------------
+
+//workers,RpcMaxWorker,RpcReqWorker,RpcReqQueue,RpcMaxQueue,ReqDispatcher
+func InitChan() {
+	workers = make([]*RPCReqWorker, RPCMaxWorker)
+	RPCReqQueue = make(chan RPCReq, RPCMaxQueue)
+	reqdispatcher := NewReqDispatcher(RPCMaxWorker)
+	reqdispatcher.Run()
+}
+
+//-----------------------------------------------------------------------------------------
 type RPCReq struct {
 	rpcdata WorkReq
 	ch      chan interface{}
@@ -44,13 +55,42 @@ type ReqDispatcher struct {
 	WorkerPool chan chan RPCReq
 }
 
-func GetWorkerId(w *RPCReqWorker) (int,error) {
-    if w == nil {
-	return -1,fmt.Errorf("fail get worker id")
-    }
-
-    return w.id,nil
+func NewReqDispatcher(maxWorkers int) *ReqDispatcher {
+	pool := make(chan chan RPCReq, maxWorkers)
+	return &ReqDispatcher{WorkerPool: pool}
 }
+
+func (d *ReqDispatcher) Run() {
+	// starting n number of workers
+	for i := 0; i < RPCMaxWorker; i++ {
+		worker := NewRPCReqWorker(d.WorkerPool)
+		worker.id = i
+		workers[i] = worker
+		worker.Start()
+	}
+
+	go d.dispatch()
+}
+
+func (d *ReqDispatcher) dispatch() {
+	for {
+		select {
+		case req := <-RPCReqQueue:
+			// a job request has been received
+			go func(req RPCReq) {
+				// try to obtain a worker job channel that is available.
+				// this will block until a worker is idle
+				reqChannel := <-d.WorkerPool
+
+				// dispatch the job to the worker job channel
+				reqChannel <- req
+			}(req)
+		}
+	}
+
+}
+
+//-------------------------------------------------------------------------------------
 
 type RPCReqWorker struct {
 	RPCReqWorkerPool chan chan RPCReq
@@ -162,81 +202,6 @@ type RPCReqWorker struct {
 	DNode smpclib.DNode
 	MsgToEnode map[string]string
 	PreSaveSmpcMsg []string
-}
-
-//workers,RpcMaxWorker,RpcReqWorker,RpcReqQueue,RpcMaxQueue,ReqDispatcher
-func InitChan() {
-	workers = make([]*RPCReqWorker, RPCMaxWorker)
-	RPCReqQueue = make(chan RPCReq, RPCMaxQueue)
-	reqdispatcher := NewReqDispatcher(RPCMaxWorker)
-	reqdispatcher.Run()
-}
-
-func NewReqDispatcher(maxWorkers int) *ReqDispatcher {
-	pool := make(chan chan RPCReq, maxWorkers)
-	return &ReqDispatcher{WorkerPool: pool}
-}
-
-func (d *ReqDispatcher) Run() {
-	// starting n number of workers
-	for i := 0; i < RPCMaxWorker; i++ {
-		worker := NewRPCReqWorker(d.WorkerPool)
-		worker.id = i
-		workers[i] = worker
-		worker.Start()
-	}
-
-	go d.dispatch()
-}
-
-func (d *ReqDispatcher) dispatch() {
-	for {
-		select {
-		case req := <-RPCReqQueue:
-			// a job request has been received
-			go func(req RPCReq) {
-				// try to obtain a worker job channel that is available.
-				// this will block until a worker is idle
-				reqChannel := <-d.WorkerPool
-
-				// dispatch the job to the worker job channel
-				reqChannel <- req
-			}(req)
-		}
-	}
-
-	/*for {
-	    req := <-RPCReqQueue
-	    // a job request has been received
-	    go func(req RPCReq) {
-		    // try to obtain a worker job channel that is available.
-		    // this will block until a worker is idle
-		    reqChannel := <-d.WorkerPool
-
-		    // dispatch the job to the worker job channel
-		    reqChannel <- req
-	    }(req)
-	}*/
-}
-
-func FindWorker(sid string) (*RPCReqWorker, error) {
-	if sid == "" {
-		return nil, fmt.Errorf("input worker id error.")
-	}
-
-	for i := 0; i < RPCMaxWorker; i++ {
-		w := workers[i]
-
-		if w.sid == "" {
-			continue
-		}
-
-		if strings.EqualFold(w.sid, sid) {
-			return w, nil
-		}
-	}
-
-	return nil, fmt.Errorf(" The worker with the specified worker id was not found .")
 }
 
 func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
@@ -1065,5 +1030,36 @@ func (w *RPCReqWorker) Stop() {
 	go func() {
 		w.rpcquit <- true
 	}()
+}
+//----------------------------------------------------------------------------
+
+func FindWorker(sid string) (*RPCReqWorker, error) {
+	if sid == "" {
+		return nil, fmt.Errorf("input worker id error.")
+	}
+
+	for i := 0; i < RPCMaxWorker; i++ {
+		w := workers[i]
+
+		if w.sid == "" {
+			continue
+		}
+
+		if strings.EqualFold(w.sid, sid) {
+			return w, nil
+		}
+	}
+
+	return nil, fmt.Errorf(" The worker with the specified worker id was not found .")
+}
+
+//---------------------------------------------------------------------------------------------
+
+func GetWorkerId(w *RPCReqWorker) (int,error) {
+    if w == nil {
+	return -1,fmt.Errorf("fail get worker id")
+    }
+
+    return w.id,nil
 }
 

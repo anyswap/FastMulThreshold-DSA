@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 2018-2019  Fusion Foundation Ltd. All rights reserved.
- *  Copyright (C) 2018-2019  caihaijun@fusion.org
+ *  Copyright (C) 2018-2019  haijun.cai@anyswap.exchange
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the Apache License, Version 2.0.
@@ -17,26 +17,19 @@
 package smpc 
 
 import (
-	//"bytes"
-	//cryptorand "crypto/rand"
-	//"crypto/sha512"
 	"encoding/hex"
 	"fmt"
-	//"io"
 	"math/big"
-	//"strconv"
 	"strings"
 	"time"
 	"encoding/json"
 	"sync"
 	"github.com/fsn-dev/cryptoCoins/coins"
-	//"github.com/fsn-dev/cryptoCoins/coins/types"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	smpclib "github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	keygen "github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
 	edkeygen "github.com/anyswap/Anyswap-MPCNode/smpc-lib/eddsa/keygen"
-	//"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 )
 
 var (
@@ -45,18 +38,7 @@ var (
 	reqdata_timeout = 60
 )
 
-type PubKeyData struct {
-        Key string
-	Account  string
-	Pub      string
-	Save     string
-	Nonce    string
-	GroupId  string
-	LimitNum string
-	Mode     string
-	KeyGenTime string
-	RefReShareKeys string //key1:key2...
-}
+//------------------------------------------------------------------------
 
 func GetReqAddrNonce(account string) (string, string, error) {
 	key2 := Keccak256Hash([]byte(strings.ToLower(account))).Hex()
@@ -75,6 +57,8 @@ func GetReqAddrNonce(account string) (string, string, error) {
 	return fmt.Sprintf("%v", nonce), "", nil
 }
 
+//-----------------------------------------------------------------------------
+
 func SetReqAddrNonce(account string, nonce string) (string, error) {
 	key := Keccak256Hash([]byte(strings.ToLower(account))).Hex()
 	err := PutPubKeyData([]byte(key),[]byte(nonce))
@@ -84,6 +68,8 @@ func SetReqAddrNonce(account string, nonce string) (string, error) {
 	
 	return "", nil
 }
+
+//----------------------------------------------------------------------------
 
 type TxDataReqAddr struct {
     TxType string
@@ -120,12 +106,13 @@ func GetSmpcAddr(pubkey string) (string, string, error) {
 	return string(b), "", nil
 }
 
-func ReqSmpcAddr(raw string) (string, string, error) {
+//-----------------------------------------------------------------------------
 
-    common.Debug("=====================ReqSmpcAddr call CheckRaw ================","raw ",raw)
+func Req_SmpcAddr(raw string) (string, string, error) {
+
     key,_,_,txdata,err := CheckRaw(raw)
     if err != nil {
-	common.Debug("============ReqSmpcAddr==============","err ",err)
+	common.Error("============Req_SmpcAddr,check raw data error==============","err ",err)
 	return "",err.Error(),err
     }
 
@@ -134,17 +121,18 @@ func ReqSmpcAddr(raw string) (string, string, error) {
 	return "","check raw fail,it is not *TxDataReqAddr",fmt.Errorf("check raw fail,it is not *TxDataReqAddr")
     }
 
-    common.Info("============ReqSmpcAddr,SendMsgToSmpcGroup===============","raw ",raw,"gid ",req.GroupId,"key ",key)
+    common.Debug("============Req_SmpcAddr,SendMsgToSmpcGroup===============","raw ",raw,"gid ",req.GroupId,"key ",key)
     SendMsgToSmpcGroup(raw, req.GroupId)
     SetUpMsgList(raw,cur_enode)
     return key, "", nil
 }
 
+//----------------------------------------------------------------------------------
+
 func RpcAcceptReqAddr(raw string) (string, string, error) {
-    common.Debug("=====================RpcAcceptReqAddr call CheckRaw ================","raw",raw)
     _,_,_,txdata,err := CheckRaw(raw)
     if err != nil {
-	common.Info("=====================RpcAcceptReqAddr,CheckRaw ================","raw",raw,"err",err)
+	common.Error("=====================RpcAcceptReqAddr,check raw data error ================","raw",raw,"err",err)
 	return "Failure",err.Error(),err
     }
 
@@ -167,6 +155,8 @@ func RpcAcceptReqAddr(raw string) (string, string, error) {
     return "Failure","accept fail",fmt.Errorf("accept fail")
 }
 
+//--------------------------------------------------------------------------------
+
 type ReqAddrStatus struct {
 	Status    string
 	PubKey    string
@@ -180,13 +170,13 @@ func GetReqAddrStatus(key string) (string, string, error) {
 	exsit,da := GetPubKeyData([]byte(key))
 	///////
 	if !exsit || da == nil {
-		common.Debug("=====================GetReqAddrStatus,no exist key======================","key",key)
-		return "", "smpc back-end internal error:get reqaddr accept data fail from db when GetReqAddrStatus", fmt.Errorf("smpc back-end internal error:get reqaddr accept data fail from db when GetReqAddrStatus")
+		common.Debug("=====================GetReqAddrStatus,key does not exsit======================","key",key)
+		return "", "smpc back-end internal error:get reqaddr accept data fail from db when GetReqAddrStatus", fmt.Errorf("get reqaddr accept data fail from db")
 	}
 
 	ac,ok := da.(*AcceptReqAddrData)
 	if !ok {
-		return "", "smpc back-end internal error:get reqaddr accept data error from db when GetReqAddrStatus", fmt.Errorf("smpc back-end internal error:get reqaddr accept data error from db when GetReqAddrStatus")
+		return "", "smpc back-end internal error:get reqaddr accept data error from db when GetReqAddrStatus", fmt.Errorf("get reqaddr accept data error from db")
 	}
 
 	los := &ReqAddrStatus{Status: ac.Status, PubKey: ac.PubKey, Tip: ac.Tip, Error: ac.Error, AllReply: ac.AllReply, TimeStamp: ac.TimeStamp}
@@ -194,14 +184,32 @@ func GetReqAddrStatus(key string) (string, string, error) {
 	return string(ret), "", nil
 }
 
-type EnAcc struct {
-	Enode    string
-	Accounts []string
+//------------------------------------------------------------------------------
+
+func CheckAcc(eid string, geter_acc string, sigs string) bool {
+
+	if eid == "" || geter_acc == "" || sigs == "" {
+	    return false
+	}
+
+	//sigs:  5:eid1:acc1:eid2:acc2:eid3:acc3:eid4:acc4:eid5:acc5
+	mms := strings.Split(sigs, common.Sep)
+	for _, mm := range mms {
+//		if strings.EqualFold(mm, eid) {
+//			if len(mms) >= (k+1) && strings.EqualFold(mms[k+1], geter_acc) {
+//			    return true
+//			}
+//		}
+		
+		if strings.EqualFold(geter_acc,mm) { //allow user login diffrent node
+		    return true
+		}
+	}
+	
+	return false
 }
 
-type EnAccs struct {
-	EnodeAccounts []EnAcc
-}
+//----------------------------------------------------------------------------------
 
 type ReqAddrReply struct {
 	Key       string
@@ -221,7 +229,7 @@ func GetCurNodeReqAddrInfo(geter_acc string) ([]*ReqAddrReply, string, error) {
 	var wg sync.WaitGroup
 	iter := reqaddrinfodb.NewIterator()
 	for iter.Next() {
-	    key2 := []byte(string(iter.Key())) //must be deep copy,or show me the error: "panic: JSON decoder out of sync - data changing underfoot?"
+	    key2 := []byte(string(iter.Key())) //must be deep copy, Otherwise, an error will be reported: "panic: JSON decoder out of sync - data changing underfoot?"
 	    if len(key2) == 0 {
 		continue
 	    }
@@ -274,6 +282,21 @@ func GetCurNodeReqAddrInfo(geter_acc string) ([]*ReqAddrReply, string, error) {
 	return ret, "", nil
 }
 
+//--------------------------------------------------------------------------------------
+
+type PubKeyData struct {
+        Key string
+	Account  string
+	Pub      string
+	Save     string
+	Nonce    string
+	GroupId  string
+	LimitNum string
+	Mode     string
+	KeyGenTime string
+	RefReShareKeys string //key1:key2...
+}
+
 //ec2
 //msgprex = hash
 //cointype == keytype    //EC256K1||ed25519
@@ -291,7 +314,7 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 	if cointype == "ED25519" {
 		ok2 := false
-		for j := 0;j < recalc_times;j++ { //try 20 times
+		for j := 0;j < recalc_times;j++ {
 		    if len(ch) != 0 {
 			<-ch
 		    }
@@ -353,10 +376,9 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 			return
 		}
 
-		common.Info("===============smpc_genPubKey,start call AcceptReqAddr to update success status=================","account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",msgprex)
 		tip, reply := AcceptReqAddr("",account, cointype, wk.groupid, nonce, wk.limitnum, mode, "true", "true", "Success", pubkeyhex, "", "", nil, id,"")
 		if reply != nil {
-			common.Error("===============smpc_genPubKey,update reqaddr status=================","err",reply,"account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",msgprex)
+			common.Error("===============smpc_genPubKey,update reqaddr status error=================","err",reply,"account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",msgprex)
 			res := RpcSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("update req addr status error.")}
 			ch <- res
 			return
@@ -390,7 +412,6 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 			    continue
 		    }
 
-		    fmt.Printf("==================reqaddr, pubkey = %v, ct = %v, ctaddr = %v ====================\n",pubkeyhex,ct,ctaddr)
 		    key := Keccak256Hash([]byte(strings.ToLower(ctaddr))).Hex()
 
 		    err = PutPubKeyData([]byte(key),[]byte(ss))
@@ -490,7 +511,7 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 	rk := Keccak256Hash([]byte(strings.ToLower(account + ":" + cointype + ":" + wk.groupid + ":" + nonce + ":" + wk.limitnum + ":" + mode))).Hex()
 
 	pubkeyhex := hex.EncodeToString(ys)
-	fmt.Printf("================ smpc_genpubkey,pkx = %v,pky = %v,pubkeyhex = %v ==================\n",pkx,pky,pubkeyhex)
+	fmt.Printf("================ smpc_genpubkey,pubkey generated successfully ,pkx = %v,pky = %v,pubkeyhex = %v ==================\n",pkx,pky,pubkeyhex)
 	
 	pubs := &PubKeyData{Key:msgprex,Account: account, Pub: string(ys), Save: save, Nonce: nonce, GroupId: wk.groupid, LimitNum: wk.limitnum, Mode: mode,KeyGenTime:tt}
 	epubs, err := Encode2(pubs)
@@ -503,17 +524,15 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 	ss, err := Compress([]byte(epubs))
 	if err != nil {
-		common.Debug("===============smpc_genPubKey,compress fail===================","err",err,"account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",rk)
+		common.Error("===============smpc_genPubKey,compress fail===================","err",err,"account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",rk)
 		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:compress PubKeyData fail in req ec2 pubkey", Err: err}
 		ch <- res
 		return
 	}
 
-	common.Debug("===============smpc_genPubKey,start call AcceptReqAddr to update success status===================","account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",rk)
-
 	tip, reply := AcceptReqAddr("",account, cointype, wk.groupid, nonce, wk.limitnum, mode, "true", "true", "Success", pubkeyhex, "", "", nil, id,"")
 	if reply != nil {
-		common.Debug("===============smpc_genPubKey,update reqaddr status===================","err",reply,"account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",rk)
+		common.Error("===============smpc_genPubKey,update reqaddr status===================","err",reply,"account",account,"pubkey",pubkeyhex,"nonce",nonce,"key",rk)
 		res := RpcSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("update req addr status error.")}
 		ch <- res
 		return
@@ -521,7 +540,7 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 	err = PutPubKeyData(ys,[]byte(ss))
 	if err != nil {
-	    common.Error("================================dcrm_genPubKey,put pubkey data fail,111111=========================","err",err,"key",msgprex)
+	    common.Error("================================dcrm_genPubKey,put pubkey data to local db fail=========================","err",err,"key",msgprex)
 	    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put pubkey data fail", Err: err}
 	    ch <- res
 	    return
@@ -539,16 +558,14 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 	    ctaddr, err := h.PublicKeyToAddress(pubkeyhex)
 	    if err != nil {
-		    fmt.Printf("=========smpc_genpubkey, pubkeyhex = %v, h = %v,err = %v ===========\n",pubkeyhex,h,err)
 		    continue
 	    }
 
-	    fmt.Printf("=========smpc_genpubkey, ctaddr = %v,pubkeyhex = %v, h = %v ===========\n",ctaddr,pubkeyhex,h)
 	    key := Keccak256Hash([]byte(strings.ToLower(ctaddr))).Hex()
 
 	    err = PutPubKeyData([]byte(key),[]byte(ss))
 	    if err != nil {
-		common.Error("================================dcrm_genPubKey,put pubkey data fail,222222=========================","err",err,"key",msgprex)
+		common.Error("================================dcrm_genPubKey,put pubkey data to localdb fail=========================","err",err,"key",msgprex)
 		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put pubkey data fail", Err: err}
 		ch <- res
 		return
@@ -556,7 +573,7 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 	    err = putSkU1ToLocalDb([]byte(key),[]byte(sku1))
 	    if err != nil {
-		common.Error("================================dcrm_genPubKey,put sku1 data fail,=========================","err",err,"key",msgprex)
+		common.Error("================================dcrm_genPubKey,put sku1 data to local db fail,=========================","err",err,"key",msgprex)
 		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put sku1 data fail", Err: err}
 		ch <- res
 		return
@@ -564,7 +581,7 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 	    
 	    err = putBip32cToLocalDb([]byte(key),[]byte(bip32c))
 	    if err != nil {
-		common.Error("================================dcrm_genPubKey,put bip32c fail,=========================","err",err,"key",msgprex)
+		common.Error("================================dcrm_genPubKey,put bip32c to local db fail,=========================","err",err,"key",msgprex)
 		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put bip32c fail", Err: err}
 		ch <- res
 		return
@@ -575,6 +592,83 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 	res := RpcSmpcRes{Ret: pubkeyhex, Tip: "", Err: nil}
 	ch <- res
 }
+
+//-----------------------------------------------------------------------------------------------------------------------
+
+//ec2
+//msgprex = hash
+func KeyGenerate_DECDSA(msgprex string, ch chan interface{}, id int, cointype string) bool {
+	if id < 0 || id >= RPCMaxWorker || id >= len(workers) {
+		res := RpcSmpcRes{Ret: "", Err: GetRetErr(ErrGetWorkerIdError)}
+		ch <- res
+		return false
+	}
+
+	w := workers[id]
+	if w.groupid == "" {
+		///bug groupid == nil ???
+		w, err := FindWorker(msgprex)
+		if err != nil || w.groupid == "" {
+		    res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("get group id fail.")}
+		    ch <- res
+		    return false
+		}
+		//////
+	}
+
+	ns, _ := GetGroup(w.groupid)
+	if ns != w.NodeCnt {
+		res := RpcSmpcRes{Ret: "", Err: GetRetErr(ErrGroupNotReady)}
+		ch <- res
+		return false
+	}
+
+	commStopChan := make(chan struct{})
+	outCh := make(chan smpclib.Message, ns)
+	endCh := make(chan keygen.LocalDNodeSaveData, ns)
+	errChan := make(chan struct{})
+	keyGenDNode := keygen.NewLocalDNode(outCh,endCh,ns,w.ThresHold,2048)
+	w.DNode = keyGenDNode
+	keyGenDNode.SetDNodeID(fmt.Sprintf("%v",DoubleHash(cur_enode,"EC256K1")))
+	fmt.Printf("=========== keygen, node uid = %v ===========\n",keyGenDNode.DNodeID())
+	
+	uid,_ := new(big.Int).SetString(w.DNode.DNodeID(),10)
+	w.MsgToEnode[fmt.Sprintf("%v",uid)] = cur_enode
+
+	var keyGenWg sync.WaitGroup
+	keyGenWg.Add(2)
+	go func() {
+		defer keyGenWg.Done()
+		if err := keyGenDNode.Start(); nil != err {
+		    fmt.Printf("==========keygen node start err = %v ==========\n",err)
+			close(errChan)
+		}
+		
+		exsit,da := GetReqAddrInfoData([]byte(msgprex))
+		if exsit {
+		    ac,ok := da.(*AcceptReqAddrData)
+		    if ok && ac != nil {
+			HandleC1Data(ac,w.sid)
+		    }
+		}
+	}()
+	go ProcessInboundMessages(msgprex,commStopChan,&keyGenWg,ch)
+	err := processKeyGen(msgprex,errChan, outCh, endCh)
+	if err != nil {
+	    fmt.Printf("==========process keygen err = %v ==========\n",err)
+	    close(commStopChan)
+	    res := RpcSmpcRes{Ret: "", Err: err}
+	    ch <- res
+	    return false
+	}
+
+	close(commStopChan)
+	keyGenWg.Wait()
+
+	return true
+}
+
+//------------------------------------------------------------------------------------
 
 //ed
 //msgprex = hash
@@ -641,784 +735,6 @@ func KeyGenerate_DEDDSA(msgprex string, ch chan interface{}, id int, cointype st
 	close(commStopChan)
 	keyGenWg.Wait()
 
-	/*
-	rand := cryptorand.Reader
-	var seed [32]byte
-
-	if _, err := io.ReadFull(rand, seed[:]); err != nil {
-		fmt.Println("Error: io.ReadFull(rand, seed)")
-	}
-
-	// 1.2 privateKey' = SHA512(seed)
-	var sk [64]byte
-	var pk [32]byte
-
-	seedDigest := sha512.Sum512(seed[:])
-
-	seedDigest[0] &= 248
-	seedDigest[31] &= 127
-	seedDigest[31] |= 64
-
-	copy(sk[:], seedDigest[:])
-
-	// 1.3 publicKey
-	var temSk [32]byte
-	copy(temSk[:], sk[:32])
-
-	var A ed.ExtendedGroupElement
-	ed.GeScalarMultBase(&A, &temSk)
-
-	A.ToBytes(&pk)
-
-	CPk, DPk := ed.Commit(pk)
-	zkPk := ed.Prove(temSk)
-
-	ids := GetIds(cointype, GroupId)
-
-	mp := []string{msgprex, cur_enode}
-	enode := strings.Join(mp, "-")
-	s0 := "EDC11"
-	s1 := string(CPk[:])
-	ss := enode + common.Sep + s0 + common.Sep + s1
-	SendMsgToSmpcGroup(ss, GroupId)
-	DisMsg(ss)
-
-	_, tip, cherr := GetChannelValue(ch_t, w.bedc11)
-	/////////////////////////request data from smpc group
-	suss := false
-	if cherr != nil {
-	    suss = ReqDataFromGroup(msgprex,w.id,"EDC11",reqdata_trytimes,reqdata_timeout)
-	} else {
-	    suss = true
-	}
-	///////////////////////////////////
-
-	if !suss {
-		res := RpcSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("get ed c11 timeout.")}
-		ch <- res
-		return false
-	}
-
-	if w.msg_edc11.Len() != w.NodeCnt {
-		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get all msg_edc11 fail", Err: fmt.Errorf("get all ed c11 fail.")}
-		ch <- res
-		return false
-	}
-	var cpks = make(map[string][32]byte)
-	for _, id := range ids {
-		enodes := GetEnodesByUid(id, cointype, GroupId)
-		if IsCurNode(enodes, cur_enode) {
-			cpks[cur_enode] = CPk
-			continue
-		}
-
-		en := strings.Split(string(enodes[8:]), "@")
-
-		iter := w.msg_edc11.Front()
-		for iter != nil {
-			data := iter.Value.(string)
-			m := strings.Split(data, common.Sep)
-			ps := strings.Split(m[0], "-")
-			if strings.EqualFold(ps[1], en[0]) {
-				var t [32]byte
-				va := []byte(m[2])
-				copy(t[:], va[:32])
-				cpks[en[0]] = t
-				break
-			}
-			iter = iter.Next()
-		}
-	}
-
-	s0 = "EDZK"
-	s1 = string(zkPk[:])
-	ss = enode + common.Sep + s0 + common.Sep + s1
-	SendMsgToSmpcGroup(ss, GroupId)
-	DisMsg(ss)
-
-	_, tip, cherr = GetChannelValue(ch_t, w.bedzk)
-	/////////////////////////request data from smpc group
-	if cherr != nil {
-	    suss = ReqDataFromGroup(msgprex,w.id,"EDZK",reqdata_trytimes,reqdata_timeout)
-	} else {
-	    suss = true
-	}
-	///////////////////////////////////
-
-	if !suss {
-		res := RpcSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("get ed zk timeout.")}
-		ch <- res
-		return false
-	}
-
-	if w.msg_edzk.Len() != w.NodeCnt {
-		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get w.msg_edzk fail", Err: fmt.Errorf("get all ed zk fail.")}
-		ch <- res
-		return false
-	}
-
-	var zks = make(map[string][64]byte)
-	for _, id := range ids {
-		enodes := GetEnodesByUid(id, cointype, GroupId)
-		if IsCurNode(enodes, cur_enode) {
-			zks[cur_enode] = zkPk
-			continue
-		}
-
-		en := strings.Split(string(enodes[8:]), "@")
-
-		iter := w.msg_edzk.Front()
-		for iter != nil {
-			data := iter.Value.(string)
-			m := strings.Split(data, common.Sep)
-			ps := strings.Split(m[0], "-")
-			if strings.EqualFold(ps[1], en[0]) {
-				var t [64]byte
-				va := []byte(m[2])
-				copy(t[:], va[:64])
-				zks[en[0]] = t
-				break
-			}
-			iter = iter.Next()
-		}
-	}
-
-	s0 = "EDD11"
-	s1 = string(DPk[:])
-	ss = enode + common.Sep + s0 + common.Sep + s1
-	SendMsgToSmpcGroup(ss, GroupId)
-	DisMsg(ss)
-
-	_, tip, cherr = GetChannelValue(ch_t, w.bedd11)
-	/////////////////////////request data from smpc group
-	if cherr != nil {
-	    suss = ReqDataFromGroup(msgprex,w.id,"EDD11",reqdata_trytimes,reqdata_timeout)
-	} else {
-	    suss = true
-	}
-	///////////////////////////////////
-
-	if !suss {
-		res := RpcSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("get ed d11 timeout.")}
-		ch <- res
-		return false
-	}
-
-	if w.msg_edd11.Len() != w.NodeCnt {
-		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get msg_edd11 fail", Err: fmt.Errorf("get all ed d11 fail.")}
-		ch <- res
-		return false
-	}
-	var dpks = make(map[string][64]byte)
-	for _, id := range ids {
-		enodes := GetEnodesByUid(id, cointype, GroupId)
-		if IsCurNode(enodes, cur_enode) {
-			dpks[cur_enode] = DPk
-			continue
-		}
-
-		en := strings.Split(string(enodes[8:]), "@")
-
-		iter := w.msg_edd11.Front()
-		for iter != nil {
-			data := iter.Value.(string)
-			m := strings.Split(data, common.Sep)
-			ps := strings.Split(m[0], "-")
-			if strings.EqualFold(ps[1], en[0]) {
-				var t [64]byte
-				va := []byte(m[2])
-				copy(t[:], va[:64])
-				dpks[en[0]] = t
-				break
-			}
-			iter = iter.Next()
-		}
-	}
-
-	//1.4
-	//fixid := []string{"36550725515126069209815254769857063254012795400127087205878074620099758462980","86773132036836319561089192108022254523765345393585629030875522375234841566222","80065533669343563706948463591465947300529465448793304408098904839998265250318"}
-	var uids = make(map[string][32]byte)
-	for _, id := range ids {
-		enodes := GetEnodesByUid(id, cointype, GroupId)
-		en := strings.Split(string(enodes[8:]), "@")
-		//num,_ := new(big.Int).SetString(fixid[k],10)
-		var t [32]byte
-		//copy(t[:], num.Bytes())
-		copy(t[:], id.Bytes())
-		if len(id.Bytes()) < 32 {
-			l := len(id.Bytes())
-			for j := l; j < 32; j++ {
-				t[j] = byte(0x00)
-			}
-		}
-		uids[en[0]] = t
-	}
-
-	for _, id := range ids {
-		enodes := GetEnodesByUid(id, cointype, GroupId)
-		en := strings.Split(string(enodes[8:]), "@")
-		CPkFlag := ed.Verify(cpks[en[0]], dpks[en[0]])
-		if !CPkFlag {
-			fmt.Printf("Error: Commitment(PK) Not Pass at User: %v \n", en[0])
-			res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:commitment check fail in req ed pubkey", Err: fmt.Errorf("Commitment(PK) Not Pass at User.")}
-			ch <- res
-			return false
-		}
-	}
-
-	for _, id := range ids {
-		enodes := GetEnodesByUid(id, cointype, GroupId)
-		en := strings.Split(string(enodes[8:]), "@")
-		dpk := dpks[en[0]]
-		var t [32]byte
-		copy(t[:], dpk[32:])
-		zkPkFlag := ed.Verify_zk(zks[en[0]], t)
-		if !zkPkFlag {
-			fmt.Printf("Error: ZeroKnowledge Proof (Pk) Not Pass at User: %v \n", en[0])
-			res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:zeroknowledge check fail", Err: fmt.Errorf("ZeroKnowledge Proof (Pk) Not Pass.")}
-			ch <- res
-			return false
-		}
-	}
-
-	// 2.5 calculate a = SHA256(PkU1, {PkU2, PkU3})
-	var a [32]byte
-	var aDigest [64]byte
-	var PkSet []byte
-
-	for _, id := range ids {
-		enodes := GetEnodesByUid(id, cointype, GroupId)
-		en := strings.Split(string(enodes[8:]), "@")
-		dpk := dpks[en[0]]
-		PkSet = append(PkSet[:], (dpk[32:])...)
-	}
-	h := sha512.New()
-	dpk := dpks[cur_enode]
-	_,err := h.Write(dpk[32:])
-	if err != nil {
-	    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:write dpk fail in calcing SHA256(PkU1, {PkU2, PkU3}", Err: fmt.Errorf("write dpk fail in calcing SHA256(PkU1, {PkU2, PkU3}.")}
-	    ch <- res
-	    return false
-	}
-
-	_,err = h.Write(PkSet)
-	if err != nil {
-	    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:write pkset fail in calcing SHA256(PkU1, {PkU2, PkU3}", Err: fmt.Errorf("write pkset fail in calcing SHA256(PkU1, {PkU2, PkU3}.")}
-	    ch <- res
-	    return false
-	}
-
-	h.Sum(aDigest[:0])
-	ed.ScReduce(&a, &aDigest)
-
-	// 2.6 calculate ask
-	var ask [32]byte
-	var temSk2 [32]byte
-	copy(temSk2[:], sk[:32])
-	ed.ScMul(&ask, &a, &temSk2)
-
-	// 2.7 calculate vss
-	//////
-
-	_, cfsBBytes, shares := ed.Vss2(ask, w.ThresHold, w.NodeCnt, uids)
-
-	for _, id := range ids {
-		enodes := GetEnodesByUid(id, cointype, GroupId)
-
-		if enodes == "" {
-			res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get enode by uid fail", Err: GetRetErr(ErrGetEnodeByUIdFail)}
-			ch <- res
-			return false
-		}
-
-		if IsCurNode(enodes, cur_enode) {
-			continue
-		}
-
-		en := strings.Split(string(enodes[8:]), "@")
-		for k, v := range shares {
-			if strings.EqualFold(k, en[0]) {
-				s0 := "EDSHARE1"
-				s1 := string(v[:])
-				ss := enode + common.Sep + s0 + common.Sep + s1
-				SendMsgToPeer(enodes, ss)
-				break
-			}
-		}
-	}
-
-	_, tip, cherr = GetChannelValue(ch_t, w.bedshare1)
-	/////////////////////////request data from smpc group
-	if cherr != nil {
-	    suss = ReqDataFromGroup(msgprex,w.id,"EDSHARE1",reqdata_trytimes,reqdata_timeout)
-	} else {
-	    suss = true
-	}
-	///////////////////////////////////
-
-	if !suss {
-		res := RpcSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("get ed share1 fail.")}
-		ch <- res
-		return false
-	}
-
-	if w.msg_edshare1.Len() != (w.NodeCnt-1) {
-		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get all msg_edshare1 fail", Err: fmt.Errorf("get all ed share1 fail.")}
-		ch <- res
-		return false
-	}
-
-	var edshares = make(map[string][32]byte)
-	for _, id := range ids {
-		enodes := GetEnodesByUid(id, cointype, GroupId)
-		if IsCurNode(enodes, cur_enode) {
-			edshares[cur_enode] = shares[cur_enode]
-			continue
-		}
-
-		en := strings.Split(string(enodes[8:]), "@")
-
-		iter := w.msg_edshare1.Front()
-		for iter != nil {
-			data := iter.Value.(string)
-			m := strings.Split(data, common.Sep)
-			ps := strings.Split(m[0], "-")
-			if strings.EqualFold(ps[1], en[0]) {
-				var t [32]byte
-				va := []byte(m[2])
-				copy(t[:], va[:32])
-				edshares[en[0]] = t
-				break
-			}
-			iter = iter.Next()
-		}
-	}
-
-	s0 = "EDCFSB"
-	ss = enode + common.Sep + s0 + common.Sep
-	for _, v := range cfsBBytes {
-		vv := string(v[:])
-		ss = ss + vv + common.Sep
-	}
-	ss = ss + "NULL"
-
-	SendMsgToSmpcGroup(ss, GroupId)
-	DisMsg(ss)
-
-	_, tip, cherr = GetChannelValue(ch_t, w.bedcfsb)
-	/////////////////////////request data from smpc group
-	if cherr != nil {
-	    suss = ReqDataFromGroup(msgprex,w.id,"EDCFSB",reqdata_trytimes,reqdata_timeout)
-	} else {
-	    suss = true
-	}
-	///////////////////////////////////
-
-	if !suss {
-		res := RpcSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("get ed cfsb timeout.")}
-		ch <- res
-		return false
-	}
-
-	if w.msg_edcfsb.Len() != w.NodeCnt {
-		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get all msg_edcfsb fail", Err: fmt.Errorf("get all ed cfsb fail.")}
-		ch <- res
-		return false
-	}
-	var cfsbs = make(map[string][][32]byte)
-	for _, id := range ids {
-		enodes := GetEnodesByUid(id, cointype, GroupId)
-		if IsCurNode(enodes, cur_enode) {
-			cfsbs[cur_enode] = cfsBBytes
-			continue
-		}
-
-		en := strings.Split(string(enodes[8:]), "@")
-
-		iter := w.msg_edcfsb.Front()
-		for iter != nil {
-			data := iter.Value.(string)
-			m := strings.Split(data, common.Sep)
-			ps := strings.Split(m[0], "-")
-			if strings.EqualFold(ps[1], en[0]) {
-				mm := m[2:]
-				var cfs [][32]byte
-				for _, tmp := range mm {
-					if tmp == "NULL" {
-						break
-					}
-					var t [32]byte
-					va := []byte(tmp)
-					copy(t[:], va[:32])
-					cfs = append(cfs, t)
-				}
-				cfsbs[en[0]] = cfs
-				break
-			}
-			iter = iter.Next()
-		}
-	}
-
-	// 3.1 verify share
-	for _, id := range ids {
-		enodes := GetEnodesByUid(id, cointype, GroupId)
-		en := strings.Split(string(enodes[8:]), "@")
-
-		shareUFlag := ed.Verify_vss(edshares[en[0]], uids[cur_enode], cfsbs[en[0]])
-
-		if !shareUFlag {
-			fmt.Printf("Error: VSS Share Verification Not Pass at User: %v \n", en[0])
-			res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:VSS Share verification fail", Err: fmt.Errorf("VSS Share Verification Not Pass.")}
-			ch <- res
-			return false
-		}
-	}
-
-	// 3.2 verify share2
-	var a2 [32]byte
-	var aDigest2 [64]byte
-
-	var PkSet2 []byte
-	for _, id := range ids {
-		enodes := GetEnodesByUid(id, cointype, GroupId)
-		en := strings.Split(string(enodes[8:]), "@")
-		var temPk [32]byte
-		t := dpks[en[0]]
-		copy(temPk[:], t[32:])
-		PkSet2 = append(PkSet2[:], (temPk[:])...)
-	}
-
-	h = sha512.New()
-	for _, id := range ids {
-		enodes := GetEnodesByUid(id, cointype, GroupId)
-		en := strings.Split(string(enodes[8:]), "@")
-		var temPk [32]byte
-		t := dpks[en[0]]
-		copy(temPk[:], t[32:])
-
-		h.Reset()
-		_,err = h.Write(temPk[:])
-		if err != nil {
-		    res := RpcSmpcRes{Ret: "", Tip:err.Error(), Err:err}
-		    ch <- res
-		    return false
-		}
-		_,err = h.Write(PkSet2)
-		if err != nil {
-		    res := RpcSmpcRes{Ret: "", Tip:err.Error(), Err:err}
-		    ch <- res
-		    return false
-		}
-		h.Sum(aDigest2[:0])
-		ed.ScReduce(&a2, &aDigest2)
-
-		var askB, A ed.ExtendedGroupElement
-		A.FromBytes(&temPk)
-		ed.GeScalarMult(&askB, &a2, &A)
-
-		var askBBytes [32]byte
-		askB.ToBytes(&askBBytes)
-
-		t2 := cfsbs[en[0]]
-		tt := t2[0]
-		if !bytes.Equal(askBBytes[:], tt[:]) {
-			fmt.Printf("Error: VSS Coefficient Verification Not Pass at User: %v \n", en[0])
-			res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:VSS Coefficient verification fail", Err: fmt.Errorf("VSS Coefficient Verification Not Pass.")}
-			ch <- res
-			return false
-		}
-	}
-
-	// 3.3 calculate tSk
-	var tSk [32]byte
-	for _, id := range ids {
-		enodes := GetEnodesByUid(id, cointype, GroupId)
-		en := strings.Split(string(enodes[8:]), "@")
-		t := edshares[en[0]]
-		ed.ScAdd(&tSk, &tSk, &t)
-	}
-
-	// 3.4 calculate pk
-	var finalPk ed.ExtendedGroupElement
-	var finalPkBytes [32]byte
-
-	i := 0
-	for _, id := range ids {
-		enodes := GetEnodesByUid(id, cointype, GroupId)
-		en := strings.Split(string(enodes[8:]), "@")
-		var temPk [32]byte
-		t := dpks[en[0]]
-		copy(temPk[:], t[32:])
-
-		h.Reset()
-		_,err = h.Write(temPk[:])
-		if err != nil {
-		    res := RpcSmpcRes{Ret: "", Tip:err.Error(), Err:err}
-		    ch <- res
-		    return false
-		}
-		_,err = h.Write(PkSet2)
-		if err != nil {
-		    res := RpcSmpcRes{Ret: "", Tip:err.Error(), Err:err}
-		    ch <- res
-		    return false
-		}
-		h.Sum(aDigest2[:0])
-		ed.ScReduce(&a2, &aDigest2)
-
-		var askB, A ed.ExtendedGroupElement
-		A.FromBytes(&temPk)
-		ed.GeScalarMult(&askB, &a2, &A)
-
-		if i == 0 {
-			finalPk = askB
-		} else {
-			ed.GeAdd(&finalPk, &finalPk, &askB)
-		}
-
-		i++
-	}
-
-	finalPk.ToBytes(&finalPkBytes)
-
-	//save the local db
-	//sk:pk:tsk:pkfinal
-	//save := string(sk[:]) + common.Sep11 + string(pk[:]) + common.Sep11 + string(tSk[:]) + common.Sep11 + string(finalPkBytes[:])
-	save := "XXX" + common.Sep11 + string(pk[:]) + common.Sep11 + string(tSk[:]) + common.Sep11 + string(finalPkBytes[:])
-
-	w.edsave.PushBack(save)
-	w.edsku1.PushBack(string(sk[:]))
-	w.edpk.PushBack(string(finalPkBytes[:]))
-*/
-
-	return true
-}
-
-//ec2
-//msgprex = hash
-func KeyGenerate_DECDSA(msgprex string, ch chan interface{}, id int, cointype string) bool {
-	///////for test only
-	/*u1,_ := new(big.Int).SetString("3334747394230983325243207970954899590842441253149295381558648242110081293330",10)
-	u2,_ := new(big.Int).SetString("69039181184174029818470298267328820110013585784220774880124345655174594749061",10)
-	u3,_ := new(big.Int).SetString("14867692866148859006086889155133300611365049455876397123617203957782293499325",10)
-	u4,_ := new(big.Int).SetString("84793511064568272149980886713210270911035531383314504494511304398691848103881",10)
-	u5,_ := new(big.Int).SetString("60841277345123397920834696016664146929546891435110670397947900149315293244142",10)
-
-	id1,_ := new(big.Int).SetString("53618612272167874423319834687974778412293696801310558561041950376332309251074",10)
-	id2,_ := new(big.Int).SetString("54921957341908846327991236707470353323420933608233375424223802952423356273424",10)
-	id3,_ := new(big.Int).SetString("55554820072087080797082013913708076641941533809080830582031668626477915287514",10)
-	id4,_ := new(big.Int).SetString("60318458834590464192620032882393176022119815649037676016914795650913223224233",10)
-	id5,_ := new(big.Int).SetString("115787261728302521653708661579759215305126272044286142279837734005010875313981",10)
-
-	sku1,_ := new(big.Int).SetString("31191155413895758490308293179882186383085667250661674133654187820857154180677",10)
-	sku2,_ := new(big.Int).SetString("47074940619208118544250574667751837749046355150235507843803424053911198813112",10)
-	sku3,_ := new(big.Int).SetString("64402190692031667657924912059763629636297143519526964063936831306627647090315",10)
-	sku4,_ := new(big.Int).SetString("34772545226428570215016578677967881376777770447360028779798133967936336399940",10)
-	sku5,_ := new(big.Int).SetString("79875137852131204821645001934236208017593200315324988641558008769062905261078",10)
-
-	new1,_ := new(big.Int).SetString("90217780269633436353718649612716896878738939932682742626484292501596677805232",10)
-	new2,_ := new(big.Int).SetString("93554831225468823981433198553360053376392622858513213953942577456307683005349",10)
-	new3,_ := new(big.Int).SetString("67669551554355372044987661383284795264612007389379970801351296782109151089056",10)
-	new4,_ := new(big.Int).SetString("109787550781396434316135992389074051324252963495214169195450555312304474730832",10)
-	new5,_ := new(big.Int).SetString("48263283217198287895944974605412009346944799039902513035658396575677600708148",10)
-	sk := u1
-	sk = new(big.Int).Add(sk, u2)
-	sk = new(big.Int).Add(sk, u3)
-	sk = new(big.Int).Add(sk, u4)
-	sk = new(big.Int).Add(sk, u5)
-	sk = new(big.Int).Mod(sk, secp256k1.S256().N)
-
-	shareU1 := &ec2.ShareStruct2{Id: id1, Share: sku1}
-	shareU2 := &ec2.ShareStruct2{Id: id2, Share: sku2}
-	shareU3 := &ec2.ShareStruct2{Id: id3, Share: sku3}
-	shareU4 := &ec2.ShareStruct2{Id: id4, Share: sku4}
-	shareU5 := &ec2.ShareStruct2{Id: id5, Share: sku5}
-
-	shares := []*ec2.ShareStruct2{shareU1, shareU2, shareU3, shareU4, shareU5}
-	computeSK, _ := ec2.Combine2(shares[:3])
-
-	fmt.Println("")
-	fmt.Println("[Key Generation][Test] verify vss.Combine:")
-	fmt.Println(sk)
-	fmt.Println(computeSK)
-
-	//newskU1 := new(big.Int).Mod(new1, secp256k1.S256().N)
-	//newskU2 := new(big.Int).Mod(new2, secp256k1.S256().N)
-	//newskU3 := new(big.Int).Mod(new3, secp256k1.S256().N)
-	//newskU4 := new(big.Int).Mod(new4, secp256k1.S256().N)
-	//newskU5 := new(big.Int).Mod(new5, secp256k1.S256().N)
-	
-	shareNewSkU1 := &ec2.ShareStruct2{Id: id1, Share: new1}
-	shareNewSkU2 := &ec2.ShareStruct2{Id: id2, Share: new2}
-	shareNewSkU3 := &ec2.ShareStruct2{Id: id3, Share: new3}
-	shareNewSkU4 := &ec2.ShareStruct2{Id: id4, Share: new4}
-	shareNewSkU5 := &ec2.ShareStruct2{Id: id5, Share: new5}
-
-	sharesNewSkU := []*ec2.ShareStruct2{shareNewSkU1, shareNewSkU2, shareNewSkU3, shareNewSkU4, shareNewSkU5}
-	computeNewSK, _ := ec2.Combine2(sharesNewSkU[:4])
-
-	fmt.Println("")
-	fmt.Println("测试,新的私钥分片，合起来，是否等于原来的私钥:")
-	fmt.Println(sk)
-	fmt.Println(computeNewSK)*/
-	////////////////////
-
-	if id < 0 || id >= RPCMaxWorker || id >= len(workers) {
-		res := RpcSmpcRes{Ret: "", Err: GetRetErr(ErrGetWorkerIdError)}
-		ch <- res
-		return false
-	}
-
-	w := workers[id]
-	if w.groupid == "" {
-		///bug groupid == nil ???
-		w, err := FindWorker(msgprex)
-		if err != nil || w.groupid == "" {
-		    res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("get group id fail.")}
-		    ch <- res
-		    return false
-		}
-		//////
-	}
-
-	ns, _ := GetGroup(w.groupid)
-	if ns != w.NodeCnt {
-		res := RpcSmpcRes{Ret: "", Err: GetRetErr(ErrGroupNotReady)}
-		ch <- res
-		return false
-	}
-
-	//ids := GetIds(cointype, w.groupid)
-
-	//time.Sleep(time.Duration(20) * time.Second) //tmp code
-	
-	//taskDone := make(chan struct{})
-	commStopChan := make(chan struct{})
-	outCh := make(chan smpclib.Message, ns)
-	endCh := make(chan keygen.LocalDNodeSaveData, ns)
-	errChan := make(chan struct{})
-	keyGenDNode := keygen.NewLocalDNode(outCh,endCh,ns,w.ThresHold,2048)
-	w.DNode = keyGenDNode
-	keyGenDNode.SetDNodeID(fmt.Sprintf("%v",DoubleHash(cur_enode,"EC256K1")))
-	fmt.Printf("=========== keygen, node uid = %v ===========\n",keyGenDNode.DNodeID())
-	
-	uid,_ := new(big.Int).SetString(w.DNode.DNodeID(),10)
-	w.MsgToEnode[fmt.Sprintf("%v",uid)] = cur_enode
-
-	var keyGenWg sync.WaitGroup
-	keyGenWg.Add(2)
-	go func() {
-		defer keyGenWg.Done()
-		if err := keyGenDNode.Start(); nil != err {
-		    fmt.Printf("==========keygen node start err = %v ==========\n",err)
-			close(errChan)
-		}
-		
-		exsit,da := GetReqAddrInfoData([]byte(msgprex))
-		if exsit {
-		    ac,ok := da.(*AcceptReqAddrData)
-		    if ok && ac != nil {
-			HandleC1Data(ac,w.sid)
-		    }
-		}
-	}()
-	go ProcessInboundMessages(msgprex,commStopChan,&keyGenWg,ch)
-	err := processKeyGen(msgprex,errChan, outCh, endCh)
-	if err != nil {
-	    fmt.Printf("==========process keygen err = %v ==========\n",err)
-	    close(commStopChan)
-	    res := RpcSmpcRes{Ret: "", Err: err}
-	    ch <- res
-	    return false
-	}
-
-	close(commStopChan)
-	keyGenWg.Wait()
-
-	//*******************!!!Distributed ECDSA Start!!!**********************************
-
-	/*u1, u1Poly, u1PolyG, commitU1G, c1, _, _, commitC1G, u1PaillierPk, u1PaillierSk, status := DECDSAGenKeyRoundOne(msgprex, ch, w)
-	if !status {
-		return status
-	}
-	common.Debug("================generate key,round one finish================","key",msgprex)
-
-	u1Shares, status := DECDSAGenKeyRoundTwo(msgprex, cointype, ch, w, u1Poly, c1,ids)
-	if !status {
-		return status
-	}
-	common.Debug("================generate key,round two finish================","key",msgprex)
-
-	if !DECDSAGenKeyRoundThree(msgprex, cointype, ch, w, u1PolyG, commitU1G, commitC1G, ids) {
-		return false
-	}
-	common.Debug("================generate key,round three finish================","key",msgprex)
-
-	sstruct, ds, status := DECDSAGenKeyVerifyShareData(msgprex, cointype, ch, w, u1PolyG, u1Shares, ids)
-	if !status {
-		return status
-	}
-	common.Debug("================generate key,verify share data finish================","key",msgprex)
-
-	cs, udecom, status := DECDSAGenKeyVerifyCommitment(msgprex, cointype, ch, w, ds, commitU1G, ids)
-	if !status {
-		return false
-	}
-	common.Debug("================generate key,verify commitment finish================","key",msgprex)
-
-	ug, status := DECDSAGenKeyCalcPubKey(msgprex, cointype, ch, w, udecom, ids)
-	if !status {
-		return false
-	}
-	common.Debug("================generate key,calc pubkey finish================","key",msgprex)
-
-	//bip32
-	bip32udecom, status := DECDSAGenKeyVerifyCommitment_Bip32(msgprex, cointype, ch, w, cs,ds, commitC1G, ids)
-	if !status {
-		return false
-	}
-	common.Debug("================generate key,verify commitment for bip32 finish================","key",msgprex)
-	
-	status = DECDSAGenKeyCalcC(msgprex, cointype, ch, w, bip32udecom, ids)
-	if !status {
-		return false
-	}
-	common.Debug("================generate key,calc c for bip32 finish================","key",msgprex)
-	//
-
-	skU1, status := DECDSAGenKeyCalcPrivKey(msgprex, cointype, ch, w, sstruct, ids)
-	if !status {
-		return false
-	}
-	common.Debug("================generate key,calc privkey finish================","key",msgprex)
-
-	u1NtildeH1H2, status := DECDSAGenKeyRoundFour(msgprex, ch, w)
-	if !status {
-		return false
-	}
-	common.Debug("================generate key,round four finish================","key",msgprex)
-
-	if !DECDSAGenKeyRoundFive(msgprex, ch, w, u1) {
-		return false
-	}
-	common.Debug("================generate key,round five finish================","key",msgprex)
-
-	if !DECDSAGenKeyVerifyZKU(msgprex, cointype, ch, w, ids, ug) {
-		return false
-	}
-	common.Debug("================generate key,verify zk of u1 finish================","key",msgprex)
-
-	///////////check all nodes success genarate the pubkey
-	if !CheckAllNodesPubKeyStatus(msgprex,ch,w) {
-	    return false
-	}
-	///////////
-
-	if !DECDSAGenKeySaveData(cointype, ids, w, ch, skU1, u1PaillierPk, u1PaillierSk, cs, u1NtildeH1H2) {
-		return false
-	}
-	common.Debug("================generate key================","u1",u1,"sku1",skU1,"key",msgprex)*/
-	//*******************!!!Distributed ECDSA End!!!**********************************
 	return true
 }
 
