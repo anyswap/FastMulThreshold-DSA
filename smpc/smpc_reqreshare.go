@@ -28,6 +28,8 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	"github.com/fsn-dev/cryptoCoins/coins"
 	"container/list"
+	"github.com/fsn-dev/cryptoCoins/coins/types"
+	"github.com/fsn-dev/cryptoCoins/tools/rlp"
 )
 
 type ReqSmpcReshare struct {
@@ -499,6 +501,87 @@ func (req *ReqSmpcReshare) CheckTxData(txdata []byte,from string,nonce uint64) (
    
 //---------------------------------------------------------------------------------------------
 
+func GetReshareRawValue(raw string) (string,string,string) {
+    if raw == "" {
+	return "","",""
+    }
+
+    tx := new(types.Transaction)
+    raws := common.FromHex(raw)
+    if err := rlp.DecodeBytes(raws, tx); err != nil {
+	return "","",""
+    }
+
+    signer := types.NewEIP155Signer(big.NewInt(30400))
+    from, err := types.Sender(signer,tx)
+    if err != nil {
+	return "","",""
+    }
+
+    var txtype string
+    var timestamp string
+    
+    rh := TxDataReShare{}
+    err = json.Unmarshal(tx.Data(), &rh)
+    if err == nil && rh.TxType == "RESHARE" {
+	txtype = "RESHARE"
+	timestamp = rh.TimeStamp
+    } else {
+	acceptrh := TxDataAcceptReShare{}
+	err = json.Unmarshal(tx.Data(), &acceptrh)
+	if err == nil && acceptrh.TxType == "ACCEPTRESHARE" {
+	    txtype = "ACCEPTRESHARE"
+	    timestamp = acceptrh.TimeStamp
+	} 
+    }
+
+    return from.Hex(),txtype,timestamp
+}
+
+func CheckReshareDulpRawReply(raw string,l *list.List) bool {
+    if l == nil || raw == "" {
+	return false
+    }
+   
+    from,txtype,timestamp := GetReshareRawValue(raw)
+
+    if from == "" || txtype == "" || timestamp == "" {
+	return false
+    }
+    
+    var next *list.Element
+    for e := l.Front(); e != nil; e = next {
+	next = e.Next()
+
+	if e.Value == nil {
+		continue
+	}
+
+	s := e.Value.(string)
+
+	if s == "" {
+		continue
+	}
+
+	if strings.EqualFold(raw,s) {
+	   return false 
+	}
+	
+	from2,txtype2,timestamp2 := GetReshareRawValue(s)
+	if strings.EqualFold(from,from2) && strings.EqualFold(txtype,txtype2) {
+	    t1,_ := new(big.Int).SetString(timestamp,10)
+	    t2,_ := new(big.Int).SetString(timestamp2,10)
+	    if t1.Cmp(t2) > 0 {
+		l.Remove(e)
+	    } else {
+		return false
+	    }
+	}
+    }
+
+    return true
+}
+
 func (req *ReqSmpcReshare) DisAcceptMsg(raw string,workid int,key string) {
     if raw == "" || workid < 0 || workid >= len(workers) || key == "" {
 	return
@@ -511,6 +594,10 @@ func (req *ReqSmpcReshare) DisAcceptMsg(raw string,workid int,key string) {
     
     if Find(w.msg_acceptreshareres, raw) {
 	common.Debug("======================ReqSmpcReshare.DisAcceptMsg,receive one msg and already in list.===========================","raw",raw,"key",key)
+	return
+    }
+
+    if !CheckReshareDulpRawReply(raw,w.msg_acceptreshareres) {
 	return
     }
 

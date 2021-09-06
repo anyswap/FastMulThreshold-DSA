@@ -30,6 +30,8 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	"container/list"
 	"crypto/sha512"
+	"github.com/fsn-dev/cryptoCoins/coins/types"
+	"github.com/fsn-dev/cryptoCoins/tools/rlp"
 )
 
 type ReqSmpcSign struct {
@@ -748,7 +750,95 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte,from string,nonce uint64) (str
 }
 
 //----------------------------------------------------------------------------------------------------------
+
+func GetSignRawValue(raw string) (string,string,string) {
+    if raw == "" {
+	return "","",""
+    }
+
+    tx := new(types.Transaction)
+    raws := common.FromHex(raw)
+    if err := rlp.DecodeBytes(raws, tx); err != nil {
+	return "","",""
+    }
+
+    signer := types.NewEIP155Signer(big.NewInt(30400))
+    from, err := types.Sender(signer,tx)
+    if err != nil {
+	return "","",""
+    }
+
+    var txtype string
+    var timestamp string
     
+    sig := TxDataSign{}
+    err = json.Unmarshal(tx.Data(), &sig)
+    if err == nil && sig.TxType == "SIGN" {
+	txtype = "SIGN"
+	timestamp = sig.TimeStamp
+    } else {
+	pre := TxDataPreSignData{}
+	err = json.Unmarshal(tx.Data(), &pre)
+	if err == nil && pre.TxType == "PRESIGNDATA" {
+	    txtype = "PRESIGNDATA"
+	    //timestamp = pre.TimeStamp
+	} else {
+	    acceptsig := TxDataAcceptSign{}
+	    err = json.Unmarshal(tx.Data(), &acceptsig)
+	    if err == nil && acceptsig.TxType == "ACCEPTSIGN" {
+		txtype = "ACCEPTSIGN"
+		timestamp = acceptsig.TimeStamp
+	    }
+	}
+    }
+
+    return from.Hex(),txtype,timestamp
+}
+
+func CheckSignDulpRawReply(raw string,l *list.List) bool {
+    if l == nil || raw == "" {
+	return false
+    }
+   
+    from,txtype,timestamp := GetSignRawValue(raw)
+
+    if from == "" || txtype == "" || timestamp == "" {
+	return false
+    }
+    
+    var next *list.Element
+    for e := l.Front(); e != nil; e = next {
+	next = e.Next()
+
+	if e.Value == nil {
+		continue
+	}
+
+	s := e.Value.(string)
+
+	if s == "" {
+		continue
+	}
+
+	if strings.EqualFold(raw,s) {
+	   return false 
+	}
+	
+	from2,txtype2,timestamp2 := GetSignRawValue(s)
+	if strings.EqualFold(from,from2) && strings.EqualFold(txtype,txtype2) {
+	    t1,_ := new(big.Int).SetString(timestamp,10)
+	    t2,_ := new(big.Int).SetString(timestamp2,10)
+	    if t1.Cmp(t2) > 0 {
+		l.Remove(e)
+	    } else {
+		return false
+	    }
+	}
+    }
+
+    return true
+}
+
 func (req *ReqSmpcSign) DisAcceptMsg(raw string,workid int,key string) {
     if raw == "" || workid < 0 || workid >= len(workers) || key == "" {
 	return
@@ -761,6 +851,10 @@ func (req *ReqSmpcSign) DisAcceptMsg(raw string,workid int,key string) {
     
     if Find(w.msg_acceptsignres,raw) {
 	common.Debug("======================ReqSmpcSign.DisAcceptMsg,receive one msg and already in list.===========================","raw",raw,"key",key)
+	return
+    }
+
+    if !CheckSignDulpRawReply(raw,w.msg_acceptsignres) {
 	return
     }
 
