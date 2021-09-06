@@ -84,7 +84,7 @@ func StartSmpc(c *cli.Context) {
 
 	startP2pNode()
 	
-	time.Sleep(time.Duration(180) * time.Second) //wait 3 ms for ec3
+	time.Sleep(time.Duration(30) * time.Second) //wait 3 ms for ec3
 
 	rpcsmpc.RpcInit(rpcport)
 
