@@ -699,4 +699,128 @@ func StartSmpcLocalDb() error {
 
 //--------------------------------------------------------
 
+func CleanUpAllReqAddrInfo() {
+   if reqaddrinfodb == nil {
+       return
+    }
+
+    iter := reqaddrinfodb.NewIterator()
+    for iter.Next() {
+       key := []byte(string(iter.Key())) //must be deep copy, Otherwise, an error will be reported: "panic: JSON decoder out of sync - data changing underfoot?"
+       if len(key) == 0 {
+           continue
+       }
+
+       exsit,da := GetReqAddrInfoData(key) 
+       if !exsit || da == nil {
+           continue
+       }
+           
+       vv,ok := da.(*AcceptReqAddrData)
+       if vv == nil || !ok {
+           continue
+       }
+
+       vv.Status = "Timeout"
+       
+       e, err := Encode2(vv)
+       if err != nil {
+           continue
+       }
+
+       es, err := Compress([]byte(e))
+       if err != nil {
+           continue
+       }
+      
+       DeleteReqAddrInfoData(key)
+       PutPubKeyData(key,[]byte(es))
+    }
+    iter.Release()
+}
+
+//----------------------------------------------------------------------------------
+
+func CleanUpAllSignInfo() {
+    if signinfodb == nil {
+       return
+    }
+
+    iter := signinfodb.NewIterator()
+    for iter.Next() {
+       key := []byte(string(iter.Key())) //must be deep copy, Otherwise, an error will be reported: "panic: JSON decoder out of sync - data changing underfoot?"
+       if len(key) == 0 {
+           continue
+       }
+
+       exsit,da := GetSignInfoData(key) 
+       if !exsit || da == nil {
+           continue
+       }
+           
+       vv,ok := da.(*AcceptSignData)
+       if vv == nil || !ok {
+           continue
+       }
+
+       vv.Status = "Timeout"
+       
+       e, err := Encode2(vv)
+       if err != nil {
+           continue
+       }
+
+       es, err := Compress([]byte(e))
+       if err != nil {
+           continue
+       }
+       
+       DeleteSignInfoData(key)
+       PutPubKeyData(key,[]byte(es))
+    }
+    iter.Release()
+}
+
+//------------------------------------------------------------------------------------------------
+
+func CleanUpAllReshareInfo() {
+    if reshareinfodb == nil {
+       return
+    }
+
+    iter := reshareinfodb.NewIterator()
+    for iter.Next() {
+       key := []byte(string(iter.Key())) //must be deep copy, Otherwise, an error will be reported: "panic: JSON decoder out of sync - data changing underfoot?"
+       if len(key) == 0 {
+           continue
+       }
+
+       exsit,da := GetReShareInfoData(key) 
+       if !exsit || da == nil {
+           continue
+       }
+           
+       vv,ok := da.(*AcceptReShareData)
+       if vv == nil || !ok {
+           continue
+       }
+
+       vv.Status = "Timeout"
+       
+       e, err := Encode2(vv)
+       if err != nil {
+           continue
+       }
+
+       es, err := Compress([]byte(e))
+       if err != nil {
+           continue
+       }
+       
+       DeleteReShareInfoData(key)
+       PutPubKeyData(key,[]byte(es))
+    }
+    iter.Release()
+}
+
 

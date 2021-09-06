@@ -90,6 +90,10 @@ func Start(params *LunchParams) {
 
 	go HandleRpcSign()
 
+	CleanUpAllReqAddrInfo()
+	CleanUpAllSignInfo()
+	CleanUpAllReshareInfo()
+
 	common.Info("================================smpc.Start,init finish.========================","cur_enode",cur_enode,"waitmsg",WaitMsgTimeGG20,"trytimes",recalc_times,"presignnum",PrePubDataCount,"bip32pre",PreBip32DataCount)
 }
 
