@@ -65,10 +65,11 @@ func Start(params *LunchParams) {
 	coins.Init()
 	
 	cur_enode = p2psmpc.GetSelfID()
+	accloaded := AccountLoaded()
 	
 	go smpclibec2.GenRandomSafePrime()
 	
-	common.Info("======================smpc.Start======================","cache",cache,"handles",handles,"cur enode",cur_enode)
+	common.Info("======================smpc.Start======================","accounts loaded",accloaded,"cache",cache,"handles",handles,"cur enode",cur_enode)
 	err := StartSmpcLocalDb()
 	if err != nil {
 	    info := "======================smpc.Start," + err.Error() + ",so terminate smpc node startup"
@@ -89,6 +90,11 @@ func Start(params *LunchParams) {
 	AutoPreGenSignData()
 
 	go HandleRpcSign()
+
+	//do this must after openning accounts db success,but get accloaded must before it
+	if !accloaded {
+	    go CopyAllAccountsFromDb()
+	}
 
 	CleanUpAllReqAddrInfo()
 	CleanUpAllSignInfo()

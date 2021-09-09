@@ -391,6 +391,13 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 		    return
 		}
 
+		err = PutAccountDataToDb(sedpk[:],[]byte(pubkeyhex))
+		if err != nil {
+		    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put account data to db fail", Err: err}
+		    ch <- res
+		    return
+		}
+
 		err = putSkU1ToLocalDb(sedpk[:],[]byte(sedsku1))
 		if err != nil {
 		    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put sku1 data fail", Err: err}
@@ -420,6 +427,14 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 			ch <- res
 			return
 		    }
+
+		    err = PutAccountDataToDb([]byte(key),[]byte(pubkeyhex))
+		    if err != nil {
+			res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put account data to db fail", Err: err}
+			ch <- res
+			return
+		    }
+
 
 		    err = putSkU1ToLocalDb([]byte(key),[]byte(sedsku1))
 		    if err != nil {
@@ -540,11 +555,19 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 	err = PutPubKeyData(ys,[]byte(ss))
 	if err != nil {
-	    common.Error("================================dcrm_genPubKey,put pubkey data to local db fail=========================","err",err,"key",msgprex)
+	    common.Error("================================smpc_genPubKey,put pubkey data to local db fail=========================","err",err,"key",msgprex)
 	    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put pubkey data fail", Err: err}
 	    ch <- res
 	    return
 	}
+
+	err = PutAccountDataToDb(ys,[]byte(pubkeyhex))
+	if err != nil {
+	    common.Error("================================smpc_genPubKey,put account data to local db fail=========================","err",err,"key",msgprex)
+	    res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put account data to local db fail", Err: err}
+	    ch <- res
+	    return
+	} 
 
 	for _, ct := range coins.Cointypes {
 	    if strings.EqualFold(ct, "ALL") {
@@ -571,9 +594,17 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 		return
 	    }
 
+	    err = PutAccountDataToDb([]byte(key),[]byte(pubkeyhex))
+	    if err != nil {
+		common.Error("================================smpc_genPubKey,put account data to localdb fail=========================","err",err,"key",msgprex)
+		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put account data to local db fail", Err: err}
+		ch <- res
+		return
+	    }
+
 	    err = putSkU1ToLocalDb([]byte(key),[]byte(sku1))
 	    if err != nil {
-		common.Error("================================dcrm_genPubKey,put sku1 data to local db fail,=========================","err",err,"key",msgprex)
+		common.Error("================================smpc_genPubKey,put sku1 data to local db fail,=========================","err",err,"key",msgprex)
 		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put sku1 data fail", Err: err}
 		ch <- res
 		return
@@ -581,12 +612,11 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 	    
 	    err = putBip32cToLocalDb([]byte(key),[]byte(bip32c))
 	    if err != nil {
-		common.Error("================================dcrm_genPubKey,put bip32c to local db fail,=========================","err",err,"key",msgprex)
+		common.Error("================================smpc_genPubKey,put bip32c to local db fail,=========================","err",err,"key",msgprex)
 		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error: put bip32c fail", Err: err}
 		ch <- res
 		return
 	    }
-
 	}
 
 	res := RpcSmpcRes{Ret: pubkeyhex, Tip: "", Err: nil}

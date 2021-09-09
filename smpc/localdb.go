@@ -23,6 +23,7 @@ import (
     "fmt"
     "errors"
     "github.com/anyswap/Anyswap-MPCNode/p2p/discover"
+    "encoding/hex"
 )
 
 var (
@@ -38,6 +39,7 @@ var (
 	reqaddrinfodb *ethdb.LDBDatabase
 	signinfodb *ethdb.LDBDatabase
 	reshareinfodb *ethdb.LDBDatabase
+	accountsdb *ethdb.LDBDatabase
 )
 
 func makeDatabaseHandles() int {
@@ -694,6 +696,12 @@ func StartSmpcLocalDb() error {
 	return errors.New("open reshareinfodb fail")
     }
 
+    accountsdb = GetSmpcAccountsDirDb()
+    if accountsdb == nil {
+	common.Error("======================StartSmpcLocalDb,open accountsdb fail=====================")
+	return errors.New("open accountsdb fail")
+    }
+
     return nil
 }
 
@@ -822,5 +830,124 @@ func CleanUpAllReshareInfo() {
     }
     iter.Release()
 }
+
+//-----------------------------------------------------------------------------------------------------
+
+func GetAccountsDir() string {
+	dir := common.DefaultDataDir()
+	tmp := dir + "/dcrmdata/dcrmaccounts" + cur_enode
+	if common.FileExist(tmp) == true {
+	    return tmp
+	}
+	
+	dir += "/smpcdata/smpcaccounts" + cur_enode
+	return dir
+} 
+
+func AccountLoaded() bool {
+    dir := GetAccountsDir()
+    return common.FileExist(dir)
+}
+
+func GetSmpcAccountsDirDb() *ethdb.LDBDatabase {
+    dir := GetAccountsDir()
+    accountsdb, err := ethdb.NewLDBDatabase(dir, cache, handles)
+    if err != nil {
+	common.Error("======================GetSmpcAccountsDirDb,open accountsdb fail======================","err",err,"dir",dir)
+	return nil
+    }
+
+    return accountsdb
+}
+
+func CopyAllAccountsFromDb() {
+    if db == nil {
+	return
+    }
+
+    iter := db.NewIterator()
+    for iter.Next() {
+	key := string(iter.Key())
+	value := string(iter.Value())
+
+	ss, err := UnCompress(value)
+	if err != nil {
+	    continue
+	}
+
+	pubs, err := Decode2(ss, "PubKeyData")
+	if err != nil {
+	    continue
+	}
+
+	pd,ok := pubs.(*PubKeyData)
+	if !ok {
+	    continue
+	}
+
+	if pd.Pub == "" {
+	    continue
+	}
+
+	pubkey := hex.EncodeToString([]byte(pd.Pub))
+
+	//key: ys (marshal(pkx,pky)) 
+	//key: []byte(hash256(tolower(dcrmaddr))) 
+	//value: []byte(pubkey)
+	PutAccountDataToDb([]byte(key),[]byte(pubkey))
+    }
+    
+    iter.Release()
+}
+
+func GetAccountFromDb(key []byte) (bool,interface{}) {
+    if key == nil || accountsdb == nil {
+	    common.Error("========================GetAccountFromDb, param err=======================","key",string(key))
+	return false,nil
+    }
+	
+    da, err := accountsdb.Get(key)
+    if da == nil || err != nil {
+	common.Error("========================GetAccountFromDb, get account from local db fail =======================","key",string(key))
+	return false,nil
+    }
+ 
+    return true,string(da) 
+}
+
+//----------------------------------------------------------------
+
+func PutAccountDataToDb(key []byte,value []byte) error {
+    if accountsdb == nil || key == nil || value == nil {
+	return fmt.Errorf("put account data to db fail")
+    }
+ 
+    err := accountsdb.Put(key,value)
+    if err == nil {
+	common.Debug("===============PutAccountDataToDb, put account data into db success.=================","key",string(key))
+	return nil	
+    }
+	
+    common.Error("===============PutAccountDataToDb, put account data into db fail.=================","key",string(key),"err",err)
+    return err
+}
+
+//----------------------------------------------------------------
+
+func DeleteAccountDataFromDb(key []byte) error {
+    if key == nil || accountsdb == nil {
+	return fmt.Errorf("delete account data from db fail.")
+    }
+ 
+    err := accountsdb.Delete(key)
+    if err == nil {
+	common.Debug("===============DeleteAccountDataFromDb, del account data from db success.=================","key",string(key))
+	return nil
+    }
+ 
+    common.Error("===============DeleteAccountDataFromDb, delete account data from db fail.=================","key",string(key),"err",err)
+    return err
+}
+
 
 
