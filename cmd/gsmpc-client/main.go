@@ -39,6 +39,9 @@ import (
 	"github.com/btcsuite/btcutil"
 	"encoding/hex"
 	"github.com/btcsuite/btcd/btcec"
+	"sync"
+	"log"
+	"os"
 )
 
 const (
@@ -49,6 +52,9 @@ const (
 
 var (
 	keyfile  *string
+	logfilepath  *string
+	loop  *string
+	n  *string
 	passwd   *string
 	url      *string
 	cmd      *string
@@ -100,8 +106,38 @@ func main() {
 		// approve condominium account lockout
 		acceptLockOut()
 	case "SIGN":
-		// test sign
-		sign()
+		PrintSignResultToLocalFile()
+ 		// test sign
+		innerloop,err := strconv.ParseUint(*n, 0, 64)
+ 		if err != nil {
+ 		    fmt.Printf("==========================test sign fail, --n param error, n = %v,err = %v=======================\n",*n,err)
+ 		    return
+ 		}
+		outerloop,err := strconv.ParseUint(*loop, 0, 64)
+		if err != nil {
+		    fmt.Printf("==========================test sign fail, --loop param error, n = %v,err = %v=======================\n",*loop,err)
+		    return
+		}
+ 
+		var outwg sync.WaitGroup
+		for j:= 0;j<int(outerloop);j++ {
+		    outwg.Add(1)
+ 		    go func() {
+			defer outwg.Done()
+			var wg sync.WaitGroup
+			for i:=0;i<int(innerloop);i++ {
+			    wg.Add(1)
+			    go func() {
+				defer wg.Done()
+				sign()
+			    }()
+			}
+			wg.Wait()
+ 		    }()
+
+		    time.Sleep(time.Duration(3) * time.Second)
+ 		}
+		outwg.Wait()
 	case "PRESIGNDATA":
 		// test pre sign data
 		preGenSignData()
@@ -131,6 +167,9 @@ func main() {
 
 func init() {
 	keyfile = flag.String("keystore", "", "Keystore file")
+	logfilepath = flag.String("logfilepath", "", "the path of log file")
+	loop = flag.String("loop", "10", "sign outer loop count")
+	n = flag.String("n", "100", "sign loop count")
 	passwd = flag.String("passwd", "111111", "Password")
 	url = flag.String("url", "http://127.0.0.1:9011", "Set node RPC URL")
 	cmd = flag.String("cmd", "", "EnodeSig|SetGroup|REQSMPCADDR|ACCEPTREQADDR|LOCKOUT|ACCEPTLOCKOUT|SIGN|PRESIGNDATA|ACCEPTSIGN|RESHARE|ACCEPTRESHARE|CREATECONTRACT|GETSMPCADDR")
@@ -570,14 +609,57 @@ func preGenSignData() {
 		panic(err)
 	}
 }
+
+func PrintSignResultToLocalFile() {
+    var file string
+    if logfilepath == nil {
+        file = "./"+"SignResult"+".txt" //  ./SignResult.txt
+    } else {
+	file = *logfilepath
+    }
+    
+    logFile, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0766)
+    if err != nil {
+	    panic(err)
+    }
+    log.SetOutput(logFile) // 将文件设置为log输出的文件
+    //log.SetPrefix("[Sign]")
+    //log.SetFlags(log.LstdFlags | log.Lshortfile | log.LUTC)
+    return
+}
+
+func PrintTime(t time.Time,key string,status string,loopcount int) {
+    d := time.Since(t)
+    str := "-------------------------------------------------------\n"
+    str += "key = "
+    str += key
+    str += ",  "
+    str += "status = "
+    str += status
+    str += ",  "
+    str += "retry count(get every 5 seconds) = "
+    str += strconv.Itoa(loopcount)
+    str += ",  "
+    str += "time spent = "
+    s := common.PrettyDuration(d).String()
+    //str += strconv.FormatFloat(d.Seconds(), 'E', -1, 64)
+    str += s
+    str += "\n"
+    log.Println(str)
+}
+
 func signMsgHash(hashs []string, contexts []string,loopCount int) (rsv []string) {
+	timevalue:= time.Now()
+
 	// get sign nonce
 	signNonce, err := client.Call("smpc_getSignNonce", keyWrapper.Address.String())
 	if err != nil {
+	    PrintTime(timevalue,"","Error",0)
 		panic(err)
 	}
 	nonceStr, err := getJSONResult(signNonce)
 	if err != nil {
+	    PrintTime(timevalue,"","Error",0)
 		panic(err)
 	}
 	nonce, _ := strconv.ParseUint(nonceStr, 0, 64)
@@ -600,17 +682,20 @@ func signMsgHash(hashs []string, contexts []string,loopCount int) (rsv []string)
 	// sign tx
 	rawTX, err := signTX(signer, keyWrapper.PrivateKey, nonce, playload)
 	if err != nil {
+	    PrintTime(timevalue,"","Error",0)
 		panic(err)
 	}
 	// get rawTx
 	reqKeyID, err := client.Call("smpc_sign", rawTX)
 	if err != nil {
+	    PrintTime(timevalue,"","Error",0)
 		//panic(err)
 		return
 	}
 	// get keyID
 	keyID, err := getJSONResult(reqKeyID)
 	if err != nil {
+	    PrintTime(timevalue,"","Error",0)
 		panic(err)
 	}
 	fmt.Printf("\nsmpc_sign keyID = %s\n\n", keyID)
@@ -640,9 +725,11 @@ func signMsgHash(hashs []string, contexts []string,loopCount int) (rsv []string)
 		}
 		switch statusJSON.Status {
 		case "Timeout", "Failure":
+			PrintTime(timevalue,keyID,statusJSON.Status,j)
 			fmt.Printf("\tsmpc_getSignStatus=%s\tkeyID=%s\n", statusJSON.Status, keyID)
 			return
 		case "Success":
+			PrintTime(timevalue,keyID,"Success",j)
 			fmt.Printf("\tSuccess\tRSV=%s\n", statusJSON.Rsv)
 			return statusJSON.Rsv
 		default:
