@@ -881,6 +881,13 @@ func CheckGroupEnode(gid string) bool {
 //msg: key-enode1:NoReciv:enode2:C1
 func DisMsg(msg string) {
 
+	defer func() {
+	    if r := recover(); r != nil {
+		fmt.Errorf("DisMsg Runtime error: %v\n%v", r, string(debug.Stack()))
+		return
+	    }
+	}()
+
 	mm := strings.Split(msg, common.Sep)
 	if len(mm) < 3 {
 		common.Debug("======================DisMsg, < 3 for CHECKPUBKEYSTATUS================","msg",msg,"common.Sep",common.Sep,"mm len",len(mm))
