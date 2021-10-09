@@ -57,6 +57,7 @@ type LunchParams struct {
     PreSignNum uint64
     WaitAgree uint64
     Bip32Pre uint64
+    Sync_PreSign string
 }
 
 func Start(params *LunchParams) {
@@ -86,6 +87,11 @@ func Start(params *LunchParams) {
 	waitallgg20 = WaitMsgTimeGG20 * recalc_times
 	WaitAgree = int(params.WaitAgree)
 	PreBip32DataCount = int(params.Bip32Pre)
+	if params.Sync_PreSign == "true" {
+	    syncpresign = true
+	} else {
+	    syncpresign = false
+	}
 	
 	AutoPreGenSignData()
 

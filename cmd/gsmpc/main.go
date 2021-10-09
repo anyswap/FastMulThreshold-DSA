@@ -88,7 +88,7 @@ func StartSmpc(c *cli.Context) {
 
 	rpcsmpc.RpcInit(rpcport)
 
-	params := &smpc.LunchParams{WaitMsg:waitmsg,TryTimes:trytimes,PreSignNum:presignnum,WaitAgree:waitagree,Bip32Pre:bip32pre}
+	params := &smpc.LunchParams{WaitMsg:waitmsg,TryTimes:trytimes,PreSignNum:presignnum,WaitAgree:waitagree,Bip32Pre:bip32pre,Sync_PreSign:sync_presign}
 	smpc.Start(params)
 	select {} // note for server, or for client
 }
@@ -123,6 +123,7 @@ var (
 	presignnum   uint64
 	waitagree   uint64
 	bip32pre   uint64
+	sync_presign   string
 
 	statDir   = "stat"
 
@@ -174,6 +175,7 @@ func init() {
 		cli.Uint64Flag{Name: "presignnum", Value: 10, Usage: "the total of pre-sign data", Destination: &presignnum},
 		cli.Uint64Flag{Name: "waitagree", Value: 120, Usage: "the time to wait for agree from all nodes", Destination: &waitagree},
 		cli.Uint64Flag{Name: "bip32pre", Value: 4, Usage: "the total counts of pre-sign data for bip32 child pubkey", Destination: &bip32pre},
+		cli.StringFlag{Name: "sync-presign", Value: "true", Usage: "synchronize presign data between group nodes", Destination: &sync_presign},
 	}
 	gitVersion = params.VersionWithMeta
 }

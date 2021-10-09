@@ -45,7 +45,9 @@ var (
 	waitall                     = ch_t * recalc_times
 	waitallgg20                     = WaitMsgTimeGG20 * recalc_times
 	WaitAgree = 120 // second
-	C1Data = common.NewSafeMap(10) 
+	C1Data = common.NewSafeMap(10)
+
+	syncpresign = true
 	
 	//callback
 	GetGroup               func(string) (int, string)

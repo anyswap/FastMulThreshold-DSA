@@ -552,7 +552,7 @@ func (req *ReqSmpcSign) DoReq(raw string,workid int,sender string,ch chan interf
 		//pre := PreSign_ec3(w.sid,save,sku1,"ECDSA",ch1,workid)
 		pre := PreSign_ec3(w.sid,save,childSKU1,"EC256K1",ch1,workid)
 		if pre == nil {
-			if !SynchronizePreSignData(w.sid,w.id,false) {
+			if syncpresign && !SynchronizePreSignData(w.sid,w.id,false) {
  			    res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
  			    ch <- res
  			    return false
@@ -570,7 +570,7 @@ func (req *ReqSmpcSign) DoReq(raw string,workid int,sender string,ch chan interf
 
 		err = PutPreSignData(ps.Pub,ps.InputCode,ps.Gid,ps.Index,pre,true)
 		if err != nil {
-		    if !SynchronizePreSignData(w.sid,w.id,false) {
+		    if syncpresign && !SynchronizePreSignData(w.sid,w.id,false) {
 			    common.Info("================================PreSign at RecvMsg.Run, put pre-sign data to local db fail=====================","pick key",pre.Key,"pubkey",ps.Pub,"gid",ps.Gid,"index",ps.Index,"err",err)
 			    res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
 			    ch <- res
@@ -583,7 +583,7 @@ func (req *ReqSmpcSign) DoReq(raw string,workid int,sender string,ch chan interf
 			return false
 		}
 
-		if !SynchronizePreSignData(w.sid,w.id,true) {
+		if syncpresign && !SynchronizePreSignData(w.sid,w.id,true) {
 		    err = DeletePreSignData(ps.Pub,ps.InputCode,ps.Gid,pre.Key)
 		    if err == nil {
 			common.Debug("================================PreSign at RecvMsg.Run, delete pre-sign data from local db success=====================","pick key",pre.Key,"pubkey",ps.Pub,"gid",ps.Gid,"index",ps.Index)
