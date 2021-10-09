@@ -394,6 +394,25 @@ func Call(msg interface{}, enode string) {
 		
 		return
 	    }
+
+	    if msgmap["Type"] == "SyncPreSign" {
+		sps := &SyncPreSign{}
+		if err = sps.UnmarshalJSON([]byte(msgmap["SyncPreSign"]));err == nil {
+		    w, err := FindWorker(sps.MsgPrex)
+		    if err == nil {
+			if w.msg_syncpresign.Len() < w.ThresHold {
+			    if !Find(w.msg_syncpresign,s) {
+				w.msg_syncpresign.PushBack(s)
+				if w.msg_syncpresign.Len() == w.ThresHold {
+					w.bsyncpresign <- true
+				}
+			    }
+			}
+		    }
+		}
+
+		return
+	    }
 	}
 
 	SetUpMsgList(s,enode)

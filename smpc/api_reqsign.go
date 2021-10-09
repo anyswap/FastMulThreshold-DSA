@@ -205,6 +205,106 @@ func (req *ReqSmpcSign) CheckReply(ac *AcceptReqAddrData,l *list.List,key string
 
 //--------------------------------------------------------------------------------------------------------------------
 
+type SyncPreSign struct {
+    MsgPrex string
+    EnodeId string
+    Msg string //"success" or "fail"
+}
+
+func (sps *SyncPreSign) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		MsgPrex string `json:"MsgPrex"`
+		EnodeId string `json:"EnodeId"`
+		Msg string `json:"Msg"`
+	}{
+		MsgPrex: sps.MsgPrex,
+		EnodeId: sps.EnodeId,
+		Msg: sps.Msg,
+	})
+}
+
+func (sps *SyncPreSign) UnmarshalJSON(raw []byte) error {
+	var pre struct {
+		MsgPrex string `json:"MsgPrex"`
+		EnodeId string `json:"EnodeId"`
+		Msg string `json:"Msg"`
+	}
+	if err := json.Unmarshal(raw, &pre); err != nil {
+		return err
+	}
+
+	sps.MsgPrex = pre.MsgPrex
+	sps.EnodeId = pre.EnodeId
+	sps.Msg = pre.Msg
+	return nil
+}
+
+func SynchronizePreSignData(msgprex string,wid int,success bool) bool {
+    w := workers[wid]
+    if w == nil {
+	return false
+    }
+
+    msg := "success"
+    if !success {
+	msg = "fail"
+    }
+
+    sps := &SyncPreSign{MsgPrex:msgprex,EnodeId:cur_enode,Msg:msg}
+    m := make(map[string]string)
+    spsjson,err := sps.MarshalJSON()
+    if err == nil {
+	m["SyncPreSign"] = string(spsjson) 
+    }
+    m["Type"] = "SyncPreSign"
+    val,err := json.Marshal(m)
+    if err != nil {
+	return false
+    }
+    SendMsgToSmpcGroup(string(val),w.groupid)
+
+    if w.msg_syncpresign.Len() < w.ThresHold {
+	if !Find(w.msg_syncpresign,string(val)) {
+	    w.msg_syncpresign.PushBack(string(val))
+	    if w.msg_syncpresign.Len() == w.ThresHold {
+		    w.bsyncpresign <- true
+	    }
+	}
+    }
+
+    _, _, err = GetChannelValue(ch_t, w.bsyncpresign)
+    if err != nil {
+	return false
+    }
+    
+    iter := w.msg_syncpresign.Front()
+    for iter != nil {
+	val := iter.Value.(string)
+	if val == "" {
+	    return false
+	}
+
+	msgmap := make(map[string]string)
+	err = json.Unmarshal([]byte(val), &msgmap)
+	if err != nil {
+	    return false
+	}
+
+	sps := &SyncPreSign{}
+	if err = sps.UnmarshalJSON([]byte(msgmap["SyncPreSign"]));err != nil {
+	    return false
+	}
+
+	if strings.EqualFold(sps.Msg,"fail") {
+	    return false
+	}
+
+	iter = iter.Next()
+    }
+
+    return true
+}
+
 func (req *ReqSmpcSign) DoReq(raw string,workid int,sender string,ch chan interface{}) bool {
     if raw == "" || workid < 0 || sender == "" {
 	res := RpcSmpcRes{Ret: "", Tip: "do req fail.", Err: fmt.Errorf("do req fail")}
@@ -427,6 +527,12 @@ func (req *ReqSmpcSign) DoReq(raw string,workid int,sender string,ch chan interf
 		//pre := PreSign_ec3(w.sid,save,sku1,"ECDSA",ch1,workid)
 		pre := PreSign_ec3(w.sid,save,childSKU1,"EC256K1",ch1,workid)
 		if pre == nil {
+			if !SynchronizePreSignData(w.sid,w.id,false) {
+ 			    res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+ 			    ch <- res
+ 			    return false
+			}
+
 			res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
 			ch <- res
 			return false
@@ -439,11 +545,33 @@ func (req *ReqSmpcSign) DoReq(raw string,workid int,sender string,ch chan interf
 
 		err = PutPreSignData(ps.Pub,ps.InputCode,ps.Gid,ps.Index,pre)
 		if err != nil {
+		    if !SynchronizePreSignData(w.sid,w.id,false) {
+			    common.Info("================================PreSign at RecvMsg.Run, put pre-sign data to local db fail=====================","pick key",pre.Key,"pubkey",ps.Pub,"gid",ps.Gid,"index",ps.Index,"err",err)
+			    res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+			    ch <- res
+			    return false
+			}
+
+			common.Info("================================PreSign at RecvMsg.Run, put pre-sign data to local db fail=====================","pick key",pre.Key,"pubkey",ps.Pub,"gid",ps.Gid,"index",ps.Index,"err",err)
+			res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+			ch <- res
+			return false
+		}
+
+		if !SynchronizePreSignData(w.sid,w.id,true) {
+		    err = DeletePreSignData(ps.Pub,ps.InputCode,ps.Gid,pre.Key)
+		    if err == nil {
+			common.Debug("================================PreSign at RecvMsg.Run, delete pre-sign data from local db success=====================","pick key",pre.Key,"pubkey",ps.Pub,"gid",ps.Gid,"index",ps.Index)
+		    } else {
+			//.........
+			common.Info("================================PreSign at RecvMsg.Run, delete pre-sign data from local db fail=====================","pick key",pre.Key,"pubkey",ps.Pub,"gid",ps.Gid,"index",ps.Index,"err",err)
+		    }
+			
 		    res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
 		    ch <- res
 		    return false
 		}
-
+		
 		res := RpcSmpcRes{Ret: "success", Tip: "", Err: nil}
 		ch <- res
 		return true
