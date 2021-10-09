@@ -192,6 +192,24 @@ type ReShareCurNodeInfo struct {
 	TimeStamp string
 }
 
+type ReShareCurNodeInfoSort struct {
+	Info []*ReShareCurNodeInfo
+}
+
+func (r *ReShareCurNodeInfoSort) Len() int {
+	return len(r.Info)
+}
+
+func (r *ReShareCurNodeInfoSort) Less(i, j int) bool {
+	itime,_ := new(big.Int).SetString(r.Info[i].TimeStamp,10)
+	jtime,_ := new(big.Int).SetString(r.Info[j].TimeStamp,10)
+	return itime.Cmp(jtime) >= 0
+}
+
+func (r *ReShareCurNodeInfoSort) Swap(i, j int) {
+    r.Info[i],r.Info[j] = r.Info[j],r.Info[i]
+}
+
 func GetCurNodeReShareInfo() ([]*ReShareCurNodeInfo, string, error) {
     var ret []*ReShareCurNodeInfo
     data := make(chan *ReShareCurNodeInfo,1000)
@@ -237,7 +255,10 @@ func GetCurNodeReShareInfo() ([]*ReShareCurNodeInfo, string, error) {
 	ret = append(ret,info)
     }
 
-    return ret, "", nil
+    reshareinfosort := ReShareCurNodeInfoSort{Info:ret}
+    sort.Sort(&reshareinfosort)
+
+    return reshareinfosort.Info, "", nil
 }
 
 //-----------------------------------------------------------------------------------------
