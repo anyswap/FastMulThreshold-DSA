@@ -543,7 +543,7 @@ func (req *ReqSmpcSign) DoReq(raw string,workid int,sender string,ch chan interf
 		pre.Used = false
 		pre.Index = ps.Index
 
-		err = PutPreSignData(ps.Pub,ps.InputCode,ps.Gid,ps.Index,pre)
+		err = PutPreSignData(ps.Pub,ps.InputCode,ps.Gid,ps.Index,pre,true)
 		if err != nil {
 		    if !SynchronizePreSignData(w.sid,w.id,false) {
 			    common.Info("================================PreSign at RecvMsg.Run, put pre-sign data to local db fail=====================","pick key",pre.Key,"pubkey",ps.Pub,"gid",ps.Gid,"index",ps.Index,"err",err)
@@ -589,7 +589,7 @@ func (req *ReqSmpcSign) DoReq(raw string,workid int,sender string,ch chan interf
 			for _,vv := range signbrocast.PickHash {
 			    pre := GetPreSignData(sig.PubKey,sig.InputCode,sig.GroupId,vv.PickKey)
 			    if pre == nil {
-				res := RpcSmpcRes{Ret: "", Tip: "dcrm back-end internal error:get pre-sign data fail", Err: fmt.Errorf("get pre-sign data fail.")}
+				res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get pre-sign data fail", Err: fmt.Errorf("get pre-sign data fail.")}
 				ch <- res
 				return false
 			    }

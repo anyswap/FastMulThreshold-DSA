@@ -413,75 +413,89 @@ func GetPreSignKey(pubkey string,inputcode string,gid string,index int) (string,
     return key,nil
 }
 
+//[start,end]
+//mid = (end + 1 - start)/2
+//left = [start,start - 1 + mid]
+//right = [start + mid,end]
+func BinarySearchVacancy(pubkey string,inputcode string,gid string,start int,end int) int {
+    if predb == nil || pubkey == "" || gid == "" {
+	return -1
+    }
+
+    if start < 0 || end < 0 || start > end {
+	return -1
+    }
+
+    if start == end {
+	key,err := GetPreSignKey(pubkey,inputcode,gid,start)
+	if err != nil {
+	    return -1
+	}
+	_,err = predb.Get([]byte(key))
+	if IsNotFoundErr(err) {
+	    return start
+	}
+
+	return -1
+    }
+
+    mid := (end + 1 - start)/2
+    left := BinarySearchVacancy(pubkey,inputcode,gid,start,start + mid - 1)
+    if left >= 0 {
+	return left
+    }
+    right := BinarySearchVacancy(pubkey,inputcode,gid,start + mid,end)
+    return right
+}
+
 func NeedPreSign(pubkey string,inputcode string,gid string) (int,bool) {
 
-    if predb == nil || pubkey == "" || gid == "" {
+    if predb == nil || pubkey == "" || gid == "" || PrePubDataCount < 1 {
 	return -1,false
     }
 
-    idx := make(chan int, 1)
-
-    for i:=0;i<PrePubDataCount;i++ {
-	go func(index int) {
-
-	    key,err := GetPreSignKey(pubkey,inputcode,gid,index)
-	    if err != nil {
-		return
-	    }
-
-	    _,err = predb.Get([]byte(key))
-	    if IsNotFoundErr(err) {
-		if len(idx) == 0 {
-		    idx <- index
-		}
-	    }
-	}(i)
+    index := BinarySearchVacancy(pubkey,inputcode,gid,0,PrePubDataCount - 1)
+    if index < 0 {
+	return index,false
     }
 
-    WaitTime := 60 * time.Second
-    getIndexTimeOut := time.NewTicker(WaitTime)
-    
-    select {
-	case ret := <-idx:
-	    return ret,true
-	case <-getIndexTimeOut.C:
-	    //common.Debug("=====================NeedPreSign,get index timeout.==========================","pubkey",pubkey,"gid",gid)
-	    return -1,false
-    }
-
-    return -1,false
+    return index,true
 }
 
 func GetTotalCount(pubkey string,inputcode string,gid string) int {
-    if predb == nil || pubkey == "" || gid == "" {
+    if predb == nil || pubkey == "" || gid == "" || PrePubDataCount < 1 {
 	return 0
     }
 
-    count := 0
+    index := BinarySearchVacancy(pubkey,inputcode,gid,0,PrePubDataCount - 1)
+    if index < 0 {
+	count := 0
+	 var wg sync.WaitGroup
+	for i:=0;i<PrePubDataCount;i++ {
+	    wg.Add(1)
+	    go func(index int) {
+		defer wg.Done()
 
-     var wg sync.WaitGroup
-    for i:=0;i<PrePubDataCount;i++ {
-	wg.Add(1)
-	go func(index int) {
-	    defer wg.Done()
+		key,err := GetPreSignKey(pubkey,inputcode,gid,index)
+		if err != nil {
+		    return
+		}
 
-	    key,err := GetPreSignKey(pubkey,inputcode,gid,index)
-	    if err != nil {
-		return
-	    }
-
-	    exsit, err := predb.Has([]byte(key))
-	    if exsit && err == nil {
-		count++
-	    }
-	}(i)
+		exsit, err := predb.Has([]byte(key))
+		if exsit && err == nil {
+		    count++
+		}
+	    }(i)
+	}
+	wg.Wait()
+	
+	return count
     }
-    wg.Wait()
 
-    return count
+    return index
 }
 
-func PutPreSignData(pubkey string,inputcode string,gid string,index int,val *PreSignData) error {
+func PutPreSignData(pubkey string,inputcode string,gid string,index int,val *PreSignData,force bool) error {
     if predb == nil || val == nil || index < 0 {
 	return fmt.Errorf("put pre-sign data fail,param error.") 
     }
@@ -501,159 +515,167 @@ func PutPreSignData(pubkey string,inputcode string,gid string,index int,val *Pre
 
 	err = predb.Put([]byte(key),value)
 	if err != nil {
-	    common.Error("====================PutPreSignData,put pre-sign data to db fail ======================","pubkey",pubkey,"gid",gid,"index",index,"val",val,"err",err)
+	    common.Error("====================PutPreSignData,put pre-sign data to db fail ======================","pubkey",pubkey,"gid",gid,"index",index,"datakey",val.Key,"err",err)
 	}
 
+	//common.Debug("====================PutPreSignData,put pre-sign data to db success ======================","pubkey",pubkey,"gid",gid,"index",index,"datakey",val.Key)
  	return err
+    }
+    
+    if force {
+	value,err := val.MarshalJSON()
+	if err != nil {
+	    common.Error("====================PutPreSignData,force update,marshal pre-sign data error ======================","pubkey",pubkey,"gid",gid,"index",index,"val",val,"err",err)
+	    return nil //force update fail,but still return nil
+ 	}
+
+	err = predb.Put([]byte(key),value)
+	if err != nil {
+	    common.Error("====================PutPreSignData,force update,put pre-sign data to db fail ======================","pubkey",pubkey,"gid",gid,"index",index,"datakey",val.Key,"err",err)
+	    return nil //force update fail,but still return nil
+	}
+
+	//common.Debug("====================PutPreSignData,force update,put pre-sign data to db success ======================","pubkey",pubkey,"gid",gid,"index",index,"datakey",val.Key)
+	return nil
     }
 
     return fmt.Errorf(" The pre-sign data of the key has been put to db before.")
 }
 
+//[start,end]
+//mid = (end + 1 - start)/2
+//left = [start,start - 1 + mid]
+//right = [start + mid,end]
+func BinarySearchPreSignData(pubkey string,inputcode string,gid string,datakey string,start int,end int) (int,*PreSignData) {
+    if predb == nil || pubkey == "" || gid == "" {
+	return -1,nil
+    }
+
+    if start < 0 || end < 0 || start > end {
+	return -1,nil
+    }
+
+    if start == end {
+	key,err := GetPreSignKey(pubkey,inputcode,gid,start)
+	if err != nil {
+	    return -1,nil
+	}
+	da,err := predb.Get([]byte(key))
+	if da != nil && err == nil {
+	    psd := &PreSignData{}
+	    if err = psd.UnmarshalJSON(da);err == nil {
+		if strings.EqualFold(psd.Key,datakey) {
+		    return start,psd
+		}
+	    }
+	}
+
+	return -1,nil
+    }
+
+    mid := (end + 1 - start)/2
+    left,data := BinarySearchPreSignData(pubkey,inputcode,gid,datakey,start,start + mid - 1)
+    if left >= 0 {
+	return left,data
+    }
+    right,data := BinarySearchPreSignData(pubkey,inputcode,gid,datakey,start + mid,end)
+    return right,data
+}
+
 func GetPreSignData(pubkey string,inputcode string,gid string,datakey string) *PreSignData {
-    if predb == nil || pubkey == "" || gid == "" || datakey == "" {
+    if predb == nil || pubkey == "" || gid == "" || datakey == "" || PrePubDataCount < 1 {
 	return nil
     }
 
-    data := make(chan *PreSignData, 1)
-
-    for i:=0;i<PrePubDataCount;i++ {
-	go func(index int) {
-
-	    key,err := GetPreSignKey(pubkey,inputcode,gid,index)
-	    if err != nil {
- 		return
-	    }
-
-	    da,err := predb.Get([]byte(key))
-	    if da != nil && err == nil {
-		psd := &PreSignData{}
-		if err = psd.UnmarshalJSON(da);err == nil {
-		    if strings.EqualFold(psd.Key,datakey) {
-			data <- psd
-			return
-		    }
-		}
-	    }
-	}(i)
-    }
-
-    WaitTime := 60 * time.Second
-    checkKeyTimeOut := time.NewTicker(WaitTime)
-    
-    select {
-	case ret := <-data:
-	    return ret
-	case <-checkKeyTimeOut.C:
-	    //common.Debug("=====================GetPreSignData,get pre-sign data timeout.==========================","pubkey",pubkey,"gid",gid)
-	    return nil
-    }
-
-    return nil
+    _,data := BinarySearchPreSignData(pubkey,inputcode,gid,datakey,0,PrePubDataCount - 1)
+    return data
 }
 
 func DeletePreSignData(pubkey string,inputcode string,gid string,datakey string) error {
-    if predb == nil || pubkey == "" || gid == "" || datakey == "" {
+    if predb == nil || pubkey == "" || gid == "" || datakey == "" || PrePubDataCount < 1 {
 	common.Error("=======================DeletePreSignData,delete pre-sign data from db fail========================","pubkey",pubkey,"gid",gid,"datakey",datakey)
 	return fmt.Errorf("delete pre-sign data from db error.")
     }
 
-    data := make(chan string, 1)
-
-    for i:=0;i<PrePubDataCount;i++ {
-	go func(index int) {
-
-	    key,err := GetPreSignKey(pubkey,inputcode,gid,index)
-	    if err != nil {
-		return
-	    }
-
-	    da, err := predb.Get([]byte(key))
-	    if da != nil && err == nil {
-		psd := &PreSignData{}
-		if err = psd.UnmarshalJSON(da);err == nil {
-		    if strings.EqualFold(psd.Key,datakey) {
-			data <- key
-			return
-		    }
-		}
-	    }
-	}(i)
+    index,data := BinarySearchPreSignData(pubkey,inputcode,gid,datakey,0,PrePubDataCount - 1)
+    if data == nil || index < 0 {
+	return fmt.Errorf("pre-sign data was not found.")
     }
     
-    WaitTime := 60 * time.Second
-    checkKeyTimeOut := time.NewTicker(WaitTime)
-    
-    select {
-	case ret := <-data:
-	    err := predb.Delete([]byte(ret))
-	    if err != nil {
-		common.Error("=====================DeletePreSignData,delete pre-sign data from db fail.==========================","pubkey",pubkey,"gid",gid,"err",err)
-	    }
-
-	    return err
-	case <-checkKeyTimeOut.C:
-	    //common.Debug("=====================DeletePreSignData,delete pre-sign data from db timeout.==========================","pubkey",pubkey,"gid",gid)
-	    return fmt.Errorf("delete pre-sign data from db timeout.")
+    key,err := GetPreSignKey(pubkey,inputcode,gid,index)
+    if err != nil {
+	return err 
     }
 
-    return fmt.Errorf("delete pre-sign data from db fail.")
+    err = predb.Delete([]byte(key))
+    if err != nil {
+	common.Error("======================DeletePreSignData,delete pre-sign data from db fail.==========================","pubkey",pubkey,"gid",gid,"index",index,"datakey",datakey,"err",err)
+    }
+
+    return err
+}
+
+//[start,end]
+//mid = (end + 1 - start)/2
+//left = [start,start - 1 + mid]
+//right = [start + mid,end]
+func BinarySearchPick(pubkey string,inputcode string,gid string,start int,end int) (int,*PreSignData) {
+    if predb == nil || pubkey == "" || gid == "" {
+	return -1,nil
+    }
+
+    if start < 0 || end < 0 || start > end {
+	return -1,nil
+    }
+
+    if start == end {
+	key,err := GetPreSignKey(pubkey,inputcode,gid,start)
+	if err != nil {
+	    return -1,nil
+	}
+	da, err := predb.Get([]byte(key))
+	if da != nil && err == nil {
+	    psd := &PreSignData{}
+	    if err = psd.UnmarshalJSON(da);err == nil {
+		return start,psd
+	    }
+	}
+
+	return -1,nil
+    }
+
+    mid := (end + 1 - start)/2
+    left,data := BinarySearchPick(pubkey,inputcode,gid,start,start + mid - 1)
+    if left >= 0 {
+	return left,data
+    }
+    right,data := BinarySearchPick(pubkey,inputcode,gid,start + mid,end)
+    return right,data
 }
 
 func PickPreSignData(pubkey string,inputcode string,gid string) *PreSignData {
-    if predb == nil || pubkey == "" || gid == "" {
+    if predb == nil || pubkey == "" || gid == "" || PrePubDataCount < 1 {
 	common.Error("=======================PickPreSignData,param error.========================","pubkey",pubkey,"gid",gid)
 	return nil
     }
 
-    data := make(chan string, 1)
-
-    for i:=0;i<PrePubDataCount;i++ {
-	go func(index int) {
-
-	    key,err := GetPreSignKey(pubkey,inputcode,gid,index)
-	    if err != nil {
-		return
-	    }
-
-	    da, err := predb.Get([]byte(key))
-	    if da != nil && err == nil {
-		psd := &PreSignData{}
-		if err = psd.UnmarshalJSON(da);err == nil {
-		    if len(data) == 0 {
-			data <- key
-			return
-		    }
-		}
-	    }
-	}(i)
+    index,data := BinarySearchPick(pubkey,inputcode,gid,0,PrePubDataCount - 1)
+    if index < 0 || data == nil {
+	return nil
     }
 
-    WaitTime := 60 * time.Second
-    pickTimeOut := time.NewTicker(WaitTime)
-    
-    select {
-	case ret := <-data:
-	    da, err := predb.Get([]byte(ret))
-	    if da != nil && err == nil {
-		psd := &PreSignData{}
-		if err = psd.UnmarshalJSON(da);err == nil {
-		    err := predb.Delete([]byte(ret))
-		    if err != nil {
-			common.Error("=====================PickPreSignData,delete pre-sign data from db fail.==========================","pubkey",pubkey,"gid",gid,"err",err)
-			return nil
-		    }
-
-		    return psd
-		}
-	    }
-
-	case <-pickTimeOut.C:
-	    //common.Debug("=====================PickPreSignData,pick pre-sign data from db timeout.==========================","pubkey",pubkey,"gid",gid)
-	    return nil
+    key,err := GetPreSignKey(pubkey,inputcode,gid,index)
+    if err != nil {
+	return nil 
     }
     
-    return nil
+    err = predb.Delete([]byte(key))
+    if err != nil {
+	common.Error("=====================PickPreSignData,delete pre-sign data from db fail.==========================","pubkey",pubkey,"gid",gid,"err",err)
+	return nil
+    }
+
+    return data
 }
 
 //-----------------------------------------------------------------------
@@ -697,7 +719,7 @@ func ExcutePreSignData(pre *TxDataPreSignData) {
 		return
 	    }
 
-	    common.Info("===================ExcutePreSignData, before starting pre-generation of sign data ===============","current total number of the data ",GetTotalCount(pre.PubKey,"",gg),"the number of remaining pre-sign data",(PrePubDataCount-GetTotalCount(pre.PubKey,"",gg)),"pubkey",pre.PubKey,"sub-groupid",gg)
+	    common.Info("================================ExcutePreSignData,before pre-generation of sign data ==================================","current total number of the data ",GetTotalCount(pre.PubKey,"",gg),"pubkey",pre.PubKey,"sub-groupid",gg)
 	    for {
 		    b := GetPreSigal(pub)
 		    if b {
@@ -723,12 +745,34 @@ func ExcutePreSignData(pre *TxDataPreSignData) {
 
 			    rch := make(chan interface{}, 1)
 			    SetUpMsgList3(string(val),cur_enode,rch)
-			    _, _,cherr := GetChannelValue(ch_t+10,rch)
-			    if cherr != nil {
-				common.Error("=====================ExcutePreSignData, failed to pre-generate sign data.========================","pubkey",pre.PubKey,"err",cherr,"Index",index)
+
+			    reply := false
+			    timeout := make(chan bool, 1)
+			    go func() {
+				syncWaitTime := 40 * time.Second
+				syncWaitTimeOut := time.NewTicker(syncWaitTime)
+				
+				for {
+				    select {
+					case <-rch:
+					    reply = true
+					    timeout <-false
+					    return
+					case <-syncWaitTimeOut.C:
+					    reply = false
+					    timeout <-true
+					    return
+				    }
+				}
+			    }()
+			    <-timeout
+
+			    if !reply {
+				common.Error("=====================ExcutePreSignData, failed to pre-generate sign data.========================","pubkey",pre.PubKey,"sub-groupid",gg,"Index",index)
+				continue
 			    }
 			    
-			    common.Info("===================ExcutePreSignData,after pre-generation of sign data===============","current total number of the data ",GetTotalCount(pre.PubKey,"",gg),"the number of remaining pre-sign data",(PrePubDataCount-GetTotalCount(pre.PubKey,"",gg)),"pubkey",pre.PubKey,"sub-groupid",gg,"Index",index)
+			    common.Info("================================ExcutePreSignData,after pre-generation of sign data==================================","current total number of the data ",GetTotalCount(pre.PubKey,"",gg),"pubkey",pre.PubKey,"sub-groupid",gg,"Index",index)
 			}
 		    }
 
@@ -862,7 +906,6 @@ func NeedPreSignForBip32(pubkey string,inputcode string,gid string) (int,bool) {
 	case ret := <-idx:
 	    return ret,true
 	case <-getIndexTimeOut.C:
-	    //common.Debug("=====================NeedPreSignForBip32,get index timeout.==========================","pubkey",pubkey,"inputcode",inputcode,"gid",gid)
 	    return -1,false
     }
 
