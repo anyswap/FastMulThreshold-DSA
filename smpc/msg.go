@@ -36,6 +36,7 @@ import (
 	"github.com/fsn-dev/cryptoCoins/tools/rlp"
 	"encoding/json"
 	p2psmpc "github.com/anyswap/Anyswap-MPCNode/p2p/layer2"
+	"runtime/debug"
 )
 
 var (
@@ -657,6 +658,13 @@ func GetRawType(raw string) (string,string) {
 //---------------------------------------------------------------------------------
 
 func DisAcceptMsg(raw string,workid int) {
+    defer func() {
+        if r := recover(); r != nil {
+	    fmt.Errorf("DisAcceptMsg Runtime error: %v\n%v", r, string(debug.Stack()))
+	    return
+        }
+    }()
+    
     if raw == "" || workid < 0 || workid >= len(workers) {
 	return
     }

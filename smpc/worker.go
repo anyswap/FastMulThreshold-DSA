@@ -22,6 +22,7 @@ import (
 	"strings"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	smpclib "github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"runtime/debug"
 )
 
 var (
@@ -1054,6 +1055,13 @@ func (w *RPCReqWorker) Stop() {
 //----------------------------------------------------------------------------
 
 func FindWorker(sid string) (*RPCReqWorker, error) {
+	defer func() {
+	    if r := recover(); r != nil {
+		fmt.Errorf("FindWorker Runtime error: %v\n%v", r, string(debug.Stack()))
+		return
+	    }
+	}()
+	
 	if sid == "" {
 		return nil, fmt.Errorf("input worker id error.")
 	}
