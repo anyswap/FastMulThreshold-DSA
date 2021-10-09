@@ -39,6 +39,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	edkeygen "github.com/anyswap/Anyswap-MPCNode/smpc-lib/eddsa/keygen"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
+	"runtime/debug"
 )
 
 var (
@@ -529,6 +530,13 @@ func (s *SignCurNodeInfoSort) Swap(i, j int) {
 }
 
 func GetCurNodeSignInfo(geter_acc string) ([]*SignCurNodeInfo, string, error) {
+	defer func() {
+	    if r := recover(); r != nil {
+		fmt.Errorf("GetCurNodeSignInfo Runtime error: %v\n%v", r, string(debug.Stack()))
+		return
+	    }
+	}()
+
 	var ret []*SignCurNodeInfo
 	data := make(chan *SignCurNodeInfo,1000)
 
@@ -543,7 +551,16 @@ func GetCurNodeSignInfo(geter_acc string) ([]*SignCurNodeInfo, string, error) {
 
 	    wg.Add(1)
 	    go func(key string,value interface{},ch chan *SignCurNodeInfo) {
-		defer wg.Done()
+		defer func() {
+		    if r := recover();r != nil {
+			fmt.Errorf("GetCurNodeSignInfo go Runtime error: %v\n%v", r, string(debug.Stack()))
+		    }
+		    wg.Done()
+		}()
+
+		if value == nil || key == "" {
+			return
+		}
 
 		vv,ok := value.(*AcceptSignData)
 		if vv == nil || !ok {
@@ -564,6 +581,11 @@ func GetCurNodeSignInfo(geter_acc string) ([]*SignCurNodeInfo, string, error) {
 		}
 		
 		los := &SignCurNodeInfo{Key: key, Account: vv.Account, PubKey:vv.PubKey, MsgHash:vv.MsgHash, MsgContext:vv.MsgContext, KeyType:vv.Keytype, GroupId: vv.GroupId, Nonce: vv.Nonce, ThresHold: vv.LimitNum, Mode: vv.Mode, TimeStamp: vv.TimeStamp}
+		if los == nil {
+			common.Error("=========================GetCurNodeSignInfo,current info is nil========================","key",key)
+			return
+		}
+
 		ch <-los
 		common.Debug("================GetCurNodeSignInfo success return=======================","key",key)
 	    }(string(key2),val,data)
@@ -580,7 +602,16 @@ func GetCurNodeSignInfo(geter_acc string) ([]*SignCurNodeInfo, string, error) {
 	signinfosort := SignCurNodeInfoSort{Info:ret}
 	sort.Sort(&signinfosort)
 
-	return signinfosort.Info, "", nil
+	var tmp []*SignCurNodeInfo
+	for i:=0;i<len(signinfosort.Info);i++ {
+		if signinfosort.Info[i] == nil {
+			continue
+		}
+
+		tmp = append(tmp,signinfosort.Info[i])
+	}
+
+	return tmp, "", nil
 }
 
 //----------------------------------------------------------------------------------------------------------
