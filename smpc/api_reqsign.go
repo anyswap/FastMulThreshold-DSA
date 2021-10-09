@@ -32,6 +32,7 @@ import (
 	"crypto/sha512"
 	"github.com/fsn-dev/cryptoCoins/coins/types"
 	"github.com/fsn-dev/cryptoCoins/tools/rlp"
+	"time"
 )
 
 type ReqSmpcSign struct {
@@ -272,37 +273,61 @@ func SynchronizePreSignData(msgprex string,wid int,success bool) bool {
 	}
     }
 
-    _, _, err = GetChannelValue(ch_t, w.bsyncpresign)
-    if err != nil {
-	return false
-    }
-    
-    iter := w.msg_syncpresign.Front()
-    for iter != nil {
-	val := iter.Value.(string)
-	if val == "" {
-	    return false
+    reply := false
+    timeout := make(chan bool, 1)
+    go func() {
+	syncWaitTime := 20 * time.Second
+	syncWaitTimeOut := time.NewTicker(syncWaitTime)
+	
+	for {
+	    select {
+	    case <-w.bsyncpresign:
+		iter := w.msg_syncpresign.Front()
+		for iter != nil {
+		    val := iter.Value.(string)
+		    if val == "" {
+			reply = false
+			timeout <- false
+			return
+		    }
+
+		    msgmap := make(map[string]string)
+		    err = json.Unmarshal([]byte(val), &msgmap)
+		    if err != nil {
+			reply = false
+			timeout <- false
+			return
+		    }
+
+		    sps := &SyncPreSign{}
+		    if err = sps.UnmarshalJSON([]byte(msgmap["SyncPreSign"]));err != nil {
+			reply = false
+			timeout <- false
+			return
+		    }
+
+		    if strings.EqualFold(sps.Msg,"fail") {
+			reply = false
+			timeout <- false
+			return
+		    }
+
+		    iter = iter.Next()
+		}
+ 
+		reply = true 
+		timeout <-false
+		return
+	    case <-syncWaitTimeOut.C:
+		reply = false
+		timeout <-true
+		return
+	    }
 	}
+    }()
 
-	msgmap := make(map[string]string)
-	err = json.Unmarshal([]byte(val), &msgmap)
-	if err != nil {
-	    return false
-	}
-
-	sps := &SyncPreSign{}
-	if err = sps.UnmarshalJSON([]byte(msgmap["SyncPreSign"]));err != nil {
-	    return false
-	}
-
-	if strings.EqualFold(sps.Msg,"fail") {
-	    return false
-	}
-
-	iter = iter.Next()
-    }
-
-    return true
+    <-timeout
+    return reply
 }
 
 func (req *ReqSmpcSign) DoReq(raw string,workid int,sender string,ch chan interface{}) bool {
