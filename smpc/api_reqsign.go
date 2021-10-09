@@ -552,6 +552,7 @@ func (req *ReqSmpcSign) DoReq(raw string,workid int,sender string,ch chan interf
 		//pre := PreSign_ec3(w.sid,save,sku1,"ECDSA",ch1,workid)
 		pre := PreSign_ec3(w.sid,save,childSKU1,"EC256K1",ch1,workid)
 		if pre == nil {
+			common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time ==========================","pubkey",ps.Pub,"gid",ps.Gid,"presign data key",w.sid,"err","return result is nil")
 			if syncpresign && !SynchronizePreSignData(w.sid,w.id,false) {
  			    res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
  			    ch <- res
@@ -570,6 +571,7 @@ func (req *ReqSmpcSign) DoReq(raw string,workid int,sender string,ch chan interf
 
 		err = PutPreSignData(ps.Pub,ps.InputCode,ps.Gid,ps.Index,pre,true)
 		if err != nil {
+		    common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time,put pre-sign data to local db fail. ==========================","pubkey",ps.Pub,"gid",ps.Gid,"presign data key",w.sid,"err",err)
 		    if syncpresign && !SynchronizePreSignData(w.sid,w.id,false) {
 			    common.Info("================================PreSign at RecvMsg.Run, put pre-sign data to local db fail=====================","pick key",pre.Key,"pubkey",ps.Pub,"gid",ps.Gid,"index",ps.Index,"err",err)
 			    res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
@@ -596,7 +598,8 @@ func (req *ReqSmpcSign) DoReq(raw string,workid int,sender string,ch chan interf
 		    ch <- res
 		    return false
 		}
-		
+	
+		common.Info("============================PreSign at RecvMsg.Run, pre-generated sign data succeeded.==========================","pubkey",ps.Pub,"gid",ps.Gid,"presign data key",w.sid)
 		res := RpcSmpcRes{Ret: "success", Tip: "", Err: nil}
 		ch <- res
 		return true
