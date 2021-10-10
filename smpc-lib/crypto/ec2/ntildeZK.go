@@ -9,26 +9,26 @@
 // A proof of knowledge of the discrete log of an element h2 = hx1 with respect to h1.
 // In our protocol, we will run two of these in parallel to prove that two elements h1,h2 generate the same group modN.
 
-package ec2 
+package ec2
 
 import (
 	"fmt"
 	"math/big"
 
-	"strings"
-	"errors"
 	"crypto"
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/json"
-	"crypto/rand"
+	"errors"
+	"strings"
 	//"github.com/binance-chain/tss-lib/common"
 	//cmts "github.com/binance-chain/tss-lib/crypto/commitments"
 )
 
 const (
-	Iterations = 128
+	Iterations              = 128
 	mustGetRandomIntMaxBits = 5000
-	hashInputDelimiter = byte('$')
+	hashInputDelimiter      = byte('$')
 )
 
 type (
@@ -73,7 +73,7 @@ func (p *NtildeProof) Verify(h1, h2, N *big.Int) bool {
 	cIBI := new(big.Int)
 	for i := 0; i < Iterations; i++ {
 		if p.Alpha[i] == nil || p.T[i] == nil {
-		    //fmt.Printf("==========================NtildeProof.Verify,pai = %v,pti = %v========================\n",p.Alpha[i],p.T[i])
+			//fmt.Printf("==========================NtildeProof.Verify,pai = %v,pti = %v========================\n",p.Alpha[i],p.T[i])
 			return false
 		}
 		cI := c.Bit(i)
@@ -82,7 +82,7 @@ func (p *NtildeProof) Verify(h1, h2, N *big.Int) bool {
 		h2ExpCi := modN.Exp(h2, cIBI)
 		alphaIMulH2ExpCi := modN.Mul(p.Alpha[i], h2ExpCi)
 		if h1ExpTi.Cmp(alphaIMulH2ExpCi) != 0 {
-		    //fmt.Printf("==========================NtildeProof.Verify,i = %v,alphaIMulH2ExpCi = %v,h1ExpTi = %v========================\n",i,alphaIMulH2ExpCi,h1ExpTi)
+			//fmt.Printf("==========================NtildeProof.Verify,i = %v,alphaIMulH2ExpCi = %v,h1ExpTi = %v========================\n",i,alphaIMulH2ExpCi,h1ExpTi)
 			return false
 		}
 	}
@@ -92,63 +92,63 @@ func (p *NtildeProof) Verify(h1, h2, N *big.Int) bool {
 //-------------------------------------------------------------------------------
 
 func (p *NtildeProof) MarshalJSON() ([]byte, error) {
-    l := len(p.Alpha)
-    var alpha string
-    for k,v := range p.Alpha {
-	alpha += fmt.Sprintf("%v",v)
-	if k != (l-1) {
-	    alpha += "|"
+	l := len(p.Alpha)
+	var alpha string
+	for k, v := range p.Alpha {
+		alpha += fmt.Sprintf("%v", v)
+		if k != (l - 1) {
+			alpha += "|"
+		}
 	}
-    }
 
-    var t string
-    for k,v := range p.T {
-	t += fmt.Sprintf("%v",v)
-	if k != (l-1) {
-	    t += "|"
+	var t string
+	for k, v := range p.T {
+		t += fmt.Sprintf("%v", v)
+		if k != (l - 1) {
+			t += "|"
+		}
 	}
-    }
 
-    return json.Marshal(struct {
+	return json.Marshal(struct {
 		Alpha string `json:"Alpha"`
-		T string `json:"T"`
+		T     string `json:"T"`
 	}{
 		Alpha: alpha,
-		T: t,
+		T:     t,
 	})
 }
 
 func (p *NtildeProof) UnmarshalJSON(raw []byte) error {
 	var pf struct {
 		Alpha string `json:"Alpha"`
-		T string `json:"T"`
+		T     string `json:"T"`
 	}
 	if err := json.Unmarshal(raw, &pf); err != nil {
 		return err
 	}
 
-	al := strings.Split(pf.Alpha,"|")
-	fmt.Printf("====================NtildeProof.UnmarshalJSON, pf.Alpha = %v, pf.T = %v, len al = %v ======================\n",pf.Alpha,pf.T,len(al))
+	al := strings.Split(pf.Alpha, "|")
+	fmt.Printf("====================NtildeProof.UnmarshalJSON, pf.Alpha = %v, pf.T = %v, len al = %v ======================\n", pf.Alpha, pf.T, len(al))
 
 	if len(al) != Iterations {
-	    return errors.New("unmarshal ntilde zk proof alpha json data fail.")
+		return errors.New("unmarshal ntilde zk proof alpha json data fail.")
 	}
-	
+
 	var alpha [Iterations]*big.Int
-	for k,v := range al {
-	    alpha[k],_ = new(big.Int).SetString(v,10)
-	    fmt.Printf("====================NtildeProof.UnmarshalJSON, alpha[k] = %v, k = %v, v = %v ======================\n",alpha[k],k,v)
+	for k, v := range al {
+		alpha[k], _ = new(big.Int).SetString(v, 10)
+		fmt.Printf("====================NtildeProof.UnmarshalJSON, alpha[k] = %v, k = %v, v = %v ======================\n", alpha[k], k, v)
 	}
-	
-	tt := strings.Split(pf.T,"|")
+
+	tt := strings.Split(pf.T, "|")
 	if len(tt) != Iterations {
-	    return errors.New("unmarshal ntilde zk proof t json data fail.")
+		return errors.New("unmarshal ntilde zk proof t json data fail.")
 	}
-	
+
 	var t [Iterations]*big.Int
-	for k,v := range tt {
-	    t[k],_ = new(big.Int).SetString(v,10)
-	    fmt.Printf("====================NtildeProof.UnmarshalJSON, t[k] = %v, k = %v, v = %v ======================\n",t[k],k,v)
+	for k, v := range tt {
+		t[k], _ = new(big.Int).SetString(v, 10)
+		fmt.Printf("====================NtildeProof.UnmarshalJSON, t[k] = %v, k = %v, v = %v ======================\n", t[k], k, v)
 	}
 
 	p.Alpha = alpha
@@ -325,7 +325,7 @@ func SHA512_256(in ...[]byte) []byte {
 	// n < len(data) or an error will never happen.
 	// see: https://golang.org/pkg/hash/#Hash and https://github.com/golang/go/wiki/Hashing#the-hashhash-interface
 	if _, err := state.Write(data); err != nil {
-		fmt.Printf("SHA512_256 Write() failed: %v\n",err)
+		fmt.Printf("SHA512_256 Write() failed: %v\n", err)
 		return nil
 	}
 	return state.Sum(nil)
@@ -346,13 +346,13 @@ func SHA512_256i(in ...*big.Int) *big.Int {
 	binary.LittleEndian.PutUint64(inLenBz, uint64(inLen))
 	ptrs := make([][]byte, inLen)
 	for i, n := range in {
-	    if n == nil {
-		fmt.Printf("===================SHA512_256i, n is nil, i = %v, inLen = %v, ==================\n",i,inLen)
-		continue
-	    }
+		if n == nil {
+			fmt.Printf("===================SHA512_256i, n is nil, i = %v, inLen = %v, ==================\n", i, inLen)
+			continue
+		}
 
-	    ptrs[i] = n.Bytes()
-	    bzSize += len(ptrs[i])
+		ptrs[i] = n.Bytes()
+		bzSize += len(ptrs[i])
 	}
 	data = make([]byte, 0, len(inLenBz)+bzSize+inLen)
 	data = append(data, inLenBz...)
@@ -363,7 +363,7 @@ func SHA512_256i(in ...*big.Int) *big.Int {
 	// n < len(data) or an error will never happen.
 	// see: https://golang.org/pkg/hash/#Hash and https://github.com/golang/go/wiki/Hashing#the-hashhash-interface
 	if _, err := state.Write(data); err != nil {
-		fmt.Printf("SHA512_256i Write() failed: %v\n",err)
+		fmt.Printf("SHA512_256i Write() failed: %v\n", err)
 		return nil
 	}
 	return new(big.Int).SetBytes(state.Sum(nil))
@@ -380,10 +380,8 @@ func SHA512_256iOne(in *big.Int) *big.Int {
 	// see: https://golang.org/pkg/hash/#Hash and https://github.com/golang/go/wiki/Hashing#the-hashhash-interface
 	if _, err := state.Write(data); err != nil {
 		//Logger.Errorf("SHA512_256iOne Write() failed: %v", err)
-		fmt.Printf("SHA512_256iOne Write() failed: %v\n",err)
+		fmt.Printf("SHA512_256iOne Write() failed: %v\n", err)
 		return nil
 	}
 	return new(big.Int).SetBytes(state.Sum(nil))
 }
-
-

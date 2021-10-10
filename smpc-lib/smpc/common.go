@@ -1,16 +1,15 @@
-
-package smpc 
+package smpc
 
 import (
-    "math/big"
-    "encoding/hex"
-    //"encoding/gob"
-    //"encoding/json"
-    //"bytes"
-    "strings"
-    "fmt"
-    "crypto/rand"
-    "github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
+	"encoding/hex"
+	"math/big"
+	//"encoding/gob"
+	//"encoding/json"
+	//"bytes"
+	"crypto/rand"
+	"fmt"
+	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
+	"strings"
 )
 
 type SortableIDSSlice []*big.Int
@@ -138,5 +137,3 @@ func Verify2(r *big.Int, s *big.Int, v int32, message string, pkx *big.Int, pky 
 	fmt.Println(errstring)
 	return false
 }
-
-

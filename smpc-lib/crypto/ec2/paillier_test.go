@@ -17,24 +17,24 @@
 package ec2_test
 
 import (
-    	"testing"
-	"math/big"
-	"github.com/stretchr/testify/assert"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
+	"github.com/stretchr/testify/assert"
+	"math/big"
+	"testing"
 )
 
 func TestGenerateKeyPair(t *testing.T) {
-	publicKey,privateKey := ec2.CreatPair(testPaillierKeyLength)
+	publicKey, privateKey := ec2.CreatPair(testPaillierKeyLength)
 	assert.NotZero(t, publicKey)
 	assert.NotZero(t, privateKey)
 	t.Log(privateKey)
 }
 
 func TestEncrypt(t *testing.T) {
-	publicKey,privateKey := ec2.CreatPair(testPaillierKeyLength)
+	publicKey, privateKey := ec2.CreatPair(testPaillierKeyLength)
 	assert.NotZero(t, publicKey)
 	assert.NotZero(t, privateKey)
-	cipher, rndstar,err := publicKey.Encrypt(big.NewInt(1))
+	cipher, rndstar, err := publicKey.Encrypt(big.NewInt(1))
 	assert.NoError(t, err, "must not error")
 	assert.NotZero(t, cipher)
 	assert.NotZero(t, rndstar)
@@ -43,10 +43,10 @@ func TestEncrypt(t *testing.T) {
 
 func TestEncryptDecrypt(t *testing.T) {
 	m := big.NewInt(50)
-	publicKey,privateKey := ec2.CreatPair(testPaillierKeyLength)
+	publicKey, privateKey := ec2.CreatPair(testPaillierKeyLength)
 	assert.NotZero(t, publicKey)
 	assert.NotZero(t, privateKey)
-	cipher, _,err := publicKey.Encrypt(m)
+	cipher, _, err := publicKey.Encrypt(m)
 	if err != nil {
 		t.Error(err)
 	}
@@ -57,28 +57,28 @@ func TestEncryptDecrypt(t *testing.T) {
 }
 
 func TestHomoAdd(t *testing.T) {
-	publicKey,privateKey := ec2.CreatPair(testPaillierKeyLength)
+	publicKey, privateKey := ec2.CreatPair(testPaillierKeyLength)
 	assert.NotZero(t, publicKey)
 	assert.NotZero(t, privateKey)
 	five := big.NewInt(5)
 	seven := big.NewInt(7)
 
-	enc1,_, _ := publicKey.Encrypt(five)
-	enc2,_, _ := publicKey.Encrypt(seven)
-	homoadd := publicKey.HomoAdd(enc1,enc2)
+	enc1, _, _ := publicKey.Encrypt(five)
+	enc2, _, _ := publicKey.Encrypt(seven)
+	homoadd := publicKey.HomoAdd(enc1, enc2)
 	tmp, _ := privateKey.Decrypt(homoadd)
-	assert.Equal(t, new(big.Int).Add(five,seven), tmp)
+	assert.Equal(t, new(big.Int).Add(five, seven), tmp)
 }
 
 func TestHomoMul(t *testing.T) {
-	publicKey,privateKey := ec2.CreatPair(testPaillierKeyLength)
+	publicKey, privateKey := ec2.CreatPair(testPaillierKeyLength)
 	assert.NotZero(t, publicKey)
 	assert.NotZero(t, privateKey)
-	five,_, err := publicKey.Encrypt(big.NewInt(5))
+	five, _, err := publicKey.Encrypt(big.NewInt(5))
 	assert.NoError(t, err)
 	seven := big.NewInt(7)
 
-	cm := publicKey.HomoMul(five,seven)
+	cm := publicKey.HomoMul(five, seven)
 	multiple, err := privateKey.Decrypt(cm)
 	assert.NoError(t, err)
 
@@ -87,12 +87,10 @@ func TestHomoMul(t *testing.T) {
 }
 
 func TestProofVerify(t *testing.T) {
-	publicKey,privateKey := ec2.CreatPair(testPaillierKeyLength)
+	publicKey, privateKey := ec2.CreatPair(testPaillierKeyLength)
 	assert.NotZero(t, publicKey)
 	assert.NotZero(t, privateKey)
 	zkproof := privateKey.ZkFactProve()
 	res := publicKey.ZkFactVerify(zkproof)
 	assert.True(t, res, "zk fact proof verify result must be true")
 }
-
-

@@ -23,8 +23,8 @@ import (
 	"strings"
 	"sync"
 
-	mapset "github.com/deckarep/golang-set"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/hexutil"
+	mapset "github.com/deckarep/golang-set"
 )
 
 // API describes the set of methods offered over the RPC interface

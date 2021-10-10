@@ -35,10 +35,10 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/node"
 	"github.com/anyswap/Anyswap-MPCNode/p2p"
 	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
-	"github.com/fsn-dev/cryptoCoins/tools/rlp"
 	"github.com/anyswap/Anyswap-MPCNode/p2p/simulations"
 	"github.com/anyswap/Anyswap-MPCNode/p2p/simulations/adapters"
 	"github.com/anyswap/Anyswap-MPCNode/rpc"
+	"github.com/fsn-dev/cryptoCoins/tools/rlp"
 )
 
 // ProtocolTester is the tester environment used for unit testing protocol

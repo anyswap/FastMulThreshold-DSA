@@ -16,27 +16,27 @@ func (round *round2) Start() error {
 	round.started = true
 	round.resetOK()
 
-	ids,err := round.GetIds()
+	ids, err := round.GetIds()
 	if err != nil {
-	    return errors.New("ed,round.Start get ids fail.")
+		return errors.New("ed,round.Start get ids fail.")
 	}
 	round.Save.Ids = ids
 
-	cur_index,err := round.GetDNodeIDIndex(round.dnodeid)
+	cur_index, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
-	    return err
+		return err
 	}
-	round.Save.CurDNodeID = ids[cur_index] 
+	round.Save.CurDNodeID = ids[cur_index]
 
 	kg := &KGRound2Message{
-	    KGRoundMessage:new(KGRoundMessage),
-	    ZkPk:round.temp.zkPk,
+		KGRoundMessage: new(KGRoundMessage),
+		ZkPk:           round.temp.zkPk,
 	}
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(cur_index)
 	round.temp.kgRound2Messages[cur_index] = kg
-	round.out <-kg
-	
+	round.out <- kg
+
 	/*u1Shares,err := round.temp.u1Poly.Vss2(ids)
 	if err != nil {
 	    return err
@@ -58,7 +58,7 @@ func (round *round2) Start() error {
 		}
 		kg.SetFromID(round.dnodeid)
 		kg.SetFromIndex(cur_index)
-	
+
 		vv := ec2.GetSharesId(v)
 		if vv != nil && vv.Cmp(id) == 0 && k == cur_index {
 		    fmt.Printf("=========== round2, it is self. share struct id = %v, share = %v, k = %v ===========\n",v.Id,v.Share,k)
@@ -82,7 +82,7 @@ func (round *round2) Start() error {
 	kg.SetFromIndex(cur_index)
 	round.temp.kgRound2Messages1[cur_index] = kg
 	round.out <-kg*/
-	
+
 	return nil
 }
 
@@ -117,4 +117,3 @@ func (round *round2) NextRound() smpc.Round {
 	round.started = false
 	return &round3{round}
 }
-

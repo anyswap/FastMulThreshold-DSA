@@ -24,9 +24,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/anyswap/Anyswap-MPCNode/smpc"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	"github.com/anyswap/Anyswap-MPCNode/rpc"
+	"github.com/anyswap/Anyswap-MPCNode/smpc"
 )
 
 func listenSignal(exit chan int) {
@@ -45,7 +45,7 @@ type Service struct{}
 // raw: tx raw data
 //return pubkey and coins addr
 func (this *Service) ReqSmpcAddr(raw string) map[string]interface{} { //函数名首字母必须大写
-	common.Info("===============ReqSmpcAddr================","raw",raw)
+	common.Info("===============ReqSmpcAddr================", "raw", raw)
 
 	data := make(map[string]interface{})
 	if raw == "" {
@@ -59,7 +59,7 @@ func (this *Service) ReqSmpcAddr(raw string) map[string]interface{} { //函数�
 	}
 
 	ret, tip, err := smpc.Req_SmpcAddr(raw)
-	common.Info("=================ReqSmpcAddr,get result.==================","ret",ret,"tip",tip,"err",err,"raw",raw)
+	common.Info("=================ReqSmpcAddr,get result.==================", "ret", ret, "tip", tip, "err", err, "raw", raw)
 	if err != nil {
 		data["result"] = ""
 		return map[string]interface{}{
@@ -81,7 +81,7 @@ func (this *Service) ReqSmpcAddr(raw string) map[string]interface{} { //函数�
 
 func (this *Service) AcceptReqAddr(raw string) map[string]interface{} {
 	//fmt.Printf("%v ==========call rpc AcceptReqAddr from web,raw = %v==========\n", common.CurrentTime(), raw)
-	common.Info("========================AcceptReqAddr======================","raw",raw)
+	common.Info("========================AcceptReqAddr======================", "raw", raw)
 
 	data := make(map[string]interface{})
 	ret, tip, err := smpc.RpcAcceptReqAddr(raw)
@@ -143,10 +143,10 @@ func (this *Service) GetReqAddrNonce(account string) map[string]interface{} {
 }
 
 func (this *Service) GetCurNodeReqAddrInfo(account string) map[string]interface{} {
-	common.Debug("==================GetCurNodeReqAddrInfo====================","account",account)
+	common.Debug("==================GetCurNodeReqAddrInfo====================", "account", account)
 
 	s, tip, err := smpc.GetCurNodeReqAddrInfo(account)
-	common.Debug("==================GetCurNodeReqAddrInfo====================","account",account,"ret",s,"err",err)
+	common.Debug("==================GetCurNodeReqAddrInfo====================", "account", account, "ret", s, "err", err)
 	if err != nil {
 		return map[string]interface{}{
 			"Status": "Error",
@@ -165,11 +165,11 @@ func (this *Service) GetCurNodeReqAddrInfo(account string) map[string]interface{
 }
 
 func (this *Service) GetReqAddrStatus(key string) map[string]interface{} {
-	common.Debug("==================GetReqAddrStatus====================","key",key)
+	common.Debug("==================GetReqAddrStatus====================", "key", key)
 
 	data := make(map[string]interface{})
 	ret, tip, err := smpc.GetReqAddrStatus(key)
-	common.Debug("==================GetReqAddrStatus====================","key",key,"ret",ret,"err",err)
+	common.Debug("==================GetReqAddrStatus====================", "key", key, "ret", ret, "err", err)
 	if err != nil {
 		data["result"] = ""
 		return map[string]interface{}{
@@ -346,7 +346,7 @@ func (this *Service) AcceptSign(raw string) map[string]interface{} {
 }
 
 func (this *Service) Sign(raw string) map[string]interface{} {
-	common.Info("===================Sign=====================","raw",raw)
+	common.Info("===================Sign=====================", "raw", raw)
 
 	data := make(map[string]interface{})
 	key, tip, err := smpc.Sign(raw)
@@ -361,7 +361,7 @@ func (this *Service) Sign(raw string) map[string]interface{} {
 		}
 	}
 
-	data["result"] = key 
+	data["result"] = key
 	return map[string]interface{}{
 		"Status": "Success",
 		"Tip":    "",
@@ -403,10 +403,10 @@ func (this *Service) GetSignNonce(account string) map[string]interface{} {
 }
 
 func (this *Service) GetCurNodeSignInfo(account string) map[string]interface{} {
-	common.Debug("==================GetCurNodeSignInfo====================","account",account)
+	common.Debug("==================GetCurNodeSignInfo====================", "account", account)
 
 	s, tip, err := smpc.GetCurNodeSignInfo(account)
-	common.Debug("==================GetCurNodeSignInfo====================","account",account,"ret",s,"err",err)
+	common.Debug("==================GetCurNodeSignInfo====================", "account", account, "ret", s, "err", err)
 	if err != nil {
 		return map[string]interface{}{
 			"Status": "Error",
@@ -425,10 +425,10 @@ func (this *Service) GetCurNodeSignInfo(account string) map[string]interface{} {
 }
 
 func (this *Service) GetSignStatus(key string) map[string]interface{} {
-	common.Debug("==================GetSignStatus====================","key",key)
+	common.Debug("==================GetSignStatus====================", "key", key)
 	data := make(map[string]interface{})
 	ret, tip, err := smpc.GetSignStatus(key)
-	common.Debug("==================GetSignStatus====================","key",key,"ret",ret,"err",err)
+	common.Debug("==================GetSignStatus====================", "key", key, "ret", ret, "err", err)
 	if err != nil {
 		data["result"] = ""
 		return map[string]interface{}{
@@ -450,11 +450,11 @@ func (this *Service) GetSignStatus(key string) map[string]interface{} {
 
 //reshare
 func (this *Service) ReShare(raw string) map[string]interface{} {
-	common.Debug("===================ReShare=====================","raw",raw)
+	common.Debug("===================ReShare=====================", "raw", raw)
 
 	data := make(map[string]interface{})
 	key, tip, err := smpc.ReShare(raw)
-	common.Debug("===================reshare=====================","key",key,"err",err,"raw",raw)
+	common.Debug("===================reshare=====================", "key", key, "err", err, "raw", raw)
 	if err != nil {
 		data["result"] = ""
 		return map[string]interface{}{
@@ -575,10 +575,10 @@ func (this *Service) GetReShareStatus(key string) map[string]interface{} {
 	}
 }
 
-//raw tx: 
+//raw tx:
 //data = pubkey + subgids
 func (this *Service) PreGenSignData(raw string) map[string]interface{} {
-	common.Info("===================PreGenSignData=====================","raw",raw)
+	common.Info("===================PreGenSignData=====================", "raw", raw)
 
 	data := make(map[string]interface{})
 	tip, err := smpc.PreGenSignData(raw)
@@ -603,9 +603,9 @@ func (this *Service) PreGenSignData(raw string) map[string]interface{} {
 }
 
 //inputcode = "m/x1/x2/..../xn"
-func (this *Service) GetBip32ChildKey(rootpubkey string,inputcode string) map[string]interface{} {
+func (this *Service) GetBip32ChildKey(rootpubkey string, inputcode string) map[string]interface{} {
 	data := make(map[string]interface{})
-	pub, tip, err := smpc.GetBip32ChildKey(rootpubkey,inputcode)
+	pub, tip, err := smpc.GetBip32ChildKey(rootpubkey, inputcode)
 	if err != nil {
 		data["result"] = ""
 		return map[string]interface{}{
@@ -725,13 +725,13 @@ func (this *Service) GetSmpcAddr(pubkey string) map[string]interface{} {
 	data := make(map[string]interface{})
 	ret, tip, err := smpc.GetSmpcAddr(pubkey)
 	if err != nil {
-	    data["result"] = ""
-	    return map[string]interface{}{
-		    "Status": "Error",
-		    "Tip":    tip,
-		    "Error":  err.Error(),
-		    "Data":   data,
-	    }
+		data["result"] = ""
+		return map[string]interface{}{
+			"Status": "Error",
+			"Tip":    tip,
+			"Error":  err.Error(),
+			"Data":   data,
+		}
 	}
 
 	data["result"] = ret
@@ -854,4 +854,3 @@ func startRpcServer() error {
 
 	return nil
 }
-

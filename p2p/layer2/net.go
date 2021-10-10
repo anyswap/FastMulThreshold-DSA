@@ -21,9 +21,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	mapset "github.com/deckarep/golang-set"
 	"github.com/anyswap/Anyswap-MPCNode/p2p"
 	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
+	mapset "github.com/deckarep/golang-set"
 )
 
 //TODO

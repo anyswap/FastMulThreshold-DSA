@@ -3,9 +3,9 @@ package keygen
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"math/big"
 )
 
 func (round *round2) Start() error {
@@ -16,60 +16,60 @@ func (round *round2) Start() error {
 	round.started = true
 	round.resetOK()
 
-	ids,err := round.GetIds()
+	ids, err := round.GetIds()
 	if err != nil {
-	    return errors.New("round.Start get ids fail.")
+		return errors.New("round.Start get ids fail.")
 	}
 	round.Save.Ids = ids
-	round.Save.CurDNodeID,_ = new(big.Int).SetString(round.dnodeid,10)
+	round.Save.CurDNodeID, _ = new(big.Int).SetString(round.dnodeid, 10)
 
-	u1Shares,err := round.temp.u1Poly.Vss2(ids)
+	u1Shares, err := round.temp.u1Poly.Vss2(ids)
 	if err != nil {
-	    return err
+		return err
 	}
 
 	round.temp.u1Shares = u1Shares
 
-	cur_index,err := round.GetDNodeIDIndex(round.dnodeid)
+	cur_index, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
-	    return err
+		return err
 	}
 
-	for k,id := range ids {
-	    for _,v := range u1Shares {
-		kg := &KGRound2Message{
-		    KGRoundMessage:new(KGRoundMessage),
-		    Id:v.Id,
-		    Share:v.Share,
+	for k, id := range ids {
+		for _, v := range u1Shares {
+			kg := &KGRound2Message{
+				KGRoundMessage: new(KGRoundMessage),
+				Id:             v.Id,
+				Share:          v.Share,
+			}
+			kg.SetFromID(round.dnodeid)
+			kg.SetFromIndex(cur_index)
+
+			vv := ec2.GetSharesId(v)
+			if vv != nil && vv.Cmp(id) == 0 && k == cur_index {
+				fmt.Printf("=========== round2, it is self. share struct id = %v, share = %v, k = %v ===========\n", v.Id, v.Share, k)
+				round.temp.kgRound2Messages[k] = kg
+				break
+			} else if vv != nil && vv.Cmp(id) == 0 {
+				fmt.Printf("=========== round2, share struct id = %v, share = %v, k = %v ===========\n", v.Id, v.Share, k)
+				kg.AppendToID(fmt.Sprintf("%v", id)) //id-->dnodeid
+				round.out <- kg
+				//fmt.Printf("============ round2 send msg to peer = %v ============\n",id)
+				break
+			}
 		}
-		kg.SetFromID(round.dnodeid)
-		kg.SetFromIndex(cur_index)
-	
-		vv := ec2.GetSharesId(v)
-		if vv != nil && vv.Cmp(id) == 0 && k == cur_index {
-		    fmt.Printf("=========== round2, it is self. share struct id = %v, share = %v, k = %v ===========\n",v.Id,v.Share,k)
-		    round.temp.kgRound2Messages[k] = kg
-		    break
-		} else if vv != nil && vv.Cmp(id) == 0 {
-		    fmt.Printf("=========== round2, share struct id = %v, share = %v, k = %v ===========\n",v.Id,v.Share,k)
-		    kg.AppendToID(fmt.Sprintf("%v",id)) //id-->dnodeid
-		    round.out <-kg
-		    //fmt.Printf("============ round2 send msg to peer = %v ============\n",id)
-		    break
-		}
-	    }
 	}
 
 	kg := &KGRound2Message1{
-	    KGRoundMessage:new(KGRoundMessage),
-	    C1:round.temp.c1,
+		KGRoundMessage: new(KGRoundMessage),
+		C1:             round.temp.c1,
 	}
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(cur_index)
 	round.temp.kgRound2Messages1[cur_index] = kg
-	round.out <-kg
-	
-	fmt.Printf("============ round2 send msg to peer success, c1 for bip32 = %v ============\n",kg.C1)
+	round.out <- kg
+
+	fmt.Printf("============ round2 send msg to peer success, c1 for bip32 = %v ============\n", kg.C1)
 	return nil
 }
 
@@ -104,4 +104,3 @@ func (round *round2) NextRound() smpc.Round {
 	round.started = false
 	return &round3{round}
 }
-

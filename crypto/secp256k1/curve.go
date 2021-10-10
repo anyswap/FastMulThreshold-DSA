@@ -362,4 +362,3 @@ func Get_ecdsa_sign_v(rx *big.Int, ry *big.Int) int {
 	res := int(C.smpc_secp256k1_get_ecdsa_sign_v(context, pointPtr, scalarPtr))
 	return res
 }
-

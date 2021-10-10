@@ -17,9 +17,9 @@
 package ec2
 
 import (
-	"math/big"
-	"fmt"
 	"encoding/json"
+	"fmt"
+	"math/big"
 
 	s256 "github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
@@ -189,8 +189,8 @@ func (zku *ZkUProof) MarshalJSON() ([]byte, error) {
 		E string `json:"E"`
 		S string `json:"S"`
 	}{
-		E: fmt.Sprintf("%v",zku.E),
-		S: fmt.Sprintf("%v",zku.S),
+		E: fmt.Sprintf("%v", zku.E),
+		S: fmt.Sprintf("%v", zku.S),
 	})
 }
 
@@ -203,8 +203,7 @@ func (zku *ZkUProof) UnmarshalJSON(raw []byte) error {
 		return err
 	}
 
-	zku.E,_ = new(big.Int).SetString(zk.E,10)
-	zku.S,_ = new(big.Int).SetString(zk.S,10)
+	zku.E, _ = new(big.Int).SetString(zk.E, 10)
+	zku.S, _ = new(big.Int).SetString(zk.S, 10)
 	return nil
 }
-

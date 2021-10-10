@@ -29,6 +29,5 @@ func (round *round7) Update() (bool, error) {
 }
 
 func (round *round7) NextRound() smpc.Round {
-	return nil 
+	return nil
 }
-

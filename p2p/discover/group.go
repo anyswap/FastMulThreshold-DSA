@@ -62,19 +62,19 @@ var (
 	sequenceLock     sync.Mutex
 	sequenceDone     sync.Map
 	sequenceDoneRecv sync.Map
-	Sequence                                  = uint64(1)
-	SelfID                                    = ""
-	SelfNodeID NodeID
-	p2pSuffix                               = "p2p"
-	p2pDir                                  = ""
+	Sequence         = uint64(1)
+	SelfID           = ""
+	SelfNodeID       NodeID
+	p2pSuffix                                 = "p2p"
+	p2pDir                                    = ""
 	nodeOnline       map[NodeID]*OnLineStatus = make(map[NodeID]*OnLineStatus)
 
-	updateGroupsNode bool = false// update node dynamically
-	addNodes map[NodeID]int = make(map[NodeID]int)
-	addNodesLock sync.Mutex
-	loadedSeeds map[NodeID]int = make(map[NodeID]int)
-	loadedDone bool = false
-	SDK_groupListChan chan int = make(chan int, 1)
+	updateGroupsNode  bool           = false // update node dynamically
+	addNodes          map[NodeID]int = make(map[NodeID]int)
+	addNodesLock      sync.Mutex
+	loadedSeeds       map[NodeID]int = make(map[NodeID]int)
+	loadedDone        bool           = false
+	SDK_groupListChan chan int       = make(chan int, 1)
 )
 var (
 	Smpc_groupMemNum = 0
@@ -366,11 +366,11 @@ func (t *udp) udpSendMsg(toid NodeID, toaddr *net.UDPAddr, msg string, number [3
 		getPacket = getCCPacket(p2pType)
 	}
 	reqGet := &getsmpcmessage{
-		Target:     toid,
-		Number:     number,
-		P2pType:    byte(p2pType),
-		Msg:        msg,
-		Sequence:   s,
+		Target:   toid,
+		Number:   number,
+		P2pType:  byte(p2pType),
+		Msg:      msg,
+		Sequence: s,
 	}
 	req := &smpcmessage{
 		Target:     toid,
@@ -929,7 +929,7 @@ func setGroupSDK(n *Node, replace string, p2pType int) {
 			updateGroupSDKNode(n, p2pType)
 			return
 		} else {
-			return// not auto create group for bootnode
+			return // not auto create group for bootnode
 		}
 		et, ut := checkGroupSDKListExist(n)
 		if et == true {
@@ -1712,7 +1712,6 @@ func PrintBucketNodeInfo(id NodeID) {
 	}
 }
 
-
 func Remove(n *Node) {
 	common.Debug("==== remove() ====", "n", n)
 	Table4group.delete(n)
@@ -1789,4 +1788,3 @@ func parseIP(s string) net.IP {
 	}
 	return ip
 }
-

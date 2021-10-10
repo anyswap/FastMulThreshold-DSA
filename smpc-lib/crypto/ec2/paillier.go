@@ -17,9 +17,9 @@
 package ec2
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"encoding/json"
 	"math/big"
 	"strconv"
 
@@ -31,8 +31,8 @@ var ErrMessageTooLong = errors.New("[ERROR]: message is too long.")
 
 type PublicKey struct {
 	Length string   `json:"Length"`
-	N      *big.Int `json:"N"` // n = p*q, where p and q are prime
-	G      *big.Int `json:"G"` // in practical, G = N + 1
+	N      *big.Int `json:"N"`  // n = p*q, where p and q are prime
+	G      *big.Int `json:"G"`  // in practical, G = N + 1
 	N2     *big.Int `json:"N2"` // N2 = N * N
 }
 
@@ -57,7 +57,7 @@ func GenerateKeyPair(length int) (*PublicKey, *PrivateKey) {
 
 	////TODO tmp:1000-->4
 	SafePrimeCh <- sp1
-	SafePrimeCh <- sp2 
+	SafePrimeCh <- sp2
 	///////
 
 	n := new(big.Int).Mul(p, q)
@@ -190,62 +190,62 @@ func (publicKey *PublicKey) ZkFactVerify(zkFactProof *ZkFactProof) bool {
 func (publicKey *PublicKey) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Length string `json:"Length"`
-		N string `json:"N"`
-		G string `json:"G"`
-		N2 string `json:"N2"`
+		N      string `json:"N"`
+		G      string `json:"G"`
+		N2     string `json:"N2"`
 	}{
 		Length: publicKey.Length,
-		N: fmt.Sprintf("%v",publicKey.N),
-		G: fmt.Sprintf("%v",publicKey.G),
-		N2: fmt.Sprintf("%v",publicKey.N2),
+		N:      fmt.Sprintf("%v", publicKey.N),
+		G:      fmt.Sprintf("%v", publicKey.G),
+		N2:     fmt.Sprintf("%v", publicKey.N2),
 	})
 }
 
 func (publicKey *PublicKey) UnmarshalJSON(raw []byte) error {
 	var pub struct {
 		Length string `json:"Length"`
-		N string `json:"N"`
-		G string `json:"G"`
-		N2 string `json:"N2"`
+		N      string `json:"N"`
+		G      string `json:"G"`
+		N2     string `json:"N2"`
 	}
 	if err := json.Unmarshal(raw, &pub); err != nil {
 		return err
 	}
 
 	publicKey.Length = pub.Length
-	publicKey.N,_ = new(big.Int).SetString(pub.N,10)
-	publicKey.G,_ = new(big.Int).SetString(pub.G,10)
-	publicKey.N2,_ = new(big.Int).SetString(pub.N2,10)
+	publicKey.N, _ = new(big.Int).SetString(pub.N, 10)
+	publicKey.G, _ = new(big.Int).SetString(pub.G, 10)
+	publicKey.N2, _ = new(big.Int).SetString(pub.N2, 10)
 	return nil
 }
 
 //--------------------------------------------------------------------------
 
 func (privateKey *PrivateKey) MarshalJSON() ([]byte, error) {
-    pk,err := (&(privateKey.PublicKey)).MarshalJSON()
-    if err != nil {
-	return nil,err
-    }
+	pk, err := (&(privateKey.PublicKey)).MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
 
 	return json.Marshal(struct {
-		Length string `json:"Length"`
+		Length    string `json:"Length"`
 		PublicKey string `json:"PublicKey"`
-		L string `json:"L"`
-		U string `json:"U"`
+		L         string `json:"L"`
+		U         string `json:"U"`
 	}{
-		Length: privateKey.Length,
+		Length:    privateKey.Length,
 		PublicKey: string(pk),
-		L: fmt.Sprintf("%v",privateKey.L),
-		U: fmt.Sprintf("%v",privateKey.U),
+		L:         fmt.Sprintf("%v", privateKey.L),
+		U:         fmt.Sprintf("%v", privateKey.U),
 	})
 }
 
 func (privateKey *PrivateKey) UnmarshalJSON(raw []byte) error {
 	var pri struct {
-		Length string `json:"Length"`
+		Length    string `json:"Length"`
 		PublicKey string `json:"PublicKey"`
-		L string `json:"L"`
-		U string `json:"U"`
+		L         string `json:"L"`
+		U         string `json:"U"`
 	}
 	if err := json.Unmarshal(raw, &pri); err != nil {
 		return err
@@ -255,12 +255,12 @@ func (privateKey *PrivateKey) UnmarshalJSON(raw []byte) error {
 	pub := &PublicKey{}
 	err := pub.UnmarshalJSON([]byte(pri.PublicKey))
 	if err != nil {
-	    return err
+		return err
 	}
 
 	privateKey.PublicKey = *pub
-	privateKey.L,_ = new(big.Int).SetString(pri.L,10)
-	privateKey.U,_ = new(big.Int).SetString(pri.U,10)
+	privateKey.L, _ = new(big.Int).SetString(pri.L, 10)
+	privateKey.U, _ = new(big.Int).SetString(pri.U, 10)
 	return nil
 }
 
@@ -269,8 +269,8 @@ func (privateKey *PrivateKey) UnmarshalJSON(raw []byte) error {
 func CreatPair(length int) (*PublicKey, *PrivateKey) {
 	one := big.NewInt(1)
 
-	_,p := GetRandomPrime()
-	_,q := GetRandomPrime()
+	_, p := GetRandomPrime()
+	_, q := GetRandomPrime()
 
 	if p == nil || q == nil {
 		return nil, nil
@@ -291,5 +291,3 @@ func CreatPair(length int) (*PublicKey, *PrivateKey) {
 
 	return publicKey, privateKey
 }
-
-

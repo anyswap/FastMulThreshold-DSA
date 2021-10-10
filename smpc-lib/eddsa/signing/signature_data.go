@@ -1,13 +1,13 @@
-package signing 
+package signing
 
 import (
 	"math/big"
 	//"strings"
 	"bytes"
-	"fmt"
-	"strconv"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
 	"crypto/sha512"
+	"fmt"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
+	"strconv"
 	//"crypto/ed25519/internal/edwards25519"
 	edlib "crypto/ed25519"
 )
@@ -25,19 +25,19 @@ func EdVerify(input InputVerify) bool {
 	var kDigest [64]byte
 
 	h := sha512.New()
-	_,err := h.Write(input.FinalR[:])
+	_, err := h.Write(input.FinalR[:])
 	if err != nil {
-	    return false
+		return false
 	}
 
-	_,err = h.Write(input.FinalPk[:])
+	_, err = h.Write(input.FinalPk[:])
 	if err != nil {
-	    return false
+		return false
 	}
 
-	_,err = h.Write(input.Message[:])
+	_, err = h.Write(input.Message[:])
 	if err != nil {
-	    return false
+		return false
 	}
 
 	h.Sum(kDigest[:0])
@@ -64,28 +64,28 @@ func EdVerify(input InputVerify) bool {
 }
 
 type EdSignData struct {
-    Rx  [32]byte
-    Sx  [32]byte
+	Rx [32]byte
+	Sx [32]byte
 }
 
 //TODO
 type PrePubData struct {
-	K1 *big.Int
-	R *big.Int
-	Ry *big.Int
+	K1     *big.Int
+	R      *big.Int
+	Ry     *big.Int
 	Sigma1 *big.Int
 }
 
 ////////solane ed lib verify
 func Verify(publicKey edlib.PublicKey, message, sig []byte) bool {
 	if l := len(publicKey); l != 32 {
-	    fmt.Printf("================= ed25519: bad public key length: " + strconv.Itoa(l) + " ==================\n")
-	    //panic("ed25519: bad public key length: " + strconv.Itoa(l))
-	    return false
+		fmt.Printf("================= ed25519: bad public key length: " + strconv.Itoa(l) + " ==================\n")
+		//panic("ed25519: bad public key length: " + strconv.Itoa(l))
+		return false
 	}
 
 	if len(sig) != 64 || sig[63]&224 != 0 {
-	    fmt.Printf("===================ed lib verify fail,sig len error =========================\n")
+		fmt.Printf("===================ed lib verify fail,sig len error =========================\n")
 		return false
 	}
 
@@ -126,4 +126,3 @@ func Verify(publicKey edlib.PublicKey, message, sig []byte) bool {
 	R.ToBytes(&checkR)
 	return bytes.Equal(sig[:32], checkR[:])
 }
-

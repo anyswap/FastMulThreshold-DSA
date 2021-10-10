@@ -1,9 +1,9 @@
 package ec2
 
 import (
-	"math/big"
-	"fmt"
 	"encoding/json"
+	"fmt"
+	"math/big"
 
 	s256 "github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
@@ -164,65 +164,64 @@ func (mtAZK3Proof *MtAZK3Proof_nhh) MtAZK3Verify_nhh(c1 *big.Int, c2 *big.Int, p
 
 func (mtAZK3Proof *MtAZK3Proof_nhh) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		Ux string `json:"Ux"`
-		Uy string `json:"Uy"`
-		Z string `json:"Z"`
+		Ux   string `json:"Ux"`
+		Uy   string `json:"Uy"`
+		Z    string `json:"Z"`
 		ZBar string `json:"ZBar"`
-		T string `json:"T"`
-		V string `json:"V"`
-		W string `json:"W"`
-		S string `json:"S"`
-		S1 string `json:"S1"`
-		S2 string `json:"S2"`
-		T1 string `json:"T1"`
-		T2 string `json:"T2"`
+		T    string `json:"T"`
+		V    string `json:"V"`
+		W    string `json:"W"`
+		S    string `json:"S"`
+		S1   string `json:"S1"`
+		S2   string `json:"S2"`
+		T1   string `json:"T1"`
+		T2   string `json:"T2"`
 	}{
-		Ux: fmt.Sprintf("%v",mtAZK3Proof.Ux),
-		Uy: fmt.Sprintf("%v",mtAZK3Proof.Uy),
-		Z: fmt.Sprintf("%v",mtAZK3Proof.Z),
-		ZBar: fmt.Sprintf("%v",mtAZK3Proof.ZBar),
-		T: fmt.Sprintf("%v",mtAZK3Proof.T),
-		V: fmt.Sprintf("%v",mtAZK3Proof.V),
-		W: fmt.Sprintf("%v",mtAZK3Proof.W),
-		S: fmt.Sprintf("%v",mtAZK3Proof.S),
-		S1: fmt.Sprintf("%v",mtAZK3Proof.S1),
-		S2: fmt.Sprintf("%v",mtAZK3Proof.S2),
-		T1: fmt.Sprintf("%v",mtAZK3Proof.T1),
-		T2: fmt.Sprintf("%v",mtAZK3Proof.T2),
+		Ux:   fmt.Sprintf("%v", mtAZK3Proof.Ux),
+		Uy:   fmt.Sprintf("%v", mtAZK3Proof.Uy),
+		Z:    fmt.Sprintf("%v", mtAZK3Proof.Z),
+		ZBar: fmt.Sprintf("%v", mtAZK3Proof.ZBar),
+		T:    fmt.Sprintf("%v", mtAZK3Proof.T),
+		V:    fmt.Sprintf("%v", mtAZK3Proof.V),
+		W:    fmt.Sprintf("%v", mtAZK3Proof.W),
+		S:    fmt.Sprintf("%v", mtAZK3Proof.S),
+		S1:   fmt.Sprintf("%v", mtAZK3Proof.S1),
+		S2:   fmt.Sprintf("%v", mtAZK3Proof.S2),
+		T1:   fmt.Sprintf("%v", mtAZK3Proof.T1),
+		T2:   fmt.Sprintf("%v", mtAZK3Proof.T2),
 	})
 }
 
 func (mtAZK3Proof *MtAZK3Proof_nhh) UnmarshalJSON(raw []byte) error {
 	var proof struct {
-		Ux string `json:"Ux"`
-		Uy string `json:"Uy"`
-		Z string `json:"Z"`
+		Ux   string `json:"Ux"`
+		Uy   string `json:"Uy"`
+		Z    string `json:"Z"`
 		ZBar string `json:"ZBar"`
-		T string `json:"T"`
-		V string `json:"V"`
-		W string `json:"W"`
-		S string `json:"S"`
-		S1 string `json:"S1"`
-		S2 string `json:"S2"`
-		T1 string `json:"T1"`
-		T2 string `json:"T2"`
+		T    string `json:"T"`
+		V    string `json:"V"`
+		W    string `json:"W"`
+		S    string `json:"S"`
+		S1   string `json:"S1"`
+		S2   string `json:"S2"`
+		T1   string `json:"T1"`
+		T2   string `json:"T2"`
 	}
 	if err := json.Unmarshal(raw, &proof); err != nil {
-	    return err
+		return err
 	}
 
-	mtAZK3Proof.Ux,_ = new(big.Int).SetString(proof.Ux,10)
-	mtAZK3Proof.Uy,_ = new(big.Int).SetString(proof.Uy,10)
-	mtAZK3Proof.Z,_ = new(big.Int).SetString(proof.Z,10)
-	mtAZK3Proof.ZBar,_ = new(big.Int).SetString(proof.ZBar,10)
-	mtAZK3Proof.T,_ = new(big.Int).SetString(proof.T,10)
-	mtAZK3Proof.V,_ = new(big.Int).SetString(proof.V,10)
-	mtAZK3Proof.W,_ = new(big.Int).SetString(proof.W,10)
-	mtAZK3Proof.S,_ = new(big.Int).SetString(proof.S,10)
-	mtAZK3Proof.S1,_ = new(big.Int).SetString(proof.S1,10)
-	mtAZK3Proof.S2,_ = new(big.Int).SetString(proof.S2,10)
-	mtAZK3Proof.T1,_ = new(big.Int).SetString(proof.T1,10)
-	mtAZK3Proof.T2,_ = new(big.Int).SetString(proof.T2,10)
+	mtAZK3Proof.Ux, _ = new(big.Int).SetString(proof.Ux, 10)
+	mtAZK3Proof.Uy, _ = new(big.Int).SetString(proof.Uy, 10)
+	mtAZK3Proof.Z, _ = new(big.Int).SetString(proof.Z, 10)
+	mtAZK3Proof.ZBar, _ = new(big.Int).SetString(proof.ZBar, 10)
+	mtAZK3Proof.T, _ = new(big.Int).SetString(proof.T, 10)
+	mtAZK3Proof.V, _ = new(big.Int).SetString(proof.V, 10)
+	mtAZK3Proof.W, _ = new(big.Int).SetString(proof.W, 10)
+	mtAZK3Proof.S, _ = new(big.Int).SetString(proof.S, 10)
+	mtAZK3Proof.S1, _ = new(big.Int).SetString(proof.S1, 10)
+	mtAZK3Proof.S2, _ = new(big.Int).SetString(proof.S2, 10)
+	mtAZK3Proof.T1, _ = new(big.Int).SetString(proof.T1, 10)
+	mtAZK3Proof.T2, _ = new(big.Int).SetString(proof.T2, 10)
 	return nil
 }
-

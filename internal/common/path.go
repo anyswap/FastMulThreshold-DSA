@@ -105,4 +105,3 @@ func homeDir() string {
 	}
 	return ""
 }
-

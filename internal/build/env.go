@@ -37,12 +37,12 @@ var (
 
 // Environment contains metadata provided by the build environment.
 type Environment struct {
-	Name                string // name of the environment
-	Repo                string // name of GitHub repo
+	Name                      string // name of the environment
+	Repo                      string // name of GitHub repo
 	Commit, Date, Branch, Tag string // Git info
-	Buildnum            string
-	IsPullRequest       bool
-	IsCronJob           bool
+	Buildnum                  string
+	IsPullRequest             bool
+	IsCronJob                 bool
 }
 
 func (env Environment) String() string {
@@ -170,4 +170,3 @@ func BuildFlags(gitCommit, gitDate *string) {
 	*gitCommit = readGitFile(head)
 	*gitDate = getDate(*gitCommit)
 }
-

@@ -3,17 +3,17 @@ package keygen
 import (
 	"errors"
 	"fmt"
-	"math/big"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"math/big"
 )
 
 func (round *round1) Start() error {
 	if round.started {
-	    fmt.Printf("============ round1 start error,already started============\n")
-	    return errors.New("round already started")
+		fmt.Printf("============ round1 start error,already started============\n")
+		return errors.New("round already started")
 	}
 	round.number = 1
 	round.started = true
@@ -23,7 +23,7 @@ func (round *round1) Start() error {
 	c1 := random.GetRandomIntFromZn(secp256k1.S256().N)
 	u1Poly, u1PolyG, _ := ec2.Vss2Init(u1, round.threshold)
 	_, c1PolyG, _ := ec2.Vss2Init(c1, round.threshold)
-	
+
 	u1Gx, u1Gy := secp256k1.S256().ScalarBaseMult(u1.Bytes())
 	u1Secrets := make([]*big.Int, 0)
 	u1Secrets = append(u1Secrets, u1Gx)
@@ -49,11 +49,11 @@ func (round *round1) Start() error {
 	u1PaillierPk, u1PaillierSk := ec2.GenerateKeyPair(round.paillierkeylength)
 
 	if u1PaillierPk == nil || u1PaillierSk == nil {
-	    return errors.New(" Error generating Paillier pubkey/private data ")
+		return errors.New(" Error generating Paillier pubkey/private data ")
 	}
 
 	if commitU1G == nil || commitC1G == nil {
-	    return errors.New(" Error generating commitment/bip32-commitment data ")
+		return errors.New(" Error generating commitment/bip32-commitment data ")
 	}
 
 	round.temp.u1 = u1
@@ -65,17 +65,17 @@ func (round *round1) Start() error {
 	round.temp.u1PaillierPk = u1PaillierPk
 	round.temp.u1PaillierSk = u1PaillierSk
 
-	index,err := round.GetDNodeIDIndex(round.dnodeid)
+	index, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
-	    fmt.Printf("============round1 start,get dnode id index fail,err = %v ===========\n",err)
-	    return err
+		fmt.Printf("============round1 start,get dnode id index fail,err = %v ===========\n", err)
+		return err
 	}
 
 	kg := &KGRound1Message{
-	    KGRoundMessage:new(KGRoundMessage),
-	    ComC:commitU1G.C,
-	    ComC_bip32:commitC1G.C,
-	    U1PaillierPk:u1PaillierPk,
+		KGRoundMessage: new(KGRoundMessage),
+		ComC:           commitU1G.C,
+		ComC_bip32:     commitC1G.C,
+		U1PaillierPk:   u1PaillierPk,
 	}
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(index)
@@ -106,7 +106,7 @@ func (round *round1) Update() (bool, error) {
 		}
 		round.ok[j] = true
 	}
-	
+
 	return true, nil
 }
 
@@ -114,4 +114,3 @@ func (round *round1) NextRound() smpc.Round {
 	round.started = false
 	return &round2{round}
 }
-

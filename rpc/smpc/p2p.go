@@ -46,8 +46,8 @@ type Enode struct {
 
 type Version struct {
 	Version string
-	Commit string
-	Date string
+	Commit  string
+	Date    string
 }
 
 type EnodeStatus struct {
@@ -81,8 +81,8 @@ func (this *Service) GetEnode() map[string]interface{} {
 }
 
 type GroupID struct {
-	Gid    string
-	Sgid    string
+	Gid  string
+	Sgid string
 }
 
 type GroupInfo struct {

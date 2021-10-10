@@ -1,18 +1,18 @@
-package signing 
+package signing
 
 import (
 	"errors"
 	"fmt"
-	"math/big"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"math/big"
 )
 
 func (round *round7) Start() error {
 	if round.started {
-	    fmt.Printf("============= round7.start fail =======\n")
-	    return errors.New("round already started")
+		fmt.Printf("============= round7.start fail =======\n")
+		return errors.New("round already started")
 	}
 	round.number = 7
 	round.started = true
@@ -20,35 +20,35 @@ func (round *round7) Start() error {
 
 	var GammaGSumx *big.Int
 	var GammaGSumy *big.Int
-	for k,_ := range round.idsign {
-	    msg1,_ := round.temp.signRound1Messages[k].(*SignRound1Message)
-	    msg6,_ := round.temp.signRound6Messages[k].(*SignRound6Message)
-	    deCommit := &ec2.Commitment{C: msg1.C11, D: msg6.CommU1D}
-	    if !deCommit.Verify() {
-		return errors.New("verify commit fail.")
-	    }
+	for k := range round.idsign {
+		msg1, _ := round.temp.signRound1Messages[k].(*SignRound1Message)
+		msg6, _ := round.temp.signRound6Messages[k].(*SignRound6Message)
+		deCommit := &ec2.Commitment{C: msg1.C11, D: msg6.CommU1D}
+		if !deCommit.Verify() {
+			return errors.New("verify commit fail.")
+		}
 
-	    _, u1GammaG := deCommit.DeCommit()
-	    if !ec2.ZkUVerify(u1GammaG,msg6.U1GammaZKProof) {
-		return errors.New("verify zkuproof fail.")
-	    }
+		_, u1GammaG := deCommit.DeCommit()
+		if !ec2.ZkUVerify(u1GammaG, msg6.U1GammaZKProof) {
+			return errors.New("verify zkuproof fail.")
+		}
 
-	    if k == 0 {
-		GammaGSumx = u1GammaG[0]
-		GammaGSumy = u1GammaG[1]
-	    }
+		if k == 0 {
+			GammaGSumx = u1GammaG[0]
+			GammaGSumy = u1GammaG[1]
+		}
 	}
 
-	for k,_ := range round.idsign {
-	    if k == 0 {
-		continue
-	    }
+	for k := range round.idsign {
+		if k == 0 {
+			continue
+		}
 
-	    msg1,_ := round.temp.signRound1Messages[k].(*SignRound1Message)
-	    msg6,_ := round.temp.signRound6Messages[k].(*SignRound6Message)
-	    deCommit := &ec2.Commitment{C: msg1.C11, D: msg6.CommU1D}
-	    _, u1GammaG := deCommit.DeCommit()
-	    GammaGSumx, GammaGSumy = secp256k1.S256().Add(GammaGSumx, GammaGSumy, u1GammaG[0], u1GammaG[1])
+		msg1, _ := round.temp.signRound1Messages[k].(*SignRound1Message)
+		msg6, _ := round.temp.signRound6Messages[k].(*SignRound6Message)
+		deCommit := &ec2.Commitment{C: msg1.C11, D: msg6.CommU1D}
+		_, u1GammaG := deCommit.DeCommit()
+		GammaGSumx, GammaGSumy = secp256k1.S256().Add(GammaGSumx, GammaGSumy, u1GammaG[0], u1GammaG[1])
 	}
 	deltaSumInverse := new(big.Int).ModInverse(round.temp.deltaSum, secp256k1.S256().N)
 	deltaGammaGx, deltaGammaGy := secp256k1.S256().ScalarMult(GammaGSumx, GammaGSumy, deltaSumInverse.Bytes())
@@ -57,16 +57,16 @@ func (round *round7) Start() error {
 	r := deltaGammaGx
 	zero, _ := new(big.Int).SetString("0", 10)
 	if r.Cmp(zero) == 0 {
-	    return errors.New("r == 0.")
+		return errors.New("r == 0.")
 	}
 
 	if r == nil || deltaGammaGy == nil {
-	    return errors.New("calc r fail.")
+		return errors.New("calc r fail.")
 	}
 
-	round.end <- PrePubData{K1:round.temp.u1K,R:r,Ry:deltaGammaGy,Sigma1:round.temp.sigma1}
+	round.end <- PrePubData{K1: round.temp.u1K, R: r, Ry: deltaGammaGy, Sigma1: round.temp.sigma1}
 
-	fmt.Printf("============= round7.start success, current node id = %v =============\n",round.kgid)
+	fmt.Printf("============= round7.start success, current node id = %v =============\n", round.kgid)
 
 	return nil
 }
@@ -80,6 +80,5 @@ func (round *round7) Update() (bool, error) {
 }
 
 func (round *round7) NextRound() smpc.Round {
-    return nil 
+	return nil
 }
-

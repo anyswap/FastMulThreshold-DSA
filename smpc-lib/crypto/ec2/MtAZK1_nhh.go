@@ -1,9 +1,9 @@
 package ec2
 
 import (
-	"math/big"
-	"fmt"
 	"encoding/json"
+	"fmt"
+	"math/big"
 
 	s256 "github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
@@ -112,28 +112,28 @@ func (mtAZKProof *MtAZK1Proof_nhh) MtAZK1Verify_nhh(c *big.Int, publicKey *Publi
 
 func (u1u1MtAZK1Proof *MtAZK1Proof_nhh) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		Z string `json:"Z"`
-		U string `json:"U"`
-		W string `json:"W"`
-		S string `json:"S"`
+		Z  string `json:"Z"`
+		U  string `json:"U"`
+		W  string `json:"W"`
+		S  string `json:"S"`
 		S1 string `json:"S1"`
 		S2 string `json:"S2"`
 	}{
-		Z: fmt.Sprintf("%v",u1u1MtAZK1Proof.Z),
-		U: fmt.Sprintf("%v",u1u1MtAZK1Proof.U),
-		W: fmt.Sprintf("%v",u1u1MtAZK1Proof.W),
-		S: fmt.Sprintf("%v",u1u1MtAZK1Proof.S),
-		S1: fmt.Sprintf("%v",u1u1MtAZK1Proof.S1),
-		S2: fmt.Sprintf("%v",u1u1MtAZK1Proof.S2),
+		Z:  fmt.Sprintf("%v", u1u1MtAZK1Proof.Z),
+		U:  fmt.Sprintf("%v", u1u1MtAZK1Proof.U),
+		W:  fmt.Sprintf("%v", u1u1MtAZK1Proof.W),
+		S:  fmt.Sprintf("%v", u1u1MtAZK1Proof.S),
+		S1: fmt.Sprintf("%v", u1u1MtAZK1Proof.S1),
+		S2: fmt.Sprintf("%v", u1u1MtAZK1Proof.S2),
 	})
 }
 
 func (u1u1MtAZK1Proof *MtAZK1Proof_nhh) UnmarshalJSON(raw []byte) error {
 	var proof struct {
-		Z string `json:"Z"`
-		U string `json:"U"`
-		W string `json:"W"`
-		S string `json:"S"`
+		Z  string `json:"Z"`
+		U  string `json:"U"`
+		W  string `json:"W"`
+		S  string `json:"S"`
 		S1 string `json:"S1"`
 		S2 string `json:"S2"`
 	}
@@ -141,12 +141,11 @@ func (u1u1MtAZK1Proof *MtAZK1Proof_nhh) UnmarshalJSON(raw []byte) error {
 		return err
 	}
 
-	u1u1MtAZK1Proof.Z,_ = new(big.Int).SetString(proof.Z,10)
-	u1u1MtAZK1Proof.U,_ = new(big.Int).SetString(proof.U,10)
-	u1u1MtAZK1Proof.W,_ = new(big.Int).SetString(proof.W,10)
-	u1u1MtAZK1Proof.S,_ = new(big.Int).SetString(proof.S,10)
-	u1u1MtAZK1Proof.S1,_ = new(big.Int).SetString(proof.S1,10)
-	u1u1MtAZK1Proof.S2,_ = new(big.Int).SetString(proof.S2,10)
+	u1u1MtAZK1Proof.Z, _ = new(big.Int).SetString(proof.Z, 10)
+	u1u1MtAZK1Proof.U, _ = new(big.Int).SetString(proof.U, 10)
+	u1u1MtAZK1Proof.W, _ = new(big.Int).SetString(proof.W, 10)
+	u1u1MtAZK1Proof.S, _ = new(big.Int).SetString(proof.S, 10)
+	u1u1MtAZK1Proof.S1, _ = new(big.Int).SetString(proof.S1, 10)
+	u1u1MtAZK1Proof.S2, _ = new(big.Int).SetString(proof.S2, 10)
 	return nil
 }
-

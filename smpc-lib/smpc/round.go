@@ -7,6 +7,6 @@ type Round interface {
 	NextRound() Round
 	RoundNumber() int
 	CanProceed() bool
-	GetIds() (SortableIDSSlice,error)
-	GetDNodeIDIndex(id string) (int,error)
+	GetIds() (SortableIDSSlice, error)
+	GetDNodeIDIndex(id string) (int, error)
 }

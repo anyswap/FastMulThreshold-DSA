@@ -1,4 +1,3 @@
-
 /*
  *  Copyright (C) 2018-2019  Fusion Foundation Ltd. All rights reserved.
  *  Copyright (C) 2018-2019  haijun.cai@anyswap.exchange
@@ -18,39 +17,39 @@
 package smpc
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
 	"strings"
 	"time"
-	"bytes"
 
-	"github.com/fsn-dev/cryptoCoins/coins/types"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
-	"github.com/fsn-dev/cryptoCoins/tools/rlp"
-	"encoding/gob"
 	"compress/zlib"
+	"container/list"
+	"encoding/gob"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
-	"io"
+	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/hexutil"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
 	smpclib "github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/fsn-dev/cryptoCoins/coins/types"
+	"github.com/fsn-dev/cryptoCoins/tools/rlp"
+	"io"
 	"sort"
-	"container/list"
 )
 
 //---------------------------------------------------------------------------
 
 type SmpcReq interface {
-    GetReplyFromGroup(wid int,gid string,initiator string) []NodeReply 
-    GetReqAddrKeyByKey(key string) string
-    GetRawReply(ret *common.SafeMap,reply *RawReply)
-    CheckReply(ac *AcceptReqAddrData,l *list.List,key string) bool
-    DoReq(raw string,workid int,sender string,ch chan interface{}) bool
-    GetGroupSigs(txdata []byte) (string,string,string,string)
-    CheckTxData(txdata []byte,from string,nonce uint64) (string,string,string,interface{},error)
-    DisAcceptMsg(raw string,workid int,key string)
+	GetReplyFromGroup(wid int, gid string, initiator string) []NodeReply
+	GetReqAddrKeyByKey(key string) string
+	GetRawReply(ret *common.SafeMap, reply *RawReply)
+	CheckReply(ac *AcceptReqAddrData, l *list.List, key string) bool
+	DoReq(raw string, workid int, sender string, ch chan interface{}) bool
+	GetGroupSigs(txdata []byte) (string, string, string, string)
+	CheckTxData(txdata []byte, from string, nonce uint64) (string, string, string, interface{}, error)
+	DisAcceptMsg(raw string, workid int, key string)
 }
 
 //-----------------------------------------------------------------------
@@ -121,7 +120,7 @@ func GetChannelValue(t int, obj interface{}) (string, string, error) {
 //----------------------------------------------------------------------------------------
 
 func Encode2(obj interface{}) (string, error) {
-    switch ch := obj.(type) {
+	switch ch := obj.(type) {
 	case *PubKeyData:
 		var buff bytes.Buffer
 		enc := gob.NewEncoder(&buff)
@@ -132,18 +131,18 @@ func Encode2(obj interface{}) (string, error) {
 		}
 		return buff.String(), nil
 	case *AcceptReqAddrData:
-		ret,err := json.Marshal(ch)
+		ret, err := json.Marshal(ch)
 		if err != nil {
-		    return "",err
+			return "", err
 		}
-		return string(ret),nil
+		return string(ret), nil
 	case *AcceptSignData:
 		var buff bytes.Buffer
 		enc := gob.NewEncoder(&buff)
 
 		err1 := enc.Encode(ch)
 		if err1 != nil {
-		    return "", err1
+			return "", err1
 		}
 		return buff.String(), nil
 	case *AcceptReShareData:
@@ -153,7 +152,7 @@ func Encode2(obj interface{}) (string, error) {
 
 		err1 := enc.Encode(ch)
 		if err1 != nil {
-		    return "", err1
+			return "", err1
 		}
 		return buff.String(), nil
 	default:
@@ -182,10 +181,10 @@ func Decode2(s string, datatype string) (interface{}, error) {
 		var m AcceptReqAddrData
 		err := json.Unmarshal([]byte(s), &m)
 		if err != nil {
-		    return nil,err
+			return nil, err
 		}
 
-		return &m,nil
+		return &m, nil
 	}
 
 	if datatype == "AcceptSignData" {
@@ -234,9 +233,9 @@ func Compress(c []byte) (string, error) {
 		return "", err
 	}
 
-	_,err = w.Write(c)
+	_, err = w.Write(c)
 	if err != nil {
-	    return "",err
+		return "", err
 	}
 
 	w.Close()
@@ -260,9 +259,9 @@ func UnCompress(s string) (string, error) {
 	}
 
 	var out bytes.Buffer
-	_,err = io.Copy(&out, r)
+	_, err = io.Copy(&out, r)
 	if err != nil {
-	    return "",err
+		return "", err
 	}
 
 	return out.String(), nil
@@ -279,10 +278,10 @@ func (h SmpcHash) Hex() string { return hexutil.Encode(h[:]) }
 func Keccak256Hash(data ...[]byte) (h SmpcHash) {
 	d := sha3.NewKeccak256()
 	for _, b := range data {
-	    _,err := d.Write(b)
-	    if err != nil {
-		return h 
-	    }
+		_, err := d.Write(b)
+		if err != nil {
+			return h
+		}
 	}
 	d.Sum(h[:0])
 	return h
@@ -294,9 +293,9 @@ func DoubleHash(id string, keytype string) *big.Int {
 	// Generate the random num
 	// First, hash with the keccak256
 	keccak256 := sha3.NewKeccak256()
-	_,err := keccak256.Write([]byte(id))
+	_, err := keccak256.Write([]byte(id))
 	if err != nil {
-	    return nil
+		return nil
 	}
 
 	digestKeccak256 := keccak256.Sum(nil)
@@ -304,23 +303,23 @@ func DoubleHash(id string, keytype string) *big.Int {
 	//second, hash with the SHA3-256
 	sha3256 := sha3.New256()
 
-	_,err = sha3256.Write(digestKeccak256)
+	_, err = sha3256.Write(digestKeccak256)
 	if err != nil {
-	    return nil
+		return nil
 	}
 
 	if keytype == "ED25519" {
-	    var digest [32]byte
-	    copy(digest[:], sha3256.Sum(nil))
+		var digest [32]byte
+		copy(digest[:], sha3256.Sum(nil))
 
-	    //////
-	    var zero [32]byte
-	    var one [32]byte
-	    one[0] = 1
-	    ed.ScMulAdd(&digest, &digest, &one, &zero)
-	    //////
-	    digestBigInt := new(big.Int).SetBytes(digest[:])
-	    return digestBigInt
+		//////
+		var zero [32]byte
+		var one [32]byte
+		one[0] = 1
+		ed.ScMulAdd(&digest, &digest, &one, &zero)
+		//////
+		digestBigInt := new(big.Int).SetBytes(digest[:])
+		return digestBigInt
 	}
 
 	digest := sha3256.Sum(nil)
@@ -345,94 +344,92 @@ func GetIds(keytype string, groupid string) smpclib.SortableIDSSlice {
 //------------------------------------------------------------------------------
 
 func GetTxTypeFromData(txdata []byte) string {
-    if txdata == nil {
+	if txdata == nil {
+		return ""
+	}
+
+	req := TxDataReqAddr{}
+	err := json.Unmarshal(txdata, &req)
+	if err == nil && req.TxType == "REQSMPCADDR" {
+		return "REQSMPCADDR"
+	}
+
+	sig := TxDataSign{}
+	err = json.Unmarshal(txdata, &sig)
+	if err == nil && sig.TxType == "SIGN" {
+		return "SIGN"
+	}
+
+	pre := TxDataPreSignData{}
+	err = json.Unmarshal(txdata, &pre)
+	if err == nil && pre.TxType == "PRESIGNDATA" {
+		return "PRESIGNDATA"
+	}
+
+	rh := TxDataReShare{}
+	err = json.Unmarshal(txdata, &rh)
+	if err == nil && rh.TxType == "RESHARE" {
+		return "RESHARE"
+	}
+
+	acceptreq := TxDataAcceptReqAddr{}
+	err = json.Unmarshal(txdata, &acceptreq)
+	if err == nil && acceptreq.TxType == "ACCEPTREQADDR" {
+		return "ACCEPTREQADDR"
+	}
+
+	acceptsig := TxDataAcceptSign{}
+	err = json.Unmarshal(txdata, &acceptsig)
+	if err == nil && acceptsig.TxType == "ACCEPTSIGN" {
+		return "ACCEPTSIGN"
+	}
+
+	acceptrh := TxDataAcceptReShare{}
+	err = json.Unmarshal(txdata, &acceptrh)
+	if err == nil && acceptrh.TxType == "ACCEPTRESHARE" {
+		return "ACCEPTRESHARE"
+	}
+
 	return ""
-    }
-    
-    req := TxDataReqAddr{}
-    err := json.Unmarshal(txdata, &req)
-    if err == nil && req.TxType == "REQSMPCADDR" {
-	return "REQSMPCADDR"
-    }
-    
-    sig := TxDataSign{}
-    err = json.Unmarshal(txdata, &sig)
-    if err == nil && sig.TxType == "SIGN" {
-	return "SIGN"
-    }
-
-    pre := TxDataPreSignData{}
-    err = json.Unmarshal(txdata, &pre)
-    if err == nil && pre.TxType == "PRESIGNDATA" {
-	return "PRESIGNDATA"
-    }
-
-    rh := TxDataReShare{}
-    err = json.Unmarshal(txdata, &rh)
-    if err == nil && rh.TxType == "RESHARE" {
-	return "RESHARE"
-    }
-
-    acceptreq := TxDataAcceptReqAddr{}
-    err = json.Unmarshal(txdata, &acceptreq)
-    if err == nil && acceptreq.TxType == "ACCEPTREQADDR" {
-	return "ACCEPTREQADDR"
-    }
-
-    acceptsig := TxDataAcceptSign{}
-    err = json.Unmarshal(txdata, &acceptsig)
-    if err == nil && acceptsig.TxType == "ACCEPTSIGN" {
-	return "ACCEPTSIGN"
-    }
-
-    acceptrh := TxDataAcceptReShare{}
-    err = json.Unmarshal(txdata, &acceptrh)
-    if err == nil && acceptrh.TxType == "ACCEPTRESHARE" {
-	return "ACCEPTRESHARE"
-    }
-
-    return ""
 }
 
-func CheckRaw(raw string) (string,string,string,interface{},error) {
-    if raw == "" {
-	return "","","",nil,fmt.Errorf("raw data empty")
-    }
-    
-    tx := new(types.Transaction)
-    raws := common.FromHex(raw)
-    if err := rlp.DecodeBytes(raws, tx); err != nil {
-	    return "","","",nil,err
-    }
+func CheckRaw(raw string) (string, string, string, interface{}, error) {
+	if raw == "" {
+		return "", "", "", nil, fmt.Errorf("raw data empty")
+	}
 
-    signer := types.NewEIP155Signer(big.NewInt(30400)) //
-    from, err := types.Sender(signer, tx)
-    if err != nil {
-	return "", "","",nil,err
-    }
+	tx := new(types.Transaction)
+	raws := common.FromHex(raw)
+	if err := rlp.DecodeBytes(raws, tx); err != nil {
+		return "", "", "", nil, err
+	}
 
-    var smpc_req SmpcReq
-    txtype := GetTxTypeFromData(tx.Data())
-    switch txtype {
+	signer := types.NewEIP155Signer(big.NewInt(30400)) //
+	from, err := types.Sender(signer, tx)
+	if err != nil {
+		return "", "", "", nil, err
+	}
+
+	var smpc_req SmpcReq
+	txtype := GetTxTypeFromData(tx.Data())
+	switch txtype {
 	case "REQSMPCADDR":
-	    smpc_req = &ReqSmpcAddr{}
+		smpc_req = &ReqSmpcAddr{}
 	case "SIGN":
-	    smpc_req = &ReqSmpcSign{}
+		smpc_req = &ReqSmpcSign{}
 	case "PRESIGNDATA":
-	    smpc_req = &ReqSmpcSign{}
+		smpc_req = &ReqSmpcSign{}
 	case "RESHARE":
-	    smpc_req = &ReqSmpcReshare{}
+		smpc_req = &ReqSmpcReshare{}
 	case "ACCEPTREQADDR":
-	    smpc_req = &ReqSmpcAddr{}
-	case "ACCEPTSIGN": 
-	    smpc_req = &ReqSmpcSign{}
-	case "ACCEPTRESHARE": 
-	    smpc_req = &ReqSmpcReshare{}
+		smpc_req = &ReqSmpcAddr{}
+	case "ACCEPTSIGN":
+		smpc_req = &ReqSmpcSign{}
+	case "ACCEPTRESHARE":
+		smpc_req = &ReqSmpcReshare{}
 	default:
-	    return "","","",nil,fmt.Errorf("Unsupported request type")
-    }
+		return "", "", "", nil, fmt.Errorf("Unsupported request type")
+	}
 
-    return smpc_req.CheckTxData(tx.Data(),from.Hex(),tx.Nonce())
+	return smpc_req.CheckTxData(tx.Data(), from.Hex(), tx.Nonce())
 }
-
-

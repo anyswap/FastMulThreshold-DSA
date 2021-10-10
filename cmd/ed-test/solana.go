@@ -10,12 +10,12 @@ import (
 	//"log"
 	"math/big"
 
+	"encoding/hex"
+	"errors"
 	bin "github.com/dfuse-io/binary"
 	"github.com/dfuse-io/solana-go"
 	"github.com/dfuse-io/solana-go/programs/system"
 	"github.com/dfuse-io/solana-go/rpc"
-	"encoding/hex"
-	"errors"
 	//"github.com/agl/ed25519"
 )
 
@@ -26,7 +26,7 @@ func main() {
 func checkError(err error) {
 	if err != nil {
 		//log.Fatal(err)
-		fmt.Printf("=======================checkError, err = %v ========================\n",err)
+		fmt.Printf("=======================checkError, err = %v ========================\n", err)
 	}
 }
 
@@ -126,7 +126,7 @@ func tx_test() {
 	var sig1 [64]byte
 	copy(pk1[:],pk[:])
 	copy(sig1[:],sig[:])
-	
+
 	fmt.Printf("=================== ed sign,sig = %v,pk = %v,msg = %v, msg str = %v ==================\n",sig1,pk1,messageCnt,hex.EncodeToString(messageCnt[:]))
 	suss := ed25519.Verify(&pk1,messageCnt,&sig1)
 	fmt.Printf("=================== ed sign,suss = %v ==================\n",suss)*/
@@ -155,17 +155,17 @@ func PubkeyHexToAddress(pubkeyHex string) (string, error) {
 	return fmt.Sprintf("%s", pub), nil
 }
 
-func PublicKeyFromBytes(in []byte) (out solana.PublicKey) {    
-    byteCount := len(in)    
-    if byteCount == 0 {        
-	return    
-    }
+func PublicKeyFromBytes(in []byte) (out solana.PublicKey) {
+	byteCount := len(in)
+	if byteCount == 0 {
+		return
+	}
 
-    max := 32    
-    if byteCount < max {        
-	max = byteCount    
-    }
+	max := 32
+	if byteCount < max {
+		max = byteCount
+	}
 
-    copy(out[:], in[0:max])    
-    return
+	copy(out[:], in[0:max])
+	return
 }

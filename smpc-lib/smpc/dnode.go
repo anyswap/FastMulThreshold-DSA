@@ -1,4 +1,4 @@
-package smpc 
+package smpc
 
 import (
 	"errors"
@@ -25,11 +25,11 @@ type DNode interface {
 }
 
 type BaseDNode struct {
-	mtx        sync.Mutex
-	rnd        Round
-	Id         string
+	mtx               sync.Mutex
+	rnd               Round
+	Id                string
 	DNodeCountInGroup int
-	ThresHold int
+	ThresHold         int
 	PaillierKeyLength int
 }
 
@@ -73,15 +73,15 @@ func BaseStart(p DNode) error {
 	}
 
 	if p.Finalize() {
-	    round := p.FinalizeRound()
-	    if err := p.setRound(round); err != nil {
-		    return err
-	    }
+		round := p.FinalizeRound()
+		if err := p.setRound(round); err != nil {
+			return err
+		}
 	} else {
-	    round := p.FirstRound()
-	    if err := p.setRound(round); err != nil {
-		    return err
-	    }
+		round := p.FirstRound()
+		if err := p.setRound(round); err != nil {
+			return err
+		}
 	}
 
 	return p.Round().Start()
@@ -90,26 +90,26 @@ func BaseStart(p DNode) error {
 // an implementation of Update that is shared across the different types of parties (keygen, signing, dynamic groups)
 func BaseUpdate(p DNode, msg Message) (ok bool, err error) {
 	p.lock() // data is written to P state below
-	
+
 	if p.Round() != nil {
 		fmt.Printf("DNode %s round %d\n", p.DNodeID(), p.Round().RoundNumber())
 
 		ok, err := p.StoreMessage(msg)
 		if err != nil || !ok {
-		    p.unlock()
-		    return false,err
+			p.unlock()
+			return false, err
 		}
 
 		if _, err := p.Round().Update(); err != nil {
-		    fmt.Printf("=========== BaseUpdate,update err = %v ===========\n",err)
-			p.unlock()                      // recursive so can't defer after return
+			fmt.Printf("=========== BaseUpdate,update err = %v ===========\n", err)
+			p.unlock() // recursive so can't defer after return
 			return false, err
 		}
 
 		if p.Round().CanProceed() {
 			if p.advance(); p.Round() != nil {
 				if err := p.Round().Start(); err != nil {
-					p.unlock()                      // recursive so can't defer after return
+					p.unlock() // recursive so can't defer after return
 					return false, err
 				}
 			} else {
@@ -126,4 +126,3 @@ func BaseUpdate(p DNode, msg Message) (ok bool, err error) {
 	p.unlock()
 	return true, nil
 }
-

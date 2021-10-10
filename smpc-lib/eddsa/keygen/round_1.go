@@ -8,20 +8,20 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	//"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	cryptorand "crypto/rand"
-	"io"
 	"crypto/sha512"
+	"io"
 	//"crypto/ed25519/internal/edwards25519"
 )
 
 func (round *round1) Start() error {
 	if round.started {
-	    fmt.Printf("============ round1 start error,already started============\n")
-	    return errors.New("round already started")
+		fmt.Printf("============ round1 start error,already started============\n")
+		return errors.New("round already started")
 	}
 	round.number = 1
 	round.started = true
 	round.resetOK()
-	
+
 	rand := cryptorand.Reader
 	var seed [32]byte
 
@@ -31,7 +31,7 @@ func (round *round1) Start() error {
 	}
 
 	// 1.2 privateKey' = SHA512(seed)
-	
+
 	var sk [64]byte
 	var pk [32]byte
 
@@ -80,25 +80,25 @@ func (round *round1) Start() error {
 	round.temp.DPk = DPk
 	round.temp.zkPk = zkPk
 
-	index,err := round.GetDNodeIDIndex(round.dnodeid)
+	index, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
-	    fmt.Printf("============round1 start,get dnode id index fail,err = %v ===========\n",err)
-	    return err
+		fmt.Printf("============round1 start,get dnode id index fail,err = %v ===========\n", err)
+		return err
 	}
 
 	kg := &KGRound1Message{
-	    KGRoundMessage:new(KGRoundMessage),
-	    CPk:CPk,
+		KGRoundMessage: new(KGRoundMessage),
+		CPk:            CPk,
 	}
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(index)
 
-	round.Save.Sk = sk 
-	round.Save.Pk = pk 
+	round.Save.Sk = sk
+	round.Save.Pk = pk
 	round.temp.kgRound1Messages[index] = kg
 	round.out <- kg
 
-	fmt.Printf("============ round1 start success,cpk = %v,index = %v ============\n",CPk,index)
+	fmt.Printf("============ round1 start success,cpk = %v,index = %v ============\n", CPk, index)
 	return nil
 }
 
@@ -119,7 +119,7 @@ func (round *round1) Update() (bool, error) {
 		}
 		round.ok[j] = true
 	}
-	
+
 	return true, nil
 }
 
@@ -127,4 +127,3 @@ func (round *round1) NextRound() smpc.Round {
 	round.started = false
 	return &round2{round}
 }
-

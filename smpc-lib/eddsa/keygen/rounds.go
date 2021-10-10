@@ -1,26 +1,26 @@
-package keygen 
+package keygen
 
 import (
+	"encoding/hex"
+	"errors"
+	"fmt"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"math/big"
-	"errors"
 	"sort"
-	"fmt"
-	"encoding/hex"
-    )
+)
 
 type (
 	base struct {
-		Save   *LocalDNodeSaveData 
-		temp    *localTempData
-		out     chan<- smpc.Message 
-		end     chan<- LocalDNodeSaveData
-		ok      []bool
-		started bool
-		number  int
-		dnodeid string
+		Save       *LocalDNodeSaveData
+		temp       *localTempData
+		out        chan<- smpc.Message
+		end        chan<- LocalDNodeSaveData
+		ok         []bool
+		started    bool
+		number     int
+		dnodeid    string
 		dnodecount int
-		threshold int
+		threshold  int
 	}
 	round0 struct {
 		*base
@@ -53,59 +53,59 @@ func (round *base) RoundNumber() int {
 
 func (round *base) CanProceed() bool {
 	if !round.started {
-	    fmt.Printf("=========== round.CanProceed,not start, round.number = %v ============\n",round.number)
+		fmt.Printf("=========== round.CanProceed,not start, round.number = %v ============\n", round.number)
 		return false
 	}
 	for _, ok := range round.ok {
 		if !ok {
-			fmt.Printf("=========== round.CanProceed,not ok, round.number = %v ============\n",round.number)
+			fmt.Printf("=========== round.CanProceed,not ok, round.number = %v ============\n", round.number)
 			return false
 		}
 	}
 	return true
 }
 
-func (round *base) GetIds() (smpc.SortableIDSSlice,error) {
-    var ids smpc.SortableIDSSlice
-    for _,v := range round.temp.kgRound0Messages {
-	uidtmp, _ := hex.DecodeString(v.GetFromID())
-	uid := new(big.Int).SetBytes(uidtmp[:])
-	//uid,ok := new(big.Int).SetString(v.GetFromID(),10)
-	//if !ok {
-	  //  return nil,errors.New("get uid fail")
-	//}
+func (round *base) GetIds() (smpc.SortableIDSSlice, error) {
+	var ids smpc.SortableIDSSlice
+	for _, v := range round.temp.kgRound0Messages {
+		uidtmp, _ := hex.DecodeString(v.GetFromID())
+		uid := new(big.Int).SetBytes(uidtmp[:])
+		//uid,ok := new(big.Int).SetString(v.GetFromID(),10)
+		//if !ok {
+		//  return nil,errors.New("get uid fail")
+		//}
 
-	ids = append(ids, uid)
-    }
-    
-    sort.Sort(ids)
-    return ids,nil
+		ids = append(ids, uid)
+	}
+
+	sort.Sort(ids)
+	return ids, nil
 }
 
-func (round *base) GetDNodeIDIndex(id string) (int,error) {
-    if id == "" || len(round.temp.kgRound0Messages) != round.dnodecount {
-	return -1,nil
-    }
-
-    //idtmp,ok := new(big.Int).SetString(id,10)
-    //if !ok {
-//	return -1,errors.New("get id big number fail.")
-    //}
-
-    ids,err := round.GetIds()
-    if err != nil {
-	return -1,err
-    }
-
-    uidtmp, _ := hex.DecodeString(id)
-    uid := new(big.Int).SetBytes(uidtmp[:])
-    for k,v := range ids {
-	if v.Cmp(uid) == 0 {
-	    return k,nil
+func (round *base) GetDNodeIDIndex(id string) (int, error) {
+	if id == "" || len(round.temp.kgRound0Messages) != round.dnodecount {
+		return -1, nil
 	}
-    }
 
-    return -1,errors.New("get dnode index fail,no found in kgRound0Messages")
+	//idtmp,ok := new(big.Int).SetString(id,10)
+	//if !ok {
+	//	return -1,errors.New("get id big number fail.")
+	//}
+
+	ids, err := round.GetIds()
+	if err != nil {
+		return -1, err
+	}
+
+	uidtmp, _ := hex.DecodeString(id)
+	uid := new(big.Int).SetBytes(uidtmp[:])
+	for k, v := range ids {
+		if v.Cmp(uid) == 0 {
+			return k, nil
+		}
+	}
+
+	return -1, errors.New("get dnode index fail,no found in kgRound0Messages")
 }
 
 func (round *base) resetOK() {
@@ -113,4 +113,3 @@ func (round *base) resetOK() {
 		round.ok[j] = false
 	}
 }
-

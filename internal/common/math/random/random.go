@@ -60,7 +60,7 @@ func GetRandomIntFromZnStar(n *big.Int) *big.Int {
 	return rndNumZnStar
 }
 
-func GetSafeRandomPrimeInt() (*big.Int,*big.Int) {
+func GetSafeRandomPrimeInt() (*big.Int, *big.Int) {
 	var q *big.Int
 	var p *big.Int
 	var err error
@@ -87,6 +87,5 @@ func GetSafeRandomPrimeInt() (*big.Int,*big.Int) {
 		time.Sleep(time.Duration(10000)) //1000 000 000 == 1s
 	}
 
-	return q,p
+	return q, p
 }
-

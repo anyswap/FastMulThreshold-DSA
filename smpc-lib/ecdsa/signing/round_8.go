@@ -1,42 +1,42 @@
-package signing 
+package signing
 
 import (
 	"errors"
 	"fmt"
-	"math/big"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"math/big"
 	//"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 )
 
-func newRound8(temp *localTempData,save *keygen.LocalDNodeSaveData,idsign smpc.SortableIDSSlice,out chan<- smpc.Message,end chan<-PrePubData,kgid string,threshold int,paillierkeylength int,predata *PrePubData,txhash *big.Int,finalize_end chan<- *big.Int) smpc.Round {
-    return &round8{
-		&base{temp,save,idsign,out,end,make([]bool,threshold),false,0,kgid,threshold,paillierkeylength,predata,txhash,finalize_end}}
+func newRound8(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- PrePubData, kgid string, threshold int, paillierkeylength int, predata *PrePubData, txhash *big.Int, finalize_end chan<- *big.Int) smpc.Round {
+	return &round8{
+		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, predata, txhash, finalize_end}}
 }
 
 func (round *round8) Start() error {
 	if round.started {
-	    fmt.Printf("============= round8.start fail =======\n")
-	    return errors.New("round already started")
+		fmt.Printf("============= round8.start fail =======\n")
+		return errors.New("round already started")
 	}
 	round.number = 8
 	round.started = true
 	round.resetOK()
 
-	cur_index,err := round.GetDNodeIDIndex(round.kgid)
+	cur_index, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
-	    return err
+		return err
 	}
 
 	mk1 := new(big.Int).Mul(round.txhash, round.predata.K1)
-	rSigma1 := new(big.Int).Mul(round.predata.R,round.predata.Sigma1)
+	rSigma1 := new(big.Int).Mul(round.predata.R, round.predata.Sigma1)
 	us1 := new(big.Int).Add(mk1, rSigma1)
 	us1 = new(big.Int).Mod(us1, secp256k1.S256().N)
 
 	srm := &SignRound7Message{
-	    SignRoundMessage: new(SignRoundMessage),
-	    Us1:us1,
+		SignRoundMessage: new(SignRoundMessage),
+		Us1:              us1,
 	}
 	srm.SetFromID(round.kgid)
 	srm.SetFromIndex(cur_index)
@@ -44,7 +44,7 @@ func (round *round8) Start() error {
 	round.temp.signRound7Messages[cur_index] = srm
 	round.out <- srm
 
-	fmt.Printf("============= round8.start success, current node id = %v =======\n",round.kgid)
+	fmt.Printf("============= round8.start success, current node id = %v =======\n", round.kgid)
 	return nil
 }
 
@@ -65,13 +65,12 @@ func (round *round8) Update() (bool, error) {
 		}
 		round.ok[j] = true
 	}
-	
+
 	return true, nil
 }
 
 func (round *round8) NextRound() smpc.Round {
-    //fmt.Printf("========= round.next round ========\n")
-    round.started = false
-    return &round9{round}
+	//fmt.Printf("========= round.next round ========\n")
+	round.started = false
+	return &round9{round}
 }
-

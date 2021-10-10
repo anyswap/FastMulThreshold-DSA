@@ -33,13 +33,13 @@ import (
 
 func main() {
 	var (
-		listenAddr    = flag.String("addr", "", "listen address")
-		genKey        = flag.String("genkey", "", "generate a node key")
-		writeAddr     = flag.Bool("writeaddress", false, "write out the node's pubkey hash and quit")
-		nodeKeyFile   = flag.String("nodekey", "", "private key filename")
-		nodeKeyHex    = flag.String("nodekeyhex", "", "private key as hex (for testing)")
-		natdesc       = flag.String("nat", "none", "port mapping mechanism (any|none|upnp|pmp|extip:<IP>)")
-		netrestrict   = flag.String("netrestrict", "", "restrict network communication to the given IP networks (CIDR masks)")
+		listenAddr  = flag.String("addr", "", "listen address")
+		genKey      = flag.String("genkey", "", "generate a node key")
+		writeAddr   = flag.Bool("writeaddress", false, "write out the node's pubkey hash and quit")
+		nodeKeyFile = flag.String("nodekey", "", "private key filename")
+		nodeKeyHex  = flag.String("nodekeyhex", "", "private key as hex (for testing)")
+		natdesc     = flag.String("nat", "none", "port mapping mechanism (any|none|upnp|pmp|extip:<IP>)")
+		netrestrict = flag.String("netrestrict", "", "restrict network communication to the given IP networks (CIDR masks)")
 
 		nodeKey *ecdsa.PrivateKey
 		err     error
@@ -152,4 +152,3 @@ type bootnodeConf struct {
 	Nodekey string
 	Addr    uint
 }
-

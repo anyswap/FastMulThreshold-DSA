@@ -72,4 +72,3 @@ func PrintLogToFile(path string) error {
 	logs.SetLogger("file", string(configStr))
 	return nil
 }
-

@@ -27,9 +27,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/docker/docker/pkg/reexec"
 	"github.com/anyswap/Anyswap-MPCNode/node"
 	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
+	"github.com/docker/docker/pkg/reexec"
 )
 
 var (

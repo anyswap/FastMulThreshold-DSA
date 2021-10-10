@@ -1,40 +1,40 @@
-package reshare 
+package reshare
 
 import (
 	"errors"
 	"fmt"
-	"math/big"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"math/big"
 )
 
 var (
 	zero = big.NewInt(0)
 )
 
-func newRound0(save *keygen.LocalDNodeSaveData, temp *localTempData,out chan<- smpc.Message, end chan<- keygen.LocalDNodeSaveData,dnodeid string,dnodecount int,threshold int,paillierkeylength int,oldnode bool) smpc.Round {
-    return &round0{
-		&base{save,temp,out,end,make([]bool,dnodecount),false,0,dnodeid,dnodecount,threshold,paillierkeylength,oldnode,nil}}
+func newRound0(save *keygen.LocalDNodeSaveData, temp *localTempData, out chan<- smpc.Message, end chan<- keygen.LocalDNodeSaveData, dnodeid string, dnodecount int, threshold int, paillierkeylength int, oldnode bool) smpc.Round {
+	return &round0{
+		&base{save, temp, out, end, make([]bool, dnodecount), false, 0, dnodeid, dnodecount, threshold, paillierkeylength, oldnode, nil}}
 }
 
 func (round *round0) Start() error {
 	if round.started {
-	    fmt.Printf("============= round0.start fail =======\n")
-	    return errors.New("round already started")
+		fmt.Printf("============= round0.start fail =======\n")
+		return errors.New("round already started")
 	}
 	round.number = 0
 	round.started = true
 	round.resetOK()
 
 	re := &ReshareRound0Message{
-	    ReshareRoundMessage: new(ReshareRoundMessage),
+		ReshareRoundMessage: new(ReshareRoundMessage),
 	}
 	re.SetFromID(round.dnodeid)
 	re.SetFromIndex(-1)
 
-	round.temp.reshareRound0Messages = append(round.temp.reshareRound0Messages,re)
+	round.temp.reshareRound0Messages = append(round.temp.reshareRound0Messages, re)
 	round.out <- re
-	fmt.Printf("============= round0.start success, current node id = %v =======\n",round.dnodeid)
+	fmt.Printf("============= round0.start success, current node id = %v =======\n", round.dnodeid)
 	return nil
 }
 
@@ -55,13 +55,12 @@ func (round *round0) Update() (bool, error) {
 		}
 		round.ok[j] = true
 	}
-	
+
 	return true, nil
 }
 
 func (round *round0) NextRound() smpc.Round {
-    //fmt.Printf("========= round.next round ========\n")
-    round.started = false
-    return &round1{round}
+	//fmt.Printf("========= round.next round ========\n")
+	round.started = false
+	return &round1{round}
 }
-

@@ -15,21 +15,21 @@ func (round *round5) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index,err := round.GetDNodeIDIndex(round.dnodeid)
+	cur_index, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
-	    return err
+		return err
 	}
 
 	kg := &KGRound5Message{
-	    KGRoundMessage:new(KGRoundMessage),
-	    CfsBBytes:round.temp.cfsBBytes,
+		KGRoundMessage: new(KGRoundMessage),
+		CfsBBytes:      round.temp.cfsBBytes,
 	}
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(cur_index)
 
 	round.temp.kgRound5Messages[cur_index] = kg
-	round.out <-kg
-	
+	round.out <- kg
+
 	fmt.Printf("========= round5 start success ==========\n")
 	return nil
 }
@@ -58,4 +58,3 @@ func (round *round5) NextRound() smpc.Round {
 	round.started = false
 	return &round6{round}
 }
-

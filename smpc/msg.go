@@ -14,41 +14,41 @@
  *
  */
 
-package smpc 
+package smpc
 
 import (
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
-	"strings"
-	"math/big"
-	"encoding/hex"
-	"fmt"
-	"time"
 	"container/list"
-	"github.com/fsn-dev/cryptoCoins/coins"
 	"crypto/ecdsa"
+	crand "crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"github.com/anyswap/Anyswap-MPCNode/crypto"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/ecies"
-	"strconv"
+	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
+	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
-	crand "crypto/rand"
+	p2psmpc "github.com/anyswap/Anyswap-MPCNode/p2p/layer2"
+	"github.com/fsn-dev/cryptoCoins/coins"
 	"github.com/fsn-dev/cryptoCoins/coins/types"
 	"github.com/fsn-dev/cryptoCoins/tools/rlp"
-	"encoding/json"
-	p2psmpc "github.com/anyswap/Anyswap-MPCNode/p2p/layer2"
+	"math/big"
 	"runtime/debug"
+	"strconv"
+	"strings"
+	"time"
 )
 
 var (
-	ch_t                     = 300 
-	WaitMsgTimeGG20                     = 100
-	waitall                     = ch_t * recalc_times
-	waitallgg20                     = WaitMsgTimeGG20 * recalc_times
-	WaitAgree = 120 // second
-	C1Data = common.NewSafeMap(10)
+	ch_t            = 300
+	WaitMsgTimeGG20 = 100
+	waitall         = ch_t * recalc_times
+	waitallgg20     = WaitMsgTimeGG20 * recalc_times
+	WaitAgree       = 120 // second
+	C1Data          = common.NewSafeMap(10)
 
 	syncpresign = true
-	
+
 	//callback
 	GetGroup               func(string) (int, string)
 	SendToGroupAllNodes    func(string, string) (string, error)
@@ -106,7 +106,7 @@ func SetUpMsgList2(msg string) {
 	}
 }
 
-var parts  = common.NewSafeMap(10)
+var parts = common.NewSafeMap(10)
 
 //smpc node receive specific msg (for example:group info) from p2p by Call2
 func receiveGroupInfo(msg interface{}) {
@@ -126,17 +126,17 @@ func receiveGroupInfo(msg interface{}) {
 	}
 	p, _ := strconv.Atoi(strings.Split(head, "smpcslash")[0])
 	total, _ := strconv.Atoi(strings.Split(head, "smpcslash")[1])
-	parts.WriteMap(strconv.Itoa(p),body)
+	parts.WriteMap(strconv.Itoa(p), body)
 
 	if parts.MapLength() == total {
 		var c string = ""
 		for i := 1; i <= total; i++ {
-			da,exist := parts.ReadMap(strconv.Itoa(i))
+			da, exist := parts.ReadMap(strconv.Itoa(i))
 			if exist {
-			    datmp,ok := da.(string)
-			    if ok {
-				c += datmp
-			    }
+				datmp, ok := da.(string)
+				if ok {
+					c += datmp
+				}
 			}
 		}
 
@@ -148,7 +148,7 @@ func receiveGroupInfo(msg interface{}) {
 
 //init smpc node with the msg receive from group by Call2
 func Init(groupId string) {
-	common.Debug("======================Init==========================","get group id",groupId,"init_times",strconv.Itoa(init_times))
+	common.Debug("======================Init==========================", "get group id", groupId, "init_times", strconv.Itoa(init_times))
 
 	if init_times >= 1 {
 		return
@@ -159,17 +159,17 @@ func Init(groupId string) {
 }
 
 func InitGroupInfo(groupId string) {
-    cur_enode = discover.GetLocalID().String()
+	cur_enode = discover.GetLocalID().String()
 }
 
 //------------------------------------------------------------------------------
 
 //brodcast msg to group
 func SendMsgToSmpcGroup(msg string, groupid string) {
-	common.Debug("=========SendMsgToSmpcGroup=============","msg",msg,"groupid",groupid)
-	_,err := BroadcastInGroupOthers(groupid, msg)
+	common.Debug("=========SendMsgToSmpcGroup=============", "msg", msg, "groupid", groupid)
+	_, err := BroadcastInGroupOthers(groupid, msg)
 	if err != nil {
-	    common.Debug("=========SendMsgToSmpcGroup,send msg to smpc group=============","msg",msg,"groupid",groupid,"err",err)
+		common.Debug("=========SendMsgToSmpcGroup,send msg to smpc group=============", "msg", msg, "groupid", groupid, "err", err)
 	}
 }
 
@@ -224,201 +224,201 @@ func SendMsgToPeer(enodes string, msg string) {
 
 	err = SendToPeer(enodes, cm)
 	if err != nil {
-	    return
+		return
 	}
 }
 
 //-------------------------------------------------------------
 
-func IsReshareCmd(raw string) (bool,string) {
-    if raw == "" {
-	return false,""
-    }
-
-    key,_,_,txdata,err := CheckRaw(raw)
-    if err != nil {
-	return false,""
-    }
-    
-    _,ok := txdata.(*TxDataReShare)
-    if ok {
-	return true,key
-    }
-
-    return false,""
-}
-
-func IsGenKeyCmd(raw string) (bool,string) {
-    if raw == "" {
-	return false,""
-    }
-
-    key,_,_,txdata,err := CheckRaw(raw)
-    if err != nil {
-	return false,""
-    }
-    
-    _,ok := txdata.(*TxDataReqAddr)
-    if ok {
-	return true,key
-    }
-
-    return false,""
-}
-
-func IsPreGenSignData(raw string) (string,bool) {
-    msgmap := make(map[string]string)
-    err := json.Unmarshal([]byte(raw), &msgmap)
-    if err == nil {
-	if msgmap["Type"] == "PreSign" {
-	    sd := &PreSign{}
-	    if err = sd.UnmarshalJSON([]byte(msgmap["SignData"]));err == nil {
-	    return sd.Nonce,true
-	    }
-	}
-    }
-
-    return "",false
-}
-
-func IsEDSignCmd(raw string) (string,bool) {
-    if raw == "" {
-	return "",false
-    }
-
-    key,_,_,txdata,err := CheckRaw(raw)
-    if err != nil {
-	return "",false
-    }
-    
-    sig,ok := txdata.(*TxDataSign)
-    if ok {
-	if sig.Keytype == "ED25519" {
-	    return key,true
+func IsReshareCmd(raw string) (bool, string) {
+	if raw == "" {
+		return false, ""
 	}
 
-	return "",false
-    }
+	key, _, _, txdata, err := CheckRaw(raw)
+	if err != nil {
+		return false, ""
+	}
 
-    return "",false
+	_, ok := txdata.(*TxDataReShare)
+	if ok {
+		return true, key
+	}
+
+	return false, ""
 }
 
-func IsSignDataCmd(raw string) (string,bool) {
-    msgmap := make(map[string]string)
-    err := json.Unmarshal([]byte(raw), &msgmap)
-
-    if err == nil {
-	if msgmap["Type"] == "SignData" {
-	    sd := &SignData{}
-	    if err = sd.UnmarshalJSON([]byte(msgmap["SignData"]));err == nil {
-	    return sd.Key,true
-	    }
+func IsGenKeyCmd(raw string) (bool, string) {
+	if raw == "" {
+		return false, ""
 	}
-    }
 
-    return "",false
+	key, _, _, txdata, err := CheckRaw(raw)
+	if err != nil {
+		return false, ""
+	}
+
+	_, ok := txdata.(*TxDataReqAddr)
+	if ok {
+		return true, key
+	}
+
+	return false, ""
+}
+
+func IsPreGenSignData(raw string) (string, bool) {
+	msgmap := make(map[string]string)
+	err := json.Unmarshal([]byte(raw), &msgmap)
+	if err == nil {
+		if msgmap["Type"] == "PreSign" {
+			sd := &PreSign{}
+			if err = sd.UnmarshalJSON([]byte(msgmap["SignData"])); err == nil {
+				return sd.Nonce, true
+			}
+		}
+	}
+
+	return "", false
+}
+
+func IsEDSignCmd(raw string) (string, bool) {
+	if raw == "" {
+		return "", false
+	}
+
+	key, _, _, txdata, err := CheckRaw(raw)
+	if err != nil {
+		return "", false
+	}
+
+	sig, ok := txdata.(*TxDataSign)
+	if ok {
+		if sig.Keytype == "ED25519" {
+			return key, true
+		}
+
+		return "", false
+	}
+
+	return "", false
+}
+
+func IsSignDataCmd(raw string) (string, bool) {
+	msgmap := make(map[string]string)
+	err := json.Unmarshal([]byte(raw), &msgmap)
+
+	if err == nil {
+		if msgmap["Type"] == "SignData" {
+			sd := &SignData{}
+			if err = sd.UnmarshalJSON([]byte(msgmap["SignData"])); err == nil {
+				return sd.Key, true
+			}
+		}
+	}
+
+	return "", false
 }
 
 func GetCmdKey(msg string) string {
-    if msg == "" {
+	if msg == "" {
+		return ""
+	}
+
+	ok, key := IsGenKeyCmd(msg)
+	if ok {
+		return key
+	}
+
+	ok, key = IsReshareCmd(msg)
+	if ok {
+		return key
+	}
+
+	key, ok = IsPreGenSignData(msg)
+	if ok {
+		return key
+	}
+
+	key, ok = IsEDSignCmd(msg)
+	if ok {
+		return key
+	}
+
+	key, ok = IsSignDataCmd(msg)
+	if ok {
+		return key
+	}
+
 	return ""
-    }
-
-    ok,key := IsGenKeyCmd(msg)
-    if ok {
-	return key
-    }
-
-    ok,key = IsReshareCmd(msg)
-    if ok {
-	return key
-    }
-
-    key,ok = IsPreGenSignData(msg)
-    if ok {
-	return key
-    }
-
-    key,ok = IsEDSignCmd(msg)
-    if ok {
-	return key
-    }
-
-    key,ok = IsSignDataCmd(msg)
-    if ok {
-	return key
-    }
-
-    return ""
 }
 
 //----------------------------------------------------------------------------------------
 
 //receive msg from p2p
 func Call(msg interface{}, enode string) {
-	common.Debug("====================Call===================","get p2p msg ",msg,"sender node",enode)
+	common.Debug("====================Call===================", "get p2p msg ", msg, "sender node", enode)
 	s := msg.(string)
 	if s == "" {
-	    return
+		return
 	}
-	raw,err := UnCompress(s)
+	raw, err := UnCompress(s)
 	if err == nil {
-	    s = raw
+		s = raw
 	}
 	msgdata, errdec := DecryptMsg(s) //for SendMsgToPeer
 	if errdec == nil {
 		s = msgdata
 	}
-	
+
 	msgmap := make(map[string]string)
 	err = json.Unmarshal([]byte(s), &msgmap)
 	if err == nil {
-	    val,ok := msgmap["Key"]
-	    if ok {
-		w, err := FindWorker(val)
-		if err == nil {
-		    if w.DNode != nil && w.DNode.Round() != nil {
-			common.Debug("====================Call, get smpc msg,worker found.===================","key",val,"msg",msg,"sender node",enode)
-			w.SmpcMsg <- s
-		    } else {
-			from := msgmap["FromID"]
-			msgtype := msgmap["Type"]
-			key := strings.ToLower(val + "-" + from + "-" + msgtype)
-			C1Data.WriteMap(key,s)
-			fmt.Printf("===============================Call, pre-save p2p msg, worker found, key = %v,fromId = %v,msgtype = %v, msg = %v========================\n",val,from,msgtype,s)
-		    }
-		} else {
-		    from := msgmap["FromID"]
-		    msgtype := msgmap["Type"]
-		    key := strings.ToLower(val + "-" + from + "-" + msgtype)
-		    C1Data.WriteMap(key,s)
-		    fmt.Printf("===============================Call, pre-save p2p msg, worker not found, key = %v,fromId = %v,msgtype = %v, msg = %v========================\n",val,from,msgtype,s)
-		}
-		
-		return
-	    }
-
-	    if msgmap["Type"] == "SyncPreSign" {
-		sps := &SyncPreSign{}
-		if err = sps.UnmarshalJSON([]byte(msgmap["SyncPreSign"]));err == nil {
-		    w, err := FindWorker(sps.MsgPrex)
-		    if err == nil {
-			if w.msg_syncpresign.Len() < w.ThresHold {
-			    if !Find(w.msg_syncpresign,s) {
-				w.msg_syncpresign.PushBack(s)
-				if w.msg_syncpresign.Len() == w.ThresHold {
-					w.bsyncpresign <- true
+		val, ok := msgmap["Key"]
+		if ok {
+			w, err := FindWorker(val)
+			if err == nil {
+				if w.DNode != nil && w.DNode.Round() != nil {
+					common.Debug("====================Call, get smpc msg,worker found.===================", "key", val, "msg", msg, "sender node", enode)
+					w.SmpcMsg <- s
+				} else {
+					from := msgmap["FromID"]
+					msgtype := msgmap["Type"]
+					key := strings.ToLower(val + "-" + from + "-" + msgtype)
+					C1Data.WriteMap(key, s)
+					fmt.Printf("===============================Call, pre-save p2p msg, worker found, key = %v,fromId = %v,msgtype = %v, msg = %v========================\n", val, from, msgtype, s)
 				}
-			    }
+			} else {
+				from := msgmap["FromID"]
+				msgtype := msgmap["Type"]
+				key := strings.ToLower(val + "-" + from + "-" + msgtype)
+				C1Data.WriteMap(key, s)
+				fmt.Printf("===============================Call, pre-save p2p msg, worker not found, key = %v,fromId = %v,msgtype = %v, msg = %v========================\n", val, from, msgtype, s)
 			}
-		    }
+
+			return
 		}
 
-		return
-	    }
+		if msgmap["Type"] == "SyncPreSign" {
+			sps := &SyncPreSign{}
+			if err = sps.UnmarshalJSON([]byte(msgmap["SyncPreSign"])); err == nil {
+				w, err := FindWorker(sps.MsgPrex)
+				if err == nil {
+					if w.msg_syncpresign.Len() < w.ThresHold {
+						if !Find(w.msg_syncpresign, s) {
+							w.msg_syncpresign.PushBack(s)
+							if w.msg_syncpresign.Len() == w.ThresHold {
+								w.bsyncpresign <- true
+							}
+						}
+					}
+				}
+			}
+
+			return
+		}
 	}
 
-	SetUpMsgList(s,enode)
+	SetUpMsgList(s, enode)
 }
 
 func SetUpMsgList(msg string, enode string) {
@@ -430,7 +430,7 @@ func SetUpMsgList(msg string, enode string) {
 	RPCReqQueue <- req
 }
 
-func SetUpMsgList3(msg string, enode string,rch chan interface{}) {
+func SetUpMsgList3(msg string, enode string, rch chan interface{}) {
 
 	v := RecvMsg{msg: msg, sender: enode}
 	//rpc-req
@@ -441,7 +441,7 @@ func SetUpMsgList3(msg string, enode string,rch chan interface{}) {
 //-----------------------------------------------------------------
 
 type WorkReq interface {
-    Run(workid int, ch chan interface{}) bool
+	Run(workid int, ch chan interface{}) bool
 }
 
 type RecvMsg struct {
@@ -465,13 +465,13 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 
 	msgdata, errdec := DecryptMsg(res) //for SendMsgToPeer
 	if errdec == nil {
-		common.Debug("================RecvMsg.Run, decrypt msg success=================","msg",msgdata)
+		common.Debug("================RecvMsg.Run, decrypt msg success=================", "msg", msgdata)
 		res = msgdata
 	}
-	
+
 	mm := strings.Split(res, common.Sep)
 	if len(mm) >= 3 {
-		common.Debug("================RecvMsg.Run,begin to dis msg =================","res",res)
+		common.Debug("================RecvMsg.Run,begin to dis msg =================", "res", res)
 		//msg:  key-enode:C1:X1:X2....:Xn
 		//msg:  key-enode1:NoReciv:enode2:C1
 		DisMsg(res)
@@ -482,399 +482,399 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 	msgmap := make(map[string]string)
 	err := json.Unmarshal([]byte(res), &msgmap)
 	if err == nil {
-	    if msgmap["Type"] == "SignData" || msgmap["Type"] == "PreSign" || msgmap["Type"] == "ComSignBrocastData" || msgmap["Type"] == "ComSignData" {
-		req = &ReqSmpcSign{}
-		return req.DoReq(res,workid,self.sender,ch)
-	    }
+		if msgmap["Type"] == "SignData" || msgmap["Type"] == "PreSign" || msgmap["Type"] == "ComSignBrocastData" || msgmap["Type"] == "ComSignData" {
+			req = &ReqSmpcSign{}
+			return req.DoReq(res, workid, self.sender, ch)
+		}
 	}
 
-	return (MsgRun(res,workid,self.sender,ch) == nil)
+	return (MsgRun(res, workid, self.sender, ch) == nil)
 }
 
 //---------------------------------------------------------------------------
 
-func Handle(key string,c1data string) {
-    w, err := FindWorker(key)
-    if w == nil || err != nil {
-	return
-    }
-
-    val, exist := C1Data.ReadMap(c1data)
-    if exist {
-	if w.DNode != nil && w.DNode.Round() != nil {
-	    w.SmpcMsg <- val.(string)
-	    go C1Data.DeleteMap(c1data)
+func Handle(key string, c1data string) {
+	w, err := FindWorker(key)
+	if w == nil || err != nil {
+		return
 	}
-    }
+
+	val, exist := C1Data.ReadMap(c1data)
+	if exist {
+		if w.DNode != nil && w.DNode.Round() != nil {
+			w.SmpcMsg <- val.(string)
+			go C1Data.DeleteMap(c1data)
+		}
+	}
 }
 
-func HandleKG(key string,uid *big.Int) {
-    c1data := strings.ToLower(key + "-" + fmt.Sprintf("%v",uid) + "-" + "KGRound0Message")
-    Handle(key,c1data)
-    c1data = strings.ToLower(key + "-" + fmt.Sprintf("%v",uid) + "-" + "KGRound1Message")
-    Handle(key,c1data)
+func HandleKG(key string, uid *big.Int) {
+	c1data := strings.ToLower(key + "-" + fmt.Sprintf("%v", uid) + "-" + "KGRound0Message")
+	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + fmt.Sprintf("%v", uid) + "-" + "KGRound1Message")
+	Handle(key, c1data)
 }
 
-func HandleSign(key string,uid *big.Int) {
-    c1data := strings.ToLower(key + "-" + fmt.Sprintf("%v",uid) + "-" + "SignRound1Message")
-    Handle(key,c1data)
-    c1data = strings.ToLower(key + "-" + fmt.Sprintf("%v",uid) + "-" + "SignRound2Message")
-    Handle(key,c1data)
+func HandleSign(key string, uid *big.Int) {
+	c1data := strings.ToLower(key + "-" + fmt.Sprintf("%v", uid) + "-" + "SignRound1Message")
+	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + fmt.Sprintf("%v", uid) + "-" + "SignRound2Message")
+	Handle(key, c1data)
 }
 
-//C1Data Key, Three formats are included: 
+//C1Data Key, Three formats are included:
 //1.  key-enodefrom, for reshare only, enodefrom get from enodeId
 //2.  key-uid-msgtype, for example: key-uid-"KGRound0Message"
 //3.  key-accout,for accept reply
-func HandleC1Data(ac *AcceptReqAddrData,key string) {
-    w, err := FindWorker(key)
-    if w == nil || err != nil {
-	return
-    }
-
-    //reshare only
-    if ac == nil {
-	exsit,da := GetReShareInfoData([]byte(key))
-	if !exsit {
-	    return
+func HandleC1Data(ac *AcceptReqAddrData, key string) {
+	w, err := FindWorker(key)
+	if w == nil || err != nil {
+		return
 	}
 
-	ac,ok := da.(*AcceptReShareData)
-	if !ok || ac == nil {
-	    return
+	//reshare only
+	if ac == nil {
+		exsit, da := GetReShareInfoData([]byte(key))
+		if !exsit {
+			return
+		}
+
+		ac, ok := da.(*AcceptReShareData)
+		if !ok || ac == nil {
+			return
+		}
+
+		_, enodes := GetGroup(ac.GroupId)
+		nodes := strings.Split(enodes, common.Sep2)
+		for _, node := range nodes {
+			node2 := ParseNode(node)
+			pk := "04" + node2
+			h := coins.NewCryptocoinHandler("FSN")
+			if h == nil {
+				continue
+			}
+
+			fr, err := h.PublicKeyToAddress(pk)
+			if err != nil {
+				continue
+			}
+
+			c1data := strings.ToLower(key + "-" + fr)
+			c1, exist := C1Data.ReadMap(c1data)
+			if exist {
+				DisAcceptMsg(c1.(string), w.id)
+				go C1Data.DeleteMap(c1data)
+			}
+		}
+
+		return
+	}
+	//reshare only
+
+	if key == "" {
+		return
 	}
 
 	_, enodes := GetGroup(ac.GroupId)
 	nodes := strings.Split(enodes, common.Sep2)
+
 	for _, node := range nodes {
-	    node2 := ParseNode(node)
-	    pk := "04" + node2 
-	     h := coins.NewCryptocoinHandler("FSN")
-	     if h == nil {
-		continue
-	     }
-
-	    fr, err := h.PublicKeyToAddress(pk)
-	    if err != nil {
-		continue
-	    }
-
-	    c1data := strings.ToLower(key + "-" + fr)
-	    c1, exist := C1Data.ReadMap(c1data)
-	    if exist {
-		DisAcceptMsg(c1.(string),w.id)
-		go C1Data.DeleteMap(c1data)
-	    }
+		node2 := ParseNode(node)
+		uid := DoubleHash(node2, "EC256K1")
+		HandleKG(key, uid)
+		HandleSign(key, uid)
+		uid = DoubleHash(node2, "ED25519")
+		HandleKG(key, uid)
+		HandleSign(key, uid)
 	}
 
-	return
-    }
-    //reshare only
-
-    if key == "" {
-	return
-    }
-   
-    _, enodes := GetGroup(ac.GroupId)
-    nodes := strings.Split(enodes, common.Sep2)
-    
-    for _, node := range nodes {
-	node2 := ParseNode(node)
-	uid := DoubleHash(node2,"EC256K1")
-	HandleKG(key,uid)
-	HandleSign(key,uid)
-	uid = DoubleHash(node2,"ED25519")
-	HandleKG(key,uid)
-	HandleSign(key,uid)
-    }
-    
-    mms := strings.Split(ac.Sigs, common.Sep)
-    if len(mms) < 3 { //1:enodeid1:account1
-	return
-    }
-
-    count := (len(mms)-1)/2
-    for j := 0;j<count;j++ {
-	from := mms[2*j+2]
-	c1data := strings.ToLower(key + "-" + from)
-	c1, exist := C1Data.ReadMap(c1data)
-	if exist {
-	    DisAcceptMsg(c1.(string),w.id)
-	    go C1Data.DeleteMap(c1data)
+	mms := strings.Split(ac.Sigs, common.Sep)
+	if len(mms) < 3 { //1:enodeid1:account1
+		return
 	}
-    }
+
+	count := (len(mms) - 1) / 2
+	for j := 0; j < count; j++ {
+		from := mms[2*j+2]
+		c1data := strings.ToLower(key + "-" + from)
+		c1, exist := C1Data.ReadMap(c1data)
+		if exist {
+			DisAcceptMsg(c1.(string), w.id)
+			go C1Data.DeleteMap(c1data)
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------------
 
-func GetRawType(raw string) (string,string) {
-    if raw == "" {
-	return "",""
-    }
-    
-    key,from,_,txdata,err := CheckRaw(raw)
-    if err != nil {
-	common.Error("=======================GetRawType,check accept raw data error===================","err",err)
-	return "",""
-    }
+func GetRawType(raw string) (string, string) {
+	if raw == "" {
+		return "", ""
+	}
 
-    _,ok := txdata.(*TxDataReqAddr)
-    if ok {
-	common.Debug("=======================GetRawType,get one accept raw data===================","raw",raw,"key",key,"from",from,"txdata",txdata)
-	return "REQADDR",key
-    }
-    
-    _,ok = txdata.(*TxDataSign)
-    if ok {
-	common.Debug("=======================GetRawType,get one accept raw data===================","raw",raw,"key",key,"from",from,"txdata",txdata)
-	return "SIGN",key
-    }
+	key, from, _, txdata, err := CheckRaw(raw)
+	if err != nil {
+		common.Error("=======================GetRawType,check accept raw data error===================", "err", err)
+		return "", ""
+	}
 
-    _,ok = txdata.(*TxDataReShare)
-    if ok {
-	common.Debug("=======================GetRawType,get one accept raw data===================","raw",raw,"key",key,"from",from,"txdata",txdata)
-	return "RESHARE",key
-    }
-    
-    acceptreq,ok := txdata.(*TxDataAcceptReqAddr)
-    if ok {
-	common.Debug("=======================GetRawType,get one accept raw data===================","raw",raw,"key",acceptreq.Key,"from",from,"txdata",txdata)
-	return "ACCEPTREQADDR",acceptreq.Key
-    }
-    
-    acceptsig,ok := txdata.(*TxDataAcceptSign)
-    if ok {
-	common.Debug("=======================GetRawType,get one accept raw data===================","raw",raw,"key",acceptsig.Key,"from",from,"txdata",txdata)
-	return "ACCEPTSIGN",acceptsig.Key
-    }
-    
-    acceptreshare,ok := txdata.(*TxDataAcceptReShare)
-    if ok {
-	common.Debug("=======================GetRawType,get one accept raw data===================","raw",raw,"key",acceptreshare.Key,"from",from,"txdata",txdata)
-	return "ACCEPTRESHARE",acceptreshare.Key
-    }
+	_, ok := txdata.(*TxDataReqAddr)
+	if ok {
+		common.Debug("=======================GetRawType,get one accept raw data===================", "raw", raw, "key", key, "from", from, "txdata", txdata)
+		return "REQADDR", key
+	}
 
-    return "",""
+	_, ok = txdata.(*TxDataSign)
+	if ok {
+		common.Debug("=======================GetRawType,get one accept raw data===================", "raw", raw, "key", key, "from", from, "txdata", txdata)
+		return "SIGN", key
+	}
+
+	_, ok = txdata.(*TxDataReShare)
+	if ok {
+		common.Debug("=======================GetRawType,get one accept raw data===================", "raw", raw, "key", key, "from", from, "txdata", txdata)
+		return "RESHARE", key
+	}
+
+	acceptreq, ok := txdata.(*TxDataAcceptReqAddr)
+	if ok {
+		common.Debug("=======================GetRawType,get one accept raw data===================", "raw", raw, "key", acceptreq.Key, "from", from, "txdata", txdata)
+		return "ACCEPTREQADDR", acceptreq.Key
+	}
+
+	acceptsig, ok := txdata.(*TxDataAcceptSign)
+	if ok {
+		common.Debug("=======================GetRawType,get one accept raw data===================", "raw", raw, "key", acceptsig.Key, "from", from, "txdata", txdata)
+		return "ACCEPTSIGN", acceptsig.Key
+	}
+
+	acceptreshare, ok := txdata.(*TxDataAcceptReShare)
+	if ok {
+		common.Debug("=======================GetRawType,get one accept raw data===================", "raw", raw, "key", acceptreshare.Key, "from", from, "txdata", txdata)
+		return "ACCEPTRESHARE", acceptreshare.Key
+	}
+
+	return "", ""
 }
 
 //---------------------------------------------------------------------------------
 
-func DisAcceptMsg(raw string,workid int) {
-    defer func() {
-        if r := recover(); r != nil {
-	    fmt.Errorf("DisAcceptMsg Runtime error: %v\n%v", r, string(debug.Stack()))
-	    return
-        }
-    }()
-    
-    if raw == "" || workid < 0 || workid >= len(workers) {
-	return
-    }
+func DisAcceptMsg(raw string, workid int) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Errorf("DisAcceptMsg Runtime error: %v\n%v", r, string(debug.Stack()))
+			return
+		}
+	}()
 
-    var req SmpcReq
-    rawtype,key := GetRawType(raw)
-    switch rawtype {
+	if raw == "" || workid < 0 || workid >= len(workers) {
+		return
+	}
+
+	var req SmpcReq
+	rawtype, key := GetRawType(raw)
+	switch rawtype {
 	case "REQADDR":
-	    req = &ReqSmpcAddr{}
+		req = &ReqSmpcAddr{}
 	case "SIGN":
-	    req = &ReqSmpcSign{}
+		req = &ReqSmpcSign{}
 	case "RESHARE":
-	    req = &ReqSmpcReshare{}
-	case "ACCEPTREQADDR": 
-	    req = &ReqSmpcAddr{}
-	case "ACCEPTSIGN": 
-	    req = &ReqSmpcSign{}
-	case "ACCEPTRESHARE": 
-	    req = &ReqSmpcReshare{}
-    }
-	
-    req.DisAcceptMsg(raw,workid,key)
+		req = &ReqSmpcReshare{}
+	case "ACCEPTREQADDR":
+		req = &ReqSmpcAddr{}
+	case "ACCEPTSIGN":
+		req = &ReqSmpcSign{}
+	case "ACCEPTRESHARE":
+		req = &ReqSmpcReshare{}
+	}
+
+	req.DisAcceptMsg(raw, workid, key)
 }
 
 //------------------------------------------------------------------------------------
 
-func MsgRun(raw string,workid int,sender string,ch chan interface{}) error {
-    if raw == "" || workid < 0 || sender == "" {
-	res := RpcSmpcRes{Ret: "", Tip: "msg run fail.", Err: fmt.Errorf("msg run fail")}
-	ch <- res
-	return fmt.Errorf("msg run fail")
-    }
+func MsgRun(raw string, workid int, sender string, ch chan interface{}) error {
+	if raw == "" || workid < 0 || sender == "" {
+		res := RpcSmpcRes{Ret: "", Tip: "msg run fail.", Err: fmt.Errorf("msg run fail")}
+		ch <- res
+		return fmt.Errorf("msg run fail")
+	}
 
-    var req SmpcReq
-    rawtype,key := GetRawType(raw)
-    switch rawtype {
+	var req SmpcReq
+	rawtype, key := GetRawType(raw)
+	switch rawtype {
 	case "REQADDR":
-	    req = &ReqSmpcAddr{}
+		req = &ReqSmpcAddr{}
 	case "SIGN":
-	    req = &ReqSmpcSign{}
+		req = &ReqSmpcSign{}
 	case "RESHARE":
-	    req = &ReqSmpcReshare{}
-	case "ACCEPTREQADDR": 
-	    req = &ReqSmpcAddr{}
-	case "ACCEPTSIGN": 
-	    req = &ReqSmpcSign{}
-	case "ACCEPTRESHARE": 
-	    req = &ReqSmpcReshare{}
+		req = &ReqSmpcReshare{}
+	case "ACCEPTREQADDR":
+		req = &ReqSmpcAddr{}
+	case "ACCEPTSIGN":
+		req = &ReqSmpcSign{}
+	case "ACCEPTRESHARE":
+		req = &ReqSmpcReshare{}
 	default:
-	    return fmt.Errorf("Unsupported request type")
-    }
-    
-    common.Info("=====================MsgRun,get result from GetRawType ================","key",key,"raw",raw)
-    if !req.DoReq(raw,workid,sender,ch) {
-	return fmt.Errorf("msg run fail")
-    }
+		return fmt.Errorf("Unsupported request type")
+	}
 
-    return nil
+	common.Info("=====================MsgRun,get result from GetRawType ================", "key", key, "raw", raw)
+	if !req.DoReq(raw, workid, sender, ch) {
+		return fmt.Errorf("msg run fail")
+	}
+
+	return nil
 }
 
 //------------------------------------------------------------------------------------
 
-func GetGroupSigsDataByRaw(raw string) (string,error) {
-    if raw == "" {
-	return "",fmt.Errorf("raw data empty")
-    }
-    
-    tx := new(types.Transaction)
-    raws := common.FromHex(raw)
-    if err := rlp.DecodeBytes(raws, tx); err != nil {
-	    return "",err
-    }
-
-    signer := types.NewEIP155Signer(big.NewInt(30400)) //
-    _, err := types.Sender(signer, tx)
-    if err != nil {
-	return "",err
-    }
-
-    var threshold string
-    var mode string
-    var groupsigs string
-    var groupid string
-
-    var req2 SmpcReq
-    req := TxDataReqAddr{}
-    err = json.Unmarshal(tx.Data(), &req)
-    if err == nil && req.TxType == "REQSMPCADDR" {
-	req2 = &ReqSmpcAddr{}
-    } else {
-	rh := TxDataReShare{}
-	err = json.Unmarshal(tx.Data(), &rh)
-	if err == nil && rh.TxType == "RESHARE" {
-	    req2 = &ReqSmpcReshare{}
+func GetGroupSigsDataByRaw(raw string) (string, error) {
+	if raw == "" {
+		return "", fmt.Errorf("raw data empty")
 	}
-    }
-    
-    if req2 != nil {
-	threshold,mode,groupsigs,groupid = req2.GetGroupSigs(tx.Data()) 
-    }
 
-    if threshold == "" || mode == "" || groupid == "" {
-	return "",fmt.Errorf("raw data error,it is not REQSMPCADDR tx or RESHARE tx")
-    }
-
-    if mode == "1" {
-	return "",nil
-    }
-
-    if mode == "0" && groupsigs == "" {
-	return "",fmt.Errorf("raw data error,must have sigs data when mode = 0")
-    }
-
-    nums := strings.Split(threshold, "/")
-    nodecnt, _ := strconv.Atoi(nums[1])
-    if nodecnt <= 1 {
-	return "",fmt.Errorf("threshold error")
-    }
-
-    sigs := strings.Split(groupsigs,"|")
-    //SigN = enode://xxxxxxxx@ip:portxxxxxxxxxxxxxxxxxxxxxx
-    _, enodes := GetGroup(groupid)
-    nodes := strings.Split(enodes, common.Sep2)
-    if nodecnt != len(sigs) {
-	fmt.Printf("============================GetGroupSigsDataByRaw,nodecnt = %v,common.Sep2 = %v,enodes = %v,groupid = %v,sigs len = %v,groupsigs = %v========================\n",nodecnt,common.Sep2,enodes,groupid,len(sigs),groupsigs)
-	return "",fmt.Errorf("group sigs error")
-    }
-
-    sstmp := strconv.Itoa(nodecnt)
-    for j := 0; j < nodecnt; j++ {
-	en := strings.Split(sigs[j], "@")
-	for _, node := range nodes {
-	    node2 := ParseNode(node)
-	    enId := strings.Split(en[0],"//")
-	    if len(enId) < 2 {
-		fmt.Printf("==========================GetGroupSigsDataByRaw,len enid = %v========================\n",len(enId))
-		return "",fmt.Errorf("group sigs error")
-	    }
-
-	    if strings.EqualFold(node2, enId[1]) {
-		enodesigs := []rune(sigs[j])
-		if len(enodesigs) <= len(node) {
-		    fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v========================\n",node,enodesigs,len(node),len(enodesigs),enodes,groupsigs)
-		    return "",fmt.Errorf("group sigs error")
-		}
-
-		sig := enodesigs[len(node):]
-		//sigbit, _ := hex.DecodeString(string(sig[:]))
-		sigbit := common.FromHex(string(sig[:]))
-		if sigbit == nil {
-		    fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v,sig = %v========================\n",node,enodesigs,len(node),len(enodesigs),enodes,groupsigs,sig)
-		    return "",fmt.Errorf("group sigs error")
-		}
-
-		pub,err := secp256k1.RecoverPubkey(crypto.Keccak256([]byte(node2)),sigbit)
-		if err != nil {
-		    fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v,sig = %v,err = %v========================\n",node,enodesigs,len(node),len(enodesigs),enodes,groupsigs,sig,err)
-		    return "",err
-		}
-		
-		h := coins.NewCryptocoinHandler("FSN")
-		if h != nil {
-		    pubkey := hex.EncodeToString(pub)
-		    from, err := h.PublicKeyToAddress(pubkey)
-		    if err != nil {
-			fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v,sig = %v,err = %v, pubkey = %v========================\n",node,enodesigs,len(node),len(enodesigs),enodes,groupsigs,sig,err,pubkey)
-			return "",err
-		    }
-		    
-		    //5:eid1:acc1:eid2:acc2:eid3:acc3:eid4:acc4:eid5:acc5
-		    sstmp += common.Sep
-		    sstmp += node2
-		    sstmp += common.Sep
-		    sstmp += from
-		}
-	    }
+	tx := new(types.Transaction)
+	raws := common.FromHex(raw)
+	if err := rlp.DecodeBytes(raws, tx); err != nil {
+		return "", err
 	}
-    }
 
-    tmps := strings.Split(sstmp,common.Sep)
-    if len(tmps) == (2*nodecnt + 1) {
-	return sstmp,nil
-    }
+	signer := types.NewEIP155Signer(big.NewInt(30400)) //
+	_, err := types.Sender(signer, tx)
+	if err != nil {
+		return "", err
+	}
 
-    return "",fmt.Errorf("group sigs error")
+	var threshold string
+	var mode string
+	var groupsigs string
+	var groupid string
+
+	var req2 SmpcReq
+	req := TxDataReqAddr{}
+	err = json.Unmarshal(tx.Data(), &req)
+	if err == nil && req.TxType == "REQSMPCADDR" {
+		req2 = &ReqSmpcAddr{}
+	} else {
+		rh := TxDataReShare{}
+		err = json.Unmarshal(tx.Data(), &rh)
+		if err == nil && rh.TxType == "RESHARE" {
+			req2 = &ReqSmpcReshare{}
+		}
+	}
+
+	if req2 != nil {
+		threshold, mode, groupsigs, groupid = req2.GetGroupSigs(tx.Data())
+	}
+
+	if threshold == "" || mode == "" || groupid == "" {
+		return "", fmt.Errorf("raw data error,it is not REQSMPCADDR tx or RESHARE tx")
+	}
+
+	if mode == "1" {
+		return "", nil
+	}
+
+	if mode == "0" && groupsigs == "" {
+		return "", fmt.Errorf("raw data error,must have sigs data when mode = 0")
+	}
+
+	nums := strings.Split(threshold, "/")
+	nodecnt, _ := strconv.Atoi(nums[1])
+	if nodecnt <= 1 {
+		return "", fmt.Errorf("threshold error")
+	}
+
+	sigs := strings.Split(groupsigs, "|")
+	//SigN = enode://xxxxxxxx@ip:portxxxxxxxxxxxxxxxxxxxxxx
+	_, enodes := GetGroup(groupid)
+	nodes := strings.Split(enodes, common.Sep2)
+	if nodecnt != len(sigs) {
+		fmt.Printf("============================GetGroupSigsDataByRaw,nodecnt = %v,common.Sep2 = %v,enodes = %v,groupid = %v,sigs len = %v,groupsigs = %v========================\n", nodecnt, common.Sep2, enodes, groupid, len(sigs), groupsigs)
+		return "", fmt.Errorf("group sigs error")
+	}
+
+	sstmp := strconv.Itoa(nodecnt)
+	for j := 0; j < nodecnt; j++ {
+		en := strings.Split(sigs[j], "@")
+		for _, node := range nodes {
+			node2 := ParseNode(node)
+			enId := strings.Split(en[0], "//")
+			if len(enId) < 2 {
+				fmt.Printf("==========================GetGroupSigsDataByRaw,len enid = %v========================\n", len(enId))
+				return "", fmt.Errorf("group sigs error")
+			}
+
+			if strings.EqualFold(node2, enId[1]) {
+				enodesigs := []rune(sigs[j])
+				if len(enodesigs) <= len(node) {
+					fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v========================\n", node, enodesigs, len(node), len(enodesigs), enodes, groupsigs)
+					return "", fmt.Errorf("group sigs error")
+				}
+
+				sig := enodesigs[len(node):]
+				//sigbit, _ := hex.DecodeString(string(sig[:]))
+				sigbit := common.FromHex(string(sig[:]))
+				if sigbit == nil {
+					fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v,sig = %v========================\n", node, enodesigs, len(node), len(enodesigs), enodes, groupsigs, sig)
+					return "", fmt.Errorf("group sigs error")
+				}
+
+				pub, err := secp256k1.RecoverPubkey(crypto.Keccak256([]byte(node2)), sigbit)
+				if err != nil {
+					fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v,sig = %v,err = %v========================\n", node, enodesigs, len(node), len(enodesigs), enodes, groupsigs, sig, err)
+					return "", err
+				}
+
+				h := coins.NewCryptocoinHandler("FSN")
+				if h != nil {
+					pubkey := hex.EncodeToString(pub)
+					from, err := h.PublicKeyToAddress(pubkey)
+					if err != nil {
+						fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v,sig = %v,err = %v, pubkey = %v========================\n", node, enodesigs, len(node), len(enodesigs), enodes, groupsigs, sig, err, pubkey)
+						return "", err
+					}
+
+					//5:eid1:acc1:eid2:acc2:eid3:acc3:eid4:acc4:eid5:acc5
+					sstmp += common.Sep
+					sstmp += node2
+					sstmp += common.Sep
+					sstmp += from
+				}
+			}
+		}
+	}
+
+	tmps := strings.Split(sstmp, common.Sep)
+	if len(tmps) == (2*nodecnt + 1) {
+		return sstmp, nil
+	}
+
+	return "", fmt.Errorf("group sigs error")
 }
 
 //--------------------------------------------------------------------------------
 
 func CheckGroupEnode(gid string) bool {
-    if gid == "" {
-	return false
-    }
-
-    groupenode := make(map[string]bool)
-    _, enodes := GetGroup(gid)
-    nodes := strings.Split(enodes, common.Sep2)
-    for _, node := range nodes {
-	node2 := ParseNode(node)
-	_, ok := groupenode[strings.ToLower(node2)]
-	if ok {
-	    return false
+	if gid == "" {
+		return false
 	}
 
-	groupenode[strings.ToLower(node2)] = true
-    }
+	groupenode := make(map[string]bool)
+	_, enodes := GetGroup(gid)
+	nodes := strings.Split(enodes, common.Sep2)
+	for _, node := range nodes {
+		node2 := ParseNode(node)
+		_, ok := groupenode[strings.ToLower(node2)]
+		if ok {
+			return false
+		}
 
-    return true
+		groupenode[strings.ToLower(node2)] = true
+	}
+
+	return true
 }
 
 //------------------------------------------------------------------------------
@@ -884,34 +884,34 @@ func CheckGroupEnode(gid string) bool {
 func DisMsg(msg string) {
 
 	defer func() {
-	    if r := recover(); r != nil {
-		fmt.Errorf("DisMsg Runtime error: %v\n%v", r, string(debug.Stack()))
-		return
-	    }
+		if r := recover(); r != nil {
+			fmt.Errorf("DisMsg Runtime error: %v\n%v", r, string(debug.Stack()))
+			return
+		}
 	}()
 
 	mm := strings.Split(msg, common.Sep)
 	if len(mm) < 3 {
-		common.Debug("======================DisMsg, < 3 for CHECKPUBKEYSTATUS================","msg",msg,"common.Sep",common.Sep,"mm len",len(mm))
+		common.Debug("======================DisMsg, < 3 for CHECKPUBKEYSTATUS================", "msg", msg, "common.Sep", common.Sep, "mm len", len(mm))
 		return
 	}
 
 	mms := mm[0]
 	prexs := strings.Split(mms, "-")
 	if len(prexs) < 2 {
-		common.Debug("======================DisMsg, < 2 for CHECKPUBKEYSTATUS================","msg",msg,"mms",mms,"prexs len",len(prexs))
+		common.Debug("======================DisMsg, < 2 for CHECKPUBKEYSTATUS================", "msg", msg, "mms", mms, "prexs len", len(prexs))
 		return
 	}
 
 	//msg:  hash-enode:C1:X1:X2
 	w, err := FindWorker(prexs[0])
 	if err != nil || w == nil {
-	    mmtmp := mm[0:2]
-	    ss := strings.ToLower(strings.Join(mmtmp, common.Sep))
-	    common.Debug("===============DisMsg,pre-save the p2p msg=============","ss",ss,"msg",msg,"key",prexs[0])
-	    C1Data.WriteMap(ss,msg)
+		mmtmp := mm[0:2]
+		ss := strings.ToLower(strings.Join(mmtmp, common.Sep))
+		common.Debug("===============DisMsg,pre-save the p2p msg=============", "ss", ss, "msg", msg, "key", prexs[0])
+		C1Data.WriteMap(ss, msg)
 
-	    return
+		return
 	}
 
 	msgCode := mm[1]
@@ -927,9 +927,9 @@ func DisMsg(msg string) {
 		}
 
 		w.msg_c1.PushBack(msg)
-		common.Debug("======================DisMsg, after pushback================","w.msg_c1 len",w.msg_c1.Len(),"w.NodeCnt",w.NodeCnt,"key",prexs[0])
+		common.Debug("======================DisMsg, after pushback================", "w.msg_c1 len", w.msg_c1.Len(), "w.NodeCnt", w.NodeCnt, "key", prexs[0])
 		if w.msg_c1.Len() == w.NodeCnt {
-			common.Debug("======================DisMsg, Get All C1==================","w.msg_c1 len",w.msg_c1.Len(),"w.NodeCnt",w.NodeCnt,"key",prexs[0])
+			common.Debug("======================DisMsg, Get All C1==================", "w.msg_c1 len", w.msg_c1.Len(), "w.NodeCnt", w.NodeCnt, "key", prexs[0])
 			w.bc1 <- true
 		}
 	case "BIP32C1":
@@ -962,7 +962,7 @@ func DisMsg(msg string) {
 		}
 	case "SHARE1":
 		///bug
-		if w.msg_share1.Len() >= (w.NodeCnt-1) {
+		if w.msg_share1.Len() >= (w.NodeCnt - 1) {
 			return
 		}
 		///
@@ -971,7 +971,7 @@ func DisMsg(msg string) {
 		}
 
 		w.msg_share1.PushBack(msg)
-		if w.msg_share1.Len() == (w.NodeCnt-1) {
+		if w.msg_share1.Len() == (w.NodeCnt - 1) {
 			w.bshare1 <- true
 		}
 	//case "ZKFACTPROOF":
@@ -1005,7 +1005,7 @@ func DisMsg(msg string) {
 		}
 	case "MTAZK1PROOF":
 		///bug
-		if w.msg_mtazk1proof.Len() >= (w.ThresHold-1) {
+		if w.msg_mtazk1proof.Len() >= (w.ThresHold - 1) {
 			return
 		}
 		///
@@ -1014,8 +1014,8 @@ func DisMsg(msg string) {
 		}
 
 		w.msg_mtazk1proof.PushBack(msg)
-		if w.msg_mtazk1proof.Len() == (w.ThresHold-1) {
-			common.Debug("=====================Get All MTAZK1PROOF====================","key",prexs[0])
+		if w.msg_mtazk1proof.Len() == (w.ThresHold - 1) {
+			common.Debug("=====================Get All MTAZK1PROOF====================", "key", prexs[0])
 			w.bmtazk1proof <- true
 		}
 		//sign
@@ -1029,10 +1029,10 @@ func DisMsg(msg string) {
 			return
 		}
 
-		common.Debug("=====================Get C11====================","msg",msg,"key",prexs[0])
+		common.Debug("=====================Get C11====================", "msg", msg, "key", prexs[0])
 		w.msg_c11.PushBack(msg)
 		if w.msg_c11.Len() == w.ThresHold {
-			common.Debug("=====================Get All C11====================","key",prexs[0])
+			common.Debug("=====================Get All C11====================", "key", prexs[0])
 			w.bc11 <- true
 		}
 	case "KC":
@@ -1047,12 +1047,12 @@ func DisMsg(msg string) {
 
 		w.msg_kc.PushBack(msg)
 		if w.msg_kc.Len() == w.ThresHold {
-			common.Debug("=====================Get All KC====================","key",prexs[0])
+			common.Debug("=====================Get All KC====================", "key", prexs[0])
 			w.bkc <- true
 		}
 	case "MKG":
 		///bug
-		if w.msg_mkg.Len() >= (w.ThresHold-1) {
+		if w.msg_mkg.Len() >= (w.ThresHold - 1) {
 			return
 		}
 		///
@@ -1061,13 +1061,13 @@ func DisMsg(msg string) {
 		}
 
 		w.msg_mkg.PushBack(msg)
-		if w.msg_mkg.Len() == (w.ThresHold-1) {
-			common.Debug("=====================Get All MKG====================","key",prexs[0])
+		if w.msg_mkg.Len() == (w.ThresHold - 1) {
+			common.Debug("=====================Get All MKG====================", "key", prexs[0])
 			w.bmkg <- true
 		}
 	case "MKW":
 		///bug
-		if w.msg_mkw.Len() >= (w.ThresHold-1) {
+		if w.msg_mkw.Len() >= (w.ThresHold - 1) {
 			return
 		}
 		///
@@ -1076,8 +1076,8 @@ func DisMsg(msg string) {
 		}
 
 		w.msg_mkw.PushBack(msg)
-		if w.msg_mkw.Len() == (w.ThresHold-1) {
-			common.Debug("=====================Get All MKW====================","key",prexs[0])
+		if w.msg_mkw.Len() == (w.ThresHold - 1) {
+			common.Debug("=====================Get All MKW====================", "key", prexs[0])
 			w.bmkw <- true
 		}
 	case "DELTA1":
@@ -1092,7 +1092,7 @@ func DisMsg(msg string) {
 
 		w.msg_delta1.PushBack(msg)
 		if w.msg_delta1.Len() == w.ThresHold {
-			common.Debug("=====================Get All DELTA1====================","key",prexs[0])
+			common.Debug("=====================Get All DELTA1====================", "key", prexs[0])
 			w.bdelta1 <- true
 		}
 	case "D11":
@@ -1107,7 +1107,7 @@ func DisMsg(msg string) {
 
 		w.msg_d11_1.PushBack(msg)
 		if w.msg_d11_1.Len() == w.ThresHold {
-			common.Debug("=====================Get All D11====================","key",prexs[0])
+			common.Debug("=====================Get All D11====================", "key", prexs[0])
 			w.bd11_1 <- true
 		}
 	case "CommitBigVAB":
@@ -1122,7 +1122,7 @@ func DisMsg(msg string) {
 
 		w.msg_commitbigvab.PushBack(msg)
 		if w.msg_commitbigvab.Len() == w.ThresHold {
-			common.Debug("=====================Get All CommitBigVAB====================","key",prexs[0])
+			common.Debug("=====================Get All CommitBigVAB====================", "key", prexs[0])
 			w.bcommitbigvab <- true
 		}
 	case "ZKABPROOF":
@@ -1137,7 +1137,7 @@ func DisMsg(msg string) {
 
 		w.msg_zkabproof.PushBack(msg)
 		if w.msg_zkabproof.Len() == w.ThresHold {
-			common.Debug("=====================Get All ZKABPROOF====================","key",prexs[0])
+			common.Debug("=====================Get All ZKABPROOF====================", "key", prexs[0])
 			w.bzkabproof <- true
 		}
 	case "CommitBigUT":
@@ -1152,7 +1152,7 @@ func DisMsg(msg string) {
 
 		w.msg_commitbigut.PushBack(msg)
 		if w.msg_commitbigut.Len() == w.ThresHold {
-			common.Debug("=====================Get All CommitBigUT====================","key",prexs[0])
+			common.Debug("=====================Get All CommitBigUT====================", "key", prexs[0])
 			w.bcommitbigut <- true
 		}
 	case "CommitBigUTD11":
@@ -1167,7 +1167,7 @@ func DisMsg(msg string) {
 
 		w.msg_commitbigutd11.PushBack(msg)
 		if w.msg_commitbigutd11.Len() == w.ThresHold {
-			common.Debug("=====================Get All CommitBigUTD11====================","key",prexs[0])
+			common.Debug("=====================Get All CommitBigUTD11====================", "key", prexs[0])
 			w.bcommitbigutd11 <- true
 		}
 	case "SS1":
@@ -1182,7 +1182,7 @@ func DisMsg(msg string) {
 
 		w.msg_ss1.PushBack(msg)
 		if w.msg_ss1.Len() == w.ThresHold {
-			common.Info("=====================Get All SS1====================","key",prexs[0])
+			common.Info("=====================Get All SS1====================", "key", prexs[0])
 			w.bss1 <- true
 		}
 	case "PaillierKey":
@@ -1197,10 +1197,9 @@ func DisMsg(msg string) {
 
 		w.msg_paillierkey.PushBack(msg)
 		if w.msg_paillierkey.Len() == w.NodeCnt {
-			common.Debug("=====================Get All PaillierKey====================","key",prexs[0])
+			common.Debug("=====================Get All PaillierKey====================", "key", prexs[0])
 			w.bpaillierkey <- true
 		}
-
 
 	//////////////////ed
 	case "EDC11":
@@ -1247,7 +1246,7 @@ func DisMsg(msg string) {
 		}
 	case "EDSHARE1":
 		///bug
-		if w.msg_edshare1.Len() >= (w.NodeCnt-1) {
+		if w.msg_edshare1.Len() >= (w.NodeCnt - 1) {
 			return
 		}
 		///
@@ -1256,7 +1255,7 @@ func DisMsg(msg string) {
 		}
 
 		w.msg_edshare1.PushBack(msg)
-		if w.msg_edshare1.Len() == (w.NodeCnt-1) {
+		if w.msg_edshare1.Len() == (w.NodeCnt - 1) {
 			w.bedshare1 <- true
 		}
 	case "EDCFSB":
@@ -1394,21 +1393,20 @@ func Find(l *list.List, msg string) bool {
 //--------------------------------------------------------------------------------
 
 func testEq(a, b []string) bool {
-    // If one is nil, the other must also be nil.
-    if (a == nil) != (b == nil) {
-        return false;
-    }
+	// If one is nil, the other must also be nil.
+	if (a == nil) != (b == nil) {
+		return false
+	}
 
-    if len(a) != len(b) {
-        return false
-    }
+	if len(a) != len(b) {
+		return false
+	}
 
-    for i := range a {
-	if !strings.EqualFold(a[i],b[i]) {
-            return false
-        }
-    }
+	for i := range a {
+		if !strings.EqualFold(a[i], b[i]) {
+			return false
+		}
+	}
 
-    return true
+	return true
 }
-

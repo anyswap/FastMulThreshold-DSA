@@ -263,4 +263,3 @@ type debExecutable struct {
 	BinaryName  string
 	Description string
 }
-

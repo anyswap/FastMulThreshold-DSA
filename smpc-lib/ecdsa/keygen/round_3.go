@@ -14,23 +14,23 @@ func (round *round3) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index,err := round.GetDNodeIDIndex(round.dnodeid)
+	cur_index, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
-	    return err
+		return err
 	}
 
 	kg := &KGRound3Message{
-	    KGRoundMessage:new(KGRoundMessage),
-	    ComU1GD:round.temp.commitU1G.D,
-	    ComC1GD:round.temp.commitC1G.D,
-	    U1PolyGG:round.temp.u1PolyG.PolyG,
+		KGRoundMessage: new(KGRoundMessage),
+		ComU1GD:        round.temp.commitU1G.D,
+		ComC1GD:        round.temp.commitC1G.D,
+		U1PolyGG:       round.temp.u1PolyG.PolyG,
 	}
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(cur_index)
 	round.temp.kgRound3Messages[cur_index] = kg
-	round.out <-kg
+	round.out <- kg
 
-	fmt.Printf("========= round3 start success, u1polygg = %v, k = %v ==========\n",round.temp.u1PolyG.PolyG,cur_index)
+	fmt.Printf("========= round3 start success, u1polygg = %v, k = %v ==========\n", round.temp.u1PolyG.PolyG, cur_index)
 	return nil
 }
 
@@ -58,4 +58,3 @@ func (round *round3) NextRound() smpc.Round {
 	round.started = false
 	return &round4{round}
 }
-

@@ -15,51 +15,51 @@ func (round *round6) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index,err := round.GetDNodeIDIndex(round.dnodeid)
+	cur_index, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
-	    return err
+		return err
 	}
 
-	ids,err := round.GetIds()
+	ids, err := round.GetIds()
 	if err != nil {
-	    return errors.New("round.Start get ids fail.")
+		return errors.New("round.Start get ids fail.")
 	}
 
-	for k,_ := range ids {
-	    msg3,ok := round.temp.kgRound3Messages[k].(*KGRound3Message)
-	    if !ok {
-		return errors.New("round.Start get round3 msg fail")
-	    }
-	   
-	    //verify commitment
-	    msg1,ok := round.temp.kgRound1Messages[k].(*KGRound1Message)
-	    if !ok {
-		return errors.New("round.Start get round1 msg fail")
-	    }
-	    
-	    deCommit := &ec2.Commitment{C: msg1.ComC, D: msg3.ComU1GD}
-	    _, u1G := deCommit.DeCommit()
-	    msg5,ok := round.temp.kgRound5Messages[k].(*KGRound5Message)
-	    if !ok {
-		return errors.New("round.Start get round5 msg fail")
-	    }
-	    
-	    if !ec2.ZkUVerify(u1G,msg5.U1zkUProof) {
-		fmt.Printf("========= round6 verify zku fail, k = %v ==========\n",k)
-		return errors.New("verify zku fail.")
-	    }
+	for k := range ids {
+		msg3, ok := round.temp.kgRound3Messages[k].(*KGRound3Message)
+		if !ok {
+			return errors.New("round.Start get round3 msg fail")
+		}
+
+		//verify commitment
+		msg1, ok := round.temp.kgRound1Messages[k].(*KGRound1Message)
+		if !ok {
+			return errors.New("round.Start get round1 msg fail")
+		}
+
+		deCommit := &ec2.Commitment{C: msg1.ComC, D: msg3.ComU1GD}
+		_, u1G := deCommit.DeCommit()
+		msg5, ok := round.temp.kgRound5Messages[k].(*KGRound5Message)
+		if !ok {
+			return errors.New("round.Start get round5 msg fail")
+		}
+
+		if !ec2.ZkUVerify(u1G, msg5.U1zkUProof) {
+			fmt.Printf("========= round6 verify zku fail, k = %v ==========\n", k)
+			return errors.New("verify zku fail.")
+		}
 	}
 
 	kg := &KGRound6Message{
-	    KGRoundMessage:new(KGRoundMessage),
-	    Check_Pubkey_Status:true,
+		KGRoundMessage:      new(KGRoundMessage),
+		Check_Pubkey_Status: true,
 	}
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(cur_index)
 
 	round.temp.kgRound6Messages[cur_index] = kg
-	round.out <-kg
-	
+	round.out <- kg
+
 	fmt.Printf("========= round6 start success ==========\n")
 	return nil
 }
@@ -88,4 +88,3 @@ func (round *round6) NextRound() smpc.Round {
 	round.started = false
 	return &round7{round}
 }
-

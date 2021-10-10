@@ -37,13 +37,13 @@ const (
 	writePauseWarningThrottler = 1 * time.Minute
 )
 
-var OpenFileLimit = 1024 
+var OpenFileLimit = 1024
 
 type LDBDatabase struct {
 	fn string      // filename for reporting
 	db *leveldb.DB // LevelDB instance
 
-	quitLock sync.Mutex      // Mutex protecting the quit channel access
+	quitLock sync.Mutex // Mutex protecting the quit channel access
 
 }
 
@@ -289,7 +289,7 @@ func (db *LDBDatabase) meter(refresh time.Duration) {
 
 		// Sleep a bit, then repeat the stats collection
 		select {
-			// Quit requesting, stop hammering the database
+		// Quit requesting, stop hammering the database
 		case <-time.After(refresh):
 			// Timeout, gather a new set of stats
 		}

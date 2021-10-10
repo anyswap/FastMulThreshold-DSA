@@ -400,7 +400,7 @@ func CheckAddPeer(threshold string, enodes []string, subGroup bool) (bool, error
 	if nodeNum0 == nodeNum1 {
 		thshall = true
 	}
-	if subGroup {// sub group
+	if subGroup { // sub group
 		if len(enodes) != nodeNum1 {
 			msg := fmt.Sprintf("args threshold(%v) and enodes(%v) not match subGroup", threshold, enodes)
 			return thshall, errors.New(msg)
@@ -477,7 +477,7 @@ func getLocalIP() string {
 							wlanIP = ip.String()
 						} else if ip.IsLoopback() {
 							loopIP = ip.String()
-						}else {
+						} else {
 							if internetIP == "" {
 								internetIP = ip.String()
 							}
@@ -512,4 +512,3 @@ func GetGroupList() map[discover.NodeID]*discover.Group {
 func GetSelfDir() string {
 	return discover.GetGroupDir()
 }
-

@@ -1,4 +1,4 @@
-package signing 
+package signing
 
 import (
 	"errors"
@@ -10,21 +10,21 @@ import (
 
 func (round *round2) Start() error {
 	if round.started {
-	    fmt.Printf("============= round2.start fail =======\n")
-	    return errors.New("ed sign,round2 already started")
+		fmt.Printf("============= round2.start fail =======\n")
+		return errors.New("ed sign,round2 already started")
 	}
 	round.number = 2
 	round.started = true
 	round.resetOK()
 
-	cur_index,err := round.GetDNodeIDIndex(round.kgid)
+	cur_index, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
-	    return err
+		return err
 	}
 
 	srm := &SignRound2Message{
-	    SignRoundMessage: new(SignRoundMessage),
-	    ZkR: round.temp.zkR,
+		SignRoundMessage: new(SignRoundMessage),
+		ZkR:              round.temp.zkR,
 	}
 	srm.SetFromID(round.kgid)
 	srm.SetFromIndex(cur_index)
@@ -32,7 +32,7 @@ func (round *round2) Start() error {
 	round.temp.signRound2Messages[cur_index] = srm
 	round.out <- srm
 
-	fmt.Printf("============= ed sign,round2.start success, current node id = %v =======\n",round.kgid)
+	fmt.Printf("============= ed sign,round2.start success, current node id = %v =======\n", round.kgid)
 	return nil
 }
 
@@ -53,13 +53,12 @@ func (round *round2) Update() (bool, error) {
 		}
 		round.ok[j] = true
 	}
-	
+
 	return true, nil
 }
 
 func (round *round2) NextRound() smpc.Round {
-    //fmt.Printf("========= round.next round ========\n")
-    round.started = false
-    return &round3{round}
+	//fmt.Printf("========= round.next round ========\n")
+	round.started = false
+	return &round3{round}
 }
-

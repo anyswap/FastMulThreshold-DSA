@@ -14,7 +14,7 @@
  *
  */
 
-package smpc 
+package smpc
 
 import (
 	"encoding/json"

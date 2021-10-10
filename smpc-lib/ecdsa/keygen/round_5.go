@@ -15,26 +15,26 @@ func (round *round5) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index,err := round.GetDNodeIDIndex(round.dnodeid)
+	cur_index, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
-	    return err
+		return err
 	}
 
 	u1zkUProof := ec2.ZkUProve(round.temp.u1)
 	if u1zkUProof == nil {
-	    return errors.New("zku prove fail.")
+		return errors.New("zku prove fail.")
 	}
 
 	kg := &KGRound5Message{
-	    KGRoundMessage:new(KGRoundMessage),
-	    U1zkUProof:u1zkUProof,
+		KGRoundMessage: new(KGRoundMessage),
+		U1zkUProof:     u1zkUProof,
 	}
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(cur_index)
 
 	round.temp.kgRound5Messages[cur_index] = kg
-	round.out <-kg
-	
+	round.out <- kg
+
 	fmt.Printf("========= round5 start success ==========\n")
 	return nil
 }
@@ -63,4 +63,3 @@ func (round *round5) NextRound() smpc.Round {
 	round.started = false
 	return &round6{round}
 }
-

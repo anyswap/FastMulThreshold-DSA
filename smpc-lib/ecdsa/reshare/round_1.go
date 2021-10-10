@@ -1,63 +1,63 @@
-package reshare 
+package reshare
 
 import (
 	"errors"
 	"fmt"
-	"math/big"
+	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
+	"math/big"
 )
 
 func (round *round1) Start() error {
 	if round.started {
-	    fmt.Printf("============ round1 start error,already started============\n")
-	    return errors.New("round already started")
+		fmt.Printf("============ round1 start error,already started============\n")
+		return errors.New("round already started")
 	}
 	round.number = 1
 	round.started = true
 	round.resetOK()
 
 	if !round.oldnode {
-	    return nil
+		return nil
 	}
 
-	index,err := round.GetDNodeIDIndex(round.dnodeid)
+	index, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
-	    fmt.Printf("============round1 start,get dnode id index fail,err = %v ===========\n",err)
-	    return err
+		fmt.Printf("============round1 start,get dnode id index fail,err = %v ===========\n", err)
+		return err
 	}
 
 	var self *big.Int
 	lambda1 := big.NewInt(1)
-	for k,v := range round.idreshare {
-	    if k == index {
-		self = v
-		break
-	    }
+	for k, v := range round.idreshare {
+		if k == index {
+			self = v
+			break
+		}
 	}
-	
+
 	if self == nil {
-	    return errors.New("round start fail,self uid is nil")
+		return errors.New("round start fail,self uid is nil")
 	}
-	
-	for k,v := range round.idreshare {
-	    if k == index {
-		continue
-	    }
-	    
-	    sub := new(big.Int).Sub(v, self)
-	    subInverse := new(big.Int).ModInverse(sub, secp256k1.S256().N)
-	    times := new(big.Int).Mul(subInverse,v)
-	    lambda1 = new(big.Int).Mul(lambda1, times)
-	    lambda1 = new(big.Int).Mod(lambda1, secp256k1.S256().N)
+
+	for k, v := range round.idreshare {
+		if k == index {
+			continue
+		}
+
+		sub := new(big.Int).Sub(v, self)
+		subInverse := new(big.Int).ModInverse(sub, secp256k1.S256().N)
+		times := new(big.Int).Mul(subInverse, v)
+		lambda1 = new(big.Int).Mul(lambda1, times)
+		lambda1 = new(big.Int).Mod(lambda1, secp256k1.S256().N)
 	}
 	w1 := new(big.Int).Mul(lambda1, round.Save.SkU1)
 	w1 = new(big.Int).Mod(w1, secp256k1.S256().N)
 
 	round.temp.w1 = w1
-	
-	skP1Poly, skP1PolyG, _ := ec2.Vss2Init(w1,round.threshold)
+
+	skP1Poly, skP1PolyG, _ := ec2.Vss2Init(w1, round.threshold)
 	skP1Gx, skP1Gy := secp256k1.S256().ScalarBaseMult(w1.Bytes())
 	u1CommitValues := make([]*big.Int, 0)
 	u1CommitValues = append(u1CommitValues, skP1Gx)
@@ -68,7 +68,7 @@ func (round *round1) Start() error {
 	}
 	commitSkP1G := new(ec2.Commitment).Commit(u1CommitValues...)
 	if commitSkP1G == nil {
-	    return errors.New(" Error generating commitment data in reshare round 1")
+		return errors.New(" Error generating commitment data in reshare round 1")
 	}
 
 	round.temp.comd = commitSkP1G.D
@@ -76,8 +76,8 @@ func (round *round1) Start() error {
 	round.temp.skP1PolyG = skP1PolyG.PolyG
 
 	re := &ReshareRound1Message{
-	    ReshareRoundMessage:new(ReshareRoundMessage),
-	    ComC:commitSkP1G.C,
+		ReshareRoundMessage: new(ReshareRoundMessage),
+		ComC:                commitSkP1G.C,
 	}
 	re.SetFromID(round.dnodeid)
 	re.SetFromIndex(index)
@@ -107,14 +107,14 @@ func (round *round1) Update() (bool, error) {
 		round.ok[j] = true
 
 		//add for reshare only
-		if j == ( len(round.temp.reshareRound1Messages) - 1 ) {
-		    for jj,_ := range round.ok {
-			round.ok[jj] = true
-		    }
+		if j == (len(round.temp.reshareRound1Messages) - 1) {
+			for jj := range round.ok {
+				round.ok[jj] = true
+			}
 		}
 		//
 	}
-	
+
 	return true, nil
 }
 
@@ -122,4 +122,3 @@ func (round *round1) NextRound() smpc.Round {
 	round.started = false
 	return &round2{round}
 }
-

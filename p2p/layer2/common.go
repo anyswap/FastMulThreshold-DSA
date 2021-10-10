@@ -22,12 +22,12 @@ import (
 	"net"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	"github.com/anyswap/Anyswap-MPCNode/p2p"
 	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
 	"github.com/anyswap/Anyswap-MPCNode/p2p/rlp"
+	mapset "github.com/deckarep/golang-set"
 )
 
 func BroadcastToGroup(gid discover.NodeID, msg string, p2pType int, myself bool) (string, error) {
@@ -43,7 +43,6 @@ func BroadcastToGroup(gid discover.NodeID, msg string, p2pType int, myself bool)
 	go p2pBroatcast(&groupTmp, msg, msgCode, myself)
 	return "BroadcastToGroup send end", nil
 }
-
 
 func p2pBroatcast(dccpGroup *discover.Group, msg string, msgCode int, myself bool) int {
 	cdLen := getCDLen(msg)
@@ -71,12 +70,12 @@ func p2pBroatcast(dccpGroup *discover.Group, msg string, msgCode int, myself boo
 		}
 		//go func(node discover.RpcNode) {
 		//	defer wg.Done()
-			common.Debug("==== p2pBroatcast() ====", "call p2pSendMsg, group", dccpGroup, "msg", msg[:cdLen])
-			//TODO, print node info from tab
-			discover.PrintBucketNodeInfo(node.ID)
-			err := p2pSendMsg(node, uint64(msgCode), msg)
-			if err != nil {
-			}
+		common.Debug("==== p2pBroatcast() ====", "call p2pSendMsg, group", dccpGroup, "msg", msg[:cdLen])
+		//TODO, print node info from tab
+		discover.PrintBucketNodeInfo(node.ID)
+		err := p2pSendMsg(node, uint64(msgCode), msg)
+		if err != nil {
+		}
 		//}(node)
 		time.Sleep(time.Duration(100) * time.Millisecond)
 	}
@@ -393,7 +392,7 @@ func recvGroupInfo(gid discover.NodeID, mode string, req interface{}, p2pType in
 	discover.StoreGroupToDb(xvcGroup)
 	discover.RecoverGroupAll(SdkGroup)
 	if false {
-		var testGroup  map[discover.NodeID]*discover.Group = make(map[discover.NodeID]*discover.Group)//TODO delete
+		var testGroup map[discover.NodeID]*discover.Group = make(map[discover.NodeID]*discover.Group) //TODO delete
 		discover.RecoverGroupAll(testGroup)
 		common.Debug("==== recvGroupInfo() ====", "Recov test Group", testGroup)
 		for i, g := range testGroup {
@@ -574,7 +573,7 @@ func InitServer(nodeserv interface{}) {
 		}
 	}
 	discover.RecoverGroupAll(discover.SDK_groupList) // Group
-	discover.SDK_groupListChan<-1
+	discover.SDK_groupListChan <- 1
 }
 
 func getCDLen(msg string) int {

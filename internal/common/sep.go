@@ -17,8 +17,8 @@
 package common
 
 const (
-	Sep  = "dcrmparm"
-	Sep2 = "smpcmsg"
-	Sep11      = "smpcsep11"
+	Sep     = "dcrmparm"
+	Sep2    = "smpcmsg"
+	Sep11   = "smpcsep11"
 	SepSave = "dcrmsepsave"
 )

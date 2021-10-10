@@ -1,12 +1,11 @@
-
-package smpc 
+package smpc
 
 import (
-    //"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
-    //"math/big"
-    //"strings"
-    //"fmt"
-    //"strconv"
+//"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
+//"math/big"
+//"strings"
+//"fmt"
+//"strconv"
 )
 
 type Message interface {
@@ -16,4 +15,3 @@ type Message interface {
 	IsBroadcast() bool
 	OutMap() map[string]string
 }
-

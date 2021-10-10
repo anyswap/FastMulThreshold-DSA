@@ -1,4 +1,4 @@
-package reshare 
+package reshare
 
 import (
 	"math/big"
@@ -9,8 +9,8 @@ import (
 )
 
 type ReshareData struct {
-    NewSk *big.Int
-    SkU1 *big.Int
+	NewSk *big.Int
+	SkU1  *big.Int
 }
 
 /*type LocalDNodeSaveData struct {
@@ -24,7 +24,7 @@ type ReshareData struct {
     U1PaillierPk []*ec2.PublicKey
     U1NtildeH1H2 []*ec2.NtildeH1H2
 
-    Ids smpc.SortableIDSSlice 
+    Ids smpc.SortableIDSSlice
     CurDNodeID *big.Int
 }
 
@@ -138,4 +138,3 @@ func GetLocalDNodeSaveData(data map[string]string) *LocalDNodeSaveData {
     return sd
 }
 */
-

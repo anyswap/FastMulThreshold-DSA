@@ -19,9 +19,9 @@ package ec2
 import (
 	"math/big"
 
+	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 )
 
 type Commitment struct {
@@ -35,7 +35,7 @@ func (commitment *Commitment) Commit(secrets ...*big.Int) *Commitment {
 	// Generate the random num
 	rnd := random.GetRandomInt(256)
 	if rnd == nil {
-	    return nil
+		return nil
 	}
 
 	// First, hash with the keccak256
@@ -81,12 +81,12 @@ func (commitment *Commitment) Verify() bool {
 	computeDigestBigInt := new(big.Int).SetBytes(computeDigest)
 
 	if computeDigestBigInt.Cmp(C) != 0 {
-		return false 
+		return false
 	}
 
-	// Check whether the point is on the curve 
+	// Check whether the point is on the curve
 	if !checkCommitmentGammaGOnCurve(D[1:]) {
-	    return false 
+		return false
 	}
 
 	return true
@@ -104,19 +104,18 @@ func (commitment *Commitment) DeCommit() (bool, []*big.Int) {
 //-----------------------------------------------------------
 
 func checkCommitmentGammaGOnCurve(secrets []*big.Int) bool {
-    if len(secrets) == 0 || (len(secrets) % 2) != 0 {
-	return false
-    }
-
-    l := (len(secrets) / 2)
-    for i:=0;i<l;i++ {
-	x := secrets[2*i]
-	y := secrets[2*i+1]
-	if x == nil || y == nil || !secp256k1.S256().IsOnCurve(x,y) {
-	    return false
+	if len(secrets) == 0 || (len(secrets)%2) != 0 {
+		return false
 	}
-    }
 
-    return true
+	l := (len(secrets) / 2)
+	for i := 0; i < l; i++ {
+		x := secrets[2*i]
+		y := secrets[2*i+1]
+		if x == nil || y == nil || !secp256k1.S256().IsOnCurve(x, y) {
+			return false
+		}
+	}
+
+	return true
 }
-

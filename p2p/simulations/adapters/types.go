@@ -25,12 +25,12 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/docker/docker/pkg/reexec"
 	"github.com/anyswap/Anyswap-MPCNode/crypto"
 	"github.com/anyswap/Anyswap-MPCNode/node"
 	"github.com/anyswap/Anyswap-MPCNode/p2p"
 	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
 	"github.com/anyswap/Anyswap-MPCNode/rpc"
+	"github.com/docker/docker/pkg/reexec"
 )
 
 // Node represents a node in a simulation network which is created by a

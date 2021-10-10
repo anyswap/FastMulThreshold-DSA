@@ -14,15 +14,15 @@
  *
  */
 
-package smpc 
+package smpc
 
 import (
 	"container/list"
 	"fmt"
-	"strings"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	smpclib "github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"runtime/debug"
+	"strings"
 )
 
 var (
@@ -103,46 +103,46 @@ type RPCReqWorker struct {
 	SmpcFrom         string
 	NodeCnt          int
 	ThresHold        int
-	sid string //save the key
+	sid              string //save the key
 	//
-	msg_acceptreqaddrres      *list.List
-	msg_acceptreshareres      *list.List
-	msg_acceptsignres      *list.List
+	msg_acceptreqaddrres *list.List
+	msg_acceptreshareres *list.List
+	msg_acceptsignres    *list.List
 
-	msg_syncpresign      *list.List
-	msg_c1      *list.List
-	msg_kc      *list.List
-	msg_mkg      *list.List
-	msg_mkw      *list.List
-	msg_delta1      *list.List
-	msg_d1_1      *list.List
-	msg_share1      *list.List
-	msg_zkfact      *list.List
-	msg_zku      *list.List
-	msg_bip32c1      *list.List
-	msg_mtazk1proof      *list.List
-	msg_c11      *list.List
-	msg_d11_1      *list.List
-	msg_commitbigvab      *list.List
+	msg_syncpresign    *list.List
+	msg_c1             *list.List
+	msg_kc             *list.List
+	msg_mkg            *list.List
+	msg_mkw            *list.List
+	msg_delta1         *list.List
+	msg_d1_1           *list.List
+	msg_share1         *list.List
+	msg_zkfact         *list.List
+	msg_zku            *list.List
+	msg_bip32c1        *list.List
+	msg_mtazk1proof    *list.List
+	msg_c11            *list.List
+	msg_d11_1          *list.List
+	msg_commitbigvab   *list.List
 	msg_zkabproof      *list.List
-	msg_commitbigut      *list.List
-	msg_commitbigutd11      *list.List
-	msg_ss1      *list.List
-	msg_paillierkey      *list.List
-	
-	rsv      *list.List
-	pkx  *list.List
-	pky  *list.List
-	save *list.List
-	sku1 *list.List
-	bip32c  *list.List
+	msg_commitbigut    *list.List
+	msg_commitbigutd11 *list.List
+	msg_ss1            *list.List
+	msg_paillierkey    *list.List
+
+	rsv    *list.List
+	pkx    *list.List
+	pky    *list.List
+	save   *list.List
+	sku1   *list.List
+	bip32c *list.List
 
 	bacceptreqaddrres chan bool
 	bacceptreshareres chan bool
-	bacceptsignres chan bool
+	bacceptsignres    chan bool
 	bsendreshareres   chan bool
-	bsendsignres   chan bool
-	bsyncpresign   chan bool
+	bsendsignres      chan bool
+	bsyncpresign      chan bool
 	bc1               chan bool
 	bmkg              chan bool
 	bmkw              chan bool
@@ -151,7 +151,7 @@ type RPCReqWorker struct {
 	bshare1           chan bool
 	bzkfact           chan bool
 	bzku              chan bool
-	bbip32c1              chan bool
+	bbip32c1          chan bool
 	bmtazk1proof      chan bool
 	bkc               chan bool
 	bcommitbigvab     chan bool
@@ -159,7 +159,7 @@ type RPCReqWorker struct {
 	bcommitbigut      chan bool
 	bcommitbigutd11   chan bool
 	bss1              chan bool
-	bpaillierkey               chan bool
+	bpaillierkey      chan bool
 	bc11              chan bool
 	bd11_1            chan bool
 
@@ -195,60 +195,60 @@ type RPCReqWorker struct {
 	acceptWaitReqAddrChan chan string
 	acceptReShareChan     chan string
 	acceptWaitReShareChan chan string
-	acceptSignChan     chan string
-	acceptWaitSignChan chan string
-	
-	//for smpc lib 
-	msg_wire   *list.List
-	bwire chan bool
-	SmpcMsg chan string
-	DNode smpclib.DNode
-	MsgToEnode map[string]string
+	acceptSignChan        chan string
+	acceptWaitSignChan    chan string
+
+	//for smpc lib
+	msg_wire       *list.List
+	bwire          chan bool
+	SmpcMsg        chan string
+	DNode          smpclib.DNode
+	MsgToEnode     map[string]string
 	PreSaveSmpcMsg []string
 }
 
 func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 	return &RPCReqWorker{
-		RPCReqWorkerPool:          workerPool,
-		RPCReqChannel:             make(chan RPCReq),
-		rpcquit:                   make(chan bool),
-		msg_share1:                list.New(),
-		msg_zkfact:                list.New(),
-		msg_zku:                   list.New(),
-		msg_bip32c1:                   list.New(),
-		msg_mtazk1proof:           list.New(),
-		msg_c1:                    list.New(),
-		msg_d1_1:                  list.New(),
-		msg_c11:                   list.New(),
-		msg_kc:                    list.New(),
-		msg_mkg:                   list.New(),
-		msg_mkw:                   list.New(),
-		msg_delta1:                list.New(),
-		msg_d11_1:                 list.New(),
-		msg_commitbigvab:          list.New(),
-		msg_zkabproof:             list.New(),
-		msg_commitbigut:           list.New(),
-		msg_commitbigutd11:        list.New(),
-		msg_ss1:                   list.New(),
-		msg_paillierkey:                   list.New(),
-		msg_acceptreqaddrres:      list.New(),
-		msg_acceptreshareres:      list.New(),
-		msg_acceptsignres:      list.New(),
-		msg_syncpresign:        list.New(),
+		RPCReqWorkerPool:     workerPool,
+		RPCReqChannel:        make(chan RPCReq),
+		rpcquit:              make(chan bool),
+		msg_share1:           list.New(),
+		msg_zkfact:           list.New(),
+		msg_zku:              list.New(),
+		msg_bip32c1:          list.New(),
+		msg_mtazk1proof:      list.New(),
+		msg_c1:               list.New(),
+		msg_d1_1:             list.New(),
+		msg_c11:              list.New(),
+		msg_kc:               list.New(),
+		msg_mkg:              list.New(),
+		msg_mkw:              list.New(),
+		msg_delta1:           list.New(),
+		msg_d11_1:            list.New(),
+		msg_commitbigvab:     list.New(),
+		msg_zkabproof:        list.New(),
+		msg_commitbigut:      list.New(),
+		msg_commitbigutd11:   list.New(),
+		msg_ss1:              list.New(),
+		msg_paillierkey:      list.New(),
+		msg_acceptreqaddrres: list.New(),
+		msg_acceptreshareres: list.New(),
+		msg_acceptsignres:    list.New(),
+		msg_syncpresign:      list.New(),
 
-		rsv:  list.New(),
-		pkx:  list.New(),
-		pky:  list.New(),
-		save: list.New(),
-		sku1: list.New(),
-		bip32c:  list.New(),
+		rsv:    list.New(),
+		pkx:    list.New(),
+		pky:    list.New(),
+		save:   list.New(),
+		sku1:   list.New(),
+		bip32c: list.New(),
 
 		bacceptreqaddrres: make(chan bool, 1),
 		bacceptreshareres: make(chan bool, 1),
-		bacceptsignres: make(chan bool, 1),
+		bacceptsignres:    make(chan bool, 1),
 		bsendreshareres:   make(chan bool, 1),
-		bsendsignres:   make(chan bool, 1),
-		bsyncpresign:   make(chan bool, 1),
+		bsendsignres:      make(chan bool, 1),
+		bsyncpresign:      make(chan bool, 1),
 		bc1:               make(chan bool, 1),
 		bd1_1:             make(chan bool, 1),
 		bc11:              make(chan bool, 1),
@@ -258,13 +258,13 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		bcommitbigut:      make(chan bool, 1),
 		bcommitbigutd11:   make(chan bool, 1),
 		bss1:              make(chan bool, 1),
-		bpaillierkey:              make(chan bool, 1),
+		bpaillierkey:      make(chan bool, 1),
 		bmkg:              make(chan bool, 1),
 		bmkw:              make(chan bool, 1),
 		bshare1:           make(chan bool, 1),
 		bzkfact:           make(chan bool, 1),
 		bzku:              make(chan bool, 1),
-		bbip32c1:              make(chan bool, 1),
+		bbip32c1:          make(chan bool, 1),
 		bmtazk1proof:      make(chan bool, 1),
 		bdelta1:           make(chan bool, 1),
 		bd11_1:            make(chan bool, 1),
@@ -305,20 +305,20 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 
 		acceptReShareChan:     make(chan string, 1),
 		acceptWaitReShareChan: make(chan string, 1),
-		acceptSignChan:     make(chan string, 1),
-		acceptWaitSignChan: make(chan string, 1),
-		
-		msg_wire:                    list.New(),
-		bwire:               make(chan bool, 1),
-		SmpcMsg:            make(chan string,100),
-		MsgToEnode:            make(map[string]string),
-		PreSaveSmpcMsg:     make([]string,0),
+		acceptSignChan:        make(chan string, 1),
+		acceptWaitSignChan:    make(chan string, 1),
+
+		msg_wire:       list.New(),
+		bwire:          make(chan bool, 1),
+		SmpcMsg:        make(chan string, 100),
+		MsgToEnode:     make(map[string]string),
+		PreSaveSmpcMsg: make([]string, 0),
 	}
 }
 
 func (w *RPCReqWorker) Clear() {
 
-	common.Debug("======================RpcReqWorker.Clear======================","w.id",w.id,"w.groupid",w.groupid,"key",w.sid)
+	common.Debug("======================RpcReqWorker.Clear======================", "w.id", w.id, "w.groupid", w.groupid, "key", w.sid)
 
 	w.sid = ""
 	w.groupid = ""
@@ -661,7 +661,7 @@ func (w *RPCReqWorker) Clear() {
 	if len(w.acceptWaitSignChan) == 1 {
 		<-w.acceptWaitSignChan
 	}
-	
+
 	for e := w.msg_wire.Front(); e != nil; e = next {
 		next = e.Next()
 		w.msg_wire.Remove(e)
@@ -671,15 +671,15 @@ func (w *RPCReqWorker) Clear() {
 	}
 
 	//fmt.Printf("=====================RpcReqWorker.Clear, reset w.SmpcMsg, key = %v =====================\n",w.sid)
-	w.SmpcMsg = make(chan string,100)
+	w.SmpcMsg = make(chan string, 100)
 	w.DNode = nil
 	w.MsgToEnode = make(map[string]string)
-	w.PreSaveSmpcMsg = make([]string,0)
+	w.PreSaveSmpcMsg = make([]string, 0)
 }
 
 func (w *RPCReqWorker) Clear2() {
-	common.Debug("======================RpcReqWorker.Clear2======================","w.id",w.id,"w.groupid",w.groupid,"key",w.sid)
-	
+	common.Debug("======================RpcReqWorker.Clear2======================", "w.id", w.id, "w.groupid", w.groupid, "key", w.sid)
+
 	var next *list.Element
 
 	for e := w.msg_acceptreshareres.Front(); e != nil; e = next {
@@ -1014,7 +1014,7 @@ func (w *RPCReqWorker) Clear2() {
 	if len(w.acceptWaitSignChan) == 1 {
 		<-w.acceptWaitSignChan
 	}
-	
+
 	for e := w.msg_wire.Front(); e != nil; e = next {
 		next = e.Next()
 		w.msg_wire.Remove(e)
@@ -1022,10 +1022,10 @@ func (w *RPCReqWorker) Clear2() {
 	if len(w.bwire) == 1 {
 		<-w.bwire
 	}
-	w.SmpcMsg = make(chan string,100)
+	w.SmpcMsg = make(chan string, 100)
 	w.DNode = nil
 	w.MsgToEnode = make(map[string]string)
-	w.PreSaveSmpcMsg = make([]string,0)
+	w.PreSaveSmpcMsg = make([]string, 0)
 }
 
 func (w *RPCReqWorker) Start() {
@@ -1052,16 +1052,17 @@ func (w *RPCReqWorker) Stop() {
 		w.rpcquit <- true
 	}()
 }
+
 //----------------------------------------------------------------------------
 
 func FindWorker(sid string) (*RPCReqWorker, error) {
 	defer func() {
-	    if r := recover(); r != nil {
-		fmt.Errorf("FindWorker Runtime error: %v\n%v", r, string(debug.Stack()))
-		return
-	    }
+		if r := recover(); r != nil {
+			fmt.Errorf("FindWorker Runtime error: %v\n%v", r, string(debug.Stack()))
+			return
+		}
 	}()
-	
+
 	if sid == "" {
 		return nil, fmt.Errorf("input worker id error.")
 	}
@@ -1083,11 +1084,10 @@ func FindWorker(sid string) (*RPCReqWorker, error) {
 
 //---------------------------------------------------------------------------------------------
 
-func GetWorkerId(w *RPCReqWorker) (int,error) {
-    if w == nil {
-	return -1,fmt.Errorf("fail get worker id")
-    }
+func GetWorkerId(w *RPCReqWorker) (int, error) {
+	if w == nil {
+		return -1, fmt.Errorf("fail get worker id")
+	}
 
-    return w.id,nil
+	return w.id, nil
 }
-

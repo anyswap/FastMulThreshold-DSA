@@ -28,6 +28,13 @@ import (
 	"strings"
 	"time"
 
+	"encoding/hex"
+	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
+	"github.com/anyswap/Anyswap-MPCNode/ethdb"
+	"github.com/anyswap/Anyswap-MPCNode/internal/common/hexutil"
+	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcutil"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -35,19 +42,12 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/onrik/ethrpc"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcutil"
-	"encoding/hex"
-	"github.com/btcsuite/btcd/btcec"
-	"sync"
 	"log"
 	"os"
-	"github.com/anyswap/Anyswap-MPCNode/ethdb"
 	"os/user"
-	"runtime"
 	"path/filepath"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common/hexutil"
+	"runtime"
+	"sync"
 )
 
 const (
@@ -57,42 +57,42 @@ const (
 )
 
 var (
-	keyfile  *string
-	datadir  *string
-	logfilepath  *string
-	loop  *string
-	n  *string
-	passwd   *string
-	passwdfile   *string
-	url      *string
-	cmd      *string
-	gid      *string
-	ts       *string
-	mode     *string
-	toAddr   *string
-	value    *string
-	coin     *string
-	fromAddr *string
-	memo     *string
-	accept   *string
-	key      *string
-	keyType  *string
-	pubkey   *string
+	keyfile     *string
+	datadir     *string
+	logfilepath *string
+	loop        *string
+	n           *string
+	passwd      *string
+	passwdfile  *string
+	url         *string
+	cmd         *string
+	gid         *string
+	ts          *string
+	mode        *string
+	toAddr      *string
+	value       *string
+	coin        *string
+	fromAddr    *string
+	memo        *string
+	accept      *string
+	key         *string
+	keyType     *string
+	pubkey      *string
 	inputcode   *string
-	msghash  *string
-	enode    *string
-	tsgid    *string
-	netcfg    *string
+	msghash     *string
+	enode       *string
+	tsgid       *string
+	netcfg      *string
 
-	enodesSig  arrayFlags
-	nodes      arrayFlags
-	hashs      arrayFlags
-	subgids      arrayFlags
-	contexts      arrayFlags
-	keyWrapper *keystore.Key
-	signer     types.EIP155Signer
-	client     *ethrpc.EthRPC
-	predb *ethdb.LDBDatabase
+	enodesSig         arrayFlags
+	nodes             arrayFlags
+	hashs             arrayFlags
+	subgids           arrayFlags
+	contexts          arrayFlags
+	keyWrapper        *keystore.Key
+	signer            types.EIP155Signer
+	client            *ethrpc.EthRPC
+	predb             *ethdb.LDBDatabase
 	presignhashpairdb *ethdb.LDBDatabase
 )
 
@@ -117,36 +117,36 @@ func main() {
 		acceptLockOut()
 	case "SIGN":
 		PrintSignResultToLocalFile()
- 		// test sign
-		innerloop,err := strconv.ParseUint(*n, 0, 64)
- 		if err != nil {
- 		    fmt.Printf("==========================test sign fail, --n param error, n = %v,err = %v=======================\n",*n,err)
- 		    return
- 		}
-		outerloop,err := strconv.ParseUint(*loop, 0, 64)
+		// test sign
+		innerloop, err := strconv.ParseUint(*n, 0, 64)
 		if err != nil {
-		    fmt.Printf("==========================test sign fail, --loop param error, n = %v,err = %v=======================\n",*loop,err)
-		    return
+			fmt.Printf("==========================test sign fail, --n param error, n = %v,err = %v=======================\n", *n, err)
+			return
 		}
- 
-		var outwg sync.WaitGroup
-		for j:= 0;j<int(outerloop);j++ {
-		    outwg.Add(1)
- 		    go func() {
-			defer outwg.Done()
-			var wg sync.WaitGroup
-			for i:=0;i<int(innerloop);i++ {
-			    wg.Add(1)
-			    go func() {
-				defer wg.Done()
-				sign()
-			    }()
-			}
-			wg.Wait()
- 		    }()
+		outerloop, err := strconv.ParseUint(*loop, 0, 64)
+		if err != nil {
+			fmt.Printf("==========================test sign fail, --loop param error, n = %v,err = %v=======================\n", *loop, err)
+			return
+		}
 
-		    time.Sleep(time.Duration(3) * time.Second)
- 		}
+		var outwg sync.WaitGroup
+		for j := 0; j < int(outerloop); j++ {
+			outwg.Add(1)
+			go func() {
+				defer outwg.Done()
+				var wg sync.WaitGroup
+				for i := 0; i < int(innerloop); i++ {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						sign()
+					}()
+				}
+				wg.Wait()
+			}()
+
+			time.Sleep(time.Duration(3) * time.Second)
+		}
 		outwg.Wait()
 	case "PRESIGNDATA":
 		// test pre sign data
@@ -172,10 +172,10 @@ func main() {
 			fmt.Printf("createContract failed. %v\n", err)
 		}
 	case "GETSMPCADDR":
-	    err := getSmpcAddr()
-	    if err != nil {
-			fmt.Printf("pubkey = %v, get smpc addr failed. %v\n", pubkey,err)
-	    }
+		err := getSmpcAddr()
+		if err != nil {
+			fmt.Printf("pubkey = %v, get smpc addr failed. %v\n", pubkey, err)
+		}
 	default:
 		fmt.Printf("\nCMD('%v') not support\nSupport cmd: EnodeSig|SetGroup|REQDCRMADDR|ACCEPTREQADDR|LOCKOUT|ACCEPTLOCKOUT|SIGN|PRESIGNDATA|DELPRESIGNDATA|GETPRESIGNDATA|ACCEPTSIGN|RESHARE|ACCEPTRESHARE|CREATECONTRACT|GETDCRMADDR\n", *cmd)
 	}
@@ -244,23 +244,23 @@ func init() {
 	}
 	keyWrapper, err = keystore.DecryptKey(keyjson, *passwd)
 	if err != nil {
-	    if *passwdfile != "" {
-		pass, err := ioutil.ReadFile(*passwdfile)
-		if err != nil {
-		    fmt.Println("Read passwd file fail", err)
-		    fmt.Println("Key decrypt error:")
-		    panic(err)
+		if *passwdfile != "" {
+			pass, err := ioutil.ReadFile(*passwdfile)
+			if err != nil {
+				fmt.Println("Read passwd file fail", err)
+				fmt.Println("Key decrypt error:")
+				panic(err)
+			} else {
+				keyWrapper, err = keystore.DecryptKey(keyjson, string(pass))
+				if err != nil {
+					fmt.Println("Key decrypt error:")
+					panic(err)
+				}
+			}
 		} else {
-		    keyWrapper, err = keystore.DecryptKey(keyjson, string(pass))
-		    if err != nil {
 			fmt.Println("Key decrypt error:")
 			panic(err)
-		    }
 		}
-	    } else {
-		    fmt.Println("Key decrypt error:")
-		    panic(err)
-	    }
 	}
 	if *pkey != "" {
 		priKey, err := crypto.HexToECDSA(*pkey)
@@ -611,24 +611,24 @@ func sign() {
 	//	*msghash = common.ToHex(crypto.Keccak256([]byte(*memo)))
 	//}
 	if len(hashs) == 0 {
-	    hashs = append(hashs,common.ToHex(crypto.Keccak256([]byte(*memo))))
+		hashs = append(hashs, common.ToHex(crypto.Keccak256([]byte(*memo))))
 	}
 
 	if len(contexts) == 0 {
-	    contexts = append(contexts,*memo)
+		contexts = append(contexts, *memo)
 	}
 
-	signMsgHash(hashs,contexts, -1)
+	signMsgHash(hashs, contexts, -1)
 }
 func preGenSignData() {
 	if len(subgids) == 0 {
-	    panic(fmt.Errorf("error:sub group id array is empty"))
+		panic(fmt.Errorf("error:sub group id array is empty"))
 	}
 
 	txdata := preSignData{
-		TxType:     "PRESIGNDATA",
-		PubKey:     *pubkey,
-		SubGid:    subgids,
+		TxType: "PRESIGNDATA",
+		PubKey: *pubkey,
+		SubGid: subgids,
 	}
 	playload, _ := json.Marshal(txdata)
 	// sign tx
@@ -646,81 +646,81 @@ func preGenSignData() {
 //------------------------------------------------------------------
 
 func DefaultDataDir(datadir string) string {
-        if datadir != "" {
-                return datadir
-        }
-        // Try to place the data folder in the user's home dir
-        home := homeDir()
-        if home != "" {
-                if runtime.GOOS == "darwin" {
-                        return filepath.Join(home, "Library", "dcrm-walletservice")
-                } else if runtime.GOOS == "windows" {
-                        return filepath.Join(home, "AppData", "Roaming", "dcrm-walletservice")
-                } else {
-                        return filepath.Join(home, ".dcrm-walletservice")
-                }
-        }
-        // As we cannot guess a stable location, return empty and handle later
-        return ""
+	if datadir != "" {
+		return datadir
+	}
+	// Try to place the data folder in the user's home dir
+	home := homeDir()
+	if home != "" {
+		if runtime.GOOS == "darwin" {
+			return filepath.Join(home, "Library", "dcrm-walletservice")
+		} else if runtime.GOOS == "windows" {
+			return filepath.Join(home, "AppData", "Roaming", "dcrm-walletservice")
+		} else {
+			return filepath.Join(home, ".dcrm-walletservice")
+		}
+	}
+	// As we cannot guess a stable location, return empty and handle later
+	return ""
 }
 
 func homeDir() string {
-        if home := os.Getenv("HOME"); home != "" {
-                return home
-        }
-        if usr, err := user.Current(); err == nil {
-                return usr.HomeDir
-        }
-        return ""
+	if home := os.Getenv("HOME"); home != "" {
+		return home
+	}
+	if usr, err := user.Current(); err == nil {
+		return usr.HomeDir
+	}
+	return ""
 }
 
-func GetPreDbDir(eid string,datadir string) string {
-        dir := DefaultDataDir(datadir)
-        dir += "/dcrmdata/dcrmpredb" + eid
+func GetPreDbDir(eid string, datadir string) string {
+	dir := DefaultDataDir(datadir)
+	dir += "/dcrmdata/dcrmpredb" + eid
 
-        return dir
+	return dir
 }
 
 type PrePubData struct {
-	Key string
-	K1 *big.Int
-	R *big.Int
-	Ry *big.Int
+	Key    string
+	K1     *big.Int
+	R      *big.Int
+	Ry     *big.Int
 	Sigma1 *big.Int
-	Gid string
-	Used bool //useless? TODO
+	Gid    string
+	Used   bool //useless? TODO
 }
 
 type PreSignDataValue struct {
-    Data []*PrePubData
+	Data []*PrePubData
 }
 
 func Decode(s string, datatype string) (interface{}, error) {
 
 	if datatype == "PreSignDataValue" {
-		var m PreSignDataValue 
+		var m PreSignDataValue
 		err := json.Unmarshal([]byte(s), &m)
 		if err != nil {
-		    return nil,err
+			return nil, err
 		}
 
-		return &m,nil
+		return &m, nil
 	}
 
 	return nil, fmt.Errorf("decode obj fail.")
 }
 
-func DecodePreSignDataValue(s string) (*PreSignDataValue,error) {
+func DecodePreSignDataValue(s string) (*PreSignDataValue, error) {
 	if s == "" {
-		return nil,fmt.Errorf("pre-sign data error")
+		return nil, fmt.Errorf("pre-sign data error")
 	}
 
-	ret,err := Decode(s,"PreSignDataValue")
+	ret, err := Decode(s, "PreSignDataValue")
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
-	return ret.(*PreSignDataValue),nil
+	return ret.(*PreSignDataValue), nil
 }
 
 type DcrmHash [32]byte
@@ -732,10 +732,10 @@ func (h DcrmHash) Hex() string { return hexutil.Encode(h[:]) }
 func Keccak256Hash(data ...[]byte) (h DcrmHash) {
 	d := sha3.NewKeccak256()
 	for _, b := range data {
-	    _,err := d.Write(b)
-	    if err != nil {
-		return h 
-	    }
+		_, err := d.Write(b)
+		if err != nil {
+			return h
+		}
 	}
 	d.Sum(h[:0])
 	return h
@@ -760,46 +760,46 @@ func delPreSignData() {
 	s := strings.Split(enodeJSON.Enode, "@")
 	enodePubkey := strings.Split(s[0], "//")
 	fmt.Printf("enodePubkey = %s\n", enodePubkey[1])
-	
+
 	if *pubkey == "" || *gid == "" {
-	    log.Fatal("Please provide pubkey,group id")
+		log.Fatal("Please provide pubkey,group id")
 	}
 
-	dir := GetPreDbDir(enodePubkey[1],*datadir)
-	fmt.Printf("==========================delPreSignData,dir = %v ================================\n",dir)
+	dir := GetPreDbDir(enodePubkey[1], *datadir)
+	fmt.Printf("==========================delPreSignData,dir = %v ================================\n", dir)
 	predbtmp, err := ethdb.NewLDBDatabase(dir, 76, 512)
 	if err != nil {
-	    predb = nil
+		predb = nil
 	} else {
-	    predb = predbtmp
-	}
-	   
-	if predb == nil {
-	    fmt.Printf("==========================delPreSignData,open db fail,dir = %v,pubkey = %v,gid = %v,cur_enode = %v ================================\n",dir,*pubkey,*gid,enodePubkey[1])
-	    os.Exit(1)
-	    return
+		predb = predbtmp
 	}
 
-	fmt.Printf("================================delPreSignData,pubkey = %v,gid = %v ======================\n",*pubkey,*gid)
+	if predb == nil {
+		fmt.Printf("==========================delPreSignData,open db fail,dir = %v,pubkey = %v,gid = %v,cur_enode = %v ================================\n", dir, *pubkey, *gid, enodePubkey[1])
+		os.Exit(1)
+		return
+	}
+
+	fmt.Printf("================================delPreSignData,pubkey = %v,gid = %v ======================\n", *pubkey, *gid)
 
 	pub := strings.ToLower(Keccak256Hash([]byte(strings.ToLower(*pubkey + ":" + *gid))).Hex())
 	iter := predb.NewIterator()
 	for iter.Next() {
-	    key := string(iter.Key())
+		key := string(iter.Key())
 
-	    fmt.Printf("================================delPreSignData, key = %v,pub = %v ======================\n",key,pub)
-	    if strings.EqualFold(pub,key) {
-		err = predb.Delete([]byte(key))
-		if err != nil {
-		    fmt.Printf("==========================delPreSignData, delete presign data fail,dir = %v,pubkey = %v,gid = %v,cur_enode = %v,err = %v======================\n",dir,*pubkey,*gid,enodePubkey[1],err)
-		} else {
-		    fmt.Printf("============================delPreSignData, delete presign data success,dir = %v,pubkey = %v,gid = %v,cur_enode = %v===================\n",dir,*pubkey,*gid,enodePubkey[1])
+		fmt.Printf("================================delPreSignData, key = %v,pub = %v ======================\n", key, pub)
+		if strings.EqualFold(pub, key) {
+			err = predb.Delete([]byte(key))
+			if err != nil {
+				fmt.Printf("==========================delPreSignData, delete presign data fail,dir = %v,pubkey = %v,gid = %v,cur_enode = %v,err = %v======================\n", dir, *pubkey, *gid, enodePubkey[1], err)
+			} else {
+				fmt.Printf("============================delPreSignData, delete presign data success,dir = %v,pubkey = %v,gid = %v,cur_enode = %v===================\n", dir, *pubkey, *gid, enodePubkey[1])
+			}
+
+			break
 		}
-
-		break
-	    }
 	}
-	
+
 	iter.Release()
 }
 
@@ -822,107 +822,107 @@ func getPreSignData() {
 	s := strings.Split(enodeJSON.Enode, "@")
 	enodePubkey := strings.Split(s[0], "//")
 	fmt.Printf("enodePubkey = %s\n", enodePubkey[1])
-	
+
 	if *pubkey == "" || *gid == "" {
-	    log.Fatal("Please provide pubkey,group id")
+		log.Fatal("Please provide pubkey,group id")
 	}
 
-	dir := GetPreDbDir(enodePubkey[1],*datadir)
-	fmt.Printf("==========================getPreSignData,dir = %v ================================\n",dir)
+	dir := GetPreDbDir(enodePubkey[1], *datadir)
+	fmt.Printf("==========================getPreSignData,dir = %v ================================\n", dir)
 	predbtmp, err := ethdb.NewLDBDatabase(dir, 76, 512)
 	if err != nil {
-	    predb = nil
+		predb = nil
 	} else {
-	    predb = predbtmp
-	}
-	   
-	if predb == nil {
-	    fmt.Printf("==========================getPreSignData,open db fail,dir = %v,pubkey = %v,gid = %v,cur_enode = %v ================================\n",dir,*pubkey,*gid,enodePubkey[1])
-	    os.Exit(1)
-	    return
+		predb = predbtmp
 	}
 
-	fmt.Printf("================================getPreSignData,pubkey = %v,gid = %v ======================\n",*pubkey,*gid)
+	if predb == nil {
+		fmt.Printf("==========================getPreSignData,open db fail,dir = %v,pubkey = %v,gid = %v,cur_enode = %v ================================\n", dir, *pubkey, *gid, enodePubkey[1])
+		os.Exit(1)
+		return
+	}
+
+	fmt.Printf("================================getPreSignData,pubkey = %v,gid = %v ======================\n", *pubkey, *gid)
 
 	pub := strings.ToLower(Keccak256Hash([]byte(strings.ToLower(*pubkey + ":" + *gid))).Hex())
 	iter := predb.NewIterator()
 	for iter.Next() {
-	    key := string(iter.Key())
-	    value := string(iter.Value())
+		key := string(iter.Key())
+		value := string(iter.Value())
 
-	    fmt.Printf("================================getPreSignData, key = %v,pub = %v ======================\n",key,pub)
-	    if strings.EqualFold(pub,key) {
-		ps, err := DecodePreSignDataValue(value)
-		if err != nil {
-		    fmt.Printf("============================getPreSignData,decode pre-sign data value error,err = %v===========================\n") 
-		    break
+		fmt.Printf("================================getPreSignData, key = %v,pub = %v ======================\n", key, pub)
+		if strings.EqualFold(pub, key) {
+			ps, err := DecodePreSignDataValue(value)
+			if err != nil {
+				fmt.Printf("============================getPreSignData,decode pre-sign data value error,err = %v===========================\n")
+				break
+			}
+
+			fmt.Printf("==================================getPreSignData,decode pre-sign data value success, data count = %v==========================\n", len(ps.Data))
+
+			for _, v := range ps.Data {
+				fmt.Printf("===================================getPreSignData,pub = %v, pre-sign data key = %v==========================\n", key, v.Key)
+			}
+
+			break
 		}
-
-		fmt.Printf("==================================getPreSignData,decode pre-sign data value success, data count = %v==========================\n",len(ps.Data)) 
-
-		for _,v := range ps.Data {
-		    fmt.Printf("===================================getPreSignData,pub = %v, pre-sign data key = %v==========================\n",key,v.Key) 
-		}
-	
-		break
-	    }
 	}
-	
+
 	iter.Release()
 }
 
 //----------------------------------------------------------------------------
 
 func PrintSignResultToLocalFile() {
-    var file string
-    if logfilepath == nil {
-        file = "./"+"SignResult"+".txt" //  ./SignResult.txt
-    } else {
-	file = *logfilepath
-    }
-    
-    logFile, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0766)
-    if err != nil {
-	   return 
-    }
-    log.SetOutput(logFile) // 将文件设置为log输出的文件
-    //log.SetPrefix("[Sign]")
-    //log.SetFlags(log.LstdFlags | log.Lshortfile | log.LUTC)
-    return
+	var file string
+	if logfilepath == nil {
+		file = "./" + "SignResult" + ".txt" //  ./SignResult.txt
+	} else {
+		file = *logfilepath
+	}
+
+	logFile, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0766)
+	if err != nil {
+		return
+	}
+	log.SetOutput(logFile) // 将文件设置为log输出的文件
+	//log.SetPrefix("[Sign]")
+	//log.SetFlags(log.LstdFlags | log.Lshortfile | log.LUTC)
+	return
 }
 
-func PrintTime(t time.Time,key string,status string,loopcount int) {
-    d := time.Since(t)
-    str := "-------------------------------------------------------\n"
-    str += "key = "
-    str += key
-    str += ",  "
-    str += "status = "
-    str += status
-    str += ",  "
-    str += "retry count(get every 5 seconds) = "
-    str += strconv.Itoa(loopcount)
-    str += ",  "
-    str += "time spent = "
-    s := common.PrettyDuration(d).String()
-    //str += strconv.FormatFloat(d.Seconds(), 'E', -1, 64)
-    str += s
-    str += "\n"
-    log.Println(str)
+func PrintTime(t time.Time, key string, status string, loopcount int) {
+	d := time.Since(t)
+	str := "-------------------------------------------------------\n"
+	str += "key = "
+	str += key
+	str += ",  "
+	str += "status = "
+	str += status
+	str += ",  "
+	str += "retry count(get every 5 seconds) = "
+	str += strconv.Itoa(loopcount)
+	str += ",  "
+	str += "time spent = "
+	s := common.PrettyDuration(d).String()
+	//str += strconv.FormatFloat(d.Seconds(), 'E', -1, 64)
+	str += s
+	str += "\n"
+	log.Println(str)
 }
 
-func signMsgHash(hashs []string, contexts []string,loopCount int) (rsv []string) {
-	timevalue:= time.Now()
+func signMsgHash(hashs []string, contexts []string, loopCount int) (rsv []string) {
+	timevalue := time.Now()
 
 	// get sign nonce
 	signNonce, err := client.Call("smpc_getSignNonce", keyWrapper.Address.String())
 	if err != nil {
-	    PrintTime(timevalue,"","Error",0)
+		PrintTime(timevalue, "", "Error", 0)
 		panic(err)
 	}
 	nonceStr, err := getJSONResult(signNonce)
 	if err != nil {
-	    PrintTime(timevalue,"","Error",0)
+		PrintTime(timevalue, "", "Error", 0)
 		panic(err)
 	}
 	nonce, _ := strconv.ParseUint(nonceStr, 0, 64)
@@ -932,7 +932,7 @@ func signMsgHash(hashs []string, contexts []string,loopCount int) (rsv []string)
 	txdata := signData{
 		TxType:     "SIGN",
 		PubKey:     *pubkey,
-		InputCode:     *inputcode,
+		InputCode:  *inputcode,
 		MsgContext: contexts,
 		MsgHash:    hashs,
 		Keytype:    *keyType,
@@ -945,20 +945,20 @@ func signMsgHash(hashs []string, contexts []string,loopCount int) (rsv []string)
 	// sign tx
 	rawTX, err := signTX(signer, keyWrapper.PrivateKey, nonce, playload)
 	if err != nil {
-	    PrintTime(timevalue,"","Error",0)
+		PrintTime(timevalue, "", "Error", 0)
 		panic(err)
 	}
 	// get rawTx
 	reqKeyID, err := client.Call("smpc_sign", rawTX)
 	if err != nil {
-	    PrintTime(timevalue,"","Error",0)
+		PrintTime(timevalue, "", "Error", 0)
 		//panic(err)
 		return
 	}
 	// get keyID
 	keyID, err := getJSONResult(reqKeyID)
 	if err != nil {
-	    PrintTime(timevalue,"","Error",0)
+		PrintTime(timevalue, "", "Error", 0)
 		panic(err)
 	}
 	fmt.Printf("\nsmpc_sign keyID = %s\n\n", keyID)
@@ -988,11 +988,11 @@ func signMsgHash(hashs []string, contexts []string,loopCount int) (rsv []string)
 		}
 		switch statusJSON.Status {
 		case "Timeout", "Failure":
-			PrintTime(timevalue,keyID,statusJSON.Status,j)
+			PrintTime(timevalue, keyID, statusJSON.Status, j)
 			fmt.Printf("\tsmpc_getSignStatus=%s\tkeyID=%s\n", statusJSON.Status, keyID)
 			return
 		case "Success":
-			PrintTime(timevalue,keyID,"Success",j)
+			PrintTime(timevalue, keyID, "Success", j)
 			fmt.Printf("\tSuccess\tRSV=%s\n", statusJSON.Rsv)
 			return statusJSON.Rsv
 		default:
@@ -1022,13 +1022,13 @@ func acceptSign() {
 		var keyStr string
 		var msgHash []string
 		var msgContext []string
-		
+
 		if len(hashs) == 0 {
-		    hashs = append(hashs,common.ToHex(crypto.Keccak256([]byte(*memo))))
+			hashs = append(hashs, common.ToHex(crypto.Keccak256([]byte(*memo))))
 		}
 
 		if len(contexts) == 0 {
-		    contexts = append(contexts,*memo)
+			contexts = append(contexts, *memo)
 		}
 
 		if *key != "" {
@@ -1165,64 +1165,64 @@ func acceptReshare() {
 }
 
 func getSmpcAddr() error {
-    if pubkey == nil {
-	return fmt.Errorf("pubkey error")
-    }
-
-    pub := (*pubkey)
-
-    if pub == "" || (*coin) == "" {
-	return fmt.Errorf("pubkey error.")
-    }
-
-    if (*coin) != "FSN" && (*coin) != "BTC" { //only btc/fsn tmp
-	return fmt.Errorf("coin type unsupported.")
-    }
-
-    if len(pub) != 132 && len(pub) != 130 {
-	    return fmt.Errorf("invalid public key length")
-    }
-    if pub[:2] == "0x" || pub[:2] == "0X" {
-	    pub = pub[2:]
-    }
-
-    if (*coin) == "FSN" {
-	pubKeyHex := strings.TrimPrefix(pub, "0x")
-	data := hexEncPubkey(pubKeyHex[2:])
-
-	pub2, err := decodePubkey(data)
-	if err != nil {
-	    return err
+	if pubkey == nil {
+		return fmt.Errorf("pubkey error")
 	}
 
-	address := crypto.PubkeyToAddress(*pub2).Hex()
+	pub := (*pubkey)
+
+	if pub == "" || (*coin) == "" {
+		return fmt.Errorf("pubkey error.")
+	}
+
+	if (*coin) != "FSN" && (*coin) != "BTC" { //only btc/fsn tmp
+		return fmt.Errorf("coin type unsupported.")
+	}
+
+	if len(pub) != 132 && len(pub) != 130 {
+		return fmt.Errorf("invalid public key length")
+	}
+	if pub[:2] == "0x" || pub[:2] == "0X" {
+		pub = pub[2:]
+	}
+
+	if (*coin) == "FSN" {
+		pubKeyHex := strings.TrimPrefix(pub, "0x")
+		data := hexEncPubkey(pubKeyHex[2:])
+
+		pub2, err := decodePubkey(data)
+		if err != nil {
+			return err
+		}
+
+		address := crypto.PubkeyToAddress(*pub2).Hex()
+		fmt.Printf("\ngetSmpcAddr result: %s\n\n", address)
+		return nil
+	}
+
+	bb, err := hex.DecodeString(pub)
+	if err != nil {
+		return err
+	}
+	pub2, err := btcec.ParsePubKey(bb, btcec.S256())
+	if err != nil {
+		return err
+	}
+
+	ChainConfig := chaincfg.MainNetParams
+	if (*netcfg) == "testnet" {
+		ChainConfig = chaincfg.TestNet3Params
+	}
+
+	b := pub2.SerializeCompressed()
+	pkHash := btcutil.Hash160(b)
+	addressPubKeyHash, err := btcutil.NewAddressPubKeyHash(pkHash, &ChainConfig)
+	if err != nil {
+		return err
+	}
+	address := addressPubKeyHash.EncodeAddress()
 	fmt.Printf("\ngetSmpcAddr result: %s\n\n", address)
 	return nil
-    }
-    
-    bb, err := hex.DecodeString(pub)
-    if err != nil {
-	    return err
-    }
-    pub2, err := btcec.ParsePubKey(bb, btcec.S256())
-    if err != nil {
-	    return err
-    }
-    
-    ChainConfig := chaincfg.MainNetParams
-    if (*netcfg) == "testnet" {
-	ChainConfig = chaincfg.TestNet3Params
-    }
-
-    b := pub2.SerializeCompressed()
-    pkHash := btcutil.Hash160(b)
-    addressPubKeyHash, err := btcutil.NewAddressPubKeyHash(pkHash, &ChainConfig)
-    if err != nil {
-	    return err
-    }
-    address := addressPubKeyHash.EncodeAddress()
-    fmt.Printf("\ngetSmpcAddr result: %s\n\n", address)
-    return nil
 }
 
 func hexEncPubkey(h string) (ret [64]byte) {
@@ -1340,7 +1340,7 @@ type groupInfo struct {
 }
 type reqAddrData struct {
 	TxType    string `json:"TxType"`
-	Keytype    string `json:"Keytype"`
+	Keytype   string `json:"Keytype"`
 	GroupID   string `json:"GroupId"`
 	ThresHold string `json:"ThresHold"`
 	Mode      string `json:"Mode"`
@@ -1374,21 +1374,21 @@ type lockoutData struct {
 	Memo      string `json:"Memo"`
 }
 type signData struct {
-	TxType     string `json:"TxType"`
-	PubKey     string `json:"PubKey"`
-	InputCode     string `json:"InputCode"`
+	TxType     string   `json:"TxType"`
+	PubKey     string   `json:"PubKey"`
+	InputCode  string   `json:"InputCode"`
 	MsgContext []string `json:"MsgContext"`
 	MsgHash    []string `json:"MsgHash"`
-	Keytype    string `json:"Keytype"`
-	GroupID    string `json:"GroupId"`
-	ThresHold  string `json:"ThresHold"`
-	Mode       string `json:"Mode"`
-	TimeStamp  string `json:"TimeStamp"`
+	Keytype    string   `json:"Keytype"`
+	GroupID    string   `json:"GroupId"`
+	ThresHold  string   `json:"ThresHold"`
+	Mode       string   `json:"Mode"`
+	TimeStamp  string   `json:"TimeStamp"`
 }
 type preSignData struct {
-    TxType string `json:"TxType"`
-    PubKey string `json:"PubKey"`
-    SubGid []string `json:"SubGid"`
+	TxType string   `json:"TxType"`
+	PubKey string   `json:"PubKey"`
+	SubGid []string `json:"SubGid"`
 }
 type reshareData struct {
 	TxType    string `json:"TxType"`
@@ -1419,7 +1419,7 @@ type lockoutStatus struct {
 }
 type signStatus struct {
 	Status    string      `json:"Status"`
-	Rsv       []string      `json:"Rsv"`
+	Rsv       []string    `json:"Rsv"`
 	Tip       string      `json:"Tip"`
 	Error     string      `json:"Error"`
 	AllReply  interface{} `json:"AllReply"`
@@ -1449,17 +1449,17 @@ type lockoutCurNodeInfo struct {
 	TimeStamp string `json:"TimeStamp"`
 }
 type signCurNodeInfo struct {
-	Account    string `json:"Account"`
-	GroupID    string `json:"GroupId"`
-	Key        string `json:"Key"`
-	KeyType    string `json:"KeyType"`
-	Mode       string `json:"Mode"`
+	Account    string   `json:"Account"`
+	GroupID    string   `json:"GroupId"`
+	Key        string   `json:"Key"`
+	KeyType    string   `json:"KeyType"`
+	Mode       string   `json:"Mode"`
 	MsgContext []string `json:"MsgContext"`
 	MsgHash    []string `json:"MsgHash"`
-	Nonce      string `json:"Nonce"`
-	PubKey     string `json:"PubKey"`
-	ThresHold  string `json:"ThresHold"`
-	TimeStamp  string `json:"TimeStamp"`
+	Nonce      string   `json:"Nonce"`
+	PubKey     string   `json:"PubKey"`
+	ThresHold  string   `json:"ThresHold"`
+	TimeStamp  string   `json:"TimeStamp"`
 }
 type reshareCurNodeInfo struct {
 	Key       string `json:"Key"`

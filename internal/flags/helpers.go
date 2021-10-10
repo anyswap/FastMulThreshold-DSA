@@ -150,4 +150,3 @@ func NewApp(gitCommit, gitDate, usage string) *cli.App {
 	app.Usage = usage
 	return app
 }
-

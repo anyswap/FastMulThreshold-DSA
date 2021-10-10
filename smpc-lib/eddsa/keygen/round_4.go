@@ -20,14 +20,14 @@ func (round *round4) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index,err := round.GetDNodeIDIndex(round.dnodeid)
+	cur_index, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
-	    return err
+		return err
 	}
 
-	ids,err := round.GetIds()
+	ids, err := round.GetIds()
 	if err != nil {
-	    return errors.New("round.Start get ids fail.")
+		return errors.New("round.Start get ids fail.")
 	}
 
 	/*var uids = make(map[string][32]byte)
@@ -48,58 +48,58 @@ func (round *round4) Start() error {
 	round.temp.uids = uids*/
 
 	var PkSet []byte
-	
-	for k,id := range ids {
-	    msg1,ok := round.temp.kgRound1Messages[k].(*KGRound1Message)
-	    if !ok {
-		return errors.New("round.Start get round1 msg fail")
-	    }
-	    
-	    msg3,ok := round.temp.kgRound3Messages[k].(*KGRound3Message)
-	    if !ok {
-		return errors.New("round.Start get round3 msg fail")
-	    }
-	    
-	    CPkFlag := ed.Verify(msg1.CPk, msg3.DPk)
-	    if !CPkFlag {
-		    fmt.Printf("Error: Commitment(PK) Not Pass at User: %v, k = %v \n", id,k)
-		    return errors.New("smpc back-end internal error:commitment check fail in req ed pubkey")
-	    }
-	    
-	    msg2,ok := round.temp.kgRound2Messages[k].(*KGRound2Message)
-	    if !ok {
-		return errors.New("round.Start get round2 msg fail")
-	    }
-	    
-	    var t [32]byte
-	    copy(t[:], msg3.DPk[32:])
-	    zkPkFlag := ed.Verify_zk(msg2.ZkPk, t)
-	    if !zkPkFlag {
-		    fmt.Printf("Error: ZeroKnowledge Proof (Pk) Not Pass at User: %v \n", id)
-		    return errors.New("smpc back-end internal error:zeroknowledge check fail")
-	    }
-	    
-	    PkSet = append(PkSet[:], (msg3.DPk[32:])...)
+
+	for k, id := range ids {
+		msg1, ok := round.temp.kgRound1Messages[k].(*KGRound1Message)
+		if !ok {
+			return errors.New("round.Start get round1 msg fail")
+		}
+
+		msg3, ok := round.temp.kgRound3Messages[k].(*KGRound3Message)
+		if !ok {
+			return errors.New("round.Start get round3 msg fail")
+		}
+
+		CPkFlag := ed.Verify(msg1.CPk, msg3.DPk)
+		if !CPkFlag {
+			fmt.Printf("Error: Commitment(PK) Not Pass at User: %v, k = %v \n", id, k)
+			return errors.New("smpc back-end internal error:commitment check fail in req ed pubkey")
+		}
+
+		msg2, ok := round.temp.kgRound2Messages[k].(*KGRound2Message)
+		if !ok {
+			return errors.New("round.Start get round2 msg fail")
+		}
+
+		var t [32]byte
+		copy(t[:], msg3.DPk[32:])
+		zkPkFlag := ed.Verify_zk(msg2.ZkPk, t)
+		if !zkPkFlag {
+			fmt.Printf("Error: ZeroKnowledge Proof (Pk) Not Pass at User: %v \n", id)
+			return errors.New("smpc back-end internal error:zeroknowledge check fail")
+		}
+
+		PkSet = append(PkSet[:], (msg3.DPk[32:])...)
 	}
-	   
+
 	// 2.5 calculate a = SHA256(PkU1, {PkU2, PkU3})
 	var a [32]byte
 	var aDigest [64]byte
 
-	msg3,ok := round.temp.kgRound3Messages[cur_index].(*KGRound3Message)
+	msg3, ok := round.temp.kgRound3Messages[cur_index].(*KGRound3Message)
 	if !ok {
-	    return errors.New("round get msg3 fail")
+		return errors.New("round get msg3 fail")
 	}
 
 	h := sha512.New()
-	_,err = h.Write(msg3.DPk[32:])
+	_, err = h.Write(msg3.DPk[32:])
 	if err != nil {
-	    return errors.New("smpc back-end internal error:write dpk fail in calcing SHA256(PkU1, {PkU2, PkU3}")
+		return errors.New("smpc back-end internal error:write dpk fail in calcing SHA256(PkU1, {PkU2, PkU3}")
 	}
 
-	_,err = h.Write(PkSet)
+	_, err = h.Write(PkSet)
 	if err != nil {
-	    return errors.New("smpc back-end internal error:write pkset fail in calcing SHA256(PkU1, {PkU2, PkU3}")
+		return errors.New("smpc back-end internal error:write pkset fail in calcing SHA256(PkU1, {PkU2, PkU3}")
 	}
 
 	h.Sum(aDigest[:0])
@@ -115,18 +115,18 @@ func (round *round4) Start() error {
 	//////
 
 	var uids [][32]byte
-	for _,v := range ids {
-	    var tem [32]byte
-	    tmp := v.Bytes()
-	    copy(tem[:], tmp[:])
-	    //fmt.Printf("======================round4.start, k = %v, v = %v, tem = %v =================\n",k,v,hex.EncodeToString(tem[:]))
-	    if len(v.Bytes()) < 32 {
-		    l := len(v.Bytes())
-		    for j := l; j < 32; j++ {
-			    tem[j] = byte(0x00)
-		    }
-	    }
-	    uids = append(uids,tem)
+	for _, v := range ids {
+		var tem [32]byte
+		tmp := v.Bytes()
+		copy(tem[:], tmp[:])
+		//fmt.Printf("======================round4.start, k = %v, v = %v, tem = %v =================\n",k,v,hex.EncodeToString(tem[:]))
+		if len(v.Bytes()) < 32 {
+			l := len(v.Bytes())
+			for j := l; j < 32; j++ {
+				tem[j] = byte(0x00)
+			}
+		}
+		uids = append(uids, tem)
 	}
 	/*fixid := []string{"36550725515126069209815254769857063254012795400127087205878074620099758462980","86773132036836319561089192108022254523765345393585629030875522375234841566222","80065533669343563706948463591465947300529465448793304408098904839998265250318","36550725515126069209815254769857063254012795400127087205878074620099758462980","86773132036836319561089192108022254523765345393585629030875522375231234567893"}
 	for k,_ := range uids {
@@ -143,29 +143,29 @@ func (round *round4) Start() error {
 	}*/
 	round.temp.uids = uids
 
-	_, cfsBBytes, shares := ed.Vss(ask,uids,round.threshold,round.dnodecount)
+	_, cfsBBytes, shares := ed.Vss(ask, uids, round.threshold, round.dnodecount)
 	round.temp.cfsBBytes = cfsBBytes
 
 	for k, id := range ids {
-	    kg := &KGRound4Message{
-		KGRoundMessage:new(KGRoundMessage),
-		Share:shares[k],
-	    }
-	    kg.SetFromID(round.dnodeid)
-	    kg.SetFromIndex(cur_index)
-    
-	    if k == cur_index {
-		//fmt.Printf("=========== ed,round4, it is self. share struct id = %v, share = %v, k = %v ===========\n",id,shares[k],k)
-		round.temp.kgRound4Messages[k] = kg
-	    } else {
-		//fmt.Printf("===========ed,round4, share struct id = %v, share = %v, k = %v ===========\n",id,shares[k],k)
+		kg := &KGRound4Message{
+			KGRoundMessage: new(KGRoundMessage),
+			Share:          shares[k],
+		}
+		kg.SetFromID(round.dnodeid)
+		kg.SetFromIndex(cur_index)
 
-		var tmp [32]byte
-		copy(tmp[:],id.Bytes())
-		idtmp := hex.EncodeToString(tmp[:])
-		kg.AppendToID(idtmp) //id-->dnodeid
-		round.out <-kg
-	    }
+		if k == cur_index {
+			//fmt.Printf("=========== ed,round4, it is self. share struct id = %v, share = %v, k = %v ===========\n",id,shares[k],k)
+			round.temp.kgRound4Messages[k] = kg
+		} else {
+			//fmt.Printf("===========ed,round4, share struct id = %v, share = %v, k = %v ===========\n",id,shares[k],k)
+
+			var tmp [32]byte
+			copy(tmp[:], id.Bytes())
+			idtmp := hex.EncodeToString(tmp[:])
+			kg.AppendToID(idtmp) //id-->dnodeid
+			round.out <- kg
+		}
 	}
 
 	fmt.Printf("========= round4 start success ==========\n")
@@ -196,4 +196,3 @@ func (round *round4) NextRound() smpc.Round {
 	round.started = false
 	return &round5{round}
 }
-

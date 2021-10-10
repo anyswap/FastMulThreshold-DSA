@@ -31,35 +31,35 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
-	"sync"
 
 	"github.com/BurntSushi/toml"
 	"github.com/anyswap/Anyswap-MPCNode/crypto"
-	"github.com/anyswap/Anyswap-MPCNode/smpc"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
-	"github.com/anyswap/Anyswap-MPCNode/internal/params"
 	"github.com/anyswap/Anyswap-MPCNode/internal/flags"
+	"github.com/anyswap/Anyswap-MPCNode/internal/params"
 	"github.com/anyswap/Anyswap-MPCNode/p2p"
 	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
 	"github.com/anyswap/Anyswap-MPCNode/p2p/layer2"
 	"github.com/anyswap/Anyswap-MPCNode/p2p/nat"
 	rpcsmpc "github.com/anyswap/Anyswap-MPCNode/rpc/smpc"
+	"github.com/anyswap/Anyswap-MPCNode/smpc"
 	"gopkg.in/urfave/cli.v1"
 )
 
 const (
-        clientIdentifier = "gsmpc" // Client identifier to advertise over the network
+	clientIdentifier = "gsmpc" // Client identifier to advertise over the network
 )
 
 var (
-        // Git SHA1 commit hash of the release (set via linker flags)
-        gitCommit  = ""
-        gitDate    = ""
+	// Git SHA1 commit hash of the release (set via linker flags)
+	gitCommit  = ""
+	gitDate    = ""
 	gitVersion = ""
-        // The app that holds all commands and flags.
-        app = flags.NewApp(gitCommit, gitDate, "the Smpc Wallet Service command line interface")
+	// The app that holds all commands and flags.
+	app = flags.NewApp(gitCommit, gitDate, "the Smpc Wallet Service command line interface")
 )
 
 func main() {
@@ -71,63 +71,63 @@ func main() {
 
 func StartSmpc(c *cli.Context) {
 
-    //smpc.Tx_Test()
-    SetLogger()
+	//smpc.Tx_Test()
+	SetLogger()
 	go func() {
-	    <-signalChan
-	    stopLock.Lock()
-	    common.Info("=============================Cleaning before stop...======================================")
-	    stopLock.Unlock()
-	    os.Exit(0)
+		<-signalChan
+		stopLock.Lock()
+		common.Info("=============================Cleaning before stop...======================================")
+		stopLock.Unlock()
+		os.Exit(0)
 	}()
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	startP2pNode()
-	
+
 	time.Sleep(time.Duration(30) * time.Second)
 
 	rpcsmpc.RpcInit(rpcport)
 
-	params := &smpc.LunchParams{WaitMsg:waitmsg,TryTimes:trytimes,PreSignNum:presignnum,WaitAgree:waitagree,Bip32Pre:bip32pre,Sync_PreSign:sync_presign}
+	params := &smpc.LunchParams{WaitMsg: waitmsg, TryTimes: trytimes, PreSignNum: presignnum, WaitAgree: waitagree, Bip32Pre: bip32pre, Sync_PreSign: sync_presign}
 	smpc.Start(params)
 	select {} // note for server, or for client
 }
 
 func SetLogger() {
-          common.SetLogger(uint32(verbosity), json, color)
-         if log != "" {
-                 common.SetLogFile(log, rotate, maxage)
-         }
+	common.SetLogger(uint32(verbosity), json, color)
+	if log != "" {
+		common.SetLogFile(log, rotate, maxage)
+	}
 }
 
 //========================= init ========================
 var (
 	//args
-	rpcport   int
-	port      int
-	config string
-	bootnodes string
-	keyfile   string
-	keyfilehex string
-	pubkey    string
-	genKey    string
-	datadir   string
-	log   string
-	rotate   uint64
-	maxage   uint64
-	verbosity   uint64
-	json   bool
-	color   bool
-	waitmsg   uint64
-	trytimes   uint64
+	rpcport      int
+	port         int
+	config       string
+	bootnodes    string
+	keyfile      string
+	keyfilehex   string
+	pubkey       string
+	genKey       string
+	datadir      string
+	log          string
+	rotate       uint64
+	maxage       uint64
+	verbosity    uint64
+	json         bool
+	color        bool
+	waitmsg      uint64
+	trytimes     uint64
 	presignnum   uint64
-	waitagree   uint64
-	bip32pre   uint64
-	sync_presign   string
+	waitagree    uint64
+	bip32pre     uint64
+	sync_presign string
 
-	statDir   = "stat"
+	statDir = "stat"
 
-	stopLock sync.Mutex
+	stopLock   sync.Mutex
 	signalChan = make(chan os.Signal, 1)
 )
 
@@ -168,7 +168,7 @@ func init() {
 		cli.Uint64Flag{Name: "rotate", Value: 2, Usage: "log rotation time (unit hour)", Destination: &rotate},
 		cli.Uint64Flag{Name: "maxage", Value: 72, Usage: "log max age (unit hour)", Destination: &maxage},
 		cli.Uint64Flag{Name: "verbosity", Value: 4, Usage: "log verbosity (0:panic, 1:fatal, 2:error, 3:warn, 4:info, 5:debug, 6:trace)", Destination: &verbosity},
-		cli.BoolFlag{Name: "json", Usage: "output log in json format",Destination: &json},
+		cli.BoolFlag{Name: "json", Usage: "output log in json format", Destination: &json},
 		cli.BoolFlag{Name: "color", Usage: "output log in color text format", Destination: &color},
 		cli.Uint64Flag{Name: "waitmsg", Value: 120, Usage: "the time to wait p2p msg", Destination: &waitmsg},
 		cli.Uint64Flag{Name: "trytimes", Value: 1, Usage: "the times to try key-gen/sign", Destination: &trytimes},
@@ -378,7 +378,7 @@ func PortInUse(port int) bool {
 			if len(output) > 0 {
 				return true
 			}
-		}else if runtime.GOOS == "windows" {
+		} else if runtime.GOOS == "windows" {
 			p := fmt.Sprintf("netstat -ano|findstr %v", port)
 			output := exec.Command("cmd", "/C", p)
 			_, err := output.CombinedOutput()
@@ -441,7 +441,6 @@ func getRpcPort(pubdir string) int {
 		if err == nil {
 			return p
 		}
-        }
+	}
 	return 0
 }
-

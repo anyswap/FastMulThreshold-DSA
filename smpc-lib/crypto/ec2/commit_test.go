@@ -17,33 +17,30 @@
 package ec2_test
 
 import (
-    	"testing"
-	"math/big"
-	"github.com/stretchr/testify/assert"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
+	"github.com/stretchr/testify/assert"
+	"math/big"
+	"testing"
 )
 
 func TestVerify(t *testing.T) {
-    one := big.NewInt(1)
-    zero := big.NewInt(0)
+	one := big.NewInt(1)
+	zero := big.NewInt(0)
 
-    com := new(ec2.Commitment).Commit(zero,one)
-    succ := com.Verify()
-    //assert.True(t, succ, "success")
-    assert.False(t, succ, "fail")
+	com := new(ec2.Commitment).Commit(zero, one)
+	succ := com.Verify()
+	//assert.True(t, succ, "success")
+	assert.False(t, succ, "fail")
 }
 
 func TestDeCommit(t *testing.T) {
-    one := big.NewInt(1)
-    zero := big.NewInt(0)
+	one := big.NewInt(1)
+	zero := big.NewInt(0)
 
-    com := new(ec2.Commitment).Commit(zero,one)
-    succ,u1G := com.DeCommit()
-    //assert.True(t, succ, "success")
-    //assert.NotZero(t, len(u1G), "len(u1G) must be non-zero")
-    assert.False(t, succ, "fail")
-    assert.Zero(t, len(u1G), "len(u1G) must be zero")
+	com := new(ec2.Commitment).Commit(zero, one)
+	succ, u1G := com.DeCommit()
+	//assert.True(t, succ, "success")
+	//assert.NotZero(t, len(u1G), "len(u1G) must be non-zero")
+	assert.False(t, succ, "fail")
+	assert.Zero(t, len(u1G), "len(u1G) must be zero")
 }
-
-
-
