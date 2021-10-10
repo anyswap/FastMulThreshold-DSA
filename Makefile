@@ -2,7 +2,7 @@
 # with Go source code. If you know what GOPATH is then you probably
 # don't need to bother with make.
 
-.PHONY: all gsmpc bootnode cfaucet clean fmt gsmpc-client
+.PHONY: all gsmpc bootnode clean fmt gsmpc-client
 
 all:
 	./build.sh gsmpc bootnode gsmpc-client
@@ -19,10 +19,6 @@ bootnode:
 
 gsmpc-client:
 	./build.sh gsmpc-client
-	@echo "Done building."
-
-cfaucet:
-	./build.sh cfaucet
 	@echo "Done building."
 
 clean:
