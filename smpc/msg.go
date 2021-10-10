@@ -469,14 +469,14 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		res = msgdata
 	}
 
-	mm := strings.Split(res, common.Sep)
+	/*mm := strings.Split(res, common.Sep)
 	if len(mm) >= 3 {
 		common.Debug("================RecvMsg.Run,begin to dis msg =================", "res", res)
 		//msg:  key-enode:C1:X1:X2....:Xn
 		//msg:  key-enode1:NoReciv:enode2:C1
 		DisMsg(res)
 		return true
-	}
+	}*/
 
 	var req SmpcReq
 	msgmap := make(map[string]string)
