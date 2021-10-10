@@ -63,6 +63,7 @@ var (
 	loop  *string
 	n  *string
 	passwd   *string
+	passwdfile   *string
 	url      *string
 	cmd      *string
 	gid      *string
@@ -187,6 +188,7 @@ func init() {
 	loop = flag.String("loop", "10", "sign outer loop count")
 	n = flag.String("n", "100", "sign loop count")
 	passwd = flag.String("passwd", "111111", "Password")
+	passwdfile = flag.String("passwdfile", "", "Password file")
 	url = flag.String("url", "http://127.0.0.1:9011", "Set node RPC URL")
 	cmd = flag.String("cmd", "", "EnodeSig|SetGroup|REQDCRMADDR|ACCEPTREQADDR|LOCKOUT|ACCEPTLOCKOUT|SIGN|PRESIGNDATA|DELPRESIGNDATA|GETPRESIGNDATA|ACCEPTSIGN|RESHARE|ACCEPTRESHARE|CREATECONTRACT|GETDCRMADDR")
 	gid = flag.String("gid", "", "groupID")
@@ -242,8 +244,23 @@ func init() {
 	}
 	keyWrapper, err = keystore.DecryptKey(keyjson, *passwd)
 	if err != nil {
-		fmt.Println("Key decrypt error:")
-		panic(err)
+	    if *passwdfile != "" {
+		pass, err := ioutil.ReadFile(*passwdfile)
+		if err != nil {
+		    fmt.Println("Read passwd file fail", err)
+		    fmt.Println("Key decrypt error:")
+		    panic(err)
+		} else {
+		    keyWrapper, err = keystore.DecryptKey(keyjson, string(pass))
+		    if err != nil {
+			fmt.Println("Key decrypt error:")
+			panic(err)
+		    }
+		}
+	    } else {
+		    fmt.Println("Key decrypt error:")
+		    panic(err)
+	    }
 	}
 	if *pkey != "" {
 		priKey, err := crypto.HexToECDSA(*pkey)
