@@ -22,7 +22,18 @@ gsmpc-client:
 	@echo "Done building."
 
 clean:
-	rm -fr bin/cmd/* 
+	rm -fr bin/cmd/*
+	rm -rf test/bin/*
+	rm -rf test/log/*
+	rm -rf test/nodekey/*
+	rm -rf test/node1
+	rm -rf test/node2
+	rm -rf test/node3
+	rm -rf test/node4
+	rm -rf test/node5	
 
 fmt:
 	./gofmt.sh
+
+gsmpc-test:
+	./build.sh gsmpc-test
