@@ -24,6 +24,7 @@ import (
 	"io"
 )
 
+// Prove  Generate SK zero knowledge proof data 
 func Prove(sk [32]byte) [64]byte {
 	rand := cryptorand.Reader
 	var rndNum [32]byte
@@ -63,6 +64,7 @@ func Prove(sk [32]byte) [64]byte {
 	return signature
 }
 
+// Verify_zk verify SK zero knowledge proof data
 func Verify_zk(signature [64]byte, pk [32]byte) bool {
 
 	var sG, X, eX, RCal ExtendedGroupElement

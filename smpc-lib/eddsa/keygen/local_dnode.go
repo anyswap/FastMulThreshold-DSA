@@ -1,14 +1,11 @@
+// Package keygen ED MPC implementation of generating pubkey 
 package keygen
 
 import (
 	"fmt"
-	//"time"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
-	//"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
-	//"math/big"
 	"encoding/hex"
-	//"strings"
 	cryptorand "crypto/rand"
 	"io"
 )
@@ -52,6 +49,7 @@ type localTempData struct {
 	//round 7
 }
 
+// NewLocalDNode new a DNode data struct for current node
 func NewLocalDNode(
 	out chan<- smpc.Message,
 	end chan<- LocalDNodeSaveData,
@@ -109,10 +107,12 @@ func (p *LocalDNode) Finalize() bool {
 	return false
 }
 
+// Start generating pubkey start 
 func (p *LocalDNode) Start() error {
 	return smpc.BaseStart(p)
 }
 
+// Update Collect data from other nodes and enter the next round 
 func (p *LocalDNode) Update(msg smpc.Message) (ok bool, err error) {
 	return smpc.BaseUpdate(p, msg)
 }
@@ -125,6 +125,7 @@ func (p *LocalDNode) SetDNodeID(id string) {
 	p.Id = id
 }
 
+// checkfull  Check for empty messages 
 func checkfull(msg []smpc.Message) bool {
 	if len(msg) == 0 {
 		return false
@@ -139,6 +140,7 @@ func checkfull(msg []smpc.Message) bool {
 	return true
 }
 
+// StoreMessage Collect data from other nodes
 func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 	switch msg.(type) {
 	case *KGRound0Message:

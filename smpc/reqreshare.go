@@ -27,7 +27,6 @@ import (
 
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/reshare"
@@ -38,6 +37,7 @@ import (
 
 //----------------------------------------------------------------------------------------
 
+// GetReShareNonce get reshare special tx nonce
 func GetReShareNonce(account string) (string, string, error) {
 	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + "RESHARE"))).Hex()
 	exsit, da := GetPubKeyData([]byte(key))
@@ -51,6 +51,7 @@ func GetReShareNonce(account string) (string, string, error) {
 	return fmt.Sprintf("%v", nonce), "", nil
 }
 
+// SetReShareNonce set reshare special tx nonce
 func SetReShareNonce(account string, nonce string) (string, error) {
 	key2 := Keccak256Hash([]byte(strings.ToLower(account + ":" + "RESHARE"))).Hex()
 	err := PutPubKeyData([]byte(key2), []byte(nonce))
@@ -63,6 +64,7 @@ func SetReShareNonce(account string, nonce string) (string, error) {
 
 //--------------------------------------------------------------------------------
 
+// IsValidReShareAccept is valid reshare accept??
 func IsValidReShareAccept(from string, gid string) bool {
 	if from == "" || gid == "" {
 		return false
@@ -106,6 +108,8 @@ type TxDataReShare struct {
 	TimeStamp string
 }
 
+// ReShare execute the reshare command
+// raw : reshare command data
 func ReShare(raw string) (string, string, error) {
 	key, _, _, txdata, err := CheckRaw(raw)
 	if err != nil {
@@ -126,6 +130,8 @@ func ReShare(raw string) (string, string, error) {
 
 //-----------------------------------------------------------------------------------
 
+// RpcAcceptReShare Agree to the reshare request 
+// raw : accept data, including the key of the reshare request
 func RpcAcceptReShare(raw string) (string, string, error) {
 	_, _, _, txdata, err := CheckRaw(raw)
 	if err != nil {
@@ -163,6 +169,7 @@ type ReShareStatus struct {
 	TimeStamp string
 }
 
+// GetReShareStatus get the result of the reshare request by key
 func GetReShareStatus(key string) (string, string, error) {
 	exsit, da := GetPubKeyData([]byte(key))
 	if !exsit || da == nil {
@@ -196,20 +203,24 @@ type ReShareCurNodeInfoSort struct {
 	Info []*ReShareCurNodeInfo
 }
 
+// Len get the count of arrary elements
 func (r *ReShareCurNodeInfoSort) Len() int {
 	return len(r.Info)
 }
 
+// Less weather r.Info[i] < r.Info[j]
 func (r *ReShareCurNodeInfoSort) Less(i, j int) bool {
 	itime, _ := new(big.Int).SetString(r.Info[i].TimeStamp, 10)
 	jtime, _ := new(big.Int).SetString(r.Info[j].TimeStamp, 10)
 	return itime.Cmp(jtime) >= 0
 }
 
+// Swap swap value of r.Info[i] and r.Info[j]
 func (r *ReShareCurNodeInfoSort) Swap(i, j int) {
 	r.Info[i], r.Info[j] = r.Info[j], r.Info[i]
 }
 
+// GetCurNodeReShareInfo  Get current node's reshare command approval list 
 func GetCurNodeReShareInfo() ([]*ReShareCurNodeInfo, string, error) {
 	var ret []*ReShareCurNodeInfo
 	data := make(chan *ReShareCurNodeInfo, 1000)
@@ -263,8 +274,9 @@ func GetCurNodeReShareInfo() ([]*ReShareCurNodeInfo, string, error) {
 
 //-----------------------------------------------------------------------------------------
 
-//param groupid is not subgroupid
-//w.groupid is subgroupid
+// _reshare execute reshare
+// param groupid is not subgroupid
+// w.groupid is subgroupid
 func _reshare(wsid string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{}) {
 
 	rch := make(chan interface{}, 1)
@@ -310,9 +322,10 @@ func _reshare(wsid string, initator string, groupid string, pubkey string, accou
 
 //---------------------------------------------------------------------------------------
 
-//ec2
-//msgprex = hash
-//return value is the backup for smpc sig.
+// smpc_reshare execute reshare
+// ec2
+// msgprex = hash
+// return value is the backup for smpc sig.
 func smpc_reshare(msgprex string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{}) {
 
 	w, err := FindWorker(msgprex)
@@ -344,8 +357,9 @@ func smpc_reshare(msgprex string, initator string, groupid string, pubkey string
 
 //-------------------------------------------------------------------------------------------------------
 
-//msgprex = hash
-//return value is the backup for the smpc sig
+// ReShare_ec2 execute reshare
+// msgprex = hash
+// return value is the backup for the smpc sig
 func ReShare_ec2(msgprex string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{}, id int) {
 	if id < 0 || id >= len(workers) {
 		res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("no find worker.")}
@@ -523,6 +537,7 @@ func ReShare_ec2(msgprex string, initator string, groupid string, pubkey string,
 
 //-------------------------------------------------------------------------------------------------------------
 
+// GetIdReshareByGroupId get uid of node in group by groupid,and sort the uids
 func GetIdReshareByGroupId(msgtoenode map[string]string, groupid string) smpclib.SortableIDSSlice {
 	var ids smpclib.SortableIDSSlice
 
@@ -544,31 +559,4 @@ func GetIdReshareByGroupId(msgtoenode map[string]string, groupid string) smpclib
 	return ids
 }
 
-//----------------------------------------------------------------------------------------------------------------
 
-func GetNewIdsByNewGroupId(OldMsgToEnode map[string]string, NewGroupId string) smpclib.SortableIDSSlice {
-	var ids smpclib.SortableIDSSlice
-
-	_, enodes := GetGroup(NewGroupId)
-	nodes := strings.Split(enodes, common.Sep2)
-	for _, node := range nodes {
-		node2 := ParseNode(node)
-		found := false
-		for key, value := range OldMsgToEnode {
-			if strings.EqualFold(value, node2) {
-				uid, _ := new(big.Int).SetString(key, 10)
-				ids = append(ids, uid)
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			uid := random.GetRandomIntFromZn(secp256k1.S256().N)
-			ids = append(ids, uid)
-		}
-	}
-
-	sort.Sort(ids)
-	return ids
-}

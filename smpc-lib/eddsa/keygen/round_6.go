@@ -10,6 +10,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
 
+// Start verify vss,calc pk tSk
 func (round *round6) Start() error {
 	if round.started {
 		return errors.New("ed,round already started")
@@ -28,17 +29,6 @@ func (round *round6) Start() error {
 		return errors.New("round.Start get ids fail.")
 	}
 
-	//get cur id
-	/*var cur_id [32]byte
-	for k,id := range ids {
-	    fmt.Printf("==================round6.start, id = %v,id len = %v, k = %v,cur_index = %v ==================\n",id,len(id.Bytes()),k,cur_index)
-	    if k == cur_index {
-		copy(cur_id[:],id.Bytes())
-		break
-	    }
-	}*/
-	//
-
 	var PkSet2 []byte
 	for k, id := range ids {
 		msg4, ok := round.temp.kgRound4Messages[k].(*KGRound4Message)
@@ -56,8 +46,6 @@ func (round *round6) Start() error {
 			return errors.New("ed,round.Start get round3 msg fail")
 		}
 
-		//fmt.Printf("=====================round6.start,check vss, share = %v, id = %v,index = %v,uids[] = %v, cfsbtyes = %v,k = %v ============\n",msg4.Share,id,cur_index,round.temp.uids[cur_index],msg5.CfsBBytes,k)
-
 		shareUFlag := ed.Verify_vss(msg4.Share, round.temp.uids[cur_index], msg5.CfsBBytes)
 		if !shareUFlag {
 			fmt.Printf("Error: VSS Share Verification Not Pass at User: %v, k  = %v \n", id, k)
@@ -69,8 +57,6 @@ func (round *round6) Start() error {
 		copy(temPk[:], t[32:])
 		PkSet2 = append(PkSet2[:], (temPk[:])...)
 	}
-
-	//fmt.Printf("===============================round6.start,check vss share success ===============================\n")
 
 	// 3.2 verify share2
 	var a2 [32]byte
@@ -177,8 +163,6 @@ func (round *round6) Start() error {
 	round.Save.TSk = tSk
 	round.Save.FinalPkBytes = finalPkBytes
 
-	//fmt.Printf("===============round6.start, save.Sk = %v,save.Pk = %v,save.TSk = %v,save.FinalPkBytes = %v, save.Ids = %v, save.CurDNodeID = %v =================\n",hex.EncodeToString(round.Save.Sk[:]),hex.EncodeToString(round.Save.Pk[:]),hex.EncodeToString(round.Save.TSk[:]),hex.EncodeToString(round.Save.FinalPkBytes[:]),round.Save.Ids,round.Save.CurDNodeID)
-
 	round.end <- *round.Save
 
 	pub := hex.EncodeToString(finalPkBytes[:])
@@ -186,14 +170,17 @@ func (round *round6) Start() error {
 	return nil
 }
 
+// CanAccept end ed keygen
 func (round *round6) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update end ed keygen
 func (round *round6) Update() (bool, error) {
 	return false, nil
 }
 
+// NextRound end ed keygen
 func (round *round6) NextRound() smpc.Round {
 	return nil
 }

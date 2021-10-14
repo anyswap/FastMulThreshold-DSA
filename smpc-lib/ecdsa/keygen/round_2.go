@@ -8,6 +8,7 @@ import (
 	"math/big"
 )
 
+// Start send vss data to corresponding peer
 func (round *round2) Start() error {
 	if round.started {
 		return errors.New("round already started")
@@ -73,6 +74,7 @@ func (round *round2) Start() error {
 	return nil
 }
 
+// CanAccept is it legal to receive this message 
 func (round *round2) CanAccept(msg smpc.Message) bool {
 	if _, ok := msg.(*KGRound2Message); ok {
 		return !msg.IsBroadcast()
@@ -83,6 +85,7 @@ func (round *round2) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update  is the message received and ready for the next round? 
 func (round *round2) Update() (bool, error) {
 	for j, msg := range round.temp.kgRound2Messages {
 		if round.ok[j] {
@@ -100,6 +103,7 @@ func (round *round2) Update() (bool, error) {
 	return true, nil
 }
 
+// NextRound enter next round
 func (round *round2) NextRound() smpc.Round {
 	round.started = false
 	return &round3{round}

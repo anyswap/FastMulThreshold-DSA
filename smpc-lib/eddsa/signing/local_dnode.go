@@ -1,12 +1,11 @@
+
+// Package signing ED MPC implementation of signing
 package signing
 
 import (
 	"fmt"
-	//"time"
 	"encoding/hex"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
-	//"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
-	//"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/eddsa/keygen"
 	"math/big"
 )
@@ -62,6 +61,7 @@ type localTempData struct {
 	//round 7
 }
 
+// NewLocalDNode new a DNode data struct for current node
 func NewLocalDNode(
 	out chan<- smpc.Message,
 	end chan<- EdSignData,
@@ -108,18 +108,19 @@ func NewLocalDNode(
 }
 
 func (p *LocalDNode) FinalizeRound() smpc.Round {
-	return nil //nil for ed
-	//return newRound8(&p.temp,p.save,p.idsign,p.out,p.end,p.Id,p.ThresHold,p.PaillierKeyLength,p.predata,p.txhash,p.finalize_end)
+	return nil // nil for ed
 }
 
 func (p *LocalDNode) FirstRound() smpc.Round {
 	return newRound1(&p.temp, p.save, p.idsign, p.out, p.end, p.Id, p.ThresHold, p.PaillierKeyLength, p.txhash)
 }
 
+// Start ed signing start 
 func (p *LocalDNode) Start() error {
 	return smpc.BaseStart(p)
 }
 
+// Update Collect data from other nodes and enter the next round 
 func (p *LocalDNode) Update(msg smpc.Message) (ok bool, err error) {
 	return smpc.BaseUpdate(p, msg)
 }
@@ -136,6 +137,7 @@ func (p *LocalDNode) Finalize() bool {
 	return p.finalize
 }
 
+// checkfull  Check for empty messages 
 func checkfull(msg []smpc.Message) bool {
 	if len(msg) == 0 {
 		return false
@@ -150,6 +152,7 @@ func checkfull(msg []smpc.Message) bool {
 	return true
 }
 
+// StoreMessage Collect data from other nodes
 func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 	switch msg.(type) {
 	case *SignRound1Message:

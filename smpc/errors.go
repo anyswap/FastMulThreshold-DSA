@@ -16,10 +16,6 @@
 
 package smpc
 
-import (
-	"encoding/json"
-)
-
 // smpc erros
 var (
 	//err code 1
@@ -93,12 +89,7 @@ type ErrorRet struct {
 	Error string
 }
 
-func GetRetErrJsonStr(code int, err string) string {
-	m := &ErrorRet{Code: code, Error: err}
-	ret, _ := json.Marshal(m)
-	return string(ret)
-}
-
+// GetRetErr get error form error info
 func GetRetErr(err string) error {
 	var ret2 Err
 	ret2.Info = err

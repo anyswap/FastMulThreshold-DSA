@@ -21,8 +21,6 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
-	//"github.com/binance-chain/tss-lib/common"
-	//cmts "github.com/binance-chain/tss-lib/crypto/commitments"
 )
 
 const (
@@ -38,6 +36,7 @@ type (
 	}
 )
 
+// NewNtildeProof create ntilde proof
 func NewNtildeProof(h1, h2, x, p, q, N *big.Int) *NtildeProof {
 	pMulQ := new(big.Int).Mul(p, q)
 	modN, modPQ := ModInt(N), ModInt(pMulQ)
@@ -46,10 +45,8 @@ func NewNtildeProof(h1, h2, x, p, q, N *big.Int) *NtildeProof {
 	for i := range alpha {
 		a[i] = GetRandomPositiveInt(pMulQ)
 		alpha[i] = modN.Exp(h1, a[i])
-		//fmt.Printf("==========================NewNtildeProof,i = %v,alphai = %v==========================\n",i,alpha[i])
 	}
 	msg := append([]*big.Int{h1, h2, N}, alpha[:]...)
-	//fmt.Printf("==================NewNtildeProof, h1 = %v, h2 = %v, N = %v, alpha len = %v, alpha[0] = %v, alpha[end] = %v ====================\n",h1,h2,N,len(alpha),alpha[0],alpha[len(alpha)-1])
 	c := SHA512_256i(msg...)
 	t := [Iterations]*big.Int{}
 	cIBI := new(big.Int)
@@ -57,23 +54,21 @@ func NewNtildeProof(h1, h2, x, p, q, N *big.Int) *NtildeProof {
 		cI := c.Bit(i)
 		cIBI = cIBI.SetInt64(int64(cI))
 		t[i] = modPQ.Add(a[i], modPQ.Mul(cIBI, x))
-		//fmt.Printf("==========================NewNtildeProof,i = %v,ti = %v==========================\n",i,t[i])
 	}
 	return &NtildeProof{alpha, t}
 }
 
+// Verify Verify ntilde proof
 func (p *NtildeProof) Verify(h1, h2, N *big.Int) bool {
 	if p == nil {
 		return false
 	}
 	modN := ModInt(N)
 	msg := append([]*big.Int{h1, h2, N}, p.Alpha[:]...)
-	//fmt.Printf("==================NtildeProof.Verify, h1 = %v, h2 = %v, N = %v, alpha len = %v, alpha[0] = %v, alpha[end] = %v ====================\n",h1,h2,N,len(p.Alpha),p.Alpha[0],p.Alpha[len(p.Alpha)-1])
 	c := SHA512_256i(msg...)
 	cIBI := new(big.Int)
 	for i := 0; i < Iterations; i++ {
 		if p.Alpha[i] == nil || p.T[i] == nil {
-			//fmt.Printf("==========================NtildeProof.Verify,pai = %v,pti = %v========================\n",p.Alpha[i],p.T[i])
 			return false
 		}
 		cI := c.Bit(i)
@@ -82,7 +77,6 @@ func (p *NtildeProof) Verify(h1, h2, N *big.Int) bool {
 		h2ExpCi := modN.Exp(h2, cIBI)
 		alphaIMulH2ExpCi := modN.Mul(p.Alpha[i], h2ExpCi)
 		if h1ExpTi.Cmp(alphaIMulH2ExpCi) != 0 {
-			//fmt.Printf("==========================NtildeProof.Verify,i = %v,alphaIMulH2ExpCi = %v,h1ExpTi = %v========================\n",i,alphaIMulH2ExpCi,h1ExpTi)
 			return false
 		}
 	}
@@ -262,7 +256,7 @@ func GetRandomPrimeInt(bits int) *big.Int {
 	return try
 }
 
-// Generate a random element in the group of all the elements in Z/nZ that
+// GetRandomPositiveRelativelyPrimeInt Generate a random element in the group of all the elements in Z/nZ that
 // has a multiplicative inverse.
 func GetRandomPositiveRelativelyPrimeInt(n *big.Int) *big.Int {
 	if n == nil || zero.Cmp(n) != -1 {
@@ -287,7 +281,7 @@ func IsNumberInMultiplicativeGroup(n, v *big.Int) bool {
 		gcd.GCD(nil, nil, v, n).Cmp(one) == 0
 }
 
-//  Return a random generator of RQn with high probability.
+//  GetRandomGeneratorOfTheQuadraticResidue Return a random generator of RQn with high probability.
 //  THIS METHOD ONLY WORKS IF N IS THE PRODUCT OF TWO SAFE PRIMES!
 // https://github.com/didiercrunch/paillier/blob/d03e8850a8e4c53d04e8016a2ce8762af3278b71/utils.go#L39
 func GetRandomGeneratorOfTheQuadraticResidue(n *big.Int) *big.Int {
@@ -298,7 +292,7 @@ func GetRandomGeneratorOfTheQuadraticResidue(n *big.Int) *big.Int {
 
 //---------------------------------------------------------------------------------------------------------
 
-// SHA-512/256 is protected against length extension attacks and is more performant than SHA-256 on 64-bit architectures.
+// SHA512_256 SHA-512/256 is protected against length extension attacks and is more performant than SHA-256 on 64-bit architectures.
 // https://en.wikipedia.org/wiki/Template:Comparison_of_SHA_functions
 func SHA512_256(in ...[]byte) []byte {
 	var data []byte

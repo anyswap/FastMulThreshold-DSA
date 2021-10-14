@@ -7,6 +7,7 @@ import (
 	"math/big"
 )
 
+// Start return save data
 func (round *round6) Start() error {
 	if round.started {
 		return errors.New("round already started")
@@ -45,14 +46,17 @@ func (round *round6) Start() error {
 	return nil
 }
 
+// CanAccept end reshare
 func (round *round6) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update end reshare
 func (round *round6) Update() (bool, error) {
 	return false, nil
 }
 
+// NextRound end reshare
 func (round *round6) NextRound() smpc.Round {
 	return nil
 }

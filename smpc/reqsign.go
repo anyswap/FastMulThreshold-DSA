@@ -49,6 +49,7 @@ var (
 
 //--------------------------------------------------------------------------------------
 
+// GetSignNonce get sign special tx nonce
 func GetSignNonce(account string) (string, string, error) {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -72,6 +73,7 @@ func GetSignNonce(account string) (string, string, error) {
 	return fmt.Sprintf("%v", nonce), "", nil
 }
 
+// SetSignNonce set sign special tx nonce
 func SetSignNonce(account string, nonce string) (string, error) {
 	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + "Sign"))).Hex()
 	err := PutPubKeyData([]byte(key), []byte(nonce))
@@ -84,6 +86,11 @@ func SetSignNonce(account string, nonce string) (string, error) {
 
 //------------------------------------------------------------------------------------------
 
+// DoSign execute sign
+// sbd : sign command data + key of picked pre-sign data
+// workid : current worker id
+// sender : send node's enodeId
+// ch : the channel to save the sign result or error info.
 func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) error {
 	if sbd == nil || workid < 0 || sender == "" || sbd.Raw == "" || sbd.PickData == nil {
 		res := RpcSmpcRes{Ret: "", Tip: "do sign fail.", Err: fmt.Errorf("do sign fail")}
@@ -278,6 +285,8 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 
 //------------------------------------------------------------------------------------------------------
 
+// RpcAcceptSign Agree to the sign request 
+// raw : accept data, including the key of the sign request
 func RpcAcceptSign(raw string) (string, string, error) {
 	key, from, _, txdata, err := CheckRaw(raw)
 	if err != nil {
@@ -335,6 +344,8 @@ type TxDataSign struct {
 	TimeStamp  string
 }
 
+// Sign execute the sign command
+// raw : sign command data
 func Sign(raw string) (string, string, error) {
 	key, from, _, txdata, err := CheckRaw(raw)
 	if err != nil {
@@ -359,6 +370,7 @@ func Sign(raw string) (string, string, error) {
 	return key, "", nil
 }
 
+// HandleRpcSign handle sign request,read sign command from the channel and do it!
 func HandleRpcSign() {
 	for {
 		rsd := <-SignChan
@@ -447,6 +459,7 @@ func HandleRpcSign() {
 
 //-----------------------------------------------------------------------------------------------
 
+// get_sign_hash To get the key of sign command with the hash value,we must transfer hash array to a string
 func get_sign_hash(hash []string, keytype string) string {
 	var ids smpclib.SortableIDSSlice
 	for _, v := range hash {
@@ -476,6 +489,7 @@ type SignStatus struct {
 	TimeStamp string
 }
 
+// GetSignStatus get the result of the sign request by key
 func GetSignStatus(key string) (string, string, error) {
 	exsit, da := GetPubKeyData([]byte(key))
 	if !exsit || da == nil {
@@ -515,20 +529,24 @@ type SignCurNodeInfoSort struct {
 	Info []*SignCurNodeInfo
 }
 
+// Len get the count of arrary elements
 func (s *SignCurNodeInfoSort) Len() int {
 	return len(s.Info)
 }
 
+// Less weather r.Info[i] < r.Info[j]
 func (s *SignCurNodeInfoSort) Less(i, j int) bool {
 	itime, _ := new(big.Int).SetString(s.Info[i].TimeStamp, 10)
 	jtime, _ := new(big.Int).SetString(s.Info[j].TimeStamp, 10)
 	return itime.Cmp(jtime) >= 0
 }
 
+// Swap swap value of r.Info[i] and r.Info[j]
 func (s *SignCurNodeInfoSort) Swap(i, j int) {
 	s.Info[i], s.Info[j] = s.Info[j], s.Info[i]
 }
 
+// GetCurNodeSignInfo  Get current node's sign command approval list 
 func GetCurNodeSignInfo(geter_acc string) ([]*SignCurNodeInfo, string, error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -616,6 +634,8 @@ func GetCurNodeSignInfo(geter_acc string) ([]*SignCurNodeInfo, string, error) {
 
 //----------------------------------------------------------------------------------------------------------
 
+// sign execut the sign command,including ec and ed.
+// keytype : EC256K1 || ED25519
 func sign(wsid string, account string, pubkey string, inputcode string, unsignhash []string, keytype string, nonce string, mode string, pickdata []*PickHashData, ch chan interface{}) {
 	smpcpks, _ := hex.DecodeString(pubkey)
 	exsit, da := GetPubKeyData(smpcpks[:])
@@ -769,6 +789,7 @@ type SignData struct {
 	Pre        *PreSignData
 }
 
+// MarshalJSON marshal *SignData to json byte
 func (sd *SignData) MarshalJSON() ([]byte, error) {
 	if sd.Pre == nil {
 		return nil, errors.New("get pre-sign data fail.")
@@ -814,6 +835,7 @@ func (sd *SignData) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON unmarshal json string to *SignData
 func (sd *SignData) UnmarshalJSON(raw []byte) error {
 	var si struct {
 		MsgPrex    string `json:"MsgPrex"`
@@ -862,6 +884,7 @@ func (sd *SignData) UnmarshalJSON(raw []byte) error {
 
 //----------------------------------------------------------------------------------------------------
 
+// sign_ec execute the sign command with ec algorithm 
 func sign_ec(msgprex string, txhash []string, save string, sku1 *big.Int, smpcpkx *big.Int, smpcpky *big.Int, inputcode string, keytype string, pickdata []*PickHashData, ch chan interface{}) string {
 
 	tmp := make([]string, 0)
@@ -957,28 +980,7 @@ func sign_ec(msgprex string, txhash []string, save string, sku1 *big.Int, smpcpk
 
 //-----------------------------------------------------------------------------------------------------
 
-func GetIdSignByGroupId(msgtoenode map[string]string, groupid string) smpclib.SortableIDSSlice {
-	var ids smpclib.SortableIDSSlice
-
-	_, enodes := GetGroup(groupid)
-	nodes := strings.Split(enodes, common.Sep2)
-	for _, node := range nodes {
-		node2 := ParseNode(node)
-		for key, value := range msgtoenode {
-			if strings.EqualFold(value, node2) {
-				uid, _ := new(big.Int).SetString(key, 10)
-				ids = append(ids, uid)
-				break
-			}
-		}
-	}
-
-	sort.Sort(ids)
-	return ids
-}
-
-//--------------------------------------------------------------------------------
-
+// GetPaillierPkByIndexFromSaveData get paillier pubkey by index from saved data that obtained when generating pubkey
 func GetPaillierPkByIndexFromSaveData(save string, index int) *ec2.PublicKey {
 	if save == "" || index < 0 {
 		return nil
@@ -1001,6 +1003,7 @@ func GetPaillierPkByIndexFromSaveData(save string, index int) *ec2.PublicKey {
 
 //--------------------------------------------------------------------------------------------------
 
+// GetCurNodeIndex get the serial number of uid of current node in group.
 func GetCurNodeIndex(gid string, keytype string) int {
 	if gid == "" || keytype == "" {
 		return -1
@@ -1020,7 +1023,8 @@ func GetCurNodeIndex(gid string, keytype string) int {
 
 //-----------------------------------------------------------------------------------------------------
 
-//gid is not the sub-gid
+// GetCurNodePaillierSkFromSaveData get current node's paillier private key from saved data that obtained when generating pubkey
+// gid is not the sub-gid
 func GetCurNodePaillierSkFromSaveData(save string, gid string, keytype string) *ec2.PrivateKey {
 	if save == "" || gid == "" || keytype == "" {
 		return nil
@@ -1046,6 +1050,7 @@ func GetCurNodePaillierSkFromSaveData(save string, gid string, keytype string) *
 
 //---------------------------------------------------------------------------------------------
 
+// GetNtildeByIndexFromSaveData get ntilde data by index from saved data that obtained when generating pubkey
 func GetNtildeByIndexFromSaveData(save string, index int, NodeCnt int) *ec2.NtildeH1H2 {
 	if save == "" || index < 0 || NodeCnt < 0 {
 		return nil
@@ -1067,6 +1072,8 @@ func GetNtildeByIndexFromSaveData(save string, index int, NodeCnt int) *ec2.Ntil
 
 //---------------------------------------------------------------------------------------------------
 
+// GetMsgToEnode get uid of node in group by groupid,and put it to the map.
+// map: uid ----> enodeId
 func GetMsgToEnode(keytype string, groupid string) map[string]string {
 	msgtoenode := make(map[string]string)
 	_, nodes := GetGroup(groupid)
@@ -1082,8 +1089,9 @@ func GetMsgToEnode(keytype string, groupid string) map[string]string {
 
 //-----------------------------------------------------------------------------------------------------
 
-//msgprex = hash
-//return value is the backup for the smpc sig
+// PreSign_ec3 execute the action of generating the pre-sign data.
+// msgprex = hash
+//  the return value is the generated pre-sign data.
 func PreSign_ec3(msgprex string, save string, sku1 *big.Int, cointype string, ch chan interface{}, id int) *PreSignData {
 	if id < 0 || id >= len(workers) {
 		res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("no find worker.")}
@@ -1186,8 +1194,9 @@ func PreSign_ec3(msgprex string, save string, sku1 *big.Int, cointype string, ch
 	return ret
 }
 
-//msgprex = hash
-//return value is the backup for the smpc sig
+// Sign_ec3 execute sign with gg20 MPC algorithm
+// msgprex = hash
+// return value is the backup for the smpc sign
 func Sign_ec3(msgprex string, message string, cointype string, save string, pkx *big.Int, pky *big.Int, ch chan interface{}, id int, pre *PreSignData) string {
 	if id < 0 || id >= len(workers) {
 		res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("no find worker.")}
@@ -1274,7 +1283,6 @@ func Sign_ec3(msgprex string, message string, cointype string, save string, pkx 
 	msgtoenode := GetMsgToEnode(cointype, pubs.GroupId)
 	kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
 
-	//idsign := GetIdSignByGroupId(kgsave.MsgToEnode,w.groupid)
 	idsign := GetIds(cointype, w.groupid)
 
 	commStopChan := make(chan struct{})
@@ -1436,7 +1444,7 @@ func Sign_ec3(msgprex string, message string, cointype string, save string, pkx 
 		return ""
 	}
 
-	signature2 := GetSignString(signature.GetR(), signature.GetS(), signature.GetRecoveryParam(), int(signature.GetRecoveryParam()))
+	signature2 := GetSignString(signature.GetR(), signature.GetS(), int(signature.GetRecoveryParam()))
 	rstring := "========================== r = " + fmt.Sprintf("%v", signature.GetR()) + " ========================="
 	sstring := "========================== s = " + fmt.Sprintf("%v", signature.GetS()) + " =========================="
 	fmt.Println(rstring)
@@ -1454,57 +1462,45 @@ type ECDSASignature struct {
 	r               *big.Int
 	s               *big.Int
 	recoveryParam   int32
-	roudFiveAborted bool
 }
 
+// New new a *ECDSASignature
 func (this *ECDSASignature) New() {
 }
 
-func (this *ECDSASignature) New2(r *big.Int, s *big.Int) {
-	this.r = r
-	this.s = s
-}
-
-func (this *ECDSASignature) New3(r *big.Int, s *big.Int, recoveryParam int32) {
-	this.r = r
-	this.s = s
-	this.recoveryParam = recoveryParam
-}
-
-func (this *ECDSASignature) GetRoudFiveAborted() bool {
-	return this.roudFiveAborted
-}
-
-func (this *ECDSASignature) SetRoudFiveAborted(roudFiveAborted bool) {
-	this.roudFiveAborted = roudFiveAborted
-}
-
+// GetR get r
 func (this *ECDSASignature) GetR() *big.Int {
 	return this.r
 }
 
+// SetR set r
 func (this *ECDSASignature) SetR(r *big.Int) {
 	this.r = r
 }
 
+// GetS get s
 func (this *ECDSASignature) GetS() *big.Int {
 	return this.s
 }
 
+// SetS set s
 func (this *ECDSASignature) SetS(s *big.Int) {
 	this.s = s
 }
 
+// GetRecoveryParam get v
 func (this *ECDSASignature) GetRecoveryParam() int32 {
 	return this.recoveryParam
 }
 
+// SetRecoveryParam set v
 func (this *ECDSASignature) SetRecoveryParam(recoveryParam int32) {
 	this.recoveryParam = recoveryParam
 }
 
 //------------------------------------------------------------------------------------------
 
+// Tool_DecimalByteSlice2HexString transfer Decimal byte to hex string
 func Tool_DecimalByteSlice2HexString(DecimalSlice []byte) string {
 	var sa = make([]string, 0)
 	for _, v := range DecimalSlice {
@@ -1514,7 +1510,8 @@ func Tool_DecimalByteSlice2HexString(DecimalSlice []byte) string {
 	return ss
 }
 
-func GetSignString(r *big.Int, s *big.Int, v int32, i int) string {
+// GetSignString get RSV string
+func GetSignString(r *big.Int, s *big.Int, v int) string {
 	rr := r.Bytes()
 	sss := s.Bytes()
 
@@ -1524,7 +1521,7 @@ func GetSignString(r *big.Int, s *big.Int, v int32, i int) string {
 		sigs[0] = byte(0)
 		smpclib.ReadBits(r, sigs[1:32])
 		smpclib.ReadBits(s, sigs[32:64])
-		sigs[64] = byte(i)
+		sigs[64] = byte(v)
 		ret := Tool_DecimalByteSlice2HexString(sigs)
 		return ret
 	}
@@ -1534,7 +1531,7 @@ func GetSignString(r *big.Int, s *big.Int, v int32, i int) string {
 		sigs[32] = byte(0)
 		smpclib.ReadBits(r, sigs[1:32])
 		smpclib.ReadBits(s, sigs[33:64])
-		sigs[64] = byte(i)
+		sigs[64] = byte(v)
 		ret := Tool_DecimalByteSlice2HexString(sigs)
 		return ret
 	}
@@ -1543,7 +1540,7 @@ func GetSignString(r *big.Int, s *big.Int, v int32, i int) string {
 		sigs[32] = byte(0)
 		smpclib.ReadBits(r, sigs[0:32])
 		smpclib.ReadBits(s, sigs[33:64])
-		sigs[64] = byte(i)
+		sigs[64] = byte(v)
 		ret := Tool_DecimalByteSlice2HexString(sigs)
 		return ret
 	}
@@ -1554,46 +1551,20 @@ func GetSignString(r *big.Int, s *big.Int, v int32, i int) string {
 	smpclib.ReadBits(r, sigs[0:len(rr)])
 	smpclib.ReadBits(s, sigs[len(rr):len(rr)+len(sss)])
 
-	sigs[len(rr)+len(sss)] = byte(i)
+	sigs[len(rr)+len(sss)] = byte(v)
 	ret := Tool_DecimalByteSlice2HexString(sigs)
 
 	return ret
 }
 
+// DECDSA_Sign_Verify_RSV verify RSV
 func DECDSA_Sign_Verify_RSV(r *big.Int, s *big.Int, v int32, message string, pkx *big.Int, pky *big.Int) bool {
 	return smpclib.Verify2(r, s, v, message, pkx, pky)
 }
 
 //--------------------------------------------------------------------------------------------------
 
-func GetIdSignByGroupId_ed(ids smpclib.SortableIDSSlice, msgtoenode map[string]string, groupid string) smpclib.SortableIDSSlice {
-	var signids smpclib.SortableIDSSlice
-
-	_, enodes := GetGroup(groupid)
-	nodes := strings.Split(enodes, common.Sep2)
-	for _, node := range nodes {
-		node2 := ParseNode(node)
-		for key, value := range msgtoenode {
-			if strings.EqualFold(value, node2) {
-
-				for _, v := range ids {
-					var id [32]byte
-					copy(id[:], v.Bytes())
-					if strings.EqualFold(hex.EncodeToString(id[:]), key) {
-						signids = append(signids, v)
-						break
-					}
-
-				}
-				break
-			}
-		}
-	}
-
-	sort.Sort(signids)
-	return signids
-}
-
+// sign_ed execute the sign command with ed algorithm 
 func sign_ed(msgprex string, txhash []string, save string, sku1 *big.Int, pk string, keytype string, ch chan interface{}) string {
 
 	tmp := make([]string, 0)
@@ -1622,24 +1593,19 @@ func sign_ed(msgprex string, txhash []string, save string, sku1 *big.Int, pk str
 	for _, v := range tmp {
 		var ch1 = make(chan interface{}, 1)
 		for i := 0; i < recalc_times; i++ {
-			//fmt.Printf("%v===============sign_ed, recalc i = %v, key = %v ================\n",common.CurrentTime(),i,msgprex)
 			if len(ch1) != 0 {
 				<-ch1
 			}
 
-			//w := workers[id]
-			//w.Clear2()
 			bak_sig = Sign_ed(msgprex, save, sku1, v, keytype, pk, ch1, id)
 			ret, _, cherr := GetChannelValue(ch_t, ch1)
 			if ret != "" && cherr == nil {
 				result += ret
 				result += ":"
-				//res := RpcSmpcRes{Ret: ret, Tip: "", Err: cherr}
-				//ch <- res
 				break
 			}
 
-			time.Sleep(time.Duration(3) * time.Second) //1000 == 1s
+			time.Sleep(time.Duration(3) * time.Second)
 		}
 	}
 
@@ -1655,8 +1621,9 @@ func sign_ed(msgprex string, txhash []string, save string, sku1 *big.Int, pk str
 
 //-----------------------------------------------------------------------------------------------------------------
 
-//msgprex = hash
-//return value is the backup for the smpc sig
+// Sign_ed execute the sign command with ed algorithm 
+// msgprex = hash
+// return value is the backup for the smpc sign
 func Sign_ed(msgprex string, save string, sku1 *big.Int, message string, cointype string, pk string, ch chan interface{}, id int) string {
 	if id < 0 || id >= len(workers) || id >= RPCMaxWorker {
 		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get worker id fail", Err: GetRetErr(ErrGetWorkerIdError)}
@@ -1731,7 +1698,6 @@ func Sign_ed(msgprex string, save string, sku1 *big.Int, message string, cointyp
 	msgtoenode := GetMsgToEnode(cointype, pubs.GroupId)
 	kgsave := &KGLocalDBSaveData_ed{Save: sd, MsgToEnode: msgtoenode}
 
-	//idsign := GetIdSignByGroupId_ed(sd.Ids,kgsave.MsgToEnode,w.groupid)
 	idsign := GetIds(cointype, w.groupid)
 
 	mMtA, _ := new(big.Int).SetString(message, 16)

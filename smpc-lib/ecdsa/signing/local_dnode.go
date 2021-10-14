@@ -1,11 +1,11 @@
+
+// Package signing MPC implementation of signing 
 package signing
 
 import (
 	"fmt"
-	//"time"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
-	//"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
 	"math/big"
 )
@@ -32,10 +32,6 @@ type localTempData struct {
 	signRound5Messages,
 	signRound6Messages,
 	signRound7Messages []smpc.Message
-	//	signRound7Messages,
-	//	signRound8Messages,
-	//	signRound9Messages,
-	//	signRound10Messages []smpc.Message
 
 	// temp data (thrown away after sign)
 
@@ -76,6 +72,7 @@ type localTempData struct {
 
 }
 
+// NewLocalDNode new a DNode data struct for current node
 func NewLocalDNode(
 	out chan<- smpc.Message,
 	end chan<- PrePubData,
@@ -118,12 +115,10 @@ func NewLocalDNode(
 	p.temp.signRound5Messages = make([]smpc.Message, threshold)
 	p.temp.signRound6Messages = make([]smpc.Message, threshold)
 	p.temp.signRound7Messages = make([]smpc.Message, threshold)
-	//	p.temp.signRound8Messages = make([]smpc.Message,threshold)
-	//	p.temp.signRound9Messages = make([]smpc.Message,threshold)
-	//	p.temp.signRound10Messages = make([]smpc.Message,threshold)
 	return p
 }
 
+// FinalizeRound for gg20
 func (p *LocalDNode) FinalizeRound() smpc.Round {
 	return newRound8(&p.temp, p.save, p.idsign, p.out, p.end, p.Id, p.ThresHold, p.PaillierKeyLength, p.predata, p.txhash, p.finalize_end)
 }
@@ -132,10 +127,12 @@ func (p *LocalDNode) FirstRound() smpc.Round {
 	return newRound1(&p.temp, p.save, p.idsign, p.out, p.end, p.Id, p.ThresHold, p.PaillierKeyLength)
 }
 
+// Start signing start 
 func (p *LocalDNode) Start() error {
 	return smpc.BaseStart(p)
 }
 
+// Update Collect data from other nodes and enter the next round 
 func (p *LocalDNode) Update(msg smpc.Message) (ok bool, err error) {
 	return smpc.BaseUpdate(p, msg)
 }
@@ -152,6 +149,7 @@ func (p *LocalDNode) Finalize() bool {
 	return p.finalize
 }
 
+// checkfull  Check for empty messages 
 func checkfull(msg []smpc.Message) bool {
 	if len(msg) == 0 {
 		return false
@@ -166,6 +164,7 @@ func checkfull(msg []smpc.Message) bool {
 	return true
 }
 
+// StoreMessage Collect data from other nodes
 func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 	switch msg.(type) {
 	case *SignRound1Message:

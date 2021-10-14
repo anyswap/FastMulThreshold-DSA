@@ -1,3 +1,5 @@
+
+// Package ec2  MPC gg18 algorithm 
 package ec2
 
 import (
@@ -19,6 +21,7 @@ type MtAZK1Proof_nhh struct {
 	S2 *big.Int
 }
 
+// MtAZK1Prove_nhh  Generate zero knowledge proof data mtazk1proof_ nhh 
 func MtAZK1Prove_nhh(m *big.Int, r *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtAZK1Proof_nhh {
 	N3Ntilde := new(big.Int).Mul(s256.S256().N3(), ntildeH1H2.Ntilde)
 	NNtilde := new(big.Int).Mul(s256.S256().N, ntildeH1H2.Ntilde)
@@ -66,6 +69,7 @@ func MtAZK1Prove_nhh(m *big.Int, r *big.Int, publicKey *PublicKey, ntildeH1H2 *N
 	return mtAZKProof
 }
 
+// MtAZK1Verify_nhh  Verify zero knowledge proof data mtazk1proof_ nhh 
 func (mtAZKProof *MtAZK1Proof_nhh) MtAZK1Verify_nhh(c *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
 	if mtAZKProof.S1.Cmp(s256.S256().N3()) >= 0 { //MtAZK1 question 1
 		return false

@@ -7,6 +7,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
 
+// Start verify commitment and zku proof data
 func (round *round6) Start() error {
 	if round.started {
 		return errors.New("round already started")
@@ -64,6 +65,7 @@ func (round *round6) Start() error {
 	return nil
 }
 
+// CanAccept is it legal to receive this message 
 func (round *round6) CanAccept(msg smpc.Message) bool {
 	if _, ok := msg.(*KGRound6Message); ok {
 		return msg.IsBroadcast()
@@ -71,6 +73,7 @@ func (round *round6) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update  is the message received and ready for the next round? 
 func (round *round6) Update() (bool, error) {
 	for j, msg := range round.temp.kgRound6Messages {
 		if round.ok[j] {
@@ -84,6 +87,7 @@ func (round *round6) Update() (bool, error) {
 	return true, nil
 }
 
+// NextRound enter next round
 func (round *round6) NextRound() smpc.Round {
 	round.started = false
 	return &round7{round}

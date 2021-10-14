@@ -1,10 +1,7 @@
 package keygen
 
 import (
-	//"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
-	//"math/big"
 	"strings"
-	//"fmt"
 	"encoding/hex"
 	"strconv"
 )

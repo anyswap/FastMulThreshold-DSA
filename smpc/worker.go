@@ -27,7 +27,6 @@ import (
 
 var (
 	RPCReqQueueCache = make(chan RPCReq, RPCMaxQueue)
-	//rpc-req //smpc node
 	RPCMaxWorker = 2000
 	RPCMaxQueue  = 2000
 	RPCReqQueue  chan RPCReq
@@ -36,7 +35,7 @@ var (
 
 //------------------------------------------------------------------------------
 
-//workers,RpcMaxWorker,RpcReqWorker,RpcReqQueue,RpcMaxQueue,ReqDispatcher
+// InitChan init workers,RpcReqQueue,ReqDispatcher and start the worker.
 func InitChan() {
 	workers = make([]*RPCReqWorker, RPCMaxWorker)
 	RPCReqQueue = make(chan RPCReq, RPCMaxQueue)
@@ -56,11 +55,13 @@ type ReqDispatcher struct {
 	WorkerPool chan chan RPCReq
 }
 
+// NewReqDispatcher new a worker pool.
 func NewReqDispatcher(maxWorkers int) *ReqDispatcher {
 	pool := make(chan chan RPCReq, maxWorkers)
 	return &ReqDispatcher{WorkerPool: pool}
 }
 
+// Run start the worker
 func (d *ReqDispatcher) Run() {
 	// starting n number of workers
 	for i := 0; i < RPCMaxWorker; i++ {
@@ -73,6 +74,7 @@ func (d *ReqDispatcher) Run() {
 	go d.dispatch()
 }
 
+// dispatch received a job request and dispatch it to the worker job channel.
 func (d *ReqDispatcher) dispatch() {
 	for {
 		select {
@@ -207,6 +209,7 @@ type RPCReqWorker struct {
 	PreSaveSmpcMsg []string
 }
 
+// NewRPCReqWorker new a RPCReqWorker
 func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 	return &RPCReqWorker{
 		RPCReqWorkerPool:     workerPool,
@@ -316,6 +319,7 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 	}
 }
 
+// Clear  reset RPCReqWorker object 
 func (w *RPCReqWorker) Clear() {
 
 	common.Debug("======================RpcReqWorker.Clear======================", "w.id", w.id, "w.groupid", w.groupid, "key", w.sid)
@@ -677,6 +681,7 @@ func (w *RPCReqWorker) Clear() {
 	w.PreSaveSmpcMsg = make([]string, 0)
 }
 
+// Clear2  reset RPCReqWorker object in some elements 
 func (w *RPCReqWorker) Clear2() {
 	common.Debug("======================RpcReqWorker.Clear2======================", "w.id", w.id, "w.groupid", w.groupid, "key", w.sid)
 
@@ -1028,6 +1033,10 @@ func (w *RPCReqWorker) Clear2() {
 	w.PreSaveSmpcMsg = make([]string, 0)
 }
 
+// Start start the worker
+// register the current worker into the worker queue.
+// get job from channel and run!
+// reset the worker object or stop the work.
 func (w *RPCReqWorker) Start() {
 	go func() {
 
@@ -1047,6 +1056,7 @@ func (w *RPCReqWorker) Start() {
 	}()
 }
 
+// Stop stop the work
 func (w *RPCReqWorker) Stop() {
 	go func() {
 		w.rpcquit <- true
@@ -1055,6 +1065,7 @@ func (w *RPCReqWorker) Stop() {
 
 //----------------------------------------------------------------------------
 
+// FindWorker find worker by sid(key) that uniquely identifies the keygen/sign/reshare command 
 func FindWorker(sid string) (*RPCReqWorker, error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1084,6 +1095,7 @@ func FindWorker(sid string) (*RPCReqWorker, error) {
 
 //---------------------------------------------------------------------------------------------
 
+// GetWorkerId get worker's id
 func GetWorkerId(w *RPCReqWorker) (int, error) {
 	if w == nil {
 		return -1, fmt.Errorf("fail get worker id")
@@ -1091,3 +1103,5 @@ func GetWorkerId(w *RPCReqWorker) (int, error) {
 
 	return w.id, nil
 }
+
+

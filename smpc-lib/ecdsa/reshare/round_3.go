@@ -9,6 +9,7 @@ import (
 	"math/big"
 )
 
+// Start verify vss and commitment data,calc pubkey and new SKi 
 func (round *round3) Start() error {
 	if round.started {
 		return errors.New("round already started")
@@ -17,7 +18,7 @@ func (round *round3) Start() error {
 	round.started = true
 	round.resetOK()
 
-	//use round.temp.reshareRound1Messages replace round.idreshare,because round.idreshare == nil when oldnode == false
+	// use round.temp.reshareRound1Messages replace round.idreshare,because round.idreshare == nil when oldnode == false
 	for k := range round.temp.reshareRound1Messages {
 		msg2, ok := round.temp.reshareRound2Messages[k].(*ReshareRound2Message)
 		if !ok {
@@ -132,6 +133,7 @@ func (round *round3) Start() error {
 	return nil
 }
 
+// CanAccept is it legal to receive this message 
 func (round *round3) CanAccept(msg smpc.Message) bool {
 	if _, ok := msg.(*ReshareRound3Message); ok {
 		return msg.IsBroadcast()
@@ -139,6 +141,7 @@ func (round *round3) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update  is the message received and ready for the next round? 
 func (round *round3) Update() (bool, error) {
 	for j, msg := range round.temp.reshareRound3Messages {
 		if round.ok[j] {
@@ -162,6 +165,7 @@ func (round *round3) Update() (bool, error) {
 	return true, nil
 }
 
+// NextRound enter next round
 func (round *round3) NextRound() smpc.Round {
 	round.started = false
 	return &round4{round}

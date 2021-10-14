@@ -5,7 +5,6 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"math/big"
-	//"sort"
 	"fmt"
 )
 
@@ -77,10 +76,12 @@ func (round *base) CanProceed() bool {
 	return true
 }
 
+// GetIds get from all nodes
 func (round *base) GetIds() (smpc.SortableIDSSlice, error) {
 	return round.idsign, nil
 }
 
+// GetDNodeIDIndex get from threshold group
 func (round *base) GetDNodeIDIndex(id string) (int, error) {
 	if id == "" {
 		return -1, nil

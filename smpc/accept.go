@@ -14,6 +14,7 @@
  *
  */
 
+// Package smpc  Keygen/Sign/Reshare,The complete implementation process includes receiving commands, selecting data packets, receiving and analyzing consent data, executing MPC process, database processing, P2P message analysis and processing, result return, etc 
 package smpc
 
 import (
@@ -41,6 +42,7 @@ const (
 	Rpc_RESHARE RpcType = 3
 )
 
+// GetAllReplyFromGroup get all accept reply from group node 
 func GetAllReplyFromGroup(wid int, gid string, rt RpcType, initiator string) []NodeReply {
 	if gid == "" {
 		return nil
@@ -90,6 +92,7 @@ func GetAllReplyFromGroup(wid int, gid string, rt RpcType, initiator string) []N
 
 //---------------------------------------------------------------------------
 
+// GetReqAddrKeyByOtherKey sign key --->AccepSignData -----> pubkey ----->PubKeyData ---->reqaddr key
 func GetReqAddrKeyByOtherKey(key string, rt RpcType) string {
 	if key == "" {
 		return ""
@@ -106,6 +109,7 @@ func GetReqAddrKeyByOtherKey(key string, rt RpcType) string {
 
 //--------------------------------------------------------------------------------
 
+// CheckAccept judge whether the pubkey account has permission to agree to sign 
 func CheckAccept(pubkey string, mode string, account string) bool {
 	if pubkey == "" || mode == "" || account == "" {
 		return false
@@ -167,6 +171,7 @@ type AcceptReqAddrData struct {
 	Sigs string //5:enodeid1:account1:enodeid2:account2:enodeid3:account3:enodeid4:account4:enodeid5:account5
 }
 
+// SaveAcceptReqAddrData save the reqaddr command data to local db
 func SaveAcceptReqAddrData(ac *AcceptReqAddrData) error {
 	if ac == nil {
 		return fmt.Errorf("no accept data.")
@@ -202,6 +207,8 @@ type TxDataAcceptReqAddr struct {
 	TimeStamp string
 }
 
+// AcceptReqAddr  set the status of generating pubkey request 
+// if the status is not "Pending",move the Corresponding data to  General database,otherwise stay the database for saving data related to application address command 
 func AcceptReqAddr(initiator string, account string, cointype string, groupid string, nonce string, threshold string, mode string, deal string, accept string, status string, pubkey string, tip string, errinfo string, allreply []NodeReply, workid int, sigs string) (string, error) {
 	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + cointype + ":" + groupid + ":" + nonce + ":" + threshold + ":" + mode))).Hex()
 	exsit, da := GetPubKeyData([]byte(key))
@@ -327,7 +334,7 @@ type AcceptSignData struct {
 	Accept string
 
 	Status string
-	Rsv    string //rsv1:rsv2:....:rsvn:NULL
+	Rsv    string // rsv1:rsv2:....:rsvn:NULL
 	Tip    string
 	Error  string
 
@@ -335,6 +342,7 @@ type AcceptSignData struct {
 	WorkId   int
 }
 
+// SaveAcceptSignData save the sign command data to local db
 func SaveAcceptSignData(ac *AcceptSignData) error {
 	if ac == nil {
 		return fmt.Errorf("no accept data.")
@@ -375,6 +383,8 @@ type TxDataAcceptSign struct {
 	TimeStamp  string
 }
 
+// AcceptSign  set the status of signing request 
+// if the status is not "Pending",move the Corresponding data to  General database,otherwise stay the database for saving data related to sign command 
 func AcceptSign(initiator string, account string, pubkey string, msghash []string, keytype string, groupid string, nonce string, threshold string, mode string, deal string, accept string, status string, rsv string, tip string, errinfo string, allreply []NodeReply, workid int) (string, error) {
 	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + nonce + ":" + pubkey + ":" + get_sign_hash(msghash, keytype) + ":" + keytype + ":" + groupid + ":" + threshold + ":" + mode))).Hex()
 
@@ -503,6 +513,7 @@ type AcceptReShareData struct {
 	WorkId   int
 }
 
+// SaveAcceptReShareData save the reshare command data to local db
 func SaveAcceptReShareData(ac *AcceptReShareData) error {
 	if ac == nil {
 		return fmt.Errorf("Accept data was not found.")
@@ -540,6 +551,8 @@ type TxDataAcceptReShare struct {
 	TimeStamp string
 }
 
+// AcceptReShare  set the status of reshare request 
+// if the status is not "Pending",move the Corresponding data to  General database,otherwise stay the database for saving data related to reshare command 
 func AcceptReShare(initiator string, account string, groupid string, tsgroupid string, pubkey string, threshold string, mode string, deal string, accept string, status string, newsk string, tip string, errinfo string, allreply []NodeReply, workid int) (string, error) {
 	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + groupid + ":" + tsgroupid + ":" + pubkey + ":" + threshold + ":" + mode))).Hex()
 	exsit, da := GetPubKeyData([]byte(key))
@@ -650,6 +663,12 @@ type RawReply struct {
 	TimeStamp string
 }
 
+// GetRawReply  Analyze the accept data of nodes in the group 
+// map ret: 
+// from1 ---> *RawReply{...}
+// from2 ---> *RawReply{...}
+// from3 ---> *RawReply{...}
+// ...
 func GetRawReply(l *list.List) *common.SafeMap {
 	ret := common.NewSafeMap(10)
 	if l == nil {
@@ -746,6 +765,7 @@ func GetRawReply(l *list.List) *common.SafeMap {
 	return ret
 }
 
+// CheckReply  Detect whether all nodes in the group have sent accept data 
 func CheckReply(l *list.List, rt RpcType, key string) bool {
 	if l == nil || key == "" {
 		return false

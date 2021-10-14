@@ -7,7 +7,6 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"math/big"
-	//"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 )
 
 func newRound8(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- PrePubData, kgid string, threshold int, paillierkeylength int, predata *PrePubData, txhash *big.Int, finalize_end chan<- *big.Int) smpc.Round {
@@ -15,6 +14,7 @@ func newRound8(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc
 		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, predata, txhash, finalize_end}}
 }
 
+// Start broacast current node s to other nodes
 func (round *round8) Start() error {
 	if round.started {
 		fmt.Printf("============= round8.start fail =======\n")
@@ -48,6 +48,7 @@ func (round *round8) Start() error {
 	return nil
 }
 
+// CanAccept is it legal to receive this message 
 func (round *round8) CanAccept(msg smpc.Message) bool {
 	if _, ok := msg.(*SignRound7Message); ok {
 		return msg.IsBroadcast()
@@ -55,6 +56,7 @@ func (round *round8) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update  is the message received and ready for the next round? 
 func (round *round8) Update() (bool, error) {
 	for j, msg := range round.temp.signRound7Messages {
 		if round.ok[j] {
@@ -69,8 +71,8 @@ func (round *round8) Update() (bool, error) {
 	return true, nil
 }
 
+// NextRound enter next round
 func (round *round8) NextRound() smpc.Round {
-	//fmt.Printf("========= round.next round ========\n")
 	round.started = false
 	return &round9{round}
 }

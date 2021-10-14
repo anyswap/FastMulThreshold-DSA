@@ -9,6 +9,7 @@ import (
 	"math/big"
 )
 
+// Start verify commitment,zkuproof,calc R
 func (round *round7) Start() error {
 	if round.started {
 		fmt.Printf("============= round7.start fail =======\n")
@@ -71,14 +72,17 @@ func (round *round7) Start() error {
 	return nil
 }
 
+// CanAccept end pre-sign 
 func (round *round7) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update end pre-sign
 func (round *round7) Update() (bool, error) {
 	return false, nil
 }
 
+// NextRound end pre-sign
 func (round *round7) NextRound() smpc.Round {
 	return nil
 }

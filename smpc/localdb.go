@@ -42,16 +42,15 @@ var (
 	accountsdb    *ethdb.LDBDatabase
 )
 
+// makeDatabaseHandles get database file descriptor allowance
 func makeDatabaseHandles() int {
 	limit, err := fdlimit.Current()
 	if err != nil {
-		//Fatalf("Failed to retrieve file descriptor allowance: %v", err)
 		common.Info("Failed to retrieve file descriptor allowance: " + err.Error())
 		return 0
 	}
 	if limit < 2048 {
 		if err := fdlimit.Raise(2048); err != nil {
-			//Fatalf("Failed to raise file descriptor allowance: %v", err)
 			common.Info("Failed to raise file descriptor allowance: " + err.Error())
 		}
 	}
@@ -63,6 +62,7 @@ func makeDatabaseHandles() int {
 
 //------------------------------------------------------------------------------
 
+// GetPubKeyData get data by key from general database 
 func GetPubKeyData(key []byte) (bool, interface{}) {
 	if key == nil || db == nil {
 		common.Error("========================GetPubKeyData, param err=======================", "key", string(key))
@@ -118,6 +118,7 @@ func GetPubKeyData(key []byte) (bool, interface{}) {
 
 //------------------------------------------------------------------------------------------
 
+// PutPubKeyData put value to general database
 func PutPubKeyData(key []byte, value []byte) error {
 	if db == nil || key == nil || value == nil {
 		return fmt.Errorf("put pubkey data to db fail")
@@ -135,6 +136,7 @@ func PutPubKeyData(key []byte, value []byte) error {
 
 //----------------------------------------------------------------------------------------------
 
+// DeletePubKeyData delete value from general database by key
 func DeletePubKeyData(key []byte) error {
 	if key == nil || db == nil {
 		return fmt.Errorf("delete pubkey data from db fail.")
@@ -152,6 +154,7 @@ func DeletePubKeyData(key []byte) error {
 
 //--------------------------------------------------------------------------------------------------------------
 
+// getSkU1FromLocalDb get Sk from local db
 func getSkU1FromLocalDb(key []byte) []byte {
 	if key == nil || dbsk == nil {
 		return nil
@@ -174,6 +177,7 @@ func getSkU1FromLocalDb(key []byte) []byte {
 
 //----------------------------------------------------------------------------------------------------------------
 
+// getBip32cFromLocalDb get bip32 c value from local db
 func getBip32cFromLocalDb(key []byte) []byte {
 	if key == nil || dbbip32 == nil {
 		return nil
@@ -196,6 +200,7 @@ func getBip32cFromLocalDb(key []byte) []byte {
 
 //--------------------------------------------------------------------------------------------------------------------
 
+// putSkU1ToLocalDb put Sk to local db
 func putSkU1ToLocalDb(key []byte, value []byte) error {
 	if dbsk == nil || key == nil || value == nil {
 		return fmt.Errorf("put sku1 data to db fail")
@@ -219,6 +224,7 @@ func putSkU1ToLocalDb(key []byte, value []byte) error {
 
 //-------------------------------------------------------------------------------------------------------------
 
+// putBip32cToLocalDb put bip32 c value to local db
 func putBip32cToLocalDb(key []byte, value []byte) error {
 	if dbbip32 == nil || key == nil || value == nil {
 		return fmt.Errorf("put bip32c to db fail")
@@ -242,6 +248,7 @@ func putBip32cToLocalDb(key []byte, value []byte) error {
 
 //------------------------------------------------------------------------------------------------------
 
+// deleteSkU1FromLocalDb delete Sk from local db
 func deleteSkU1FromLocalDb(key []byte) error {
 	if key == nil || dbsk == nil {
 		return fmt.Errorf("delete sku1 from db fail,param error.")
@@ -259,6 +266,7 @@ func deleteSkU1FromLocalDb(key []byte) error {
 
 //------------------------------------------------------------------------------------------------
 
+// deleteBip32cFromLocalDb delete bip32 c value from local db
 func deleteBip32cFromLocalDb(key []byte) error {
 	if key == nil || dbbip32 == nil {
 		return fmt.Errorf("delete bip32c from db fail,param error.")
@@ -276,6 +284,7 @@ func deleteBip32cFromLocalDb(key []byte) error {
 
 //-------------------------------------------------------------
 
+// GetReqAddrInfoData get value by key from database for saving data related to generate pubkey command 
 func GetReqAddrInfoData(key []byte) (bool, interface{}) {
 	if key == nil || reqaddrinfodb == nil {
 		common.Error("========================GetReqAddrInfoData, param err=======================", "key", string(key))
@@ -307,6 +316,7 @@ func GetReqAddrInfoData(key []byte) (bool, interface{}) {
 
 //----------------------------------------------------------------
 
+// PutReqAddrInfoData put value to database for saving data related to generate pubkey command 
 func PutReqAddrInfoData(key []byte, value []byte) error {
 	if reqaddrinfodb == nil || key == nil || value == nil {
 		return fmt.Errorf("put reqaddr info to db fail")
@@ -324,6 +334,7 @@ func PutReqAddrInfoData(key []byte, value []byte) error {
 
 //----------------------------------------------------------------
 
+// DeleteReqAddrInfoData delete value from database for saving data related to generate pubkey command 
 func DeleteReqAddrInfoData(key []byte) error {
 	if key == nil || reqaddrinfodb == nil {
 		return fmt.Errorf("delete reqaddr info from db fail.")
@@ -341,6 +352,7 @@ func DeleteReqAddrInfoData(key []byte) error {
 
 //--------------------------------------------------------------
 
+// GetSignInfoData get value by key from database for saving data related to sign command 
 func GetSignInfoData(key []byte) (bool, interface{}) {
 	if key == nil || signinfodb == nil {
 		common.Error("========================GetSignInfoData, param err=======================", "key", string(key))
@@ -372,6 +384,7 @@ func GetSignInfoData(key []byte) (bool, interface{}) {
 
 //-------------------------------------------------------
 
+// PutSignInfoData put value to database for saving data related to sign command 
 func PutSignInfoData(key []byte, value []byte) error {
 	if signinfodb == nil || key == nil || value == nil {
 		return fmt.Errorf("put sign info to db fail")
@@ -389,6 +402,7 @@ func PutSignInfoData(key []byte, value []byte) error {
 
 //-----------------------------------------------------------
 
+// DeleteSignInfoData delete value from database for saving data related to sign command 
 func DeleteSignInfoData(key []byte) error {
 	if key == nil || signinfodb == nil {
 		return fmt.Errorf("delete sign info from db fail.")
@@ -406,6 +420,7 @@ func DeleteSignInfoData(key []byte) error {
 
 //------------------------------------------------------
 
+// GetReShareInfoData get value by key from database for saving data related to reshare command 
 func GetReShareInfoData(key []byte) (bool, interface{}) {
 	if key == nil || reshareinfodb == nil {
 		common.Error("========================GetReShareInfoData, param err=======================", "key", string(key))
@@ -437,6 +452,7 @@ func GetReShareInfoData(key []byte) (bool, interface{}) {
 
 //-------------------------------------------------------
 
+// PutReShareInfoData put value to database for saving data related to reshare command 
 func PutReShareInfoData(key []byte, value []byte) error {
 	if reshareinfodb == nil || key == nil || value == nil {
 		return fmt.Errorf("put reshare info to db fail")
@@ -454,6 +470,7 @@ func PutReShareInfoData(key []byte, value []byte) error {
 
 //-------------------------------------------------------
 
+// DeleteReShareInfoData delete value from database for saving data related to reshare command 
 func DeleteReShareInfoData(key []byte) error {
 	if key == nil || reshareinfodb == nil {
 		return fmt.Errorf("delete reshare info from db fail.")
@@ -471,6 +488,7 @@ func DeleteReShareInfoData(key []byte) error {
 
 //-------------------------------------------------------
 
+// GetGroupDir get P2P group info database dir 
 func GetGroupDir() string { //TODO
 	dir := common.DefaultDataDir()
 	tmp := dir + "/dcrmdata/dcrmdb" + discover.GetLocalID().String() + "group"
@@ -484,6 +502,7 @@ func GetGroupDir() string { //TODO
 
 //--------------------------------------------------------
 
+// GetDbDir get general database dir  
 func GetDbDir() string {
 	dir := common.DefaultDataDir()
 	tmp := dir + "/dcrmdata/dcrmdb" + cur_enode
@@ -495,6 +514,7 @@ func GetDbDir() string {
 	return dir
 }
 
+// GetSmpcDb open general database
 func GetSmpcDb() *ethdb.LDBDatabase {
 	dir := GetDbDir()
 	db, err := ethdb.NewLDBDatabase(dir, cache, handles)
@@ -508,6 +528,7 @@ func GetSmpcDb() *ethdb.LDBDatabase {
 
 //-----------------------------------------------------------
 
+// GetSkU1Dir get private key database dir  
 func GetSkU1Dir() string {
 	dir := common.DefaultDataDir()
 	tmp := dir + "/dcrmdata/sk" + cur_enode
@@ -519,6 +540,7 @@ func GetSkU1Dir() string {
 	return dir
 }
 
+// GetSmpcSkDb open private key database dir
 func GetSmpcSkDb() *ethdb.LDBDatabase {
 	dir := GetSkU1Dir()
 	dbsk, err := ethdb.NewLDBDatabase(dir, cache, handles)
@@ -530,14 +552,16 @@ func GetSmpcSkDb() *ethdb.LDBDatabase {
 	return dbsk
 }
 
-//----------------------------------------------------------
+//--------------------------------------------------------------------
 
+// GetBip32CDir get bip32 c value database dir 
 func GetBip32CDir() string {
 	dir := common.DefaultDataDir()
 	dir += "/smpcdata/bip32" + cur_enode
 	return dir
 }
 
+// GetSmpcBip32Db open bip32 c value database
 func GetSmpcBip32Db() *ethdb.LDBDatabase {
 	dir := GetBip32CDir()
 	dbbip32, err := ethdb.NewLDBDatabase(dir, cache, handles)
@@ -551,12 +575,14 @@ func GetSmpcBip32Db() *ethdb.LDBDatabase {
 
 //----------------------------------------------------------
 
+// GetPreDbDir get pre-sign data database dir
 func GetPreDbDir() string {
 	dir := common.DefaultDataDir()
 	dir += "/smpcdata/smpcpredb" + cur_enode
 	return dir
 }
 
+// GetSmpcPreDb open pre-sign data database 
 func GetSmpcPreDb() *ethdb.LDBDatabase {
 	dir := GetPreDbDir()
 	predb, err := ethdb.NewLDBDatabase(dir, cache, handles)
@@ -570,12 +596,14 @@ func GetSmpcPreDb() *ethdb.LDBDatabase {
 
 //-------------------------------------------------------------
 
+// GetPreKeyDir get public key group information database dir
 func GetPreKeyDir() string {
 	dir := common.DefaultDataDir()
 	dir += "/smpcdata/smpcprekey" + cur_enode
 	return dir
 }
 
+// GetSmpcPreKeyDb open public key group information database
 func GetSmpcPreKeyDb() *ethdb.LDBDatabase {
 	dir := GetPreKeyDir()
 	prekey, err := ethdb.NewLDBDatabase(dir, cache, handles)
@@ -589,12 +617,14 @@ func GetSmpcPreKeyDb() *ethdb.LDBDatabase {
 
 //---------------------------------------------------------------
 
+// GetReqAddrInfoDir get dir of database for saving data related to generate pubkey command
 func GetReqAddrInfoDir() string {
 	dir := common.DefaultDataDir()
 	dir += "/smpcdata/smpcreqaddrinfo" + cur_enode
 	return dir
 }
 
+// GetSmpcReqAddrInfoDb open database for saving data related to generate pubkey command
 func GetSmpcReqAddrInfoDb() *ethdb.LDBDatabase {
 	dir := GetReqAddrInfoDir()
 	reqaddrinfodb, err := ethdb.NewLDBDatabase(dir, cache, handles)
@@ -608,12 +638,14 @@ func GetSmpcReqAddrInfoDb() *ethdb.LDBDatabase {
 
 //--------------------------------------------------------------
 
+// GetSignInfoDir get dir of database for saving data related to sign command
 func GetSignInfoDir() string {
 	dir := common.DefaultDataDir()
 	dir += "/smpcdata/smpcsigninfo" + cur_enode
 	return dir
 }
 
+// GetSmpcSignInfoDb open database for saving data related to sign command
 func GetSmpcSignInfoDb() *ethdb.LDBDatabase {
 	dir := GetSignInfoDir()
 	signinfodb, err := ethdb.NewLDBDatabase(dir, cache, handles)
@@ -627,12 +659,14 @@ func GetSmpcSignInfoDb() *ethdb.LDBDatabase {
 
 //--------------------------------------------------------------
 
+// GetReShareInfoDir get dir of database for saving data related to reshare command
 func GetReShareInfoDir() string {
 	dir := common.DefaultDataDir()
 	dir += "/smpcdata/smpcreshareinfo" + cur_enode
 	return dir
 }
 
+// GetSmpcReShareInfoDb open database for saving data related to reshare command
 func GetSmpcReShareInfoDb() *ethdb.LDBDatabase {
 	dir := GetReShareInfoDir()
 	reshareinfodb, err := ethdb.NewLDBDatabase(dir, cache, handles)
@@ -646,6 +680,7 @@ func GetSmpcReShareInfoDb() *ethdb.LDBDatabase {
 
 //--------------------------------------------------------------
 
+// StartSmpcLocalDb open all database
 func StartSmpcLocalDb() error {
 	db = GetSmpcDb()
 	if db == nil {
@@ -706,6 +741,7 @@ func StartSmpcLocalDb() error {
 
 //--------------------------------------------------------
 
+// CleanUpAllReqAddrInfo Delete the data related to generating pubkey command from the corresponding sub database, and correspondingly change the status of the command data to timeout in the general database.
 func CleanUpAllReqAddrInfo() {
 	if reqaddrinfodb == nil {
 		return
@@ -748,6 +784,7 @@ func CleanUpAllReqAddrInfo() {
 
 //----------------------------------------------------------------------------------
 
+// CleanUpAllSignInfo Delete the data related to sign command from the corresponding sub database, and correspondingly change the status of the command data to timeout in the general database.
 func CleanUpAllSignInfo() {
 	if signinfodb == nil {
 		return
@@ -790,6 +827,7 @@ func CleanUpAllSignInfo() {
 
 //------------------------------------------------------------------------------------------------
 
+// CleanUpAllSignInfo Delete the data related to reshare command from the corresponding sub database, and correspondingly change the status of the command data to timeout in the general database.
 func CleanUpAllReshareInfo() {
 	if reshareinfodb == nil {
 		return
@@ -832,6 +870,7 @@ func CleanUpAllReshareInfo() {
 
 //-----------------------------------------------------------------------------------------------------
 
+// GetAccountsDir get dir of the database for saving all pubkeys  
 func GetAccountsDir() string {
 	dir := common.DefaultDataDir()
 	tmp := dir + "/dcrmdata/dcrmaccounts" + cur_enode
@@ -843,11 +882,13 @@ func GetAccountsDir() string {
 	return dir
 }
 
+//AccountLoaded Determine whether the database has been loaded  
 func AccountLoaded() bool {
 	dir := GetAccountsDir()
 	return common.FileExist(dir)
 }
 
+// GetSmpcAccountsDirDb open database for saving all pubkeys
 func GetSmpcAccountsDirDb() *ethdb.LDBDatabase {
 	dir := GetAccountsDir()
 	accountsdb, err := ethdb.NewLDBDatabase(dir, cache, handles)
@@ -859,6 +900,7 @@ func GetSmpcAccountsDirDb() *ethdb.LDBDatabase {
 	return accountsdb
 }
 
+// CopyAllAccountsFromDb Load the pubkeys generated by history,execute it only once 
 func CopyAllAccountsFromDb() {
 	if db == nil {
 		return
@@ -899,6 +941,7 @@ func CopyAllAccountsFromDb() {
 	iter.Release()
 }
 
+// GetAccountFromDb get value from database for saving all pubkeys 
 func GetAccountFromDb(key []byte) (bool, interface{}) {
 	if key == nil || accountsdb == nil {
 		common.Error("========================GetAccountFromDb, param err=======================", "key", string(key))
@@ -916,6 +959,7 @@ func GetAccountFromDb(key []byte) (bool, interface{}) {
 
 //----------------------------------------------------------------
 
+// PutAccountDataToDb put value to database for saving all pubkeys
 func PutAccountDataToDb(key []byte, value []byte) error {
 	if accountsdb == nil || key == nil || value == nil {
 		return fmt.Errorf("put account data to db fail")
@@ -933,6 +977,7 @@ func PutAccountDataToDb(key []byte, value []byte) error {
 
 //----------------------------------------------------------------
 
+// DeleteAccountDataFromDb delete value from database for saving all pubkeys
 func DeleteAccountDataFromDb(key []byte) error {
 	if key == nil || accountsdb == nil {
 		return fmt.Errorf("delete account data from db fail.")

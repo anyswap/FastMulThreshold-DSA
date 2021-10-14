@@ -14,6 +14,7 @@
  *
  */
 
+// Package smpc P2P rpc interface
 package smpc
 
 import (
@@ -64,6 +65,7 @@ func packageResult(status, tip, errors string, msg interface{}) map[string]inter
 	}
 }
 
+// GetVersion get gsmpc version
 func (this *Service) GetVersion() map[string]interface{} {
 	fmt.Printf("==== GetVersion() ====\n")
 	v, c, d := params.GetVersion()
@@ -72,6 +74,7 @@ func (this *Service) GetVersion() map[string]interface{} {
 	return packageResult(SUCCESS, "", "", retv)
 }
 
+// GetEnode get gsmpc node enodeId
 func (this *Service) GetEnode() map[string]interface{} {
 	fmt.Printf("==== GetEnode() ====\n")
 	en := layer2.GetEnode()
@@ -91,6 +94,7 @@ type GroupInfo struct {
 	Enodes []string
 }
 
+// ReshareGroup create reshare group
 func (this *Service) ReshareGroup(threshold string, enodes []string) map[string]interface{} {
 	fmt.Printf("==== ReshareSDKGroup() ====, threshold: %v, enodes: %v\n", threshold, enodes)
 	all, err := layer2.CheckAddPeer(threshold, enodes, true)
@@ -126,6 +130,7 @@ func (this *Service) CreateGroup(threshold string, enodes []string) map[string]i
 	return this.CreateSDKGroup(threshold, enodes, false)
 }
 
+// CreateSDKGroup create group
 func (this *Service) CreateSDKGroup(threshold string, enodes []string, subGroup bool) map[string]interface{} {
 	fmt.Printf("==== CreateSDKGroup() ====\n")
 	_, err := layer2.CheckAddPeer(threshold, enodes, subGroup)
@@ -169,6 +174,7 @@ func (this *Service) GetSDKGroupPerson(enode string) map[string]interface{} {
 	return getSDKGroup(enode, "1+2")
 }
 
+// getGroupByID get group info by group id
 func getGroupByID(gID string) map[string]interface{} {
 	gid, _ := layer2.HexID(gID)
 	stat := SUCCESS
@@ -231,6 +237,7 @@ func getSDKGroup(enode, groupType string) map[string]interface{} {
 	return packageResult(stat, tip, tip, sgi)
 }
 
+// GetEnodeStatus get enode status
 func (this *Service) GetEnodeStatus(enode string) map[string]interface{} {
 	fmt.Printf("==== GetEnodeStatus() ====, enode: %v\n", enode)
 	es := &EnodeStatus{Enode: enode}

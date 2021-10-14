@@ -2,16 +2,14 @@ package keygen
 
 import (
 	"errors"
-	//"strings"
 	"encoding/hex"
 	"fmt"
-	//"math/big"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
-	//"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"crypto/sha512"
 )
 
+// Start verify cPk dPk zkPk,calc vss 
 func (round *round4) Start() error {
 	if round.started {
 		return errors.New("ed,round already started")
@@ -29,23 +27,6 @@ func (round *round4) Start() error {
 	if err != nil {
 		return errors.New("round.Start get ids fail.")
 	}
-
-	/*var uids = make(map[string][32]byte)
-	for _, id := range ids {
-		var t [32]byte
-		copy(t[:], id.Bytes())
-		if len(id.Bytes()) < 32 {
-			l := len(id.Bytes())
-			for j := l; j < 32; j++ {
-				t[j] = byte(0x00)
-			}
-		}
-
-		idtmp := fmt.Sprintf("%v",id)
-		uids[idtmp] = t
-	}
-
-	round.temp.uids = uids*/
 
 	var PkSet []byte
 
@@ -112,14 +93,12 @@ func (round *round4) Start() error {
 	ed.ScMul(&ask, &a, &temSk2)
 
 	// 2.7 calculate vss
-	//////
 
 	var uids [][32]byte
 	for _, v := range ids {
 		var tem [32]byte
 		tmp := v.Bytes()
 		copy(tem[:], tmp[:])
-		//fmt.Printf("======================round4.start, k = %v, v = %v, tem = %v =================\n",k,v,hex.EncodeToString(tem[:]))
 		if len(v.Bytes()) < 32 {
 			l := len(v.Bytes())
 			for j := l; j < 32; j++ {
@@ -128,19 +107,6 @@ func (round *round4) Start() error {
 		}
 		uids = append(uids, tem)
 	}
-	/*fixid := []string{"36550725515126069209815254769857063254012795400127087205878074620099758462980","86773132036836319561089192108022254523765345393585629030875522375234841566222","80065533669343563706948463591465947300529465448793304408098904839998265250318","36550725515126069209815254769857063254012795400127087205878074620099758462980","86773132036836319561089192108022254523765345393585629030875522375231234567893"}
-	for k,_ := range uids {
-	    num,_ := new(big.Int).SetString(fixid[k],10)
-	    var t [32]byte
-	    copy(t[:], num.Bytes())
-	    if len(num.Bytes()) < 32 {
-		    l := len(num.Bytes())
-		    for j := l; j < 32; j++ {
-			    t[j] = byte(0x00)
-		    }
-	    }
-	    uids[k] = t
-	}*/
 	round.temp.uids = uids
 
 	_, cfsBBytes, shares := ed.Vss(ask, uids, round.threshold, round.dnodecount)
@@ -155,10 +121,8 @@ func (round *round4) Start() error {
 		kg.SetFromIndex(cur_index)
 
 		if k == cur_index {
-			//fmt.Printf("=========== ed,round4, it is self. share struct id = %v, share = %v, k = %v ===========\n",id,shares[k],k)
 			round.temp.kgRound4Messages[k] = kg
 		} else {
-			//fmt.Printf("===========ed,round4, share struct id = %v, share = %v, k = %v ===========\n",id,shares[k],k)
 
 			var tmp [32]byte
 			copy(tmp[:], id.Bytes())
@@ -172,6 +136,7 @@ func (round *round4) Start() error {
 	return nil
 }
 
+// CanAccept is it legal to receive this message 
 func (round *round4) CanAccept(msg smpc.Message) bool {
 	if _, ok := msg.(*KGRound4Message); ok {
 		return !msg.IsBroadcast()
@@ -179,6 +144,7 @@ func (round *round4) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update  is the message received and ready for the next round? 
 func (round *round4) Update() (bool, error) {
 	for j, msg := range round.temp.kgRound4Messages {
 		if round.ok[j] {
@@ -192,6 +158,7 @@ func (round *round4) Update() (bool, error) {
 	return true, nil
 }
 
+// NextRound enter next round
 func (round *round4) NextRound() smpc.Round {
 	round.started = false
 	return &round5{round}

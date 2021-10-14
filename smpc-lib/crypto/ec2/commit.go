@@ -29,8 +29,7 @@ type Commitment struct {
 	D []*big.Int
 }
 
-//var commitment = new(Commitment)
-
+// Commit  Generate commitment data by secrets
 func (commitment *Commitment) Commit(secrets ...*big.Int) *Commitment {
 	// Generate the random num
 	rnd := random.GetRandomInt(256)
@@ -66,6 +65,7 @@ func (commitment *Commitment) Commit(secrets ...*big.Int) *Commitment {
 	return commitment
 }
 
+// Verify  Verify commitment data 
 func (commitment *Commitment) Verify() bool {
 	C := commitment.C
 	D := commitment.D
@@ -92,6 +92,7 @@ func (commitment *Commitment) Verify() bool {
 	return true
 }
 
+// DeCommit get commitment data secrets
 func (commitment *Commitment) DeCommit() (bool, []*big.Int) {
 	if commitment.Verify() {
 		return true, commitment.D[1:]
@@ -103,6 +104,7 @@ func (commitment *Commitment) DeCommit() (bool, []*big.Int) {
 
 //-----------------------------------------------------------
 
+// checkCommitmentGammaGOnCurve Check whether the point is on the curve
 func checkCommitmentGammaGOnCurve(secrets []*big.Int) bool {
 	if len(secrets) == 0 || (len(secrets)%2) != 0 {
 		return false
@@ -119,3 +121,4 @@ func checkCommitmentGammaGOnCurve(secrets []*big.Int) bool {
 
 	return true
 }
+

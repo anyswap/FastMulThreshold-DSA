@@ -6,9 +6,9 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"math/big"
-	//"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 )
 
+// Start get S
 func (round *round9) Start() error {
 	if round.started {
 		fmt.Printf("============= round9.start fail =======\n")
@@ -36,14 +36,17 @@ func (round *round9) Start() error {
 	return nil
 }
 
+// CanAccept end signing
 func (round *round9) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update end signing
 func (round *round9) Update() (bool, error) {
 	return false, nil
 }
 
+// NextRound end signing
 func (round *round9) NextRound() smpc.Round {
 	return nil
 }

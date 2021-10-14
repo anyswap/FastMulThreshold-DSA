@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-	//"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
 	"encoding/hex"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
@@ -27,6 +26,7 @@ func NewLocalDNodeSaveData(DNodeCount int) (saveData LocalDNodeSaveData) {
 	return
 }
 
+// OutMap Convert LocalDNodeSaveData into map
 func (sd *LocalDNodeSaveData) OutMap() map[string]string {
 	sdout := make(map[string]string)
 
@@ -53,6 +53,7 @@ func (sd *LocalDNodeSaveData) OutMap() map[string]string {
 	return sdout
 }
 
+// GetLocalDNodeSaveData get LocalDNodeSaveData from map
 func GetLocalDNodeSaveData(data map[string]string) *LocalDNodeSaveData {
 
 	var Sk [64]byte
@@ -80,7 +81,5 @@ func GetLocalDNodeSaveData(data map[string]string) *LocalDNodeSaveData {
 	curdnodeid, _ := new(big.Int).SetString(data["CurDNodeID"], 10)
 
 	sd := &LocalDNodeSaveData{Sk: Sk, TSk: TSk, Pk: Pk, FinalPkBytes: FinalPkBytes, Ids: ids, CurDNodeID: curdnodeid}
-
-	//fmt.Printf("===============ed sign,GetLocalDNodeSaveData, save.Sk = %v,save.Pk = %v,save.TSk = %v,save.FinalPkBytes = %v, save.Ids = %v, save.CurDNodeID = %v =================\n",hex.EncodeToString(sd.Sk[:]),hex.EncodeToString(sd.Pk[:]),hex.EncodeToString(sd.TSk[:]),hex.EncodeToString(sd.FinalPkBytes[:]),sd.Ids,sd.CurDNodeID)
 	return sd
 }

@@ -15,7 +15,7 @@ import (
 
 //--------------------------------------------------------EDDSA start-------------------------------------------------------
 
-//ed
+// EdSignProcessInboundMessages Analyze the obtained P2P messages and enter next round
 func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
 	defer wg.Done()
 	fmt.Printf("start ed sign processing inbound messages\n")
@@ -61,6 +61,7 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *
 	}
 }
 
+// EdSignGetRealMessage get the message data struct by map. (p2p msg ---> map)
 func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 	from := msg["FromID"]
 	var to []string
@@ -179,10 +180,11 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 	return nil
 }
 
+// processSign_ed  Obtain the data to be sent in each round and send it to other nodes until the end of the sign command 
 func processSign_ed(msgprex string, msgtoenode map[string]string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan edsigning.EdSignData) (*edsigning.EdSignData, error) {
 	for {
 		select {
-		case <-errChan: // when keyGenParty return
+		case <-errChan:
 			fmt.Printf("=========================== processSign_ed,error channel closed fail to start local smpc node, key = %v =====================\n", msgprex)
 			return nil, errors.New("error channel closed fail to start local smpc node")
 

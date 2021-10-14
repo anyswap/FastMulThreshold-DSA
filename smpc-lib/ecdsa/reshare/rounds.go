@@ -69,7 +69,7 @@ func (round *base) CanProceed() bool {
 	return true
 }
 
-//get from all nodes
+// GetIds get from all nodes
 func (round *base) GetIds() (smpc.SortableIDSSlice, error) {
 	var ids smpc.SortableIDSSlice
 	for _, v := range round.temp.reshareRound0Messages {
@@ -85,7 +85,7 @@ func (round *base) GetIds() (smpc.SortableIDSSlice, error) {
 	return ids, nil
 }
 
-//get from threshold group
+// GetDNodeIDIndex get from threshold group
 func (round *base) GetDNodeIDIndex(id string) (int, error) {
 	if id == "" {
 		return -1, nil

@@ -40,6 +40,7 @@ type ReqSmpcSign struct {
 
 //--------------------------------------------------------------------------------------------------
 
+// GetReplyFromGroup  Get the current reply status of the nodes in the group. About this command request 
 func (req *ReqSmpcSign) GetReplyFromGroup(wid int, gid string, initiator string) []NodeReply {
 	if wid < 0 || wid >= len(workers) {
 		return nil
@@ -103,6 +104,7 @@ func (req *ReqSmpcSign) GetReplyFromGroup(wid int, gid string, initiator string)
 
 //-----------------------------------------------------------------------------------------------
 
+// GetReqAddrKeyByKey sign key --->AccepSignData -----> pubkey ----->PubKeyData ---->reqaddr key
 func (req *ReqSmpcSign) GetReqAddrKeyByKey(key string) string {
 	exsit, da := GetSignInfoData([]byte(key))
 	if !exsit {
@@ -127,6 +129,8 @@ func (req *ReqSmpcSign) GetReqAddrKeyByKey(key string) string {
 
 //-------------------------------------------------------------------------------------------------------
 
+// GetRawReply put the reply to map, select the reply sent at the latest time 
+// reply.From ---> reply
 func (req *ReqSmpcSign) GetRawReply(ret *common.SafeMap, reply *RawReply) {
 	if reply == nil {
 		return
@@ -150,6 +154,7 @@ func (req *ReqSmpcSign) GetRawReply(ret *common.SafeMap, reply *RawReply) {
 
 //-------------------------------------------------------------------------------------------------------
 
+// CheckReply  Detect whether all nodes in the group have sent accept data 
 func (req *ReqSmpcSign) CheckReply(ac *AcceptReqAddrData, l *list.List, key string) bool {
 	if l == nil || key == "" || ac == nil {
 		return false
@@ -209,9 +214,10 @@ func (req *ReqSmpcSign) CheckReply(ac *AcceptReqAddrData, l *list.List, key stri
 type SyncPreSign struct {
 	MsgPrex string
 	EnodeId string
-	Msg     string //"success" or "fail"
+	Msg     string // "success" or "fail"
 }
 
+// MarshalJSON marshal SyncPreSign data struct
 func (sps *SyncPreSign) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		MsgPrex string `json:"MsgPrex"`
@@ -224,6 +230,7 @@ func (sps *SyncPreSign) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON unmarshal to SyncPreSign data struct
 func (sps *SyncPreSign) UnmarshalJSON(raw []byte) error {
 	var pre struct {
 		MsgPrex string `json:"MsgPrex"`
@@ -240,6 +247,7 @@ func (sps *SyncPreSign) UnmarshalJSON(raw []byte) error {
 	return nil
 }
 
+// SynchronizePreSignData  Every node broadcast own status tells other nodes whether their pre-sign data are pre generated and successfully written into the local database, and receives the corresponding status information of other nodes, so as to judge whether all nodes in the group are in the successful state. If so, keep the pre-sign data, otherwise the pre-sign data needs to be deleted. 
 func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 	w := workers[wid]
 	if w == nil {
@@ -330,6 +338,7 @@ func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 	return reply
 }
 
+// DoReq   1.Parse the sign or pre-sign command and implement the process 2.analyze the accept data   
 func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan interface{}) bool {
 	if raw == "" || workid < 0 || sender == "" {
 		res := RpcSmpcRes{Ret: "", Tip: "do req fail.", Err: fmt.Errorf("do req fail")}
@@ -750,12 +759,14 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 //-----------------------------------------------------------------------------------------------------
 
+// GetGroupSigs No need for signing
 func (req *ReqSmpcSign) GetGroupSigs(txdata []byte) (string, string, string, string) {
 	return "", "", "", ""
 }
 
 //--------------------------------------------------------------------------------------------------------
 
+// CheckTxData check sign/pre-sign command data and sign accept data
 func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (string, string, string, interface{}, error) {
 	if txdata == nil {
 		return "", "", "", nil, errors.New("tx data is nil")
@@ -907,6 +918,7 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 
 //----------------------------------------------------------------------------------------------------------
 
+// GetSignRawValue get from/special tx data type/timestamp from sign command data 
 func GetSignRawValue(raw string) (string, string, string) {
 	if raw == "" {
 		return "", "", ""
@@ -951,6 +963,8 @@ func GetSignRawValue(raw string) (string, string, string) {
 	return from.Hex(), txtype, timestamp
 }
 
+// CheckSignDulpRawReply Filter duplicate accept data (command data is also a kind of accept data), 
+// Take the latest accept data as the final data 
 func CheckSignDulpRawReply(raw string, l *list.List) bool {
 	if l == nil || raw == "" {
 		return false
@@ -995,6 +1009,7 @@ func CheckSignDulpRawReply(raw string, l *list.List) bool {
 	return true
 }
 
+// DisAcceptMsg  Collect accept data of nodes in the group, after collection, continue the MPC process 
 func (req *ReqSmpcSign) DisAcceptMsg(raw string, workid int, key string) {
 	if raw == "" || workid < 0 || workid >= len(workers) || key == "" {
 		return
@@ -1037,3 +1052,5 @@ func (req *ReqSmpcSign) DisAcceptMsg(raw string, workid int, key string) {
 		workers[ac.WorkId].acceptSignChan <- "go on"
 	}
 }
+
+

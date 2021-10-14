@@ -74,27 +74,16 @@ func (round *base) CanProceed() bool {
 	return true
 }
 
+// GetIds get from all nodes
 func (round *base) GetIds() (smpc.SortableIDSSlice, error) {
 	return round.idsign, nil
 }
 
+// GetDNodeIDIndex get current dnode index by id
 func (round *base) GetDNodeIDIndex(id string) (int, error) {
 	if id == "" {
 		return -1, nil
 	}
-
-	//idtmp,ok := new(big.Int).SetString(id,10)
-	//if !ok {
-	//	return -1,errors.New("get id big number fail.")
-	//}
-
-	/*uidtmp, _ := hex.DecodeString(id)
-	    uid := new(big.Int).SetBytes(uidtmp[:])
-	    for k,v := range round.idsign {
-		if v.Cmp(uid) == 0 {
-		    return k,nil
-		}
-	    }*/
 
 	for k, v := range round.idsign {
 		var id2 [32]byte

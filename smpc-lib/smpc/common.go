@@ -3,9 +3,6 @@ package smpc
 import (
 	"encoding/hex"
 	"math/big"
-	//"encoding/gob"
-	//"encoding/json"
-	//"bytes"
 	"crypto/rand"
 	"fmt"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
@@ -26,7 +23,7 @@ func (s SortableIDSSlice) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-//commitment question 2
+// GetRandomInt get random int
 func GetRandomInt(length int) *big.Int {
 	// NewInt allocates and returns a new Int set to x.
 	/*one := big.NewInt(1)
@@ -50,6 +47,7 @@ func GetRandomInt(length int) *big.Int {
 	return rndNum
 }
 
+// DECDSA_Sign_Calc_v calc v of (r,s,v)
 func DECDSA_Sign_Calc_v(r, deltaGammaGy, pkx, pky, R, S *big.Int, hashBytes []byte, invert bool) int {
 	//v
 	recid := secp256k1.Get_ecdsa_sign_v(r, deltaGammaGy)
@@ -101,6 +99,7 @@ func ReadBits(bigint *big.Int, buf []byte) {
 	}
 }
 
+// Verify2 Verify whether RSV is legal 
 func Verify2(r *big.Int, s *big.Int, v int32, message string, pkx *big.Int, pky *big.Int) bool {
 	z, _ := new(big.Int).SetString(message, 16)
 	ss := new(big.Int).ModInverse(s, secp256k1.S256().N)

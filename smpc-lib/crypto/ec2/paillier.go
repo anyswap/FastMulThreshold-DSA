@@ -43,22 +43,21 @@ type PrivateKey struct {
 	U *big.Int `json:"U"` // L^-1 mod N
 }
 
+// GenerateKeyPair create paillier pubkey and private key
 func GenerateKeyPair(length int) (*PublicKey, *PrivateKey) {
 	one := big.NewInt(1)
 
 	sp1 := <-SafePrimeCh
-	p := sp1.p //random.GetSafeRandomPrimeInt(length / 2)
+	p := sp1.p
 	sp2 := <-SafePrimeCh
-	q := sp2.p //random.GetSafeRandomPrimeInt(length / 2)
+	q := sp2.p
 
 	if p == nil || q == nil {
 		return nil, nil
 	}
 
-	////TODO tmp:1000-->4
 	SafePrimeCh <- sp1
 	SafePrimeCh <- sp2
-	///////
 
 	n := new(big.Int).Mul(p, q)
 	n2 := new(big.Int).Mul(n, n)
@@ -76,7 +75,7 @@ func GenerateKeyPair(length int) (*PublicKey, *PrivateKey) {
 	return publicKey, privateKey
 }
 
-//func (publicKey *PublicKey) Encrypt(mBigInt *big.Int) (*big.Int, error) {
+// Encrypt paillier encrypt by public key
 func (publicKey *PublicKey) Encrypt(mBigInt *big.Int) (*big.Int, *big.Int, error) {
 	if mBigInt.Cmp(publicKey.N) > 0 {
 		return nil, nil, ErrMessageTooLong
@@ -96,6 +95,7 @@ func (publicKey *PublicKey) Encrypt(mBigInt *big.Int) (*big.Int, *big.Int, error
 	return cipher, rndStar, nil
 }
 
+// Decrypt paillier decrypt by private key
 func (privateKey *PrivateKey) Decrypt(cipherBigInt *big.Int) (*big.Int, error) {
 	one := big.NewInt(1)
 
@@ -117,6 +117,7 @@ func (privateKey *PrivateKey) Decrypt(cipherBigInt *big.Int) (*big.Int, error) {
 	return mBigInt, nil
 }
 
+// HomoAdd  Homomorphic addition 
 func (publicKey *PublicKey) HomoAdd(c1, c2 *big.Int) *big.Int {
 	// c1 * c2
 	c1c2 := new(big.Int).Mul(c1, c2)
@@ -126,6 +127,7 @@ func (publicKey *PublicKey) HomoAdd(c1, c2 *big.Int) *big.Int {
 	return newCipher
 }
 
+// HomoMul  Homomorphic multiplication 
 func (publicKey *PublicKey) HomoMul(cipher, k *big.Int) *big.Int {
 	// cipher^k mod N2
 	newCipher := new(big.Int).Exp(cipher, k, publicKey.N2)
@@ -143,6 +145,7 @@ type ZkFactProof struct {
 	N  *big.Int
 }
 
+// ZkFactProve Generate zero knowledge proof data zkfactproof 
 func (privateKey *PrivateKey) ZkFactProve() *ZkFactProof {
 	h1 := random.GetRandomIntFromZnStar(privateKey.N)
 	h2 := random.GetRandomIntFromZnStar(privateKey.N)
@@ -165,6 +168,7 @@ func (privateKey *PrivateKey) ZkFactProve() *ZkFactProof {
 	return zkFactProof
 }
 
+// ZkFactVerify verify zero knowledge proof data zkfactproof
 func (publicKey *PublicKey) ZkFactVerify(zkFactProof *ZkFactProof) bool {
 	ySubNE := new(big.Int).Mul(publicKey.N, zkFactProof.E)
 	ySubNE = new(big.Int).Sub(zkFactProof.Y, ySubNE)

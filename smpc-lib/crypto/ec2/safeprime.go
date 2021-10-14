@@ -39,6 +39,8 @@ func (sp *SafePrime) SetP(p *big.Int) {
 	sp.p = p
 }
 
+// CheckValidate check p < 2^(L/2) ?
+// p = 2*q + 1
 func (sp *SafePrime) CheckValidate() bool {
 	if sp.p == nil || sp.q == nil {
 		return false
@@ -69,6 +71,7 @@ func probablyPrime(prime *big.Int) bool {
 
 //------------------------------------------------------
 
+// GenRandomSafePrime  Generate 4 random large host primes 
 func GenRandomSafePrime() {
 	for {
 		if len(SafePrimeCh) < 4 {
@@ -88,7 +91,7 @@ func GenRandomSafePrime() {
 	}
 }
 
-//add for go test
+// GetRandomPrime add for go test
 func GetRandomPrime() (*big.Int, *big.Int) {
 	q, p := random.GetSafeRandomPrimeInt()
 	sp := SafePrime{q: q, p: p}

@@ -14,6 +14,7 @@
  *
  */
 
+// Package main  Gsmpc-client main program 
 package main
 
 import (
@@ -278,6 +279,8 @@ func init() {
 	client = ethrpc.New(*url)
 }
 
+// enodeSig get enode sign data, Format is "pubkey@IP:PORT" + hex.EncodeToString(crypto.Sign(crypto.Keccak256(pubkey), privateKey))
+// pubkey is the enodeId
 func enodeSig() {
 	enodeRep, err := client.Call("smpc_getEnode")
 	if err != nil {
@@ -304,6 +307,7 @@ func enodeSig() {
 	fmt.Printf("\nenodeSig self = \n%s\n\n", enodeJSON.Enode+common.ToHex(sig))
 }
 
+// setGroup set group info
 func setGroup() {
 	var enodeList []string
 	// get enodes from enodesSig by arg -sig
@@ -345,6 +349,8 @@ func setGroup() {
 	}
 	fmt.Printf("\nGid = %s\n\n", groupJSON.Gid)
 }
+
+// reqSmpcAddr  Execute generate pubkey 
 func reqSmpcAddr() {
 	// get nonce
 	reqAddrNonce, err := client.Call("smpc_getReqAddrNonce", keyWrapper.Address.String())
@@ -427,6 +433,7 @@ func reqSmpcAddr() {
 	}
 }
 
+// acceptReqAddr  Agree to generate pubkey 
 func acceptReqAddr() {
 	// get reqAddr account list
 	reqListRep, err := client.Call("smpc_getCurNodeReqAddrInfo", keyWrapper.Address.String())
@@ -606,6 +613,8 @@ func acceptLockOut() {
 		fmt.Printf("\nsmpc_acceptLockOut result: key[%d]\t%s = %s\n\n", i+1, keyStr, acceptRet)
 	}
 }
+
+// sign Execute MPC sign 
 func sign() {
 	//if *msghash == "" {
 	//	*msghash = common.ToHex(crypto.Keccak256([]byte(*memo)))
@@ -620,6 +629,8 @@ func sign() {
 
 	signMsgHash(hashs, contexts, -1)
 }
+
+//  preGenSignData Generate relevant data required for distributed sign in advance 
 func preGenSignData() {
 	if len(subgids) == 0 {
 		panic(fmt.Errorf("error:sub group id array is empty"))
@@ -645,6 +656,7 @@ func preGenSignData() {
 
 //------------------------------------------------------------------
 
+// DefaultDataDir default data dir
 func DefaultDataDir(datadir string) string {
 	if datadir != "" {
 		return datadir
@@ -664,6 +676,7 @@ func DefaultDataDir(datadir string) string {
 	return ""
 }
 
+// homeDir get home path
 func homeDir() string {
 	if home := os.Getenv("HOME"); home != "" {
 		return home
@@ -674,6 +687,7 @@ func homeDir() string {
 	return ""
 }
 
+//  GetPreDbDir Obtain the database path to store the relevant data required by the distributed sign 
 func GetPreDbDir(eid string, datadir string) string {
 	dir := DefaultDataDir(datadir)
 	dir += "/dcrmdata/dcrmpredb" + eid
@@ -741,6 +755,7 @@ func Keccak256Hash(data ...[]byte) (h DcrmHash) {
 	return h
 }
 
+// delPreSignData Delete the relevant data required by the distributed sign through pubkey and group ID  
 func delPreSignData() {
 	enodeRep, err := client.Call("dcrm_getEnode")
 	if err != nil {
@@ -803,6 +818,7 @@ func delPreSignData() {
 	iter.Release()
 }
 
+// getPreSignData get the relevant data required by the distributed sign through pubkey and group ID  
 func getPreSignData() {
 	enodeRep, err := client.Call("dcrm_getEnode")
 	if err != nil {
@@ -873,6 +889,7 @@ func getPreSignData() {
 
 //----------------------------------------------------------------------------
 
+// PrintSignResultToLocalFile print sign result to log file
 func PrintSignResultToLocalFile() {
 	var file string
 	if logfilepath == nil {
@@ -911,6 +928,7 @@ func PrintTime(t time.Time, key string, status string, loopcount int) {
 	log.Println(str)
 }
 
+// signMsgHash sign
 func signMsgHash(hashs []string, contexts []string, loopCount int) (rsv []string) {
 	timevalue := time.Now()
 
@@ -1002,6 +1020,8 @@ func signMsgHash(hashs []string, contexts []string, loopCount int) (rsv []string
 	}
 	return
 }
+
+// acceptSign accept sign
 func acceptSign() {
 	// get approve list of condominium account
 	reqListRep, err := client.Call("smpc_getCurNodeSignInfo", keyWrapper.Address.String())
@@ -1072,6 +1092,8 @@ func acceptSign() {
 		fmt.Printf("\nsmpc_acceptSign result: key[%d]\t%s = %s\n\n", i+1, keyStr, acceptRet)
 	}
 }
+
+// reshare  Execute Reshare 
 func reshare() {
 	// build tx data
 	sigs := ""
@@ -1110,6 +1132,8 @@ func reshare() {
 	}
 	fmt.Printf("\nsmpc_reShare keyID = %s\n\n", keyID)
 }
+
+// acceptReshare accept reshare
 func acceptReshare() {
 	// get account reshare approve list
 	reqListRep, err := client.Call("smpc_getCurNodeReShareInfo")
@@ -1164,6 +1188,7 @@ func acceptReshare() {
 	}
 }
 
+// getSmpcAddr get smpc addr by pubkey
 func getSmpcAddr() error {
 	if pubkey == nil {
 		return fmt.Errorf("pubkey error")
@@ -1252,7 +1277,7 @@ func decodePubkey(e [64]byte) (*ecdsa.PublicKey, error) {
 	return p, nil
 }
 
-// parse result from rpc return data
+// getJSONResult parse result from rpc return data
 func getJSONResult(successResponse json.RawMessage) (string, error) {
 	var data dataResult
 	repData, err := getJSONData(successResponse)
@@ -1283,7 +1308,7 @@ func getJSONData(successResponse json.RawMessage) ([]byte, error) {
 	return repData, nil
 }
 
-// return: raw hex
+// signTX build tx with sign
 func signTX(signer types.EIP155Signer, privatekey *ecdsa.PrivateKey, nonce uint64, playload []byte) (string, error) {
 	toAccDef := accounts.Account{
 		Address: common.HexToAddress(SMPC_TO_ADDR),

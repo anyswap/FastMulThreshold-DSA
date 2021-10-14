@@ -3,11 +3,10 @@ package signing
 import (
 	"errors"
 	"fmt"
-	//"math/big"
-	//"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
 
+// Start broacast zkR 
 func (round *round2) Start() error {
 	if round.started {
 		fmt.Printf("============= round2.start fail =======\n")
@@ -36,6 +35,7 @@ func (round *round2) Start() error {
 	return nil
 }
 
+// CanAccept is it legal to receive this message 
 func (round *round2) CanAccept(msg smpc.Message) bool {
 	if _, ok := msg.(*SignRound2Message); ok {
 		return msg.IsBroadcast()
@@ -43,6 +43,7 @@ func (round *round2) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update  is the message received and ready for the next round? 
 func (round *round2) Update() (bool, error) {
 	for j, msg := range round.temp.signRound2Messages {
 		if round.ok[j] {
@@ -57,8 +58,8 @@ func (round *round2) Update() (bool, error) {
 	return true, nil
 }
 
+// NextRound enter next round
 func (round *round2) NextRound() smpc.Round {
-	//fmt.Printf("========= round.next round ========\n")
 	round.started = false
 	return &round3{round}
 }

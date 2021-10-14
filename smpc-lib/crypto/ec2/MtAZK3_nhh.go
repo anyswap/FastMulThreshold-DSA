@@ -25,6 +25,7 @@ type MtAZK3Proof_nhh struct {
 	T2   *big.Int
 }
 
+// MtAZK3Prove_nhh  Generate zero knowledge proof data mtazk3proof_ nhh 
 func MtAZK3Prove_nhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtAZK3Proof_nhh {
 	q3Ntilde := new(big.Int).Mul(s256.S256().N3(), ntildeH1H2.Ntilde)
 	qNtilde := new(big.Int).Mul(s256.S256().N, ntildeH1H2.Ntilde)
@@ -100,6 +101,7 @@ func MtAZK3Prove_nhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, publicKey 
 	return mtAZK3Proof
 }
 
+// MtAZK3Verify_nhh  Verify zero knowledge proof data mtazk3proof_ nhh 
 func (mtAZK3Proof *MtAZK3Proof_nhh) MtAZK3Verify_nhh(c1 *big.Int, c2 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
 	if mtAZK3Proof.S1.Cmp(s256.S256().N3()) >= 0 { //MtAZK3 question 1
 		return false

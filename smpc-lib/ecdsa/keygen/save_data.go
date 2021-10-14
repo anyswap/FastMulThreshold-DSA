@@ -23,6 +23,7 @@ type LocalDNodeSaveData struct {
 	CurDNodeID *big.Int
 }
 
+// NewLocalDNodeSaveData init a LocalDNodeSaveData data struct
 func NewLocalDNodeSaveData(DNodeCount int) (saveData LocalDNodeSaveData) {
 	saveData.Pkx = nil
 	saveData.Pky = nil
@@ -36,6 +37,7 @@ func NewLocalDNodeSaveData(DNodeCount int) (saveData LocalDNodeSaveData) {
 	return
 }
 
+// OutMap  Convert LocalDNodeSaveData into map
 func (sd *LocalDNodeSaveData) OutMap() map[string]string {
 	sdout := make(map[string]string)
 	sdout["Pkx"] = fmt.Sprintf("%v", sd.Pkx)
@@ -85,6 +87,7 @@ func (sd *LocalDNodeSaveData) OutMap() map[string]string {
 	return sdout
 }
 
+// GetLocalDNodeSaveData get LocalDNodeSaveData from map
 func GetLocalDNodeSaveData(data map[string]string) *LocalDNodeSaveData {
 	pkx, _ := new(big.Int).SetString(data["Pkx"], 10)
 	pky, _ := new(big.Int).SetString(data["Pky"], 10)
@@ -132,3 +135,4 @@ func GetLocalDNodeSaveData(data map[string]string) *LocalDNodeSaveData {
 	sd := &LocalDNodeSaveData{Pkx: pkx, Pky: pky, C: c, SkU1: sku1, U1PaillierSk: usk, U1PaillierPk: pk, U1NtildeH1H2: nt, Ids: ids, CurDNodeID: curdnodeid}
 	return sd
 }
+

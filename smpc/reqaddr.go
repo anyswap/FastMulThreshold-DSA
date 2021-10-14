@@ -41,6 +41,7 @@ var (
 
 //------------------------------------------------------------------------
 
+// GetReqAddrNonce get keygen special tx nonce
 func GetReqAddrNonce(account string) (string, string, error) {
 	key2 := Keccak256Hash([]byte(strings.ToLower(account))).Hex()
 	var da []byte
@@ -60,6 +61,7 @@ func GetReqAddrNonce(account string) (string, string, error) {
 
 //-----------------------------------------------------------------------------
 
+// SetReqAddrNonce set keygen special tx nonce
 func SetReqAddrNonce(account string, nonce string) (string, error) {
 	key := Keccak256Hash([]byte(strings.ToLower(account))).Hex()
 	err := PutPubKeyData([]byte(key), []byte(nonce))
@@ -82,6 +84,7 @@ type TxDataReqAddr struct {
 	Sigs      string
 }
 
+// GetSmpcAddr Obtain SMPC addresses in different currencies in pubkey
 func GetSmpcAddr(pubkey string) (string, string, error) {
 	var m interface{}
 	addrmp := make(map[string]string)
@@ -109,6 +112,8 @@ func GetSmpcAddr(pubkey string) (string, string, error) {
 
 //-----------------------------------------------------------------------------
 
+// Req_SmpcAddr Request to generate pubkey 
+// raw : keygen command data
 func Req_SmpcAddr(raw string) (string, string, error) {
 
 	key, _, _, txdata, err := CheckRaw(raw)
@@ -130,6 +135,8 @@ func Req_SmpcAddr(raw string) (string, string, error) {
 
 //----------------------------------------------------------------------------------
 
+// RpcAcceptReqAddr Agree to the keygen request 
+// raw : accept data, including the key of the keygen request
 func RpcAcceptReqAddr(raw string) (string, string, error) {
 	_, _, _, txdata, err := CheckRaw(raw)
 	if err != nil {
@@ -167,6 +174,7 @@ type ReqAddrStatus struct {
 	TimeStamp string
 }
 
+// GetReqAddrStatus get the result of the keygen request by key
 func GetReqAddrStatus(key string) (string, string, error) {
 	exsit, da := GetPubKeyData([]byte(key))
 	///////
@@ -187,6 +195,7 @@ func GetReqAddrStatus(key string) (string, string, error) {
 
 //------------------------------------------------------------------------------
 
+// CheckAcc Check whether the account has permission to agree the request(keygen/sign/reshare)
 func CheckAcc(eid string, geter_acc string, sigs string) bool {
 
 	if eid == "" || geter_acc == "" || sigs == "" {
@@ -227,20 +236,24 @@ type ReqAddrCurNodeInfoSort struct {
 	Info []*ReqAddrReply
 }
 
+// Len get the count of arrary elements
 func (r *ReqAddrCurNodeInfoSort) Len() int {
 	return len(r.Info)
 }
 
+// Less weather r.Info[i] < r.Info[j]
 func (r *ReqAddrCurNodeInfoSort) Less(i, j int) bool {
 	itime, _ := new(big.Int).SetString(r.Info[i].TimeStamp, 10)
 	jtime, _ := new(big.Int).SetString(r.Info[j].TimeStamp, 10)
 	return itime.Cmp(jtime) >= 0
 }
 
+// Swap swap value of r.Info[i] and r.Info[j]
 func (r *ReqAddrCurNodeInfoSort) Swap(i, j int) {
 	r.Info[i], r.Info[j] = r.Info[j], r.Info[i]
 }
 
+// GetCurNodeReqAddrInfo  Get current node's keygen command approval list 
 func GetCurNodeReqAddrInfo(geter_acc string) ([]*ReqAddrReply, string, error) {
 	var ret []*ReqAddrReply
 	data := make(chan *ReqAddrReply, 1000)
@@ -319,9 +332,10 @@ type PubKeyData struct {
 	RefReShareKeys string //key1:key2...
 }
 
-//ec2
-//msgprex = hash
-//cointype == keytype    //EC256K1||ed25519
+// smpc_genPubKey generate the pubkey 
+// ec2
+// msgprex = hash
+// cointype = keytype    // EC256K1||ed25519
 func smpc_genPubKey(msgprex string, account string, cointype string, ch chan interface{}, mode string, nonce string) {
 
 	wk, err := FindWorker(msgprex)
@@ -646,6 +660,7 @@ func smpc_genPubKey(msgprex string, account string, cointype string, ch chan int
 
 //-----------------------------------------------------------------------------------------------------------------------
 
+// KeyGenerate_DECDSA generate the pubkey
 //ec2
 //msgprex = hash
 func KeyGenerate_DECDSA(msgprex string, ch chan interface{}, id int, cointype string) bool {
@@ -721,9 +736,10 @@ func KeyGenerate_DECDSA(msgprex string, ch chan interface{}, id int, cointype st
 
 //------------------------------------------------------------------------------------
 
-//ed
-//msgprex = hash
-//cointype == keytype    //ec || ed25519
+// KeyGenerate_DEDDSA generate the pubkey
+// ed
+// msgprex = hash
+// cointype = keytype    // ec || ed25519
 func KeyGenerate_DEDDSA(msgprex string, ch chan interface{}, id int, cointype string) bool {
 	if id < 0 || id >= RPCMaxWorker || id >= len(workers) {
 		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker id", Err: GetRetErr(ErrGetWorkerIdError)}
@@ -788,3 +804,5 @@ func KeyGenerate_DEDDSA(msgprex string, ch chan interface{}, id int, cointype st
 
 	return true
 }
+
+

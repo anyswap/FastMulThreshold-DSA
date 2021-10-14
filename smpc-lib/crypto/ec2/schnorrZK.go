@@ -40,6 +40,7 @@ type ZkABProof struct {
 
 //------------------------------------------------------------------------------------
 
+// ZkUProve create ZkUProof
 func ZkUProve(u *big.Int) *ZkUProof {
 	r := random.GetRandomIntFromZn(s256.S256().N)
 	rGx, rGy := s256.S256().ScalarBaseMult(r.Bytes())
@@ -64,6 +65,7 @@ func ZkUProve(u *big.Int) *ZkUProof {
 	return zkUProof
 }
 
+// ZkUVerify verify ZkUProof
 func ZkUVerify(uG []*big.Int, zkUProof *ZkUProof) bool {
 	sGx, sGy := s256.S256().ScalarBaseMult(zkUProof.S.Bytes())
 
@@ -93,7 +95,7 @@ func ZkUVerify(uG []*big.Int, zkUProof *ZkUProof) bool {
 
 //-----------------------------------------------------------------------------------------
 
-// a(rho) b(l)
+// ZkABProve create ZkABProof 
 func ZkABProve(a *big.Int, b *big.Int, s *big.Int, R []*big.Int) *ZkABProof {
 	r_a := random.GetRandomIntFromZn(s256.S256().N)
 	r_b := random.GetRandomIntFromZn(s256.S256().N)
@@ -134,6 +136,7 @@ func ZkABProve(a *big.Int, b *big.Int, s *big.Int, R []*big.Int) *ZkABProof {
 	return zkABProof
 }
 
+// ZkABVerify verify zkABProof
 func ZkABVerify(A []*big.Int, B []*big.Int, V []*big.Int, R []*big.Int, zkABProof *ZkABProof) bool {
 
 	hellomulti := "hello multichain"

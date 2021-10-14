@@ -6,7 +6,6 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/eddsa/keygen"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"math/big"
-	//"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"crypto/sha512"
 	"encoding/hex"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
@@ -22,6 +21,7 @@ func newRound1(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc
 		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, nil, txhash, finalize_endCh}}
 }
 
+// Start get sk pkfinal R
 func (round *round1) Start() error {
 	if round.started {
 		fmt.Printf("============= ed sign,round1.start fail =======\n")
@@ -118,6 +118,7 @@ func (round *round1) Start() error {
 	return nil
 }
 
+// CanAccept is it legal to receive this message 
 func (round *round1) CanAccept(msg smpc.Message) bool {
 	if _, ok := msg.(*SignRound1Message); ok {
 		return msg.IsBroadcast()
@@ -126,6 +127,7 @@ func (round *round1) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update  is the message received and ready for the next round? 
 func (round *round1) Update() (bool, error) {
 	for j, msg := range round.temp.signRound1Messages {
 		if round.ok[j] {
@@ -140,8 +142,8 @@ func (round *round1) Update() (bool, error) {
 	return true, nil
 }
 
+// NextRound enter next round
 func (round *round1) NextRound() smpc.Round {
-	//fmt.Printf("========= round.next round ========\n")
 	round.started = false
 	return &round2{round}
 }

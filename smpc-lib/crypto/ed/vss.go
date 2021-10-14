@@ -62,7 +62,7 @@ func Vss(secret [32]byte, ids [][32]byte, t int, n int) ([][32]byte, [][32]byte,
 	return cfs, cfsBBytes, shares
 }
 
-//////
+// Vss2  Calculate secret sharing value 
 func Vss2(secret [32]byte, t int, n int, uids map[string][32]byte) ([][32]byte, [][32]byte, map[string][32]byte) {
 
 	var cfs, cfsBBytes [][32]byte
@@ -103,8 +103,7 @@ func Vss2(secret [32]byte, t int, n int, uids map[string][32]byte) ([][32]byte, 
 	return cfs, cfsBBytes, shares
 }
 
-//////
-
+// Verify_vss verify secret sharing value
 func Verify_vss(share [32]byte, id [32]byte, cfsBBytes [][32]byte) bool {
 	var rlt1, rlt2, tem ExtendedGroupElement
 
@@ -126,7 +125,6 @@ func Verify_vss(share [32]byte, id [32]byte, cfsBBytes [][32]byte) bool {
 	rlt1.ToBytes(&rlt1Bytes)
 	rlt2.ToBytes(&rlt2Bytes)
 
-	//fmt.Printf("======================Verify_vss,rlt1Bytes = %v, rlt2Bytes = %v ======================\n",rlt1Bytes[:],rlt2Bytes[:])
 	if bytes.Equal(rlt1Bytes[:], rlt2Bytes[:]) {
 		return true
 	} else {

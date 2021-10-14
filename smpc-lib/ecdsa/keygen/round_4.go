@@ -9,6 +9,7 @@ import (
 	"math/big"
 )
 
+// Start verify vss and commitment data,calc pubkey and SKi,create Ntilde
 func (round *round4) Start() error {
 	if round.started {
 		return errors.New("round already started")
@@ -58,9 +59,6 @@ func (round *round4) Start() error {
 			return errors.New("verify commitment fail")
 		}
 
-		//_, u1G := deCommit.DeCommit()
-		//pkx, pky = secp256k1.S256().Add(pkx, pky, u1G[0], u1G[1])
-
 		//verify bip32 commitment
 		deCommit_bip32 := &ec2.Commitment{C: msg1.ComC_bip32, D: msg3.ComC1GD}
 		if !deCommit_bip32.Verify() {
@@ -82,9 +80,6 @@ func (round *round4) Start() error {
 			fmt.Printf("========= round4 verify threshold for bip32 fail, k = %v ==========\n", k)
 			return errors.New("verify threshold bip32 fail.")
 		}
-
-		//c = new(big.Int).Add(c, msg21.C1)
-		//skU1 = new(big.Int).Add(skU1, ushare.Share)
 	}
 
 	var pkx *big.Int
@@ -168,6 +163,7 @@ func (round *round4) Start() error {
 	return nil
 }
 
+// CanAccept is it legal to receive this message 
 func (round *round4) CanAccept(msg smpc.Message) bool {
 	if _, ok := msg.(*KGRound4Message); ok {
 		return msg.IsBroadcast()
@@ -175,6 +171,7 @@ func (round *round4) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update  is the message received and ready for the next round? 
 func (round *round4) Update() (bool, error) {
 	for j, msg := range round.temp.kgRound4Messages {
 		if round.ok[j] {
@@ -188,6 +185,7 @@ func (round *round4) Update() (bool, error) {
 	return true, nil
 }
 
+// NextRound enter next round
 func (round *round4) NextRound() smpc.Round {
 	round.started = false
 	return &round5{round}

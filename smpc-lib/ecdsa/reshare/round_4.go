@@ -6,9 +6,9 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"math/big"
-	//"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 )
 
+// Start create ntilde 
 func (round *round4) Start() error {
 	if round.started {
 		return errors.New("round already started")
@@ -53,7 +53,6 @@ func (round *round4) Start() error {
 	re.SetFromID(round.dnodeid)
 	re.SetFromIndex(cur_index)
 
-	//round.Save.U1NtildeH1H2[cur_index] = u1NtildeH1H2
 	round.temp.u1NtildeH1H2 = u1NtildeH1H2
 	round.temp.reshareRound4Messages[cur_index] = re
 	round.out <- re
@@ -62,6 +61,7 @@ func (round *round4) Start() error {
 	return nil
 }
 
+// CanAccept is it legal to receive this message 
 func (round *round4) CanAccept(msg smpc.Message) bool {
 	if _, ok := msg.(*ReshareRound4Message); ok {
 		return msg.IsBroadcast()
@@ -69,6 +69,7 @@ func (round *round4) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update  is the message received and ready for the next round? 
 func (round *round4) Update() (bool, error) {
 	for j, msg := range round.temp.reshareRound4Messages {
 		if round.ok[j] {
@@ -92,6 +93,7 @@ func (round *round4) Update() (bool, error) {
 	return true, nil
 }
 
+// NextRound enter next round
 func (round *round4) NextRound() smpc.Round {
 	round.started = false
 	return &round5{round}

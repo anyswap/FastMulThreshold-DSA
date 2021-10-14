@@ -17,6 +17,7 @@ import (
 
 //--------------------------------------------ECDSA start----------------------------------------------------------
 
+// SignProcessInboundMessages Analyze the obtained P2P messages and enter next round
 func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
 	defer wg.Done()
 	fmt.Printf("start sign processing inbound messages\n")
@@ -60,6 +61,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 	}
 }
 
+// SignGetRealMessage get the message data struct by map. (p2p msg ---> map)
 func SignGetRealMessage(msg map[string]string) smpclib.Message {
 	from := msg["FromID"]
 	var to []string
@@ -210,10 +212,11 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 	return nil
 }
 
+// processSign  Obtain the data to be sent in each round and send it to other nodes until the end of the sign command 
 func processSign(msgprex string, msgtoenode map[string]string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan signing.PrePubData) (*signing.PrePubData, error) {
 	for {
 		select {
-		case <-errChan: // when keyGenParty return
+		case <-errChan:
 			fmt.Printf("=========== processSign,error channel closed fail to start local smpc node, key = %v ===========\n", msgprex)
 			return nil, errors.New("error channel closed fail to start local smpc node")
 
@@ -238,10 +241,11 @@ func processSign(msgprex string, msgtoenode map[string]string, errChan chan stru
 	}
 }
 
+// processSignFinalize  Obtain the data to be sent in each round and send it to other nodes until the end of the sign command 
 func processSignFinalize(msgprex string, msgtoenode map[string]string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan *big.Int, gid string) (*big.Int, error) {
 	for {
 		select {
-		case <-errChan: // when keyGenParty return
+		case <-errChan:
 			fmt.Printf("=========== processSign,error channel closed fail to start local smpc node, key = %v ===========\n", msgprex)
 			return nil, errors.New("error channel closed fail to start local smpc node")
 
@@ -268,6 +272,7 @@ func processSignFinalize(msgprex string, msgtoenode map[string]string, errChan c
 
 //--------------------------------------------------------ECDSA end-------------------------------------------------------
 
+// SignProcessOutCh send message to other node
 func SignProcessOutCh(msgprex string, msgtoenode map[string]string, msg smpclib.Message, gid string) error {
 	if msg == nil {
 		return fmt.Errorf("smpc info error")

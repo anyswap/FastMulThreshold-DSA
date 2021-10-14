@@ -21,6 +21,7 @@ import (
 
 //----------------------------------------------------ECDSA start----------------------------------------------------------
 
+// ReshareProcessInboundMessages Analyze the obtained P2P messages and enter next round
 func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
 	defer wg.Done()
 	fmt.Printf("start processing inbound messages\n")
@@ -77,6 +78,7 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, wg 
 	}
 }
 
+// ReshareGetRealMessage get the message data struct by map. (p2p msg ---> map)
 func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 	from := msg["FromID"]
 	var to []string
@@ -226,6 +228,7 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 	return re
 }
 
+// processReshare  Obtain the data to be sent in each round and send it to other nodes until the end of the reshare command 
 func processReshare(msgprex string, groupid string, pubkey string, account string, mode string, sigs string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan keygen.LocalDNodeSaveData) (*big.Int, error) {
 	for {
 		select {
@@ -464,6 +467,7 @@ func processReshare(msgprex string, groupid string, pubkey string, account strin
 	}
 }
 
+// ReshareProcessOutCh send message to other node
 func ReshareProcessOutCh(msgprex string, groupid string, msg smpclib.Message) error {
 	if msg == nil {
 		return fmt.Errorf("smpc info error")

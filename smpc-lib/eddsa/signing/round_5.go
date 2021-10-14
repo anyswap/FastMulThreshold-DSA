@@ -3,13 +3,13 @@ package signing
 import (
 	"errors"
 	"fmt"
-	//"math/big"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
 
+// Start broacast DSB
 func (round *round5) Start() error {
 	if round.started {
-		fmt.Printf("============= ed sign,round5.start fail =======\n")
+		fmt.Printf("============================= ed sign,round5.start fail ===============================\n")
 		return errors.New("round already started")
 	}
 
@@ -37,6 +37,7 @@ func (round *round5) Start() error {
 	return nil
 }
 
+// CanAccept is it legal to receive this message 
 func (round *round5) CanAccept(msg smpc.Message) bool {
 	if _, ok := msg.(*SignRound5Message); ok {
 		return msg.IsBroadcast()
@@ -44,6 +45,7 @@ func (round *round5) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update  is the message received and ready for the next round? 
 func (round *round5) Update() (bool, error) {
 	for j, msg := range round.temp.signRound5Messages {
 		if round.ok[j] {
@@ -58,8 +60,8 @@ func (round *round5) Update() (bool, error) {
 	return true, nil
 }
 
+// NextRound enter next round
 func (round *round5) NextRound() smpc.Round {
-	//fmt.Printf("========= round.next round ========\n")
 	round.started = false
 	return &round6{round}
 }

@@ -3,15 +3,13 @@ package signing
 import (
 	"errors"
 	"fmt"
-	//"math/big"
 	"encoding/hex"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
-	//"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/agl/ed25519"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
-	//edlib "crypto/ed25519"
 )
 
+// Start calc S and check (R,S)
 func (round *round7) Start() error {
 	if round.started {
 		fmt.Printf("============= ed sign,round7.start fail =======\n")
@@ -67,14 +65,17 @@ func (round *round7) Start() error {
 	return nil
 }
 
+// CanAccept end signing 
 func (round *round7) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update end signing
 func (round *round7) Update() (bool, error) {
 	return false, nil
 }
 
+// NextRound end signing
 func (round *round7) NextRound() smpc.Round {
 	return nil
 }

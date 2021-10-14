@@ -1,3 +1,4 @@
+// Package common  Self encapsulated log printing 
 package common
 
 import (

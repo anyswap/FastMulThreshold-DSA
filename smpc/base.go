@@ -60,6 +60,7 @@ type RpcSmpcRes struct {
 	Err error
 }
 
+// GetChannelValue get channel value within the specified timeout 
 func GetChannelValue(t int, obj interface{}) (string, string, error) {
 	timeout := make(chan bool, 1)
 	go func() {
@@ -119,6 +120,7 @@ func GetChannelValue(t int, obj interface{}) (string, string, error) {
 
 //----------------------------------------------------------------------------------------
 
+// Encode2 encode obj to string
 func Encode2(obj interface{}) (string, error) {
 	switch ch := obj.(type) {
 	case *PubKeyData:
@@ -160,6 +162,7 @@ func Encode2(obj interface{}) (string, error) {
 	}
 }
 
+// Decode2 decode string to obj by data type
 func Decode2(s string, datatype string) (interface{}, error) {
 
 	if datatype == "PubKeyData" {
@@ -222,6 +225,7 @@ func Decode2(s string, datatype string) (interface{}, error) {
 
 //--------------------------------------------------------------------------------------
 
+// Compress compress the bytes,and return the result
 func Compress(c []byte) (string, error) {
 	if c == nil {
 		return "", fmt.Errorf("compress fail.")
@@ -244,6 +248,7 @@ func Compress(c []byte) (string, error) {
 	return s, nil
 }
 
+// UnCompress uncompress the string
 func UnCompress(s string) (string, error) {
 
 	if s == "" {
@@ -289,6 +294,7 @@ func Keccak256Hash(data ...[]byte) (h SmpcHash) {
 
 //----------------------------------------------------------------------------------------------
 
+// DoubleHash  The ID is converted into a hash value according to different keytypes 
 func DoubleHash(id string, keytype string) *big.Int {
 	// Generate the random num
 	// First, hash with the keccak256
@@ -328,6 +334,7 @@ func DoubleHash(id string, keytype string) *big.Int {
 	return digestBigInt
 }
 
+// GetIds Convert each ID into a hash value according to different keytypes and put it into an array for sorting 
 func GetIds(keytype string, groupid string) smpclib.SortableIDSSlice {
 	var ids smpclib.SortableIDSSlice
 	_, nodes := GetGroup(groupid)
@@ -343,6 +350,7 @@ func GetIds(keytype string, groupid string) smpclib.SortableIDSSlice {
 
 //------------------------------------------------------------------------------
 
+// GetTxTypeFromData get special tx data type from command data or accept data
 func GetTxTypeFromData(txdata []byte) string {
 	if txdata == nil {
 		return ""
@@ -393,6 +401,7 @@ func GetTxTypeFromData(txdata []byte) string {
 	return ""
 }
 
+// CheckRaw check command data or accept data
 func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	if raw == "" {
 		return "", "", "", nil, fmt.Errorf("raw data empty")

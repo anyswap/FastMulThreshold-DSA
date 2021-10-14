@@ -14,6 +14,7 @@
  *
  */
 
+// Package ed  MPC ed algorithm 
 package ed
 
 import (
@@ -25,6 +26,7 @@ import (
 	"io"
 )
 
+// Commit get commitment by secret
 func Commit(secret [32]byte) ([32]byte, [64]byte) {
 	// Generate the random num
 	rand := cryptorand.Reader
@@ -56,6 +58,7 @@ func Commit(secret [32]byte) ([32]byte, [64]byte) {
 	return C, D
 }
 
+// Verify Verify commitment data
 func Verify(C [32]byte, D [64]byte) bool {
 	var rsDigest512 [64]byte
 	var rsDigest256 [32]byte

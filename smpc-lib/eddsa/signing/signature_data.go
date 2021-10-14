@@ -2,13 +2,11 @@ package signing
 
 import (
 	"math/big"
-	//"strings"
 	"bytes"
 	"crypto/sha512"
 	"fmt"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
 	"strconv"
-	//"crypto/ed25519/internal/edwards25519"
 	edlib "crypto/ed25519"
 )
 
@@ -19,6 +17,7 @@ type InputVerify struct {
 	FinalPk [32]byte
 }
 
+// EdVerify check (R,S)
 func EdVerify(input InputVerify) bool {
 	// 1. calculate k
 	var k [32]byte
@@ -76,11 +75,10 @@ type PrePubData struct {
 	Sigma1 *big.Int
 }
 
-////////solane ed lib verify
+// Verify solane ed lib verify
 func Verify(publicKey edlib.PublicKey, message, sig []byte) bool {
 	if l := len(publicKey); l != 32 {
 		fmt.Printf("================= ed25519: bad public key length: " + strconv.Itoa(l) + " ==================\n")
-		//panic("ed25519: bad public key length: " + strconv.Itoa(l))
 		return false
 	}
 

@@ -49,7 +49,7 @@ var (
 
 	syncpresign = true
 
-	//callback
+	// callback
 	GetGroup               func(string) (int, string)
 	SendToGroupAllNodes    func(string, string) (string, error)
 	GetSelfEnode           func() string
@@ -61,42 +61,52 @@ var (
 
 //----------------------------------------------------------------------------------
 
-//p2p callback
+// p2p callback
+
+// RegP2pGetGroupCallBack set p2p callback func GetGroup
 func RegP2pGetGroupCallBack(f func(string) (int, string)) {
 	GetGroup = f
 }
 
+// RegP2pSendToGroupAllNodesCallBack set p2p callback func SendToGroupAllNodes
 func RegP2pSendToGroupAllNodesCallBack(f func(string, string) (string, error)) {
 	SendToGroupAllNodes = f
 }
 
+// RegP2pGetSelfEnodeCallBack set p2p callback func GetSelfEnode
 func RegP2pGetSelfEnodeCallBack(f func() string) {
 	GetSelfEnode = f
 }
 
+// RegP2pBroadcastInGroupOthersCallBack set p2p callback func BroadcastInGroupOthers
 func RegP2pBroadcastInGroupOthersCallBack(f func(string, string) (string, error)) {
 	BroadcastInGroupOthers = f
 }
 
+// RegP2pSendMsgToPeerCallBack set p2p callback func SendToPeer
 func RegP2pSendMsgToPeerCallBack(f func(string, string) error) {
 	SendToPeer = f
 }
 
+// RegP2pParseNodeCallBack set p2p callback func ParseNode
 func RegP2pParseNodeCallBack(f func(string) string) {
 	ParseNode = f
 }
 
+// RegSmpcGetEosAccountCallBack set p2p callback func GetEosAccount
 func RegSmpcGetEosAccountCallBack(f func() (string, string, string)) {
 	GetEosAccount = f
 }
 
 //------------------------------------------------------------------------------------------
 
+// Call2 use for receiving the group info from p2p
 func Call2(msg interface{}) {
 	s := msg.(string)
 	SetUpMsgList2(s)
 }
 
+// SetUpMsgList2 receive group info
 func SetUpMsgList2(msg string) {
 
 	mm := strings.Split(msg, "smpcslash")
@@ -108,7 +118,7 @@ func SetUpMsgList2(msg string) {
 
 var parts = common.NewSafeMap(10)
 
-//smpc node receive specific msg (for example:group info) from p2p by Call2
+// receiveGroupInfo smpc node receive specific msg (for example:group info) from p2p by Call2
 func receiveGroupInfo(msg interface{}) {
 	cur_enode = p2psmpc.GetSelfID()
 
@@ -158,13 +168,15 @@ func Init(groupId string) {
 	InitGroupInfo(groupId)
 }
 
+// InitGroupInfo get current node enodeId etc.
 func InitGroupInfo(groupId string) {
 	cur_enode = discover.GetLocalID().String()
+	// .......
 }
 
 //------------------------------------------------------------------------------
 
-//brodcast msg to group
+// SendMsgToSmpcGroup brodcast msg to group nodes by group id
 func SendMsgToSmpcGroup(msg string, groupid string) {
 	common.Debug("=========SendMsgToSmpcGroup=============", "msg", msg, "groupid", groupid)
 	_, err := BroadcastInGroupOthers(groupid, msg)
@@ -175,6 +187,7 @@ func SendMsgToSmpcGroup(msg string, groupid string) {
 
 //-------------------------------------------------------------------------------
 
+// EncryptMsg encrypt msg 
 func EncryptMsg(msg string, enodeID string) (string, error) {
 	hprv, err1 := hex.DecodeString(enodeID)
 	if err1 != nil {
@@ -199,6 +212,7 @@ func EncryptMsg(msg string, enodeID string) (string, error) {
 	return string(cm), nil
 }
 
+// DecryptMsg decrypt msg
 func DecryptMsg(cm string) (string, error) {
 	nodeKey, errkey := crypto.LoadECDSA(KeyFile)
 	if errkey != nil {
@@ -215,6 +229,7 @@ func DecryptMsg(cm string) (string, error) {
 	return string(m), nil
 }
 
+// SendMsgToPeer send msg to special peer
 func SendMsgToPeer(enodes string, msg string) {
 	en := strings.Split(string(enodes[8:]), "@")
 	cm, err := EncryptMsg(msg, en[0])
@@ -230,6 +245,7 @@ func SendMsgToPeer(enodes string, msg string) {
 
 //-------------------------------------------------------------
 
+// IsReshareCmd Judge whether it is Reshare command data 
 func IsReshareCmd(raw string) (bool, string) {
 	if raw == "" {
 		return false, ""
@@ -248,6 +264,7 @@ func IsReshareCmd(raw string) (bool, string) {
 	return false, ""
 }
 
+// IsGenKeyCmd  Judge whether it is the command data that generating pubkey 
 func IsGenKeyCmd(raw string) (bool, string) {
 	if raw == "" {
 		return false, ""
@@ -266,6 +283,7 @@ func IsGenKeyCmd(raw string) (bool, string) {
 	return false, ""
 }
 
+// IsPreGenSignData  Judge whether it is the command data that generating pre-sign data 
 func IsPreGenSignData(raw string) (string, bool) {
 	msgmap := make(map[string]string)
 	err := json.Unmarshal([]byte(raw), &msgmap)
@@ -281,6 +299,7 @@ func IsPreGenSignData(raw string) (string, bool) {
 	return "", false
 }
 
+// IsEDSignCmd  Judge whether it is the ed sign command data 
 func IsEDSignCmd(raw string) (string, bool) {
 	if raw == "" {
 		return "", false
@@ -303,6 +322,7 @@ func IsEDSignCmd(raw string) (string, bool) {
 	return "", false
 }
 
+// IsSignDataCmd Judge whether it is the "SignData" data struct
 func IsSignDataCmd(raw string) (string, bool) {
 	msgmap := make(map[string]string)
 	err := json.Unmarshal([]byte(raw), &msgmap)
@@ -319,6 +339,7 @@ func IsSignDataCmd(raw string) (string, bool) {
 	return "", false
 }
 
+// GetCmdKey get the key of various of command datas
 func GetCmdKey(msg string) string {
 	if msg == "" {
 		return ""
@@ -354,7 +375,7 @@ func GetCmdKey(msg string) string {
 
 //----------------------------------------------------------------------------------------
 
-//receive msg from p2p
+// Call receive msg from p2p
 func Call(msg interface{}, enode string) {
 	common.Debug("====================Call===================", "get p2p msg ", msg, "sender node", enode)
 	s := msg.(string)
@@ -421,6 +442,7 @@ func Call(msg interface{}, enode string) {
 	SetUpMsgList(s, enode)
 }
 
+// SetUpMsgList set RecvMsg data to RPCReqQueue
 func SetUpMsgList(msg string, enode string) {
 
 	v := RecvMsg{msg: msg, sender: enode}
@@ -430,6 +452,7 @@ func SetUpMsgList(msg string, enode string) {
 	RPCReqQueue <- req
 }
 
+// SetUpMsgList3 set RecvMsg data to RPCReqQueue
 func SetUpMsgList3(msg string, enode string, rch chan interface{}) {
 
 	v := RecvMsg{msg: msg, sender: enode}
@@ -449,6 +472,7 @@ type RecvMsg struct {
 	sender string
 }
 
+// Run Implement keygen/sign/reshare command and Process accept data
 func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 	if workid < 0 || workid >= RPCMaxWorker {
 		res2 := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get worker id fail", Err: fmt.Errorf("worker was not found.")}
@@ -493,6 +517,8 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 
 //---------------------------------------------------------------------------
 
+// Handle send pre-save msg to SmpcMsg channel
+// delete pre-save msg from C1Data map
 func Handle(key string, c1data string) {
 	w, err := FindWorker(key)
 	if w == nil || err != nil {
@@ -508,6 +534,7 @@ func Handle(key string, c1data string) {
 	}
 }
 
+// HandleKG Process pre-save msg for keygen
 func HandleKG(key string, uid *big.Int) {
 	c1data := strings.ToLower(key + "-" + fmt.Sprintf("%v", uid) + "-" + "KGRound0Message")
 	Handle(key, c1data)
@@ -515,6 +542,7 @@ func HandleKG(key string, uid *big.Int) {
 	Handle(key, c1data)
 }
 
+// HandleSign Process pre-save msg for sign 
 func HandleSign(key string, uid *big.Int) {
 	c1data := strings.ToLower(key + "-" + fmt.Sprintf("%v", uid) + "-" + "SignRound1Message")
 	Handle(key, c1data)
@@ -522,10 +550,10 @@ func HandleSign(key string, uid *big.Int) {
 	Handle(key, c1data)
 }
 
-//C1Data Key, Three formats are included:
-//1.  key-enodefrom, for reshare only, enodefrom get from enodeId
-//2.  key-uid-msgtype, for example: key-uid-"KGRound0Message"
-//3.  key-accout,for accept reply
+//HandleC1Data C1Data Key, Three formats are included:
+// 1.  key-enodefrom, for reshare only, enodefrom get from enodeId
+// 2.  key-uid-msgtype, for example: key-uid-"KGRound0Message"
+// 3.  key-accout,for accept reply
 func HandleC1Data(ac *AcceptReqAddrData, key string) {
 	w, err := FindWorker(key)
 	if w == nil || err != nil {
@@ -607,6 +635,7 @@ func HandleC1Data(ac *AcceptReqAddrData, key string) {
 
 //-----------------------------------------------------------------------------------
 
+// GetRawType get special tx data type and key from command data or accept data
 func GetRawType(raw string) (string, string) {
 	if raw == "" {
 		return "", ""
@@ -659,6 +688,7 @@ func GetRawType(raw string) (string, string) {
 
 //---------------------------------------------------------------------------------
 
+// DisAcceptMsg  Collect accept data of nodes in the group, after collection, continue the MPC process 
 func DisAcceptMsg(raw string, workid int) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -693,6 +723,7 @@ func DisAcceptMsg(raw string, workid int) {
 
 //------------------------------------------------------------------------------------
 
+// DoReq   1.Parse the command data and implement the process 2.analyze the accept data   
 func MsgRun(raw string, workid int, sender string, ch chan interface{}) error {
 	if raw == "" || workid < 0 || sender == "" {
 		res := RpcSmpcRes{Ret: "", Tip: "msg run fail.", Err: fmt.Errorf("msg run fail")}
@@ -729,6 +760,9 @@ func MsgRun(raw string, workid int, sender string, ch chan interface{}) error {
 
 //------------------------------------------------------------------------------------
 
+// GetGroupSigsDataByRaw get account sigs data from special tx data(raw data)
+// account sigs data:  Signatures generated by respective accounts,the signature object is the pubkey of eNode,that is,enodeId.
+// account sigs data: sig1 | sig2 | ... | sigN   (N is the count of nodes in group.)
 func GetGroupSigsDataByRaw(raw string) (string, error) {
 	if raw == "" {
 		return "", fmt.Errorf("raw data empty")
@@ -856,6 +890,7 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 
 //--------------------------------------------------------------------------------
 
+// CheckGroupEnode Judge whether there is same enodeID in group 
 func CheckGroupEnode(gid string) bool {
 	if gid == "" {
 		return false
@@ -879,7 +914,7 @@ func CheckGroupEnode(gid string) bool {
 
 //------------------------------------------------------------------------------
 
-//msg: key-enode:C1:X1:X2...:Xn
+//DisMsg msg: key-enode:C1:X1:X2...:Xn
 //msg: key-enode1:NoReciv:enode2:C1
 func DisMsg(msg string) {
 
@@ -1363,6 +1398,7 @@ func DisMsg(msg string) {
 
 //--------------------------------------------------------------------------------
 
+// Find find msg in list
 func Find(l *list.List, msg string) bool {
 	if l == nil || msg == "" {
 		return false
@@ -1392,6 +1428,7 @@ func Find(l *list.List, msg string) bool {
 
 //--------------------------------------------------------------------------------
 
+// testEq  Judge whether a and B are equal 
 func testEq(a, b []string) bool {
 	// If one is nil, the other must also be nil.
 	if (a == nil) != (b == nil) {

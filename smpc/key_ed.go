@@ -1,3 +1,19 @@
+/*
+ *  Copyright (C) 2018-2019  Fusion Foundation Ltd. All rights reserved.
+ *  Copyright (C) 2018-2019  haijun.cai@anyswap.exchange
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the Apache License, Version 2.0.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
+
 package smpc
 
 import (
@@ -16,6 +32,7 @@ import (
 
 //---------------------------------------EDDSA start-----------------------------------------------------------------------
 
+// ProcessInboundMessages_EDDSA Analyze the obtained P2P messages and enter next round
 func ProcessInboundMessages_EDDSA(msgprex string, finishChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
 	defer wg.Done()
 	fmt.Printf("start processing inbound messages, key = %v \n", msgprex)
@@ -64,6 +81,7 @@ func ProcessInboundMessages_EDDSA(msgprex string, finishChan chan struct{}, wg *
 	}
 }
 
+// GetRealMessage_EDDSA get the message data struct by map. (p2p msg ---> map)
 func GetRealMessage_EDDSA(msg map[string]string) smpclib.Message {
 	from := msg["FromID"]
 	var to []string
@@ -168,6 +186,7 @@ func GetRealMessage_EDDSA(msg map[string]string) smpclib.Message {
 	return kg
 }
 
+// processKeyGen_EDDSA  Obtain the data to be sent in each round and send it to other nodes until the end of the request command 
 func processKeyGen_EDDSA(msgprex string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan edkeygen.LocalDNodeSaveData) error {
 	for {
 		select {
@@ -206,6 +225,7 @@ type KGLocalDBSaveData_ed struct {
 	MsgToEnode map[string]string
 }
 
+// OutMap  Convert KGLocalDBSaveData_ed data struct to map 
 func (kgsave *KGLocalDBSaveData_ed) OutMap() map[string]string {
 	out := kgsave.Save.OutMap()
 	for key, value := range kgsave.MsgToEnode {
@@ -215,6 +235,7 @@ func (kgsave *KGLocalDBSaveData_ed) OutMap() map[string]string {
 	return out
 }
 
+// GetKGLocalDBSaveData_ed get KGLocalDBSaveData_ed data struct from map
 func GetKGLocalDBSaveData_ed(data map[string]string) *KGLocalDBSaveData_ed {
 	save := edkeygen.GetLocalDNodeSaveData(data)
 	msgtoenode := make(map[string]string)

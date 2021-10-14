@@ -28,6 +28,7 @@ func GetSharesId(ss *ShareStruct2) *big.Int {
 	return nil
 }
 
+// Vss2Init  Initialize Lagrange polynomial coefficients 
 func Vss2Init(secret *big.Int, t int) (*PolyStruct2, *PolyGStruct2, error) {
 
 	poly := make([]*big.Int, 0)
@@ -50,6 +51,7 @@ func Vss2Init(secret *big.Int, t int) (*PolyStruct2, *PolyGStruct2, error) {
 	return polyStruct, polyGStruct, nil
 }
 
+// Vss2  Calculate Lagrange polynomial value 
 func (polyStruct *PolyStruct2) Vss2(ids []*big.Int) ([]*ShareStruct2, error) {
 
 	shares := make([]*ShareStruct2, 0)
@@ -63,6 +65,7 @@ func (polyStruct *PolyStruct2) Vss2(ids []*big.Int) ([]*ShareStruct2, error) {
 	return shares, nil
 }
 
+// Verify2 Verify Lagrange polynomial value
 func (share *ShareStruct2) Verify2(polyG *PolyGStruct2) bool {
 
 	idVal := share.Id
@@ -86,6 +89,7 @@ func (share *ShareStruct2) Verify2(polyG *PolyGStruct2) bool {
 	}
 }
 
+// Combine2 Calculating Lagrange interpolation formula 
 func Combine2(shares []*ShareStruct2) (*big.Int, error) {
 
 	// build x coordinate set

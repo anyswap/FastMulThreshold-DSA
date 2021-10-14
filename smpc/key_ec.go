@@ -1,3 +1,19 @@
+/*
+ *  Copyright (C) 2018-2019  Fusion Foundation Ltd. All rights reserved.
+ *  Copyright (C) 2018-2019  haijun.cai@anyswap.exchange
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the Apache License, Version 2.0.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
+
 package smpc
 
 import (
@@ -17,6 +33,7 @@ import (
 
 //---------------------------------------ECDSA start-----------------------------------------------------------------------
 
+// ProcessInboundMessages Analyze the obtained P2P messages and enter next round
 func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
 	defer wg.Done()
 	fmt.Printf("start processing inbound messages\n")
@@ -66,6 +83,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 	}
 }
 
+// GetRealMessage get the message data struct by map. (p2p msg ---> map)
 func GetRealMessage(msg map[string]string) smpclib.Message {
 	from := msg["FromID"]
 	var to []string
@@ -229,6 +247,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 	return kg
 }
 
+// processKeyGen  Obtain the data to be sent in each round and send it to other nodes until the end of the request command 
 func processKeyGen(msgprex string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan keygen.LocalDNodeSaveData) error {
 	for {
 		select {
@@ -292,6 +311,7 @@ type KGLocalDBSaveData struct {
 	MsgToEnode map[string]string
 }
 
+// OutMap  Convert KGLocalDBSaveData data struct to map 
 func (kgsave *KGLocalDBSaveData) OutMap() map[string]string {
 	out := kgsave.Save.OutMap()
 	for key, value := range kgsave.MsgToEnode {
@@ -301,6 +321,7 @@ func (kgsave *KGLocalDBSaveData) OutMap() map[string]string {
 	return out
 }
 
+// GetKGLocalDBSaveData get KGLocalDBSaveData data struct from map
 func GetKGLocalDBSaveData(data map[string]string) *KGLocalDBSaveData {
 	save := keygen.GetLocalDNodeSaveData(data)
 	msgtoenode := make(map[string]string)
@@ -314,6 +335,7 @@ func GetKGLocalDBSaveData(data map[string]string) *KGLocalDBSaveData {
 
 //---------------------------------------ECDSA end-----------------------------------------------------------------------
 
+// ProcessOutCh send message to other node
 func ProcessOutCh(msgprex string, msg smpclib.Message) error {
 	if msg == nil {
 		return fmt.Errorf("smpc info error")
@@ -352,3 +374,4 @@ func ProcessOutCh(msgprex string, msg smpclib.Message) error {
 
 	return nil
 }
+

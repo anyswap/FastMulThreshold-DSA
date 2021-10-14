@@ -32,7 +32,7 @@ import (
 var (
 	PrePubDataCount   = 2000
 	PreBip32DataCount = 4
-	PreSigal          = common.NewSafeMap(10) //make(map[string][]byte)
+	PreSigal          = common.NewSafeMap(10)
 	PrePubGids        = common.NewSafeMap(10)
 )
 
@@ -43,9 +43,10 @@ type PreSign struct {
 	InputCode string //for bip32
 	Gid       string
 	Nonce     string
-	Index     int //pre-sign data index
+	Index     int // pre-sign data index
 }
 
+// MarshalJSON marshal PreSign data struct to json byte
 func (ps *PreSign) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Pub   string `json:"Pub"`
@@ -60,6 +61,7 @@ func (ps *PreSign) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON unmarshal json byte to PreSign data struct
 func (ps *PreSign) UnmarshalJSON(raw []byte) error {
 	var pre struct {
 		Pub   string `json:"Pub"`
@@ -87,10 +89,11 @@ type PreSignData struct {
 	Ry     *big.Int
 	Sigma1 *big.Int
 	Gid    string
-	Used   bool //useless? TODO
+	Used   bool
 	Index  int
 }
 
+// MarshalJSON marshal PreSignData data struct to json byte
 func (psd *PreSignData) MarshalJSON() ([]byte, error) {
 	used := "false"
 	if psd.Used == true {
@@ -118,6 +121,7 @@ func (psd *PreSignData) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON unmarshal json byte to PreSignData data struct
 func (psd *PreSignData) UnmarshalJSON(raw []byte) error {
 	var pre struct {
 		Key    string `json:"Key"`
@@ -156,6 +160,7 @@ type PickHashData struct {
 	Pre  *PreSignData
 }
 
+// MarshalJSON marshal *PickHashData  to json byte
 func (Phd *PickHashData) MarshalJSON() ([]byte, error) {
 	if Phd.Pre == nil {
 		return nil, errors.New("get pre-sign data fail.")
@@ -175,6 +180,7 @@ func (Phd *PickHashData) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON unmarshal json byte to *PiskHashData
 func (Phd *PickHashData) UnmarshalJSON(raw []byte) error {
 	var phd struct {
 		Hash     string `json:"Hash"`
@@ -204,6 +210,7 @@ type PickHashKey struct {
 	PickKey string
 }
 
+// MarshalJSON marshal *PickHashKey to json byte
 func (Phk *PickHashKey) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Hash    string `json:"Hash"`
@@ -214,6 +221,7 @@ func (Phk *PickHashKey) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON unmarshal json byte to *PickHashKey
 func (Phk *PickHashKey) UnmarshalJSON(raw []byte) error {
 	var phk struct {
 		Hash    string `json:"Hash"`
@@ -236,6 +244,7 @@ type SignBrocastData struct {
 	PickHash []*PickHashKey
 }
 
+// MarshalJSON marshal *SignBrocastData to json byte
 func (Sbd *SignBrocastData) MarshalJSON() ([]byte, error) {
 	ph := make([]string, 0)
 	for _, v := range Sbd.PickHash {
@@ -257,6 +266,7 @@ func (Sbd *SignBrocastData) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON unmarshal json byte to *SignBrocastData
 func (Sbd *SignBrocastData) UnmarshalJSON(raw []byte) error {
 	var sbd struct {
 		Raw      string `json:"Raw"`
@@ -290,6 +300,7 @@ type SignPickData struct {
 	PickData []*PickHashData
 }
 
+// MarshalJSON marshal *SignPickData to json byte
 func (Spd *SignPickData) MarshalJSON() ([]byte, error) {
 	ph := make([]string, 0)
 	for _, v := range Spd.PickData {
@@ -311,6 +322,7 @@ func (Spd *SignPickData) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON unmarshal json byte to *SignPickData
 func (Spd *SignPickData) UnmarshalJSON(raw []byte) error {
 	var spd struct {
 		Raw      string `json:"Raw"`
@@ -340,6 +352,7 @@ func (Spd *SignPickData) UnmarshalJSON(raw []byte) error {
 
 //-------------------------------------------------------------
 
+// CompressSignData marshal *SignPickData to json string
 func CompressSignData(raw string, pickdata []*PickHashData) (string, error) {
 	if raw == "" || pickdata == nil {
 		return "", fmt.Errorf("sign data error")
@@ -351,13 +364,18 @@ func CompressSignData(raw string, pickdata []*PickHashData) (string, error) {
 		return "", err
 	}
 
+	// compress ...
+
 	return string(data), nil
 }
 
+// UnCompressSignData unmarshal json string to *SignPickData
 func UnCompressSignData(data string) (*SignPickData, error) {
 	if data == "" {
 		return nil, fmt.Errorf("Sign Data error")
 	}
+
+	//uncompress ...
 
 	s := &SignPickData{}
 	if err := s.UnmarshalJSON([]byte(data)); err != nil {
@@ -369,6 +387,7 @@ func UnCompressSignData(data string) (*SignPickData, error) {
 
 //---------------------------------------------------------------
 
+// CompressSignBrocastData marshal *SignBrocastData to json string
 func CompressSignBrocastData(raw string, pickhash []*PickHashKey) (string, error) {
 	if raw == "" || pickhash == nil {
 		return "", fmt.Errorf("sign brocast data error")
@@ -380,13 +399,18 @@ func CompressSignBrocastData(raw string, pickhash []*PickHashKey) (string, error
 		return "", err
 	}
 
+	// compress ...
+
 	return string(data), nil
 }
 
+// UnCompressSignBrocastData unmarshal json string to *SignBrocastData
 func UnCompressSignBrocastData(data string) (*SignBrocastData, error) {
 	if data == "" {
 		return nil, fmt.Errorf("Sign Brocast Data error")
 	}
+
+	// uncompress ...
 
 	s := &SignBrocastData{}
 	if err := s.UnmarshalJSON([]byte(data)); err != nil {
@@ -398,6 +422,8 @@ func UnCompressSignBrocastData(data string) (*SignBrocastData, error) {
 
 //-----------------------------------------------------------------------
 
+// GetPreSignKey get the key of level db that saving pre-sign data
+// strings.ToLower(256Hash(pubkey:inputcode:gid:index)) ---> PreSignData
 func GetPreSignKey(pubkey string, inputcode string, gid string, index int) (string, error) {
 	if pubkey == "" || gid == "" || index < 0 {
 		return "", fmt.Errorf("get pre-sign key fail,param error.")
@@ -412,10 +438,11 @@ func GetPreSignKey(pubkey string, inputcode string, gid string, index int) (stri
 	return key, nil
 }
 
-//[start,end]
-//mid = (end + 1 - start)/2
-//left = [start,start - 1 + mid]
-//right = [start + mid,end]
+// BinarySearchVacancy Binary search the unused key among the set of hash(pubkey:inputcode:gid:i),  (i = start,start + 1,start + 2, .... , end)
+// [start,end]
+// mid = (end + 1 - start)/2
+// left = [start,start - 1 + mid]
+// right = [start + mid,end]
 func BinarySearchVacancy(pubkey string, inputcode string, gid string, start int, end int) int {
 	if predb == nil || pubkey == "" || gid == "" {
 		return -1
@@ -447,6 +474,8 @@ func BinarySearchVacancy(pubkey string, inputcode string, gid string, start int,
 	return right
 }
 
+// NeedPreSign Binary search the unused key among the set of hash(pubkey:inputcode:gid:i),  (i = start,start + 1,start + 2, .... , end)
+// if this value index is found,return (index,true),otherwise return (-1,false)
 func NeedPreSign(pubkey string, inputcode string, gid string) (int, bool) {
 
 	if predb == nil || pubkey == "" || gid == "" || PrePubDataCount < 1 {
@@ -461,6 +490,14 @@ func NeedPreSign(pubkey string, inputcode string, gid string) (int, bool) {
 	return index, true
 }
 
+// Pre-Sign Data Database:
+// Key : Value
+// hash(pubkey:inputcode:gid:0) : (*PreSignData).MarshalJSON
+// hash(pubkey:inputcode:gid:1) : (*PreSignData).MarshalJSON
+// .......
+// hash(pubkey:inputcode:gid:PrePubDataCount-1) : (*PreSignData).MarshalJSON
+
+// GetTotalCount Gets the number of currently generated pre-sign data under the specified pubkey/gid/inputcode
 func GetTotalCount(pubkey string, inputcode string, gid string) int {
 	if predb == nil || pubkey == "" || gid == "" || PrePubDataCount < 1 {
 		return 0
@@ -494,6 +531,7 @@ func GetTotalCount(pubkey string, inputcode string, gid string) int {
 	return index
 }
 
+// PutPreSignData put pre-sign data to local db under the specified pubkey/gid/inputcode
 func PutPreSignData(pubkey string, inputcode string, gid string, index int, val *PreSignData, force bool) error {
 	if predb == nil || val == nil || index < 0 {
 		return fmt.Errorf("put pre-sign data fail,param error.")
@@ -541,10 +579,11 @@ func PutPreSignData(pubkey string, inputcode string, gid string, index int, val 
 	return fmt.Errorf(" The pre-sign data of the key has been put to db before.")
 }
 
-//[start,end]
-//mid = (end + 1 - start)/2
-//left = [start,start - 1 + mid]
-//right = [start + mid,end]
+// BinarySearchPreSignData binary search pre-sign data by datakey under the specified pubkey/gid/inputcode from local db
+// [start,end]
+// mid = (end + 1 - start)/2
+// left = [start,start - 1 + mid]
+// right = [start + mid,end]
 func BinarySearchPreSignData(pubkey string, inputcode string, gid string, datakey string, start int, end int) (int, *PreSignData) {
 	if predb == nil || pubkey == "" || gid == "" {
 		return -1, nil
@@ -581,6 +620,7 @@ func BinarySearchPreSignData(pubkey string, inputcode string, gid string, datake
 	return right, data
 }
 
+// GetPreSignData binary search pre-sign data by datakey under the specified pubkey/gid/inputcode from local db
 func GetPreSignData(pubkey string, inputcode string, gid string, datakey string) *PreSignData {
 	if predb == nil || pubkey == "" || gid == "" || datakey == "" || PrePubDataCount < 1 {
 		return nil
@@ -590,6 +630,7 @@ func GetPreSignData(pubkey string, inputcode string, gid string, datakey string)
 	return data
 }
 
+// DeletePreSignData delete pre-sign data from local db under the specified pubkey/gid/inputcode
 func DeletePreSignData(pubkey string, inputcode string, gid string, datakey string) error {
 	if predb == nil || pubkey == "" || gid == "" || datakey == "" || PrePubDataCount < 1 {
 		common.Error("=======================DeletePreSignData,delete pre-sign data from db fail========================", "pubkey", pubkey, "gid", gid, "datakey", datakey)
@@ -614,10 +655,11 @@ func DeletePreSignData(pubkey string, inputcode string, gid string, datakey stri
 	return err
 }
 
-//[start,end]
-//mid = (end + 1 - start)/2
-//left = [start,start - 1 + mid]
-//right = [start + mid,end]
+// BinarySearchPick Pick the pre-sign data from local db under the specified pubkey/gid/inputcode
+// [start,end]
+// mid = (end + 1 - start)/2
+// left = [start,start - 1 + mid]
+// right = [start + mid,end]
 func BinarySearchPick(pubkey string, inputcode string, gid string, start int, end int) (int, *PreSignData) {
 	if predb == nil || pubkey == "" || gid == "" {
 		return -1, nil
@@ -652,6 +694,7 @@ func BinarySearchPick(pubkey string, inputcode string, gid string, start int, en
 	return right, data
 }
 
+// PickPreSignData Pick the pre-sign data from local db under the specified pubkey/gid/inputcode
 func PickPreSignData(pubkey string, inputcode string, gid string) *PreSignData {
 	if predb == nil || pubkey == "" || gid == "" || PrePubDataCount < 1 {
 		common.Error("=======================PickPreSignData,param error.========================", "pubkey", pubkey, "gid", gid)
@@ -685,6 +728,7 @@ type TxDataPreSignData struct {
 	SubGid []string
 }
 
+// PreGenSignData generate the pre-sign data under the specified pubkey/gid
 func PreGenSignData(raw string) (string, error) {
 	_, from, _, txdata, err := CheckRaw(raw)
 	if err != nil {
@@ -702,6 +746,7 @@ func PreGenSignData(raw string) (string, error) {
 	return "", nil
 }
 
+// ExcutePreSignData generate the pre-sign data under the specified pubkey/gid
 func ExcutePreSignData(pre *TxDataPreSignData) {
 	if pre == nil {
 		return
@@ -781,6 +826,7 @@ func ExcutePreSignData(pre *TxDataPreSignData) {
 	}
 }
 
+// AutoPreGenSignData Automatically generate pre-sign data based on database that saving public key group information. 
 func AutoPreGenSignData() {
 	if prekey == nil {
 		return
@@ -810,6 +856,7 @@ func AutoPreGenSignData() {
 	iter.Release()
 }
 
+// SavePrekeyToDb save pubkey gid information to the specified batabase
 func SavePrekeyToDb(pubkey string, inputcode string, gid string) error {
 	if prekey == nil {
 		return fmt.Errorf("db open fail.")
@@ -838,13 +885,17 @@ func SavePrekeyToDb(pubkey string, inputcode string, gid string) error {
 	return nil
 }
 
+// IsNotFoundErr weather it is "Not Found in db" error
 func IsNotFoundErr(err error) bool {
 	return errors.Is(err, dberrors.ErrNotFound)
 }
 
 //--------------------------------------------------------------
 
-//pub = hash256(pubkey + gid)
+// GetPreSigal Return whether to continue generating pre-sign data  
+// pub = hash256(pubkey : gid)
+// true  yes
+// false no
 func GetPreSigal(pub string) bool {
 	data, exsit := PreSigal.ReadMap(strings.ToLower(pub))
 	if exsit {
@@ -857,6 +908,7 @@ func GetPreSigal(pub string) bool {
 	return true
 }
 
+// PutPreSigal set the value "true" or "false" to map to decide whether to continue generating pre-sign data
 func PutPreSigal(pub string, val bool) {
 	if val {
 		PreSigal.WriteMap(strings.ToLower(pub), "true")
@@ -868,11 +920,14 @@ func PutPreSigal(pub string, val bool) {
 
 //-------------------------------------------------------------------------
 
+// NeedToStartPreBip32 need to generate pre-sign data for bip32 ??
 func NeedToStartPreBip32(pub string) bool {
 	_, exsit := PreSigal.ReadMap(strings.ToLower(pub))
 	return !exsit
 }
 
+// NeedPreSignForBip32 find the unused key among the set of hash(pubkey:inputcode:gid:i),  (i = start,start + 1,start + 2, .... , end)
+// if this value index is found,return (index,true),otherwise return (-1,false)
 func NeedPreSignForBip32(pubkey string, inputcode string, gid string) (int, bool) {
 
 	if predb == nil || pubkey == "" || inputcode == "" || gid == "" {
@@ -911,6 +966,8 @@ func NeedPreSignForBip32(pubkey string, inputcode string, gid string) (int, bool
 	return -1, false
 }
 
+// GetPrePubGids get gids by pub
+// pub = hash256(pubkey : gid)
 func GetPrePubGids(pub string) []string {
 	data, exsit := PrePubGids.ReadMap(strings.ToLower(pub))
 	if exsit {
@@ -921,6 +978,8 @@ func GetPrePubGids(pub string) []string {
 	return nil
 }
 
+// PutPrePubGids put gids to map by pub
+// pub = hash256(pubkey : gid)
 func PutPrePubGids(pub string, gids []string) {
 	old := GetPrePubGids(pub)
 	if old == nil {

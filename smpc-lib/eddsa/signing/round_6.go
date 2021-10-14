@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
-	//"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"crypto/sha512"
 	"encoding/hex"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
 )
 
+// Start verify CSB DSB commitment data,broacast current node s to other nodes
 func (round *round6) Start() error {
 	if round.started {
 		fmt.Printf("============= ed sign,round6.start fail =======\n")
@@ -109,6 +109,7 @@ func (round *round6) Start() error {
 	return nil
 }
 
+// CanAccept is it legal to receive this message 
 func (round *round6) CanAccept(msg smpc.Message) bool {
 	if _, ok := msg.(*SignRound6Message); ok {
 		return msg.IsBroadcast()
@@ -116,6 +117,7 @@ func (round *round6) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update  is the message received and ready for the next round? 
 func (round *round6) Update() (bool, error) {
 	for j, msg := range round.temp.signRound6Messages {
 		if round.ok[j] {
@@ -130,8 +132,8 @@ func (round *round6) Update() (bool, error) {
 	return true, nil
 }
 
+// NextRound enter next round
 func (round *round6) NextRound() smpc.Round {
-	//fmt.Printf("========= round.next round ========\n")
 	round.started = false
 	return &round7{round}
 }

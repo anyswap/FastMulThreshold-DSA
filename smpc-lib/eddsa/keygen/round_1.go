@@ -3,16 +3,14 @@ package keygen
 import (
 	"errors"
 	"fmt"
-	//"math/big"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
-	//"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	cryptorand "crypto/rand"
 	"crypto/sha512"
 	"io"
-	//"crypto/ed25519/internal/edwards25519"
 )
 
+// Start get sk pk
 func (round *round1) Start() error {
 	if round.started {
 		fmt.Printf("============ round1 start error,already started============\n")
@@ -102,6 +100,7 @@ func (round *round1) Start() error {
 	return nil
 }
 
+// CanAccept is it legal to receive this message 
 func (round *round1) CanAccept(msg smpc.Message) bool {
 	if _, ok := msg.(*KGRound1Message); ok {
 		return msg.IsBroadcast()
@@ -109,6 +108,7 @@ func (round *round1) CanAccept(msg smpc.Message) bool {
 	return false
 }
 
+// Update  is the message received and ready for the next round? 
 func (round *round1) Update() (bool, error) {
 	for j, msg := range round.temp.kgRound1Messages {
 		if round.ok[j] {
@@ -123,6 +123,7 @@ func (round *round1) Update() (bool, error) {
 	return true, nil
 }
 
+// NextRound enter next round
 func (round *round1) NextRound() smpc.Round {
 	round.started = false
 	return &round2{round}

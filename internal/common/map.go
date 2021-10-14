@@ -14,6 +14,7 @@
  *
  */
 
+// Package common  Self encapsulated map structure supporting concurrent operation 
 package common
 
 import (

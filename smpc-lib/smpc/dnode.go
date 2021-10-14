@@ -60,8 +60,7 @@ func (p *BaseDNode) unlock() {
 	p.mtx.Unlock()
 }
 
-// ----- //
-
+// BaseStart begin to run first round
 func BaseStart(p DNode) error {
 	p.lock()
 	defer p.unlock()
@@ -87,7 +86,7 @@ func BaseStart(p DNode) error {
 	return p.Round().Start()
 }
 
-// an implementation of Update that is shared across the different types of parties (keygen, signing, dynamic groups)
+// BaseUpdate an implementation of Update that is shared across the different types of parties (keygen, signing, dynamic groups)
 func BaseUpdate(p DNode, msg Message) (ok bool, err error) {
 	p.lock() // data is written to P state below
 
