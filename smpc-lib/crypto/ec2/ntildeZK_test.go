@@ -1,13 +1,18 @@
-// Copyright © 2019 Binance
-//
-// This file is part of Binance. The full Binance copyright notice, including
-// terms governing use, modification, and redistribution, is contained in the
-// file LICENSE at the root of the source code distribution tree.
-
-// Zero-knowledge proof of knowledge of the discrete logarithm over safe prime product
-
-// A proof of knowledge of the discrete log of an element h2 = hx1 with respect to h1.
-// In our protocol, we will run two of these in parallel to prove that two elements h1,h2 generate the same group modN.
+/*
+ *  Copyright (C) 2020-2021  AnySwap Ltd. All rights reserved.
+ *  Copyright (C) 2020-2021  haijun.cai@anyswap.exchange
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the Apache License, Version 2.0.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
 
 package ec2_test
 
