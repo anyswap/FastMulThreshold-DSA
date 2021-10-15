@@ -1,4 +1,5 @@
 
+#  Full parameter command :
 # ./gsmpc-test.sh path port datadir keytype keyfile1 passwdfile1 keyfile2 passwdfile2 keyfile3 passwdfile3 keyfile4 passwdfile4 keyfile5 passwdfile5
 
 echo $(pwd)  
@@ -37,7 +38,7 @@ echo --------------------------------------- node5 rpc port : $port5 -----------
 
 datadir=
 if [ ! $3 ]; then
-  datadir=$1/test/
+  datadir=$1/test/nodedata
 else
   datadir=$3
 fi
