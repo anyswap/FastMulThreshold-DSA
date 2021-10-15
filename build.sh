@@ -7,8 +7,24 @@ if [ ! -f "build.sh" ]; then
 	    exit 2
 fi
 
-mod=gsmpc-test
-if [ $1 = $mod ]; then
+mod1=gsmpc-test
+mod2=gsmpc-test-clean
+if [ $1 = $mod2 ]; then
+	rm -rf test/bin/gsmpctest
+	rm -rf test/bin/bootnodetest
+	rm -rf test/bin/gsmpc-client-test
+	rm -rf test/log/*.log
+	rm -rf test/nodedata/node*
+	rm -rf test/nodekey/*.key
+	for i in `ls test/tmp/`;do
+        if [ "$i" != readme ];then 
+            rm -rf test/tmp/$i;
+        fi;
+        done;
+    exit
+fi
+
+if [ $1 = $mod1 ]; then
     ./gsmpc-test.sh $(pwd) 5871 "" EC256K1
 else
     export GO111MODULE=on

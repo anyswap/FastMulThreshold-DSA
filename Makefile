@@ -23,12 +23,7 @@ gsmpc-client:
 
 clean:
 	rm -fr bin/cmd/*
-	rm -rf test/bin/gsmpctest
-	rm -rf test/bin/bootnodetest
-	rm -rf test/bin/gsmpc-client-test
-	rm -rf test/log/*.log
-	rm -rf test/nodedata/node*
-	rm -rf test/nodekey/*.key
+	./build.sh gsmpc-test-clean
 
 fmt:
 	./gofmt.sh
