@@ -7,9 +7,12 @@ cp -r $1/bin/cmd/gsmpc $1/test/bin/gsmpctest
 cp -r $1/bin/cmd/bootnode $1/test/bin/bootnodetest
 cp -r $1/bin/cmd/gsmpc-client $1/test/bin/gsmpc-client-test
 
+chmod a+x test/reqaddr.sh
+chmod a+x test/sign.sh
+
 $(pwd)/bootnode-test.sh $1 &
 
-sleep 10
+sleep 20
 
 path=$1/test/tmp/aaa
 val=$(cat $path)
@@ -289,7 +292,7 @@ sleep 10
 
 rm -rf $1/test/tmp/ggg
 
-$1/test/bin/gsmpc-client-test -cmd SIGN --loop 1 --n 1 -ts 3/5 --keystore $keyfile1 --passwdfile $pf1 --keytype $kt --logfilepath $1/test/logfile -gid $subgid -mode 0 -url http://127.0.0.1:$port -pubkey $pubkey -msghash 0x90e032be062dd0dc689fa23df8c044936a2478cb602b292c7397354238a67d88  -msgcontext '{"swapInfo":{"swapid":"0x4f62545cdd05cc346c75bb42f685a18a02621e91512e0806eac528d0b2f6aa5f","swaptype":1,"bind":"0x0520e8e5e08169c4dbc1580dc9bf56638532773a","identifier":"ssUSDT2FSN"},"extra":{"ethExtra":{"gas":90000,"gasPrice":10000000000,"nonce":1}}}' > $1/test/tmp/ggg &
+$1/test/bin/gsmpc-client-test -cmd SIGN --loop 1 --n 1 -ts 3/5 --keystore $keyfile1 --passwdfile $pf1 --keytype $kt --logfilepath $1/test/tmp/logfile -gid $subgid -mode 0 -url http://127.0.0.1:$port -pubkey $pubkey -msghash 0x90e032be062dd0dc689fa23df8c044936a2478cb602b292c7397354238a67d88  -msgcontext '{"swapInfo":{"swapid":"0x4f62545cdd05cc346c75bb42f685a18a02621e91512e0806eac528d0b2f6aa5f","swaptype":1,"bind":"0x0520e8e5e08169c4dbc1580dc9bf56638532773a","identifier":"ssUSDT2FSN"},"extra":{"ethExtra":{"gas":90000,"gasPrice":10000000000,"nonce":1}}}' > $1/test/tmp/ggg &
 sleep 50
 
 val=$(cat $1/test/tmp/ggg)
@@ -334,6 +337,6 @@ echo $val
 rsv=`echo ${val:6:130}`
 echo ----------------------------------------------------------------- sign rsv : $rsv -----------------------------------------------------------------------------
 
-killall -9 gsmpctest bootnodetest gsmpc-client-test
+killall -9 gsmpctest bootnodetest
 
 
