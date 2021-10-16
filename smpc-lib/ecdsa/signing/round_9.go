@@ -48,7 +48,7 @@ func (round *round9) Start() error {
 	s = new(big.Int).Mod(s, secp256k1.S256().N)
 
 	round.finalize_end <- s
-	fmt.Printf("============= round9.start success, current node id = %v =======\n", round.kgid)
+	//fmt.Printf("============= round9.start success, current node id = %v =======\n", round.kgid)
 	return nil
 }
 

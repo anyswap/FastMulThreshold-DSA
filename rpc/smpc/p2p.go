@@ -22,6 +22,7 @@ import (
 
 	"github.com/anyswap/Anyswap-MPCNode/internal/params"
 	"github.com/anyswap/Anyswap-MPCNode/p2p/layer2"
+	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 )
 
 var RPCTEST bool = false
@@ -76,10 +77,11 @@ func (this *Service) GetVersion() map[string]interface{} {
 
 // GetEnode get gsmpc node enodeId
 func (this *Service) GetEnode() map[string]interface{} {
-	fmt.Printf("==== GetEnode() ====\n")
+	//fmt.Printf("==== GetEnode() ====\n")
 	en := layer2.GetEnode()
 	reten := &Enode{Enode: en}
-	fmt.Printf("==== GetEnode() ====, en: %v, ret: %v\n", en, reten)
+	//fmt.Printf("==== GetEnode() ====, en: %v, ret: %v\n", en, reten)
+	common.Debug("==== GetEnode() ====","en",en,"ret",reten)
 	return packageResult(SUCCESS, "", "", reten)
 }
 
@@ -132,21 +134,24 @@ func (this *Service) CreateGroup(threshold string, enodes []string) map[string]i
 
 // CreateSDKGroup create group
 func (this *Service) CreateSDKGroup(threshold string, enodes []string, subGroup bool) map[string]interface{} {
-	fmt.Printf("==== CreateSDKGroup() ====\n")
+	//fmt.Printf("==== CreateSDKGroup() ====\n")
 	_, err := layer2.CheckAddPeer(threshold, enodes, subGroup)
 	if err != nil {
 		ret := &GroupID{}
-		fmt.Printf("==== CreateSDKGroup() ====, CheckAddPeer err: %v\n", err)
+		common.Debug("==== CreateSDKGroup() ====","CheckAddPeer err",err)
+		//fmt.Printf("==== CreateSDKGroup() ====, CheckAddPeer err: %v\n", err)
 		return packageResult(FAIL, err.Error(), err.Error(), ret)
 	}
 	gid, count, retErr := layer2.CreateSDKGroup(threshold, enodes, subGroup)
 	if retErr != "" {
 		status := FAIL
-		fmt.Printf("==== CreateSDKGroup() ====, CreateSDKGroup tip: %v, err: %v\n", retErr, retErr)
+		common.Debug("==== CreateSDKGroup() ====","CreateSDKGroup tip",retErr,"err",retErr)
+		//fmt.Printf("==== CreateSDKGroup() ====, CreateSDKGroup tip: %v, err: %v\n", retErr, retErr)
 		ret := &GroupID{Gid: gid}
 		return packageResult(status, retErr, retErr, ret)
 	}
-	fmt.Printf("==== CreateSDKGroup() ====, gid: %v, count: %v\n", gid, count)
+	common.Debug("==== CreateSDKGroup() ====","gid",gid,"count",count)
+	//fmt.Printf("==== CreateSDKGroup() ====, gid: %v, count: %v\n", gid, count)
 	ret := &GroupID{Gid: gid}
 	return packageResult(SUCCESS, "", "", ret)
 }

@@ -188,7 +188,7 @@ func NewEmitter() *Emitter {
 func (e *Emitter) addPeer(p *p2p.Peer, ws p2p.MsgReadWriter) {
 	e.Lock()
 	defer e.Unlock()
-	common.Info("==== addPeer() ====", "id", p.ID().String()[:8])
+	common.Debug("==== addPeer() ====", "id", p.ID().String()[:8])
 	discover.RemoveSequenceDoneRecv(p.ID().String())
 	e.peers[p.ID()] = &peer{ws: ws, peer: p, peerInfo: &peerInfo{int(ProtocolVersion)}, knownTxs: mapset.NewSet()}
 	enode := fmt.Sprintf("enode://%v@%v", p.ID().String(), p.RemoteAddr())
@@ -202,13 +202,13 @@ func (e *Emitter) removePeer(p *p2p.Peer) {
 	e.Lock()
 	defer e.Unlock()
 	discover.UpdateOnLine(p.ID(), false)
-	common.Info("==== removePeer() ====", "id", p.ID().String()[:8])
+	common.Debug("==== removePeer() ====", "id", p.ID().String()[:8])
 	return
-	enode := fmt.Sprintf("enode://%v@%v", p.ID().String(), p.RemoteAddr())
-	node, _ := discover.ParseNode(enode)
-	p2pServer.RemoveTrustedPeer(node)
-	discover.Remove(node)
-	delete(e.peers, p.ID())
+	//enode := fmt.Sprintf("enode://%v@%v", p.ID().String(), p.RemoteAddr())
+	//node, _ := discover.ParseNode(enode)
+	//p2pServer.RemoveTrustedPeer(node)
+	//discover.Remove(node)
+	//delete(e.peers, p.ID())
 }
 
 func HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
@@ -330,7 +330,7 @@ func getGroup(gid discover.NodeID, p2pType int) (int, string) {
 }
 
 func recvGroupInfo(gid discover.NodeID, mode string, req interface{}, p2pType int, Type string) {
-	common.Info("==== recvGroupInfo() ====", "gid", gid, "req", req)
+	common.Debug("==== recvGroupInfo() ====", "gid", gid, "req", req)
 	discover.GroupSDK.Lock()
 	defer discover.GroupSDK.Unlock()
 	var xvcGroup *discover.Group

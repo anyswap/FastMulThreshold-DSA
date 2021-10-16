@@ -251,7 +251,7 @@ func processSign(msgprex string, msgtoenode map[string]string, errChan chan stru
 				return nil, fmt.Errorf("get worker fail")
 			}
 
-			fmt.Printf("\n=========================sign finished successfully,sig data = %v, key = %v ===========================\n", msg, msgprex)
+			//fmt.Printf("\n=========================sign finished successfully,sig data = %v, key = %v ===========================\n", msg, msgprex)
 			return &msg, nil
 		}
 	}
@@ -280,7 +280,7 @@ func processSignFinalize(msgprex string, msgtoenode map[string]string, errChan c
 				return nil, fmt.Errorf("get worker fail")
 			}
 
-			fmt.Printf("\n=======================sign finished successfully, s = %v, key = %v =======================\n", msg, msgprex)
+			//fmt.Printf("\n=======================sign finished successfully, s = %v, key = %v =======================\n", msg, msgprex)
 			return msg, nil
 		}
 	}

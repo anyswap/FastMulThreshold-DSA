@@ -64,11 +64,9 @@ func (round *round2) Start() error {
 
 			vv := ec2.GetSharesId(v)
 			if vv != nil && vv.Cmp(id) == 0 && k == cur_index {
-				fmt.Printf("=========== round2, it is self. share struct id = %v, share = %v, k = %v ===========\n", v.Id, v.Share, k)
 				round.temp.kgRound2Messages[k] = kg
 				break
 			} else if vv != nil && vv.Cmp(id) == 0 {
-				fmt.Printf("=========== round2, share struct id = %v, share = %v, k = %v ===========\n", v.Id, v.Share, k)
 				kg.AppendToID(fmt.Sprintf("%v", id)) //id-->dnodeid
 				round.out <- kg
 				//fmt.Printf("============ round2 send msg to peer = %v ============\n",id)
@@ -86,7 +84,7 @@ func (round *round2) Start() error {
 	round.temp.kgRound2Messages1[cur_index] = kg
 	round.out <- kg
 
-	fmt.Printf("============ round2 send msg to peer success, c1 for bip32 = %v ============\n", kg.C1)
+	//fmt.Printf("============ round2 send msg to peer success, c1 for bip32 = %v ============\n", kg.C1)
 	return nil
 }
 

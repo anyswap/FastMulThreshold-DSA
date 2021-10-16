@@ -37,7 +37,6 @@ func (round *round3) Start() error {
 		return err
 	}
 
-	fmt.Printf("============ round3.start, kc = %v, cur_index = %v ===========\n", round.temp.ukc)
 	srm := &SignRound3Message{
 		SignRoundMessage: new(SignRoundMessage),
 		Kc:               round.temp.ukc,
@@ -48,7 +47,7 @@ func (round *round3) Start() error {
 	round.temp.signRound3Messages[cur_index] = srm
 	round.out <- srm
 
-	fmt.Printf("============= round3.start success, current node id = %v =======\n", round.kgid)
+	//fmt.Printf("============= round3.start success, current node id = %v =======\n", round.kgid)
 	return nil
 }
 

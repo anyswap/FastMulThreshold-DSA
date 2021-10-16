@@ -120,7 +120,7 @@ func (round *round6) Start() error {
 	round.temp.signRound6Messages[cur_index] = srm
 	round.out <- srm
 
-	fmt.Printf("============= ed sign,round6.start success, current node id = %v =============\n", round.kgid)
+	//fmt.Printf("============= ed sign,round6.start success, current node id = %v =============\n", round.kgid)
 
 	return nil
 }

@@ -60,7 +60,6 @@ func GetSignNonce(account string) (string, string, error) {
 	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + "Sign"))).Hex()
 	exsit, da := GetPubKeyData([]byte(key))
 	if !exsit {
-		fmt.Printf("================GetSignNonce,key was not found. account = %v===================\n", account)
 		nonce := "0"
 		PutPubKeyData([]byte(key), []byte(nonce))
 		return "0", "", nil
@@ -493,13 +492,13 @@ type SignStatus struct {
 func GetSignStatus(key string) (string, string, error) {
 	exsit, da := GetPubKeyData([]byte(key))
 	if !exsit || da == nil {
-		common.Error("=================GetSignStatus,get sign accept data fail from db================", "key", key)
+		common.Debug("=================GetSignStatus,get sign accept data fail from db================", "key", key)
 		return "", "smpc back-end internal error:get sign accept data fail from db when GetSignStatus", fmt.Errorf("get sign accept data fail from db")
 	}
 
 	ac, ok := da.(*AcceptSignData)
 	if !ok {
-		common.Info("=================GetSignStatus,get sign accept data error from db================", "key", key)
+		common.Error("=================GetSignStatus,get sign accept data error from db================", "key", key)
 		return "", "smpc back-end internal error:get sign accept data error from db when GetSignStatus", fmt.Errorf("get sign accept data error from db")
 	}
 
@@ -696,7 +695,7 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
 	} else {
 		sign_ec(wsid, unsignhash, save, sku1, smpcpkx, smpcpky, inputcode, keytype, pickdata, rch)
 		ret, tip, cherr := GetChannelValue(waitall, rch)
-		common.Info("=================sign,call sign_ec finish.==============", "return result", ret, "err", cherr, "key", wsid)
+		common.Debug("=================sign,call sign_ec finish.==============", "return result", ret, "err", cherr, "key", wsid)
 		if cherr != nil {
 			res := RpcSmpcRes{Ret: "", Tip: tip, Err: cherr}
 			ch <- res
@@ -731,18 +730,6 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
 			ch <- res
 			return
 		}
-
-		///////TODO tmp
-		//sid-enode:SendSignRes:Success:rsv
-		//sid-enode:SendSignRes:Fail:err
-		mp := []string{w.sid, cur_enode}
-		enode := strings.Join(mp, "-")
-		s0 := "SendSignRes"
-		s1 := "Success"
-		s2 := result
-		ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
-		SendMsgToSmpcGroup(ss, w.groupid)
-		///////////////
 
 		common.Debug("================sign,success sign and call AcceptSign==============", "key", wsid)
 		tip, reply := AcceptSign("", account, pubkey, unsignhash, keytype, w.groupid, nonce, w.limitnum, mode, "true", "true", "Success", result, "", "", nil, w.id)
@@ -1165,14 +1152,16 @@ func PreSign_ec3(msgprex string, save string, sku1 *big.Int, cointype string, ch
 	go func() {
 		defer signWg.Done()
 		if err := signDNode.Start(); nil != err {
-			fmt.Printf("==========sign node start err = %v ==========\n", err)
+			fmt.Printf("==========PreSign_ec3, node start, key = %v, err = %v ==========\n", msgprex,err)
 			close(errChan)
 		}
 
 		exsit, da := GetPubKeyData([]byte(pubs.Key))
+		common.Debug("==========PreSign_ec3, get reqaddr info from pubkeydata db==============","key",msgprex,"exsit",exsit)
 		if exsit {
 			acceptreqdata, ok := da.(*AcceptReqAddrData)
 			if ok && acceptreqdata != nil {
+				common.Debug("==========PreSign_ec3, get reqaddr info from pubkeydata db==============","key",msgprex,"acceptreqdata",acceptreqdata)
 				HandleC1Data(acceptreqdata, w.sid)
 			}
 		}
@@ -1180,7 +1169,7 @@ func PreSign_ec3(msgprex string, save string, sku1 *big.Int, cointype string, ch
 	go SignProcessInboundMessages(msgprex, commStopChan, &signWg, ch)
 	pre, err := processSign(msgprex, kgsave.MsgToEnode, errChan, outCh, endCh)
 	if err != nil || pre == nil {
-		fmt.Printf("==========process sign err = %v ==========\n", err)
+	    	common.Debug("==========================PreSign_ec3,process sign===========================","key",msgprex,"err",err)
 		close(commStopChan)
 		res := RpcSmpcRes{Ret: "", Err: err}
 		ch <- res
@@ -1204,8 +1193,6 @@ func Sign_ec3(msgprex string, message string, cointype string, save string, pkx 
 		return ""
 	}
 	w := workers[id]
-	fmt.Printf("==============Sign_ec3, w.groupid = %v ==============\n", w.groupid)
-
 	gid := w.groupid
 
 	if w.groupid == "" {
@@ -1300,23 +1287,24 @@ func Sign_ec3(msgprex string, message string, cointype string, save string, pkx 
 	go func() {
 		defer signWg.Done()
 		if err := signDNode.Start(); nil != err {
-			fmt.Printf("==========sign node start err = %v ==========\n", err)
+			fmt.Printf("==========Sign_ec3, node start, key = %v, err = %v ==========\n", msgprex,err)
 			close(errChan)
 		}
 
 		exsit, da := GetPubKeyData([]byte(pubs.Key))
+		common.Debug("======================Sign_ec3,get reqaddr info from pubkeydata db========================","key",msgprex,"exsit",exsit)
 		if exsit {
 			acceptreqdata, ok := da.(*AcceptReqAddrData)
 			if ok && acceptreqdata != nil {
+				common.Debug("======================Sign_ec3,get reqaddr info from pubkeydata db========================","key",msgprex,"acceptreqdata",acceptreqdata)
 				HandleC1Data(acceptreqdata, w.sid)
 			}
 		}
 	}()
 	go SignProcessInboundMessages(msgprex, commStopChan, &signWg, ch)
-	fmt.Printf("==============Sign_ec3, 333333  w.groupid = %v ==============\n", w.groupid)
 	s, err := processSignFinalize(msgprex, kgsave.MsgToEnode, errChan, outCh, finalize_endCh, gid)
 	if err != nil || s == nil {
-		fmt.Printf("==========process sign err = %v ==========\n", err)
+	    	common.Debug("=========================Sign_ec3,process sign==============================","key",msgprex,"err",err)
 		close(commStopChan)
 		res := RpcSmpcRes{Ret: "", Err: err}
 		ch <- res
@@ -1717,14 +1705,16 @@ func Sign_ed(msgprex string, save string, sku1 *big.Int, message string, cointyp
 	go func() {
 		defer signWg.Done()
 		if err := signDNode.Start(); nil != err {
-			fmt.Printf("==========ed sign node start err = %v ==========\n", err)
+			fmt.Printf("==========Sign_ed, node start, key = %v, err = %v ==========\n", msgprex,err)
 			close(errChan)
 		}
 
 		exsit, da := GetPubKeyData([]byte(pubs.Key))
+		common.Debug("================Sign_ed,get reqaddr info from pubkeydata db========================","key",msgprex,"exsit",exsit)
 		if exsit {
 			acceptreqdata, ok := da.(*AcceptReqAddrData)
 			if ok && acceptreqdata != nil {
+				common.Debug("================Sign_ed,get reqaddr info from pubkeydata db========================","key",msgprex,"acceptreqdata",acceptreqdata)
 				HandleC1Data(acceptreqdata, w.sid)
 			}
 		}
@@ -1732,7 +1722,7 @@ func Sign_ed(msgprex string, save string, sku1 *big.Int, message string, cointyp
 	go EdSignProcessInboundMessages(msgprex, commStopChan, &signWg, ch)
 	edrs, err := processSign_ed(msgprex, kgsave.MsgToEnode, errChan, outCh, endCh)
 	if err != nil || edrs == nil {
-		fmt.Printf("==========process ed sign err = %v ==========\n", err)
+		common.Debug("================Sign_ed,process sign========================","key",msgprex,"err",err)
 		close(commStopChan)
 		res := RpcSmpcRes{Ret: "", Err: err}
 		ch <- res

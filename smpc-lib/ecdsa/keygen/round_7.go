@@ -18,7 +18,6 @@ package keygen
 
 import (
 	"errors"
-	"fmt"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
 
@@ -33,7 +32,7 @@ func (round *round7) Start() error {
 
 	round.end <- *round.Save
 
-	fmt.Printf("========= round7 start success ==========\n")
+	//fmt.Printf("========= round7 start success ==========\n")
 	return nil
 }
 

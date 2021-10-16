@@ -46,7 +46,7 @@ type Service struct{}
 // raw: tx raw data
 //return pubkey and coins addr
 func (this *Service) ReqSmpcAddr(raw string) map[string]interface{} { //函数名首字母必须大写
-	common.Info("===============ReqSmpcAddr================", "raw", raw)
+	common.Debug("===============ReqSmpcAddr================", "raw", raw)
 
 	data := make(map[string]interface{})
 	if raw == "" {
@@ -60,7 +60,7 @@ func (this *Service) ReqSmpcAddr(raw string) map[string]interface{} { //函数�
 	}
 
 	ret, tip, err := smpc.Req_SmpcAddr(raw)
-	common.Info("=================ReqSmpcAddr,get result.==================", "ret", ret, "tip", tip, "err", err, "raw", raw)
+	common.Debug("=================ReqSmpcAddr,get result.==================", "ret", ret, "tip", tip, "err", err, "raw", raw)
 	if err != nil {
 		data["result"] = ""
 		return map[string]interface{}{
@@ -90,7 +90,6 @@ func (this *Service) ReqSmpcAddr(raw string) map[string]interface{} { //函数�
 // }
 func (this *Service) AcceptReqAddr(raw string) map[string]interface{} {
 	//fmt.Printf("%v ==========call rpc AcceptReqAddr from web,raw = %v==========\n", common.CurrentTime(), raw)
-	common.Info("========================AcceptReqAddr======================", "raw", raw)
 
 	data := make(map[string]interface{})
 	ret, tip, err := smpc.RpcAcceptReqAddr(raw)
@@ -539,10 +538,8 @@ func (this *Service) GetBip32ChildKey(rootpubkey string, inputcode string) map[s
 // gid = "",get all pubkey of all gid
 // gid != "",get all pubkey by gid
 func (this *Service) GetAccounts(account, mode string) map[string]interface{} {
-	fmt.Printf("%v ==========call rpc GetAccounts from web, account = %v, mode = %v ================\n", common.CurrentTime(), account, mode)
 	data := make(map[string]interface{})
 	ret, tip, err := smpc.GetAccounts(account, mode)
-	fmt.Printf("%v ==========finish call rpc GetAccounts ,ret = %v,err = %v,account = %v, mode = %v ================\n", common.CurrentTime(), ret, err, account, mode)
 	if err != nil {
 		data["result"] = ""
 		return map[string]interface{}{

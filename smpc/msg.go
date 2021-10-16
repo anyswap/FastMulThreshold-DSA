@@ -406,14 +406,14 @@ func Call(msg interface{}, enode string) {
 					msgtype := msgmap["Type"]
 					key := strings.ToLower(val + "-" + from + "-" + msgtype)
 					C1Data.WriteMap(key, s)
-					fmt.Printf("===============================Call, pre-save p2p msg, worker found, key = %v,fromId = %v,msgtype = %v, msg = %v========================\n", val, from, msgtype, s)
+					fmt.Printf("===============================Call, pre-save p2p msg, worker found, key = %v,fromId = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
 				}
 			} else {
 				from := msgmap["FromID"]
 				msgtype := msgmap["Type"]
 				key := strings.ToLower(val + "-" + from + "-" + msgtype)
 				C1Data.WriteMap(key, s)
-				fmt.Printf("===============================Call, pre-save p2p msg, worker not found, key = %v,fromId = %v,msgtype = %v, msg = %v========================\n", val, from, msgtype, s)
+				fmt.Printf("===============================Call, pre-save p2p msg, worker not found, key = %v,fromId = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
 			}
 
 			return
@@ -527,7 +527,9 @@ func Handle(key string, c1data string) {
 
 	val, exist := C1Data.ReadMap(c1data)
 	if exist {
+		common.Debug("==============================Handle,exsit c1data========================","key",key,"c1data key",c1data)
 		if w.DNode != nil && w.DNode.Round() != nil {
+			common.Info("==============================Handle,put c1data to w.SmpcMsg channel success.========================","key",key,"c1data key",c1data,"c1data value",val.(string))
 			w.SmpcMsg <- val.(string)
 			go C1Data.DeleteMap(c1data)
 		}
@@ -546,7 +548,7 @@ func HandleKG(key string, uid *big.Int) {
 func HandleSign(key string, uid *big.Int) {
 	c1data := strings.ToLower(key + "-" + fmt.Sprintf("%v", uid) + "-" + "SignRound1Message")
 	Handle(key, c1data)
-	c1data = strings.ToLower(key + "-" + fmt.Sprintf("%v", uid) + "-" + "SignRound2Message")
+	c1data = strings.ToLower(key + "-" + fmt.Sprintf("%v", uid) + "-" + "SignRound7Message")
 	Handle(key, c1data)
 }
 
@@ -643,7 +645,7 @@ func GetRawType(raw string) (string, string) {
 
 	key, from, _, txdata, err := CheckRaw(raw)
 	if err != nil {
-		common.Error("=======================GetRawType,check accept raw data error===================", "err", err)
+		common.Error("=======================GetRawType,check accept raw data error===================","raw",raw,"err", err)
 		return "", ""
 	}
 
@@ -723,7 +725,7 @@ func DisAcceptMsg(raw string, workid int) {
 
 //------------------------------------------------------------------------------------
 
-// DoReq   1.Parse the command data and implement the process 2.analyze the accept data   
+// MsgRun  1.Parse the command data and implement the process 2.analyze the accept data   
 func MsgRun(raw string, workid int, sender string, ch chan interface{}) error {
 	if raw == "" || workid < 0 || sender == "" {
 		res := RpcSmpcRes{Ret: "", Tip: "msg run fail.", Err: fmt.Errorf("msg run fail")}
@@ -732,7 +734,7 @@ func MsgRun(raw string, workid int, sender string, ch chan interface{}) error {
 	}
 
 	var req SmpcReq
-	rawtype, key := GetRawType(raw)
+	rawtype, _ := GetRawType(raw)
 	switch rawtype {
 	case "REQADDR":
 		req = &ReqSmpcAddr{}
@@ -750,7 +752,6 @@ func MsgRun(raw string, workid int, sender string, ch chan interface{}) error {
 		return fmt.Errorf("Unsupported request type")
 	}
 
-	common.Info("=====================MsgRun,get result from GetRawType ================", "key", key, "raw", raw)
 	if !req.DoReq(raw, workid, sender, ch) {
 		return fmt.Errorf("msg run fail")
 	}

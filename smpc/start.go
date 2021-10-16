@@ -76,7 +76,7 @@ func Start(params *LunchParams) {
 
 	go smpclibec2.GenRandomSafePrime()
 
-	common.Info("======================smpc.Start======================", "accounts loaded", accloaded, "cache", cache, "handles", handles, "cur enode", cur_enode)
+	common.Debug("======================smpc.Start======================", "accounts loaded", accloaded, "cache", cache, "handles", handles, "cur enode", cur_enode)
 	err := StartSmpcLocalDb()
 	if err != nil {
 		info := "======================smpc.Start," + err.Error() + ",so terminate smpc node startup"
@@ -85,7 +85,7 @@ func Start(params *LunchParams) {
 		return
 	}
 
-	common.Info("======================smpc.Start,open all db success======================", "cur_enode", cur_enode)
+	common.Debug("======================smpc.Start,open all db success======================", "cur_enode", cur_enode)
 
 	PrePubDataCount = int(params.PreSignNum)
 	WaitMsgTimeGG20 = int(params.WaitMsg)

@@ -56,7 +56,6 @@ func (round *round4) Start() error {
 			return errors.New("round.Start get round3 msg fail")
 		}
 
-		fmt.Printf("========= round4, share struct id = %v, share = %v, k = %v, u1polygg = %v ===========\n", msg2.Id, msg2.Share, k, msg3.U1PolyGG)
 		ps := &ec2.PolyGStruct2{PolyG: msg3.U1PolyGG}
 		if !ushare.Verify2(ps) {
 			fmt.Printf("========= round4 verify share fail, k = %v ==========\n", k)
@@ -88,7 +87,6 @@ func (round *round4) Start() error {
 			return errors.New("round.Start get round2.1 msg fail")
 		}
 
-		fmt.Printf("========= round4, c1 for bip32 = %v, k = %v ==========\n", msg21.C1, k)
 		cGVerifyx, cGVerifyy := secp256k1.S256().ScalarBaseMult(msg21.C1.Bytes())
 		if c1G[0].Cmp(cGVerifyx) == 0 && c1G[1].Cmp(cGVerifyy) == 0 {
 			//.....
@@ -160,8 +158,6 @@ func (round *round4) Start() error {
 	ntildeProof1 := ec2.NewNtildeProof(u1NtildeH1H2.H1, u1NtildeH1H2.H2, alpha, p, q, u1NtildeH1H2.Ntilde)
 	ntildeProof2 := ec2.NewNtildeProof(u1NtildeH1H2.H2, u1NtildeH1H2.H1, beta, p, q, u1NtildeH1H2.Ntilde)
 
-	fmt.Printf("=========================keygen round4.start, curindex = %v, h1 = %v, h2 = %v, ntilde = %v, pf1 = %v, pf2 = %v ===========================\n", cur_index, u1NtildeH1H2.H1, u1NtildeH1H2.H2, u1NtildeH1H2.Ntilde, ntildeProof1, ntildeProof2)
-
 	kg := &KGRound4Message{
 		KGRoundMessage: new(KGRoundMessage),
 		U1NtildeH1H2:   u1NtildeH1H2,
@@ -175,7 +171,7 @@ func (round *round4) Start() error {
 	round.temp.kgRound4Messages[cur_index] = kg
 	round.out <- kg
 
-	fmt.Printf("========= round4 start success ==========\n")
+	//fmt.Printf("========= round4 start success ==========\n")
 	return nil
 }
 

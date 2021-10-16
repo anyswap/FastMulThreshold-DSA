@@ -19,7 +19,6 @@ package keygen
 import (
 	"bytes"
 	"crypto/sha512"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
@@ -181,8 +180,8 @@ func (round *round6) Start() error {
 
 	round.end <- *round.Save
 
-	pub := hex.EncodeToString(finalPkBytes[:])
-	fmt.Printf("========= round6 start success, pubkey = %v ==========\n", pub)
+	//pub := hex.EncodeToString(finalPkBytes[:])
+	//fmt.Printf("========= round6 start success, pubkey = %v ==========\n", pub)
 	return nil
 }
 

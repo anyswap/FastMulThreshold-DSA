@@ -174,44 +174,44 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		index := msg.GetFromIndex()
 		p.temp.signRound1Messages[index] = msg
 		if len(p.temp.signRound1Messages) == p.ThresHold && checkfull(p.temp.signRound1Messages) {
-			fmt.Printf("================ StoreMessage,get all 1 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 1 messages ==============\n")
 			return true, nil
 		}
 	case *SignRound2Message:
 		index := msg.GetFromIndex()
-		fmt.Printf("================ StoreMessage,get 2 messages,index = %v ============\n", index)
+		//fmt.Printf("================ StoreMessage,get 2 messages,index = %v ============\n", index)
 		p.temp.signRound2Messages[index] = msg
 		if len(p.temp.signRound2Messages) == p.ThresHold && checkfull(p.temp.signRound2Messages) {
-			fmt.Printf("================ StoreMessage,get all 2 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 2 messages ==============\n")
 			return true, nil
 		}
 	case *SignRound3Message:
 		index := msg.GetFromIndex()
-		fmt.Printf("================ StoreMessage,get 3 messages,index = %v ============\n", index)
+		//fmt.Printf("================ StoreMessage,get 3 messages,index = %v ============\n", index)
 		p.temp.signRound3Messages[index] = msg
 		if len(p.temp.signRound3Messages) == p.ThresHold && checkfull(p.temp.signRound3Messages) {
-			fmt.Printf("================ StoreMessage,get all 3 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 3 messages ==============\n")
 			return true, nil
 		}
 	case *SignRound4Message:
 		index := msg.GetFromIndex()
 		p.temp.signRound4Messages[index] = msg
 		if len(p.temp.signRound4Messages) == p.ThresHold && checkfull(p.temp.signRound4Messages) {
-			fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
 			return true, nil
 		}
 	case *SignRound5Message:
 		index := msg.GetFromIndex()
 		p.temp.signRound5Messages[index] = msg
 		if len(p.temp.signRound5Messages) == p.ThresHold && checkfull(p.temp.signRound5Messages) {
-			fmt.Printf("================ StoreMessage,get all 5 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 5 messages ==============\n")
 			return true, nil
 		}
 	case *SignRound6Message:
 		index := msg.GetFromIndex()
 		p.temp.signRound6Messages[index] = msg
 		if len(p.temp.signRound6Messages) == p.ThresHold && checkfull(p.temp.signRound6Messages) {
-			fmt.Printf("================ StoreMessage,get all 6 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 6 messages ==============\n")
 			return true, nil
 		}
 	default: // unrecognised message, just ignore!

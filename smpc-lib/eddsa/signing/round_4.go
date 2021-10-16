@@ -22,7 +22,6 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"crypto/sha512"
-	"encoding/hex"
 )
 
 // Start verify CR DR xkR,calc lambda1 s
@@ -137,8 +136,7 @@ func (round *round4) Start() error {
 	var s [32]byte
 	ed.ScMul(&s, &lambda, &round.temp.tsk)
 
-	stmp := hex.EncodeToString(s[:])
-	fmt.Printf("============================== round4.start, stmp = %v ============================\n", stmp)
+	//stmp := hex.EncodeToString(s[:])
 
 	ed.ScMul(&s, &s, &k)
 	ed.ScAdd(&s, &s, &round.temp.r)

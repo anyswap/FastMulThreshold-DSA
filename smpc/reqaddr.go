@@ -696,7 +696,7 @@ func KeyGenerate_DECDSA(msgprex string, ch chan interface{}, id int, cointype st
 	keyGenDNode := keygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048)
 	w.DNode = keyGenDNode
 	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", DoubleHash(cur_enode, "EC256K1")))
-	fmt.Printf("=========== keygen, node uid = %v ===========\n", keyGenDNode.DNodeID())
+	fmt.Printf("=========== KeyGenerate_DECDSA, node uid = %v ===========\n", keyGenDNode.DNodeID())
 
 	uid, _ := new(big.Int).SetString(w.DNode.DNodeID(), 10)
 	w.MsgToEnode[fmt.Sprintf("%v", uid)] = cur_enode
@@ -706,14 +706,16 @@ func KeyGenerate_DECDSA(msgprex string, ch chan interface{}, id int, cointype st
 	go func() {
 		defer keyGenWg.Done()
 		if err := keyGenDNode.Start(); nil != err {
-			fmt.Printf("==========keygen node start err = %v ==========\n", err)
+			fmt.Printf("==========KeyGenerate_DECDSA, node start, key = %v, err = %v ==========\n", msgprex,err)
 			close(errChan)
 		}
 
 		exsit, da := GetReqAddrInfoData([]byte(msgprex))
+		common.Debug("==========KeyGenerate_DECDSA, get reqaddr info from db==================","key",msgprex,"exsit",exsit)
 		if exsit {
 			ac, ok := da.(*AcceptReqAddrData)
 			if ok && ac != nil {
+				common.Debug("==========KeyGenerate_DECDSA, get reqaddr info from db==================","key",msgprex,"ac",ac)
 				HandleC1Data(ac, w.sid)
 			}
 		}
@@ -721,7 +723,7 @@ func KeyGenerate_DECDSA(msgprex string, ch chan interface{}, id int, cointype st
 	go ProcessInboundMessages(msgprex, commStopChan, &keyGenWg, ch)
 	err := processKeyGen(msgprex, errChan, outCh, endCh)
 	if err != nil {
-		fmt.Printf("==========process keygen err = %v ==========\n", err)
+		fmt.Printf("==========KeyGenerate_DECDSA,process keygen, key = %v,err = %v ==========\n", msgprex,err)
 		close(commStopChan)
 		res := RpcSmpcRes{Ret: "", Err: err}
 		ch <- res
@@ -777,14 +779,16 @@ func KeyGenerate_DEDDSA(msgprex string, ch chan interface{}, id int, cointype st
 	go func() {
 		defer keyGenWg.Done()
 		if err := keyGenDNode.Start(); nil != err {
-			fmt.Printf("==========ed,keygen node start err = %v, key = %v ==========\n", err, msgprex)
+			fmt.Printf("==========KeyGenerate_DEDDSA,node start, key = %v, err = %v ==========\n", msgprex,err)
 			close(errChan)
 		}
 
 		exsit, da := GetReqAddrInfoData([]byte(msgprex))
+		common.Debug("=========================KeyGenerate_DEDDSA,get reqaddr info from db===========================","key",msgprex,"exsit",exsit)
 		if exsit {
 			ac, ok := da.(*AcceptReqAddrData)
 			if ok && ac != nil {
+				common.Debug("=========================KeyGenerate_DEDDSA,get reqaddr info from db===========================","key",msgprex,"ac",ac)
 				HandleC1Data(ac, w.sid)
 			}
 		}
@@ -792,7 +796,7 @@ func KeyGenerate_DEDDSA(msgprex string, ch chan interface{}, id int, cointype st
 	go ProcessInboundMessages_EDDSA(msgprex, commStopChan, &keyGenWg, ch)
 	err := processKeyGen_EDDSA(msgprex, errChan, outCh, endCh)
 	if err != nil {
-		fmt.Printf("==========process ed keygen err = %v, key = %v ==========\n", err, msgprex)
+		fmt.Printf("==========KeyGenerate_DEDDSA,process ed keygen, err = %v, key = %v ==========\n", err, msgprex)
 		close(commStopChan)
 		res := RpcSmpcRes{Ret: "", Err: err}
 		ch <- res

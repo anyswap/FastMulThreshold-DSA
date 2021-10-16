@@ -50,7 +50,7 @@ func (round *round0) Start() error {
 
 	round.temp.kgRound0Messages = append(round.temp.kgRound0Messages, kg)
 	round.out <- kg
-	fmt.Printf("============= round0.start success, current node id = %v =======\n", round.dnodeid)
+	//fmt.Printf("============= round0.start success, current node id = %v =======\n", round.dnodeid)
 	return nil
 }
 

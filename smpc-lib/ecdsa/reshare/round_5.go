@@ -18,7 +18,6 @@ package reshare
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
@@ -59,7 +58,7 @@ func (round *round5) Start() error {
 	round.temp.reshareRound5Messages[cur_index] = re
 	round.out <- re
 
-	fmt.Printf("========= round5 start success ==========\n")
+	//fmt.Printf("========= round5 start success ==========\n")
 	return nil
 }
 

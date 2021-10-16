@@ -193,29 +193,28 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		}
 
 		if len(p.temp.reshareRound0Messages) == p.DNodeCountInGroup {
-			fmt.Printf("================ StoreMessage,get all 0 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 0 messages ==============\n")
 			return true, nil
 		}
 	case *ReshareRound1Message:
 		index := msg.GetFromIndex()
-		fmt.Printf("================ reshare.StoreMessage, index = %v, reshareRound1Messages len = %v ==============\n", index, len(p.temp.reshareRound1Messages))
 		p.temp.reshareRound1Messages[index] = msg
 		if len(p.temp.reshareRound1Messages) == p.ThresHold && checkfull(p.temp.reshareRound1Messages) {
-			fmt.Printf("================ StoreMessage,get all 1 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 1 messages ==============\n")
 			return true, nil
 		}
 	case *ReshareRound2Message:
 		index := msg.GetFromIndex()
 		p.temp.reshareRound2Messages[index] = msg
 		if len(p.temp.reshareRound2Messages) == p.ThresHold && checkfull(p.temp.reshareRound2Messages) {
-			fmt.Printf("================ StoreMessage,get all 2 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 2 messages ==============\n")
 			return true, nil
 		}
 	case *ReshareRound2Message1:
 		index := msg.GetFromIndex()
 		p.temp.reshareRound2Messages1[index] = msg
 		if len(p.temp.reshareRound2Messages1) == p.ThresHold && checkfull(p.temp.reshareRound2Messages1) {
-			fmt.Printf("================ StoreMessage,get all 2-1 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 2-1 messages ==============\n")
 			return true, nil
 		}
 	case *ReshareRound3Message:
@@ -224,7 +223,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		m := msg.(*ReshareRound3Message)
 		p.data.U1PaillierPk[index] = m.U1PaillierPk
 		if len(p.temp.reshareRound3Messages) == p.DNodeCountInGroup && checkfull(p.temp.reshareRound3Messages) {
-			fmt.Printf("================ StoreMessage,get all 3 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 3 messages ==============\n")
 			return true, nil
 		}
 	case *ReshareRound4Message:
@@ -237,7 +236,6 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		Ntilde := m.U1NtildeH1H2.Ntilde
 		pf1 := m.NtildeProof1
 		pf2 := m.NtildeProof2
-		fmt.Printf("=========================reshare StoreMessage, message 4, curindex = %v, h1 = %v, h2 = %v, ntilde = %v, pf1 = %v, pf2 = %v ===========================\n", index, H1, H2, Ntilde, pf1, pf2)
 		if H1.Cmp(H2) == 0 {
 			return false, errors.New("h1 and h2 were equal for this mpc node")
 		}
@@ -249,14 +247,14 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		p.temp.reshareRound4Messages[index] = msg
 		p.data.U1NtildeH1H2[index] = m.U1NtildeH1H2
 		if len(p.temp.reshareRound4Messages) == p.DNodeCountInGroup && checkfull(p.temp.reshareRound4Messages) {
-			fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
 			return true, nil
 		}
 	case *ReshareRound5Message:
 		index := msg.GetFromIndex()
 		p.temp.reshareRound5Messages[index] = msg
 		if len(p.temp.reshareRound5Messages) == p.DNodeCountInGroup && checkfull(p.temp.reshareRound5Messages) {
-			fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
 
 			///check newskok
 			for _, v := range p.temp.reshareRound5Messages {

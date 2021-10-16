@@ -1,1 +1,1 @@
-curl -X POST -H "Content-Type":application/json --data '{"jsonrpc":"2.0","method":"smpc_getSignStatus","params":["0xf58c2db9a02964868f6c585273103c91b3ef63576c7d472aaa5a2afa6199bd94"],"id":67}' http://127.0.0.1:5871 > /run/media/go/Work/FastMulThreshold-DSA/test/hhh &
+curl -X POST -H "Content-Type":application/json --data '{"jsonrpc":"2.0","method":"smpc_getSignStatus","params":["0x7854020120e09faa705ded5d0174760ab9cac3e97de5ced5683b4d47a99dea1b"],"id":67}' http://127.0.0.1:5871 > /run/media/go/Work/FastMulThreshold-DSA/test/tmp/hhh &

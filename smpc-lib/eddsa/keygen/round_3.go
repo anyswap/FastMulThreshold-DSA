@@ -18,7 +18,6 @@ package keygen
 
 import (
 	"errors"
-	"fmt"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
 
@@ -45,7 +44,7 @@ func (round *round3) Start() error {
 	round.temp.kgRound3Messages[cur_index] = kg
 	round.out <- kg
 
-	fmt.Printf("========= round3 start success, DPk = %v, cur_index = %v ==========\n", round.temp.DPk, cur_index)
+	//fmt.Printf("========= round3 start success, DPk = %v, cur_index = %v ==========\n", round.temp.DPk, cur_index)
 	return nil
 }
 

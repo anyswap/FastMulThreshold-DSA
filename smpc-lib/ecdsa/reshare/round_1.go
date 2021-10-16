@@ -102,7 +102,7 @@ func (round *round1) Start() error {
 	round.temp.reshareRound1Messages[index] = re
 	round.out <- re
 
-	fmt.Printf("============ round1 start success ============\n")
+	//fmt.Printf("============ round1 start success ============\n")
 	return nil
 }
 

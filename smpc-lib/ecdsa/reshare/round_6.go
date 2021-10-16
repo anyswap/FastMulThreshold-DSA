@@ -18,7 +18,6 @@ package reshare
 
 import (
 	"errors"
-	"fmt"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"math/big"
 )
@@ -58,7 +57,7 @@ func (round *round6) Start() error {
 
 	round.end <- *round.Save
 
-	fmt.Printf("========= round6 start success ==========\n")
+	//fmt.Printf("========= round6 start success ==========\n")
 	return nil
 }
 

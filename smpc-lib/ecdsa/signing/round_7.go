@@ -83,7 +83,7 @@ func (round *round7) Start() error {
 
 	round.end <- PrePubData{K1: round.temp.u1K, R: r, Ry: deltaGammaGy, Sigma1: round.temp.sigma1}
 
-	fmt.Printf("============= round7.start success, current node id = %v =============\n", round.kgid)
+	//fmt.Printf("============= round7.start success, current node id = %v =============\n", round.kgid)
 
 	return nil
 }

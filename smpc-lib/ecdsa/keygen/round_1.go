@@ -102,7 +102,7 @@ func (round *round1) Start() error {
 	round.temp.kgRound1Messages[index] = kg
 	round.out <- kg
 
-	fmt.Printf("============ round1 start success ============\n")
+	//fmt.Printf("============ round1 start success ============\n")
 	return nil
 }
 

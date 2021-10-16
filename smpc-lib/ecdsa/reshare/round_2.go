@@ -110,7 +110,7 @@ func (round *round2) Start() error {
 	round.temp.reshareRound2Messages1[cur_index_reshare] = re
 	round.out <- re
 
-	fmt.Printf("============ round2 send msg to peer success ============\n")
+	//fmt.Printf("============ round2 send msg to peer success ============\n")
 	return nil
 }
 

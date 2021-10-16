@@ -192,7 +192,7 @@ func (req *ReqSmpcSign) CheckReply(ac *AcceptReqAddrData, l *list.List, key stri
 				}
 
 				if !found {
-					common.Error("===================== CheckReply,mms[kk+1] no find in ret map and return fail==================", "key", key, "mms[kk+1]", mms[kk+1])
+					common.Debug("===================== CheckReply,mms[kk+1] no find in ret map and return fail==================", "key", key, "mms[kk+1]", mms[kk+1])
 					return false
 				}
 
@@ -201,7 +201,7 @@ func (req *ReqSmpcSign) CheckReply(ac *AcceptReqAddrData, l *list.List, key stri
 		}
 
 		if !foundeid {
-			common.Error("===================== CheckReply,get raw reply finish and find eid fail================", "key", key)
+			common.Debug("===================== CheckReply,get raw reply finish and find eid fail================", "key", key)
 			return false
 		}
 	}
@@ -420,13 +420,12 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 				childpub := secp256k1.S256().Marshal(childPKx, childPKy)
 				childpubkeyhex := hex.EncodeToString(childpub)
-				addr, _, err := GetSmpcAddr(childpubkeyhex)
+				_, _, err = GetSmpcAddr(childpubkeyhex)
 				if err != nil {
 					res := RpcSmpcRes{Ret: "", Tip: "get pubkey error", Err: fmt.Errorf("get pubkey error")}
 					ch <- res
 					return false
 				}
-				fmt.Printf("===================ReqSmpcSign.DoReq, sign, pubkey = %v, inputcode = %v, addr = %v ===================\n", childpubkeyhex, sd.InputCodeT, addr)
 
 				var ch1 = make(chan interface{}, 1)
 				for i := 0; i < recalc_times; i++ {
@@ -438,7 +437,6 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 					//w.Clear2()
 					//Sign_ec2(sd.Key, sd.Save, sd.Sku1, sd.Txhash, sd.Keytype, sd.Pkx, sd.Pky, ch1, workid)
 					Sign_ec3(sd.Key, sd.Txhash, sd.Keytype, sd.Save, childPKx, childPKy, ch1, workid, sd.Pre)
-					common.Info("===============ReqSmpcSign.DoReq, ec3 sign finish ===================", "WaitMsgTimeGG20", WaitMsgTimeGG20)
 					ret, _, cherr := GetChannelValue(WaitMsgTimeGG20+10, ch1)
 					if ret != "" && cherr == nil {
 
@@ -449,15 +447,12 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 							return false
 						}
 
-						common.Info("===============ReqSmpcSign.DoReq, ec3 sign success ===================", "i", i, "get ret", ret, "cherr", cherr, "msgprex", sd.MsgPrex, "key", sd.Key)
-
 						ww.rsv.PushBack(ret)
 						res2 := RpcSmpcRes{Ret: ret, Tip: "", Err: nil}
 						ch <- res2
 						return true
 					}
 
-					common.Info("===============ReqSmpcSign.DoReq,ec3 sign fail===================", "ret", ret, "cherr", cherr, "msgprex", sd.MsgPrex, "key", sd.Key)
 				}
 
 				res2 := RpcSmpcRes{Ret: "", Tip: "sign fail", Err: fmt.Errorf("sign fail")}

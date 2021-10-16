@@ -122,7 +122,6 @@ func (p *NtildeProof) UnmarshalJSON(raw []byte) error {
 	}
 
 	al := strings.Split(pf.Alpha, "|")
-	fmt.Printf("====================NtildeProof.UnmarshalJSON, pf.Alpha = %v, pf.T = %v, len al = %v ======================\n", pf.Alpha, pf.T, len(al))
 
 	if len(al) != Iterations {
 		return errors.New("unmarshal ntilde zk proof alpha json data fail.")
@@ -131,7 +130,6 @@ func (p *NtildeProof) UnmarshalJSON(raw []byte) error {
 	var alpha [Iterations]*big.Int
 	for k, v := range al {
 		alpha[k], _ = new(big.Int).SetString(v, 10)
-		fmt.Printf("====================NtildeProof.UnmarshalJSON, alpha[k] = %v, k = %v, v = %v ======================\n", alpha[k], k, v)
 	}
 
 	tt := strings.Split(pf.T, "|")
@@ -142,7 +140,6 @@ func (p *NtildeProof) UnmarshalJSON(raw []byte) error {
 	var t [Iterations]*big.Int
 	for k, v := range tt {
 		t[k], _ = new(big.Int).SetString(v, 10)
-		fmt.Printf("====================NtildeProof.UnmarshalJSON, t[k] = %v, k = %v, v = %v ======================\n", t[k], k, v)
 	}
 
 	p.Alpha = alpha

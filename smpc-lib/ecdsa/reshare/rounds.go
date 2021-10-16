@@ -78,7 +78,7 @@ func (round *base) CanProceed() bool {
 	}
 	for _, ok := range round.ok {
 		if !ok {
-			fmt.Printf("=========== round.CanProceed,not ok, round.number = %v ============\n", round.number)
+			//fmt.Printf("=========== round.CanProceed,not ok, round.number = %v ============\n", round.number)
 			return false
 		}
 	}

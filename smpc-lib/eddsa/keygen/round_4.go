@@ -148,7 +148,7 @@ func (round *round4) Start() error {
 		}
 	}
 
-	fmt.Printf("========= round4 start success ==========\n")
+	//fmt.Printf("========= round4 start success ==========\n")
 	return nil
 }
 

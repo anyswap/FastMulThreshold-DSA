@@ -148,7 +148,6 @@ func (kg *KGRound2Message) OutMap() map[string]string {
 	m["Id"] = fmt.Sprintf("%v", kg.Id)
 	m["Share"] = fmt.Sprintf("%v", kg.Share)
 	m["Type"] = "KGRound2Message"
-	fmt.Printf("\n===========KGRound2Message.OutMap, kg.Id = %v,kg.Share = %v, ToID = %v ==========\n", m["Id"], m["Share"], m["FromID"])
 	return m
 }
 
@@ -242,9 +241,6 @@ func (kg *KGRound3Message) OutMap() map[string]string {
 		tmp5[k] = vv
 	}
 	m["U1PolyGG"] = strings.Join(tmp5, "|")
-
-	fmt.Printf("\n============KGRound3Message.OutMap, ComU1GD = %v, ComC1GD = %v, U1PolyGG = %v ============\n", m["ComU1GD"], m["ComC1GD"], m["U1PolyGG"])
-
 	m["Type"] = "KGRound3Message"
 	return m
 }

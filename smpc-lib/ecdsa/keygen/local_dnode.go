@@ -176,7 +176,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		}
 
 		if len(p.temp.kgRound0Messages) == p.DNodeCountInGroup {
-			fmt.Printf("================ StoreMessage,get all 0 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 0 messages ==============\n")
 			//time.Sleep(time.Duration(120) * time.Second) //tmp code
 			return true, nil
 		}
@@ -186,7 +186,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		m := msg.(*KGRound1Message)
 		p.data.U1PaillierPk[index] = m.U1PaillierPk
 		if len(p.temp.kgRound1Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound1Messages) {
-			fmt.Printf("================ StoreMessage,get all 1 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 1 messages ==============\n")
 			//time.Sleep(time.Duration(20) * time.Second) //tmp code
 			return true, nil
 		}
@@ -194,7 +194,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		index := msg.GetFromIndex()
 		p.temp.kgRound2Messages[index] = msg
 		if len(p.temp.kgRound2Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound2Messages) {
-			fmt.Printf("================ StoreMessage,get all 2 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 2 messages ==============\n")
 			//time.Sleep(time.Duration(20) * time.Second) //tmp code
 			return true, nil
 		}
@@ -202,7 +202,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		index := msg.GetFromIndex()
 		p.temp.kgRound2Messages1[index] = msg
 		if len(p.temp.kgRound2Messages1) == p.DNodeCountInGroup && checkfull(p.temp.kgRound2Messages1) {
-			fmt.Printf("================ StoreMessage,get all 2-1 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 2-1 messages ==============\n")
 			//time.Sleep(time.Duration(20) * time.Second) //tmp code
 			return true, nil
 		}
@@ -210,7 +210,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		index := msg.GetFromIndex()
 		p.temp.kgRound3Messages[index] = msg
 		if len(p.temp.kgRound3Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound3Messages) {
-			fmt.Printf("================ StoreMessage,get all 3 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 3 messages ==============\n")
 			//time.Sleep(time.Duration(20) * time.Second) //tmp code
 			return true, nil
 		}
@@ -224,7 +224,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		Ntilde := m.U1NtildeH1H2.Ntilde
 		pf1 := m.NtildeProof1
 		pf2 := m.NtildeProof2
-		fmt.Printf("=========================keygen StoreMessage, message 4, curindex = %v, h1 = %v, h2 = %v, ntilde = %v, pf1 = %v, pf2 = %v ===========================\n", index, H1, H2, Ntilde, pf1, pf2)
+		//fmt.Printf("=========================keygen StoreMessage, message 4, curindex = %v, h1 = %v, h2 = %v, ntilde = %v, pf1 = %v, pf2 = %v ===========================\n", index, H1, H2, Ntilde, pf1, pf2)
 		if H1.Cmp(H2) == 0 {
 			return false, errors.New("h1 and h2 were equal for this mpc node")
 		}
@@ -236,7 +236,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		p.data.U1NtildeH1H2[index] = m.U1NtildeH1H2
 		p.temp.kgRound4Messages[index] = msg
 		if len(p.temp.kgRound4Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound4Messages) {
-			fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
 			//time.Sleep(time.Duration(20) * time.Second) //tmp code
 			return true, nil
 		}
@@ -244,7 +244,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		index := msg.GetFromIndex()
 		p.temp.kgRound5Messages[index] = msg
 		if len(p.temp.kgRound5Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound5Messages) {
-			fmt.Printf("================ StoreMessage,get all 5 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 5 messages ==============\n")
 			//time.Sleep(time.Duration(20) * time.Second) //tmp code
 			return true, nil
 		}
@@ -252,7 +252,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		index := msg.GetFromIndex()
 		p.temp.kgRound6Messages[index] = msg
 		if len(p.temp.kgRound6Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound6Messages) {
-			fmt.Printf("================ StoreMessage,get all 6 messages ==============\n")
+			//fmt.Printf("================ StoreMessage,get all 6 messages ==============\n")
 			//time.Sleep(time.Duration(20) * time.Second) //tmp code
 			return true, nil
 		}

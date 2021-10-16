@@ -67,7 +67,6 @@ func (round *round4) Start() error {
 			u1rlt1 := msg2.U1u1MtAZK1Proof.MtAZK1Verify_nhh(msg3.Kc, u1PaillierPk, u1nt)
 			if !u1rlt1 {
 				fmt.Printf("============round4.start,verify mtazk1 proof fail.==============\n")
-				fmt.Printf("===========round4.start,cur_index = %v,index = %v,pk = %v,ntilde = %v,kc = %v,U1u1MtAZK1Proof = %v ==========\n", cur_index, index, u1PaillierPk, u1nt, msg3.Kc, msg2.U1u1MtAZK1Proof)
 				return errors.New("verify mtazk1 proof fail.")
 			}
 		} else {
@@ -76,7 +75,6 @@ func (round *round4) Start() error {
 			u1rlt1 := msg2.U1u1MtAZK1Proof.MtAZK1Verify_nhh(msg3.Kc, u1PaillierPk, u1nt)
 			if !u1rlt1 {
 				fmt.Printf("============round4.start,verify mtazk1 proof fail.==============\n")
-				fmt.Printf("===========round4.start,cur_index = %v,index = %v,pk = %v,ntilde = %v,kc = %v,U1u1MtAZK1Proof = %v ==========\n", cur_index, index, u1PaillierPk, u1nt, msg3.Kc, msg2.U1u1MtAZK1Proof)
 				return errors.New("verify mtazk1 proof fail.")
 			}
 
@@ -159,7 +157,7 @@ func (round *round4) Start() error {
 			round.out <- srm
 		}
 
-		fmt.Printf("============= round4.start success, current node id = %v =============\n", round.kgid)
+		//fmt.Printf("============= round4.start success, current node id = %v =============\n", round.kgid)
 	}
 
 	for k, v := range round.idsign {
@@ -207,7 +205,7 @@ func (round *round4) Start() error {
 			round.out <- srm
 		}
 
-		fmt.Printf("============= round4.start success, current node id = %v =============\n", round.kgid)
+		//fmt.Printf("============= round4.start success, current node id = %v =============\n", round.kgid)
 	}
 
 	return nil

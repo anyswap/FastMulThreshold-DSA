@@ -219,7 +219,7 @@ func processSign_ed(msgprex string, msgtoenode map[string]string, errChan chan s
 				return nil, fmt.Errorf("get worker fail")
 			}
 
-			fmt.Printf("\n=======================ed sign finished successfully,sig data = %v, key = %v ======================\n", msg, msgprex)
+			//fmt.Printf("\n=======================ed sign finished successfully,sig data = %v, key = %v ======================\n", msg, msgprex)
 			return &msg, nil
 		}
 	}

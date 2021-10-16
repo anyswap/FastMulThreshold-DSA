@@ -76,7 +76,7 @@ func (round *round7) Start() error {
 
 	round.end <- EdSignData{Rx: round.temp.FinalRBytes, Sx: FinalS}
 
-	fmt.Printf("============= round7.start success, current node id = %v =============\n", round.kgid)
+	//fmt.Printf("============= round7.start success, current node id = %v =============\n", round.kgid)
 
 	return nil
 }

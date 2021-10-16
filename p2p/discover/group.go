@@ -203,7 +203,7 @@ func getGroupSDK(gid NodeID) *Group { //nooo
 		//}
 		index := id.String()
 		gf := gid.String()
-		common.Info("==== getGroupSDK() ====", "id", id, "gid", gid)
+		common.Debug("==== getGroupSDK() ====", "id", id, "gid", gid)
 		if index[:8] == gf[:8] {
 			return g
 		}
@@ -564,7 +564,7 @@ func (req *smpcmessage) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []b
 
 func getGroupInfo(gid NodeID, p2pType int) *Group { //nooo
 	groupList := getGroupList(gid, p2pType)
-	common.Info("getGroupInfo", "gid", gid, "groupList", groupList, "setgroup", setgroup, "p2pType", p2pType)
+	common.Debug("getGroupInfo", "gid", gid, "groupList", groupList, "setgroup", setgroup, "p2pType", p2pType)
 	if /*setgroup == 1 &&*/ groupList != nil /*&& groupList.count == groupMemNum*/ {
 		groupList.Lock()
 		defer groupList.Unlock()
@@ -796,7 +796,7 @@ func buildSDKGroup(gid NodeID, threshold string, enode []*Node, Type string, exi
 	nodeNum0, _ := strconv.Atoi(es[0])
 	GroupSDK.Lock()
 	defer GroupSDK.Unlock()
-	common.Info("==== buildSDKGroup() ====", "gid", gid, "enode", enode)
+	common.Debug("==== buildSDKGroup() ====", "gid", gid, "enode", enode)
 	groupTmp := new(Group)
 	groupTmp.Mode = threshold
 	groupTmp.Type = Type
@@ -1316,8 +1316,8 @@ func updateRemoteIP(ip net.IP, port uint16) {
 }
 
 func updateIPPort(ip net.IP, port uint16) {
-	fmt.Printf("updateRemoteIP, IP:port = %v:%v\n\n", ip, port)
-	common.Info("updateRemoteIP() ====", "IP", ip, "port", port)
+	//fmt.Printf("updateRemoteIP, IP:port = %v:%v\n\n", ip, port)
+	common.Debug("updateRemoteIP() ====", "IP", ip, "port", port)
 	RemoteIP = ip
 	RemotePort = port
 	SelfEnode = fmt.Sprintf("enode://%v@%v:%v", GetLocalID(), RemoteIP, RemotePort)
@@ -1663,7 +1663,7 @@ func UpdateOnLine(nodeID NodeID, online bool) {
 	nodeOnline[nodeID].Lock.Lock()
 	nodeOnline[nodeID].Status = online
 	nodeOnline[nodeID].Lock.Unlock()
-	common.Info("==== UpdateOnLine() ====", "nodeid", nodeID, "status", online)
+	common.Debug("==== UpdateOnLine() ====", "nodeid", nodeID, "status", online)
 }
 
 func getOnLine(nodeID NodeID) string {

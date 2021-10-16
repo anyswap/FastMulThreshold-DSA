@@ -71,13 +71,13 @@ func GetPubKeyData(key []byte) (bool, interface{}) {
 
 	da, err := db.Get(key)
 	if da == nil || err != nil {
-		common.Error("========================GetPubKeyData, get pubkey data from local db fail =======================", "key", string(key))
+		common.Debug("========================GetPubKeyData, get pubkey data from local db fail =======================", "key", string(key))
 		return false, nil
 	}
 
 	ss, err := UnCompress(string(da))
 	if err != nil {
-		common.Error("========================GetPubKeyData, uncompress err=======================", "err", err, "key", string(key))
+		common.Debug("========================GetPubKeyData, uncompress err=======================", "err", err, "key", string(key))
 		return true, da
 	}
 
@@ -293,13 +293,13 @@ func GetReqAddrInfoData(key []byte) (bool, interface{}) {
 
 	da, err := reqaddrinfodb.Get(key)
 	if da == nil || err != nil {
-		common.Error("========================GetReqAddrInfoData, get reqaddr info from local db fail =======================", "key", string(key))
+		common.Debug("========================GetReqAddrInfoData, get reqaddr info from local db fail =======================", "key", string(key))
 		return false, nil
 	}
 
 	ss, err := UnCompress(string(da))
 	if err != nil {
-		common.Error("========================GetReqAddrInfoData, uncompress err=======================", "err", err, "key", string(key))
+		common.Debug("========================GetReqAddrInfoData, uncompress err=======================", "err", err, "key", string(key))
 		return true, da
 	}
 
@@ -361,13 +361,13 @@ func GetSignInfoData(key []byte) (bool, interface{}) {
 
 	da, err := signinfodb.Get(key)
 	if da == nil || err != nil {
-		common.Error("========================GetSignInfoData, get sign info from local db fail =======================", "key", string(key))
+		common.Debug("========================GetSignInfoData, get sign info from local db fail =======================", "key", string(key))
 		return false, nil
 	}
 
 	ss, err := UnCompress(string(da))
 	if err != nil {
-		common.Error("========================GetSignInfoData, uncompress err=======================", "err", err, "key", string(key))
+		common.Debug("========================GetSignInfoData, uncompress err=======================", "err", err, "key", string(key))
 		return true, da
 	}
 
@@ -429,13 +429,13 @@ func GetReShareInfoData(key []byte) (bool, interface{}) {
 
 	da, err := reshareinfodb.Get(key)
 	if da == nil || err != nil {
-		common.Error("========================GetReShareInfoData, get reshare info from local db fail =======================", "key", string(key))
+		common.Debug("========================GetReShareInfoData, get reshare info from local db fail =======================", "key", string(key))
 		return false, nil
 	}
 
 	ss, err := UnCompress(string(da))
 	if err != nil {
-		common.Error("========================GetReShareInfoData, uncompress err=======================", "err", err, "key", string(key))
+		common.Debug("========================GetReShareInfoData, uncompress err=======================", "err", err, "key", string(key))
 		return true, da
 	}
 

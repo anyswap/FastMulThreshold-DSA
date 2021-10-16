@@ -87,7 +87,7 @@ func (round *round2) Start() error {
 		}
 	}
 
-	fmt.Printf("============= round2.start success, current node id = %v =======\n", round.kgid)
+	//fmt.Printf("============= round2.start success, current node id = %v =======\n", round.kgid)
 	return nil
 }
 

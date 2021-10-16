@@ -107,8 +107,6 @@ func BaseUpdate(p DNode, msg Message) (ok bool, err error) {
 	p.lock() // data is written to P state below
 
 	if p.Round() != nil {
-		fmt.Printf("DNode %s round %d\n", p.DNodeID(), p.Round().RoundNumber())
-
 		ok, err := p.StoreMessage(msg)
 		if err != nil || !ok {
 			p.unlock()
@@ -127,10 +125,8 @@ func BaseUpdate(p DNode, msg Message) (ok bool, err error) {
 					p.unlock() // recursive so can't defer after return
 					return false, err
 				}
-			} else {
-				// finished! the round implementation will have sent the data through the `end` channel.
-				fmt.Printf("DNode %s: finished!\n", p.DNodeID())
 			}
+			
 			p.unlock()
 			return BaseUpdate(p, msg) // re-run round update or finish)
 			//return true,nil

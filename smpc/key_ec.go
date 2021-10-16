@@ -274,7 +274,6 @@ func processKeyGen(msgprex string, errChan chan struct{}, outCh <-chan smpclib.M
 			w.pky.PushBack(fmt.Sprintf("%v", msg.Pky))
 			w.bip32c.PushBack(string(msg.C.Bytes()))
 			w.sku1.PushBack(string(msg.SkU1.Bytes()))
-			fmt.Printf("\n=================keygen finished successfully, pkx = %v,pky = %v,key = %v =================\n", msg.Pkx, msg.Pky, msgprex)
 
 			ss := "XXX"
 			ss = ss + common.SepSave
