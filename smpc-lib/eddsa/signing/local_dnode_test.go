@@ -14,17 +14,17 @@
  *
  */
 
-// Package signing_test test MPC implementation of signing 
+// Package signing_test test ED MPC implementation of signing
 package signing_test
 
 import (
 	"github.com/stretchr/testify/assert"
 	"testing"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/signing"
+	"io"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/eddsa/signing"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
+	cryptorand "crypto/rand"
 )
 
 func TestCheckFull(t *testing.T) {
@@ -34,17 +34,17 @@ func TestCheckFull(t *testing.T) {
     
     threshold := 3
     for i:=0;i<threshold;i++ {
-	u1Gamma := random.GetRandomIntFromZn(secp256k1.S256().N)
-
-	u1GammaGx, u1GammaGy := secp256k1.S256().ScalarBaseMult(u1Gamma.Bytes())
-	commitU1GammaG := new(ec2.Commitment).Commit(u1GammaGx, u1GammaGy)
-	if commitU1GammaG == nil {
+	rand := cryptorand.Reader
+	var tmp [32]byte
+	if _, err := io.ReadFull(rand, tmp[:]); err != nil {
 		return
 	}
 
+	comC,_ := ed.Commit(tmp)
+
 	srm := &signing.SignRound1Message{
 		SignRoundMessage: new(signing.SignRoundMessage),
-		C11:              commitU1GammaG.C,
+		CR:               comC,
 	}
 	srm.SetFromID("62472382178168225119626719865491481459304781844424379027070392269894567214882")
 	srm.SetFromIndex(i)

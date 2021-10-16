@@ -14,7 +14,7 @@
  *
  */
 
-// Package reshare test MPC implementation of reshare 
+// Package reshare_test test MPC implementation of reshare 
 package reshare_test
 
 import (
