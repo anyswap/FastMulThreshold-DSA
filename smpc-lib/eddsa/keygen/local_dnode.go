@@ -141,8 +141,8 @@ func (p *LocalDNode) SetDNodeID(id string) {
 	p.Id = id
 }
 
-// checkfull  Check for empty messages 
-func checkfull(msg []smpc.Message) bool {
+// CheckFull  Check for empty messages 
+func CheckFull(msg []smpc.Message) bool {
 	if len(msg) == 0 {
 		return false
 	}
@@ -174,7 +174,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		p.temp.kgRound1Messages[index] = msg
 		//m := msg.(*KGRound1Message)
 		//p.data.U1PaillierPk[index] = m.U1PaillierPk
-		if len(p.temp.kgRound1Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound1Messages) {
+		if len(p.temp.kgRound1Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound1Messages) {
 			//fmt.Printf("================ StoreMessage,get all 1 messages ==============\n")
 			//time.Sleep(time.Duration(20) * time.Second) //tmp code
 			return true, nil
@@ -182,14 +182,14 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 	case *KGRound2Message:
 		index := msg.GetFromIndex()
 		p.temp.kgRound2Messages[index] = msg
-		if len(p.temp.kgRound2Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound2Messages) {
+		if len(p.temp.kgRound2Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound2Messages) {
 			//fmt.Printf("================ StoreMessage,get all 2 messages ==============\n")
 			return true, nil
 		}
 	case *KGRound3Message:
 		index := msg.GetFromIndex()
 		p.temp.kgRound3Messages[index] = msg
-		if len(p.temp.kgRound3Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound3Messages) {
+		if len(p.temp.kgRound3Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound3Messages) {
 			//fmt.Printf("================ StoreMessage,get all 3 messages ==============\n")
 			return true, nil
 		}
@@ -198,14 +198,14 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		//m := msg.(*KGRound4Message)
 		//p.data.U1NtildeH1H2[index] = m.U1NtildeH1H2
 		p.temp.kgRound4Messages[index] = msg
-		if len(p.temp.kgRound4Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound4Messages) {
+		if len(p.temp.kgRound4Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound4Messages) {
 			//fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
 			return true, nil
 		}
 	case *KGRound5Message:
 		index := msg.GetFromIndex()
 		p.temp.kgRound5Messages[index] = msg
-		if len(p.temp.kgRound5Messages) == p.DNodeCountInGroup && checkfull(p.temp.kgRound5Messages) {
+		if len(p.temp.kgRound5Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages) {
 			//fmt.Printf("================ StoreMessage,get all 5 messages ==============\n")
 			return true, nil
 		}

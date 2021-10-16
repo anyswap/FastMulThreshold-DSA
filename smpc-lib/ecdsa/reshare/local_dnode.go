@@ -169,8 +169,8 @@ func (p *LocalDNode) SetDNodeID(id string) {
 	p.Id = id
 }
 
-// checkfull  Check for empty messages 
-func checkfull(msg []smpc.Message) bool {
+// CheckFull  Check for empty messages 
+func CheckFull(msg []smpc.Message) bool {
 	if len(msg) == 0 {
 		return false
 	}
@@ -199,21 +199,21 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 	case *ReshareRound1Message:
 		index := msg.GetFromIndex()
 		p.temp.reshareRound1Messages[index] = msg
-		if len(p.temp.reshareRound1Messages) == p.ThresHold && checkfull(p.temp.reshareRound1Messages) {
+		if len(p.temp.reshareRound1Messages) == p.ThresHold && CheckFull(p.temp.reshareRound1Messages) {
 			//fmt.Printf("================ StoreMessage,get all 1 messages ==============\n")
 			return true, nil
 		}
 	case *ReshareRound2Message:
 		index := msg.GetFromIndex()
 		p.temp.reshareRound2Messages[index] = msg
-		if len(p.temp.reshareRound2Messages) == p.ThresHold && checkfull(p.temp.reshareRound2Messages) {
+		if len(p.temp.reshareRound2Messages) == p.ThresHold && CheckFull(p.temp.reshareRound2Messages) {
 			//fmt.Printf("================ StoreMessage,get all 2 messages ==============\n")
 			return true, nil
 		}
 	case *ReshareRound2Message1:
 		index := msg.GetFromIndex()
 		p.temp.reshareRound2Messages1[index] = msg
-		if len(p.temp.reshareRound2Messages1) == p.ThresHold && checkfull(p.temp.reshareRound2Messages1) {
+		if len(p.temp.reshareRound2Messages1) == p.ThresHold && CheckFull(p.temp.reshareRound2Messages1) {
 			//fmt.Printf("================ StoreMessage,get all 2-1 messages ==============\n")
 			return true, nil
 		}
@@ -222,7 +222,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		p.temp.reshareRound3Messages[index] = msg
 		m := msg.(*ReshareRound3Message)
 		p.data.U1PaillierPk[index] = m.U1PaillierPk
-		if len(p.temp.reshareRound3Messages) == p.DNodeCountInGroup && checkfull(p.temp.reshareRound3Messages) {
+		if len(p.temp.reshareRound3Messages) == p.DNodeCountInGroup && CheckFull(p.temp.reshareRound3Messages) {
 			//fmt.Printf("================ StoreMessage,get all 3 messages ==============\n")
 			return true, nil
 		}
@@ -246,14 +246,14 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 
 		p.temp.reshareRound4Messages[index] = msg
 		p.data.U1NtildeH1H2[index] = m.U1NtildeH1H2
-		if len(p.temp.reshareRound4Messages) == p.DNodeCountInGroup && checkfull(p.temp.reshareRound4Messages) {
+		if len(p.temp.reshareRound4Messages) == p.DNodeCountInGroup && CheckFull(p.temp.reshareRound4Messages) {
 			//fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
 			return true, nil
 		}
 	case *ReshareRound5Message:
 		index := msg.GetFromIndex()
 		p.temp.reshareRound5Messages[index] = msg
-		if len(p.temp.reshareRound5Messages) == p.DNodeCountInGroup && checkfull(p.temp.reshareRound5Messages) {
+		if len(p.temp.reshareRound5Messages) == p.DNodeCountInGroup && CheckFull(p.temp.reshareRound5Messages) {
 			//fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
 
 			///check newskok
