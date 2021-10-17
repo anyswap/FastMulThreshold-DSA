@@ -32,9 +32,9 @@ var (
 )
 
 func newRound1(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- PrePubData, kgid string, threshold int, paillierkeylength int) smpc.Round {
-	finalize_endCh := make(chan *big.Int, threshold)
+	finalizeendCh := make(chan *big.Int, threshold)
 	return &round1{
-		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, nil, nil, finalize_endCh}}
+		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, nil, nil, finalizeendCh}}
 }
 
 // Start calc w1 and u1Gamma k1
@@ -47,7 +47,7 @@ func (round *round1) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index, err := round.GetDNodeIDIndex(round.kgid)
+	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (round *round1) Start() error {
 	var self *big.Int
 	lambda1 := big.NewInt(1)
 	for k, v := range round.idsign {
-		if k == cur_index {
+		if k == curIndex {
 			self = v
 			break
 		}
@@ -66,7 +66,7 @@ func (round *round1) Start() error {
 	}
 
 	for k, v := range round.idsign {
-		if k == cur_index {
+		if k == curIndex {
 			continue
 		}
 
@@ -99,9 +99,9 @@ func (round *round1) Start() error {
 		C11:              commitU1GammaG.C,
 	}
 	srm.SetFromID(round.kgid)
-	srm.SetFromIndex(cur_index)
+	srm.SetFromIndex(curIndex)
 
-	round.temp.signRound1Messages[cur_index] = srm
+	round.temp.signRound1Messages[curIndex] = srm
 	round.out <- srm
 
 	//fmt.Printf("============= round1.start success, current node id = %v =======\n", round.kgid)

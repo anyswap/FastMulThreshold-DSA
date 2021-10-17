@@ -132,7 +132,7 @@ func createContract() error {
 	rsvs := signMsgHash([]string{msgHash.String()}, []string{msgContext}, -1)
 
 	if len(rsvs) != 1 {
-		err = fmt.Errorf("signMsgHash get wrong number of rsv (%v), require one rsv\n", len(rsvs))
+		err = fmt.Errorf("signMsgHash get wrong number of rsv (%v), require one rsv", len(rsvs))
 		fmt.Println(err)
 		return err
 	}
@@ -140,25 +140,25 @@ func createContract() error {
 
 	signature := common.FromHex(rsv)
 	if len(signature) != crypto.SignatureLength {
-		err = fmt.Errorf("smpc sign failed, rsv=%v\n", rsv)
+		err = fmt.Errorf("smpc sign failed rsv=%v", rsv)
 		fmt.Println(err)
 		return err
 	}
 
 	signedTx, err := rawTx.WithSignature(chainSigner, signature)
 	if err != nil {
-		fmt.Printf("sign tx failed, err=%v\n", err)
+		fmt.Printf("sign tx failed err=%v", err)
 		return err
 	}
 
 	sender, err := types.Sender(chainSigner, signedTx)
 	if err != nil {
-		fmt.Printf("get sender from signed tx failed, err=%v\n", err)
+		fmt.Printf("get sender from signed tx failed, err=%v", err)
 		return err
 	}
 
 	if sender != from {
-		err = fmt.Errorf("sender mismatch, signer %v != from %v\n", sender.String(), from.String())
+		err = fmt.Errorf("sender mismatch signer %v != from %v", sender.String(), from.String())
 		fmt.Println(err)
 		return err
 	}
@@ -172,10 +172,10 @@ func createContract() error {
 	if !dryrun {
 		err = ethClient.SendTransaction(ctx, signedTx)
 		if err != nil {
-			fmt.Printf("SendTransaction failed, err=%v\n", err)
+			fmt.Printf("SendTransaction failed err=%v", err)
 			return err
 		}
-		fmt.Printf("send tx success, tx hash is %v\n", txHash)
+		fmt.Printf("send tx success tx hash is %v", txHash)
 	}
 	return nil
 }

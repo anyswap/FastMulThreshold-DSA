@@ -43,7 +43,7 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, wg 
 	fmt.Printf("start processing inbound messages\n")
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
-		res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("fail to process inbound messages")}
+		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to process inbound messages")}
 		ch <- res
 		return
 	}
@@ -58,12 +58,12 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, wg 
 			msgmap := make(map[string]string)
 			err := json.Unmarshal([]byte(m), &msgmap)
 			if err != nil {
-				res := RpcSmpcRes{Ret: "", Err: err}
+				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
 			}
 
-			if msgmap["Type"] == "ReshareRound0Message" { //0 message
+			if msgmap["Type"] == "ReRound0Message" { //0 message
 				from := msgmap["FromID"]
 				id, _ := new(big.Int).SetString(from, 10)
 				w.MsgToEnode[fmt.Sprintf("%v", id)] = msgmap["ENode"]
@@ -71,22 +71,22 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, wg 
 
 			mm := ReshareGetRealMessage(msgmap)
 			if mm == nil {
-				res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("fail to process inbound messages")}
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to process inbound messages")}
 				ch <- res
 				return
 			}
 
 			ld, ok := w.DNode.(*reshare.LocalDNode)
 			if ok && ld.CheckReshareMsg0(mm) {
-				idreshare := GetIdReshareByGroupId(w.MsgToEnode, w.groupid)
-				ld.SetIdReshare(idreshare)
+				idreshare := GetIDReshareByGroupID(w.MsgToEnode, w.groupid)
+				ld.SetIDReshare(idreshare)
 				fmt.Printf("====================== ReshareProcessInboundMessages, check msg0, idreshare = %v, msgprex = %v ======================\n", idreshare, msgprex)
 			}
 
 			_, err = w.DNode.Update(mm)
 			if err != nil {
 				fmt.Printf("========== ReshareProcessInboundMessages, dnode update fail, receiv smpc msg = %v, err = %v ============\n", m, err)
-				res := RpcSmpcRes{Ret: "", Err: err}
+				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
 			}
@@ -109,10 +109,10 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 	}
 
 	//1 message
-	if msg["Type"] == "ReshareRound1Message" {
+	if msg["Type"] == "ReRound1Message" {
 		comc, _ := new(big.Int).SetString(msg["ComC"], 10)
-		re := &reshare.ReshareRound1Message{
-			ReshareRoundMessage: new(reshare.ReshareRoundMessage),
+		re := &reshare.ReRound1Message{
+			ReRoundMessage: new(reshare.ReRoundMessage),
 			ComC:                comc,
 		}
 		re.SetFromID(from)
@@ -122,23 +122,23 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 	}
 
 	//2 message
-	if msg["Type"] == "ReshareRound2Message" {
-		id, _ := new(big.Int).SetString(msg["Id"], 10)
+	if msg["Type"] == "ReRound2Message" {
+		id, _ := new(big.Int).SetString(msg["ID"], 10)
 		sh, _ := new(big.Int).SetString(msg["Share"], 10)
-		re := &reshare.ReshareRound2Message{
-			ReshareRoundMessage: new(reshare.ReshareRoundMessage),
-			Id:                  id,
+		re := &reshare.ReRound2Message{
+			ReRoundMessage: new(reshare.ReRoundMessage),
+			ID:                  id,
 			Share:               sh,
 		}
 		re.SetFromID(from)
 		re.SetFromIndex(index)
 		re.ToID = to
-		fmt.Printf("============ GetRealMessage, get real message 2 success, share struct id = %v, share = %v, msg map = %v ===========\n", re.Id, re.Share, msg)
+		fmt.Printf("============ GetRealMessage, get real message 2 success, share struct id = %v, share = %v, msg map = %v ===========\n", re.ID, re.Share, msg)
 		return re
 	}
 
 	//2-1 message
-	if msg["Type"] == "ReshareRound2Message1" {
+	if msg["Type"] == "ReRound2Message1" {
 		ugd := strings.Split(msg["ComD"], ":")
 		u1gd := make([]*big.Int, len(ugd))
 		for k, v := range ugd {
@@ -156,8 +156,8 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 			ugg[k] = tmp
 		}
 
-		re := &reshare.ReshareRound2Message1{
-			ReshareRoundMessage: new(reshare.ReshareRoundMessage),
+		re := &reshare.ReRound2Message1{
+			ReRoundMessage: new(reshare.ReRoundMessage),
 			ComD:                u1gd,
 			SkP1PolyG:           ugg,
 		}
@@ -168,13 +168,13 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 	}
 
 	//3 message
-	if msg["Type"] == "ReshareRound3Message" {
+	if msg["Type"] == "ReRound3Message" {
 		pub := &ec2.PublicKey{}
 		err := pub.UnmarshalJSON([]byte(msg["U1PaillierPk"]))
 		if err == nil {
 			fmt.Printf("============ ReshareGetRealMessage, get real message 3 success, msg map = %v ===========\n", msg)
-			re := &reshare.ReshareRound3Message{
-				ReshareRoundMessage: new(reshare.ReshareRoundMessage),
+			re := &reshare.ReRound3Message{
+				ReRoundMessage: new(reshare.ReRoundMessage),
 				U1PaillierPk:        pub,
 			}
 			re.SetFromID(from)
@@ -185,12 +185,12 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 	}
 
 	//4 message
-	if msg["Type"] == "ReshareRound4Message" {
+	if msg["Type"] == "ReRound4Message" {
 		/*nti := &ec2.NtildeH1H2{}
 		if err := nti.UnmarshalJSON([]byte(msg["U1NtildeH1H2"]));err == nil {
 		    fmt.Printf("============ ReshareGetRealMessage, get real message 4 success, msg map = %v ===========\n",msg)
-		    re := &reshare.ReshareRound4Message{
-			ReshareRoundMessage:new(reshare.ReshareRoundMessage),
+		    re := &reshare.ReRound4Message{
+			ReRoundMessage:new(reshare.ReRoundMessage),
 			U1NtildeH1H2:nti,
 		    }
 		    re.SetFromID(from)
@@ -205,8 +205,8 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 				pf2 := &ec2.NtildeProof{}
 				if err := pf2.UnmarshalJSON([]byte(msg["NtildeProof2"])); err == nil {
 					fmt.Printf("============ ReshareGetRealMessage, get real message 4 success, msg map = %v ===========\n", msg)
-					re := &reshare.ReshareRound4Message{
-						ReshareRoundMessage: new(reshare.ReshareRoundMessage),
+					re := &reshare.ReRound4Message{
+						ReRoundMessage: new(reshare.ReRoundMessage),
 						U1NtildeH1H2:        nti,
 						NtildeProof1:        pf1,
 						NtildeProof2:        pf2,
@@ -221,10 +221,10 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 	}
 
 	//5 message
-	if msg["Type"] == "ReshareRound5Message" {
+	if msg["Type"] == "ReRound5Message" {
 		fmt.Printf("============ ReshareGetRealMessage, get real message 5 success, msg map = %v ===========\n", msg)
-		re := &reshare.ReshareRound5Message{
-			ReshareRoundMessage: new(reshare.ReshareRoundMessage),
+		re := &reshare.ReRound5Message{
+			ReRoundMessage: new(reshare.ReRoundMessage),
 			NewSkOk:             msg["NewSkOk"],
 		}
 		re.SetFromID(from)
@@ -234,8 +234,8 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 	}
 
 	fmt.Printf("============ ReshareGetRealMessage, get real message 0 success, msg map = %v ===========\n", msg)
-	re := &reshare.ReshareRound0Message{
-		ReshareRoundMessage: new(reshare.ReshareRoundMessage),
+	re := &reshare.ReRound0Message{
+		ReRoundMessage: new(reshare.ReRoundMessage),
 	}
 	re.SetFromID(from)
 	re.SetFromIndex(-1)
@@ -336,7 +336,7 @@ func processReshare(msgprex string, groupid string, pubkey string, account strin
 			//**********************************
 
 			tt := fmt.Sprintf("%v", time.Now().UnixNano()/1e6)
-			pubs := &PubKeyData{Key: rk, Account: account, Pub: string(smpcpks[:]), Save: string(s), Nonce: nonce, GroupId: groupid, LimitNum: w.limitnum, Mode: mode, KeyGenTime: tt, RefReShareKeys: msgprex}
+			pubs := &PubKeyData{Key: rk, Account: account, Pub: string(smpcpks[:]), Save: string(s), Nonce: nonce, GroupID: groupid, LimitNum: w.limitnum, Mode: mode, KeyGenTime: tt, RefReShareKeys: msgprex}
 			epubs, err := Encode2(pubs)
 			if err != nil {
 				return nil, errors.New("encode PubKeyData fail in req ec2 pubkey")
@@ -404,12 +404,12 @@ func processReshare(msgprex string, groupid string, pubkey string, account strin
 			if exsit {
 				acr, ok := da2.(*AcceptReShareData)
 				if ok {
-					wid = acr.WorkId
+					wid = acr.WorkID
 					allreply = acr.AllReply
 				}
 			}
 
-			ac := &AcceptReqAddrData{Initiator: cur_enode, Account: account, Cointype: "EC256K1", GroupId: groupid, Nonce: nonce, LimitNum: w.limitnum, Mode: mode, TimeStamp: tt, Deal: "true", Accept: "true", Status: "Success", PubKey: pubkey, Tip: "", Error: "", AllReply: allreply, WorkId: wid, Sigs: sigs}
+			ac := &AcceptReqAddrData{Initiator: curEnode, Account: account, Cointype: "EC256K1", GroupID: groupid, Nonce: nonce, LimitNum: w.limitnum, Mode: mode, TimeStamp: tt, Deal: "true", Accept: "true", Status: "Success", PubKey: pubkey, Tip: "", Error: "", AllReply: allreply, WorkID: wid, Sigs: sigs}
 			err = SaveAcceptReqAddrData(ac)
 			if err != nil {
 				return nil, errors.New("save reqaddr accept data fail")
@@ -496,7 +496,7 @@ func ReshareProcessOutCh(msgprex string, groupid string, msg smpclib.Message) er
 
 	msgmap := msg.OutMap()
 	msgmap["Key"] = msgprex
-	msgmap["ENode"] = cur_enode
+	msgmap["ENode"] = curEnode
 	s, err := json.Marshal(msgmap)
 	if err != nil {
 		fmt.Printf("====================ReshareProcessOutCh, marshal err = %v ========================\n", err)

@@ -24,148 +24,171 @@ import (
 	"strings"
 )
 
-//reshare
-type ReshareRoundMessage struct {
+// ReRoundMessage base type of sign round message
+type ReRoundMessage struct {
 	FromID    string   `json:"FromID"` //DNodeID
 	FromIndex int      `json:"FromIndex"`
 	ToID      []string `json:"ToID"`
 }
 
-func (re *ReshareRoundMessage) SetFromID(id string) {
+// SetFromID set sending nodes's ID
+func (re *ReRoundMessage) SetFromID(id string) {
 	re.FromID = id
 }
 
-func (re *ReshareRoundMessage) SetFromIndex(index int) {
+// SetFromIndex set sending nodes's serial number in group
+func (re *ReRoundMessage) SetFromIndex(index int) {
 	re.FromIndex = index
 }
 
-func (re *ReshareRoundMessage) AppendToID(toid string) {
+// AppendToID get the ID of nodes that the message will broacast to
+func (re *ReRoundMessage) AppendToID(toid string) {
 	re.ToID = append(re.ToID, toid)
 }
 
-//ReshareRound0Message
-type ReshareRound0Message struct {
-	*ReshareRoundMessage
+// ReRound0Message  Round 0 sending message 
+type ReRound0Message struct {
+	*ReRoundMessage
 }
 
-func (re *ReshareRound0Message) GetFromID() string {
+// GetFromID get the ID of sending nodes in the group
+func (re *ReRound0Message) GetFromID() string {
 	return re.FromID
 }
 
-func (re *ReshareRound0Message) GetFromIndex() int {
+// GetFromIndex get the Serial number of sending nodes in the group 
+func (re *ReRound0Message) GetFromIndex() int {
 	return re.FromIndex
 }
 
-func (re *ReshareRound0Message) GetToID() []string {
+// GetToID get the ID of the node that broacasting message to
+func (re *ReRound0Message) GetToID() []string {
 	return re.ToID
 }
 
-func (re *ReshareRound0Message) IsBroadcast() bool {
+// IsBroadcast weather broacast the message
+func (re *ReRound0Message) IsBroadcast() bool {
 	return true
 }
 
-func (re *ReshareRound0Message) OutMap() map[string]string {
+// OutMap transfer *ReRound0Message to map
+func (re *ReRound0Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = re.FromID
 	m["FromIndex"] = strconv.Itoa(re.FromIndex)
 	m["ToID"] = ""
-	m["Type"] = "ReshareRound0Message"
+	m["Type"] = "ReRound0Message"
 	return m
 }
 
-//ReshareRound1Message
-type ReshareRound1Message struct {
-	*ReshareRoundMessage
+// ReRound1Message  Round 1 sending message 
+type ReRound1Message struct {
+	*ReRoundMessage
 	ComC *big.Int
 }
 
-func (re *ReshareRound1Message) GetFromID() string {
+// GetFromID get the ID of sending nodes in the group
+func (re *ReRound1Message) GetFromID() string {
 	return re.FromID
 }
 
-func (re *ReshareRound1Message) GetFromIndex() int {
+// GetFromIndex get the Serial number of sending nodes in the group 
+func (re *ReRound1Message) GetFromIndex() int {
 	return re.FromIndex
 }
 
-func (re *ReshareRound1Message) GetToID() []string {
+// GetToID get the ID of the node that broacasting message to
+func (re *ReRound1Message) GetToID() []string {
 	return re.ToID
 }
 
-func (re *ReshareRound1Message) IsBroadcast() bool {
+// IsBroadcast weather broacast the message
+func (re *ReRound1Message) IsBroadcast() bool {
 	return true
 }
 
-func (re *ReshareRound1Message) OutMap() map[string]string {
+// OutMap transfer *ReRound1Message to map
+func (re *ReRound1Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = re.FromID
 	m["FromIndex"] = strconv.Itoa(re.FromIndex)
 	m["ToID"] = ""
 	m["ComC"] = fmt.Sprintf("%v", re.ComC)
-	m["Type"] = "ReshareRound1Message"
+	m["Type"] = "ReRound1Message"
 	return m
 }
 
-//ReshareRound2Message
-type ReshareRound2Message struct {
-	*ReshareRoundMessage
+// ReRound2Message  Round 2 sending message 
+type ReRound2Message struct {
+	*ReRoundMessage
 
-	Id    *big.Int
+	ID    *big.Int
 	Share *big.Int
 }
 
-func (re *ReshareRound2Message) GetFromID() string {
+// GetFromID get the ID of sending nodes in the group
+func (re *ReRound2Message) GetFromID() string {
 	return re.FromID
 }
 
-func (re *ReshareRound2Message) GetFromIndex() int {
+// GetFromIndex get the Serial number of sending nodes in the group 
+func (re *ReRound2Message) GetFromIndex() int {
 	return re.FromIndex
 }
 
-func (re *ReshareRound2Message) GetToID() []string {
+// GetToID get the ID of the node that broacasting message to
+func (re *ReRound2Message) GetToID() []string {
 	return re.ToID
 }
 
-func (re *ReshareRound2Message) IsBroadcast() bool {
+// IsBroadcast weather broacast the message
+func (re *ReRound2Message) IsBroadcast() bool {
 	return false
 }
 
-func (re *ReshareRound2Message) OutMap() map[string]string {
+// OutMap transfer *ReRound2Message to map
+func (re *ReRound2Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = re.FromID
 	m["FromIndex"] = strconv.Itoa(re.FromIndex)
 	m["ToID"] = strings.Join(re.ToID, ":")
-	m["Id"] = fmt.Sprintf("%v", re.Id)
+	m["ID"] = fmt.Sprintf("%v", re.ID)
 	m["Share"] = fmt.Sprintf("%v", re.Share)
-	m["Type"] = "ReshareRound2Message"
-	fmt.Printf("\n===========ReshareRound2Message.OutMap, re.Id = %v,re.Share = %v, FromID = %v ==========\n", m["Id"], m["Share"], m["FromID"])
+	m["Type"] = "ReRound2Message"
+	fmt.Printf("\n===========ReRound2Message.OutMap, re.ID = %v,re.Share = %v, FromID = %v ==========\n", m["ID"], m["Share"], m["FromID"])
 	return m
 }
 
-//ReshareRound2Message1
-type ReshareRound2Message1 struct {
-	*ReshareRoundMessage
+// ReRound2Message1  Round 2 sending message 
+type ReRound2Message1 struct {
+	*ReRoundMessage
 
 	ComD      []*big.Int
 	SkP1PolyG [][]*big.Int
 }
 
-func (re *ReshareRound2Message1) GetFromID() string {
+// GetFromID get the ID of sending nodes in the group
+func (re *ReRound2Message1) GetFromID() string {
 	return re.FromID
 }
 
-func (re *ReshareRound2Message1) GetFromIndex() int {
+// GetFromIndex get the Serial number of sending nodes in the group 
+func (re *ReRound2Message1) GetFromIndex() int {
 	return re.FromIndex
 }
 
-func (re *ReshareRound2Message1) GetToID() []string {
+// GetToID get the ID of the node that broacasting message to
+func (re *ReRound2Message1) GetToID() []string {
 	return re.ToID
 }
 
-func (re *ReshareRound2Message1) IsBroadcast() bool {
+// IsBroadcast weather broacast the message
+func (re *ReRound2Message1) IsBroadcast() bool {
 	return true
 }
 
-func (re *ReshareRound2Message1) OutMap() map[string]string {
+// OutMap transfer *ReRound2Message1 to map
+func (re *ReRound2Message1) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = re.FromID
 	m["FromIndex"] = strconv.Itoa(re.FromIndex)
@@ -193,33 +216,38 @@ func (re *ReshareRound2Message1) OutMap() map[string]string {
 	}
 	m["SkP1PolyG"] = strings.Join(tmp5, "|")
 
-	m["Type"] = "ReshareRound2Message1"
+	m["Type"] = "ReRound2Message1"
 	return m
 }
 
-//ReshareRound3Message
-type ReshareRound3Message struct {
-	*ReshareRoundMessage
+// ReRound3Message  Round 3 sending message 
+type ReRound3Message struct {
+	*ReRoundMessage
 	U1PaillierPk *ec2.PublicKey
 }
 
-func (re *ReshareRound3Message) GetFromID() string {
+// GetFromID get the ID of sending nodes in the group
+func (re *ReRound3Message) GetFromID() string {
 	return re.FromID
 }
 
-func (re *ReshareRound3Message) GetFromIndex() int {
+// GetFromIndex get the Serial number of sending nodes in the group 
+func (re *ReRound3Message) GetFromIndex() int {
 	return re.FromIndex
 }
 
-func (re *ReshareRound3Message) GetToID() []string {
+// GetToID get the ID of the node that broacasting message to
+func (re *ReRound3Message) GetToID() []string {
 	return re.ToID
 }
 
-func (re *ReshareRound3Message) IsBroadcast() bool {
+// IsBroadcast weather broacast the message
+func (re *ReRound3Message) IsBroadcast() bool {
 	return true
 }
 
-func (re *ReshareRound3Message) OutMap() map[string]string {
+// OutMap transfer *ReRound3Message to map
+func (re *ReRound3Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = re.FromID
 	m["FromIndex"] = strconv.Itoa(re.FromIndex)
@@ -230,13 +258,13 @@ func (re *ReshareRound3Message) OutMap() map[string]string {
 		m["U1PaillierPk"] = string(pk)
 	}
 
-	m["Type"] = "ReshareRound3Message"
+	m["Type"] = "ReRound3Message"
 	return m
 }
 
-//ReshareRound4Message
-type ReshareRound4Message struct {
-	*ReshareRoundMessage
+// ReRound4Message  Round 4 sending message 
+type ReRound4Message struct {
+	*ReRoundMessage
 	U1NtildeH1H2 *ec2.NtildeH1H2
 
 	//add for ntilde zk
@@ -244,23 +272,28 @@ type ReshareRound4Message struct {
 	NtildeProof2 *ec2.NtildeProof
 }
 
-func (re *ReshareRound4Message) GetFromID() string {
+// GetFromID get the ID of sending nodes in the group
+func (re *ReRound4Message) GetFromID() string {
 	return re.FromID
 }
 
-func (re *ReshareRound4Message) GetFromIndex() int {
+// GetFromIndex get the Serial number of sending nodes in the group 
+func (re *ReRound4Message) GetFromIndex() int {
 	return re.FromIndex
 }
 
-func (re *ReshareRound4Message) GetToID() []string {
+// GetToID get the ID of the node that broacasting message to
+func (re *ReRound4Message) GetToID() []string {
 	return re.ToID
 }
 
-func (re *ReshareRound4Message) IsBroadcast() bool {
+// IsBroadcast weather broacast the message
+func (re *ReRound4Message) IsBroadcast() bool {
 	return true
 }
 
-func (re *ReshareRound4Message) OutMap() map[string]string {
+// OutMap transfer *ReRound4Message to map
+func (re *ReRound4Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = re.FromID
 	m["FromIndex"] = strconv.Itoa(re.FromIndex)
@@ -281,38 +314,43 @@ func (re *ReshareRound4Message) OutMap() map[string]string {
 		m["NtildeProof2"] = string(pf2)
 	}
 
-	m["Type"] = "ReshareRound4Message"
+	m["Type"] = "ReRound4Message"
 	return m
 }
 
-//ReshareRound5Message
-type ReshareRound5Message struct {
-	*ReshareRoundMessage
+// ReRound5Message  Round 5 sending message 
+type ReRound5Message struct {
+	*ReRoundMessage
 	NewSkOk string
 }
 
-func (re *ReshareRound5Message) GetFromID() string {
+// GetFromID get the ID of sending nodes in the group
+func (re *ReRound5Message) GetFromID() string {
 	return re.FromID
 }
 
-func (re *ReshareRound5Message) GetFromIndex() int {
+// GetFromIndex get the Serial number of sending nodes in the group 
+func (re *ReRound5Message) GetFromIndex() int {
 	return re.FromIndex
 }
 
-func (re *ReshareRound5Message) GetToID() []string {
+// GetToID get the ID of the node that broacasting message to
+func (re *ReRound5Message) GetToID() []string {
 	return re.ToID
 }
 
-func (re *ReshareRound5Message) IsBroadcast() bool {
+// IsBroadcast weather broacast the message
+func (re *ReRound5Message) IsBroadcast() bool {
 	return true
 }
 
-func (re *ReshareRound5Message) OutMap() map[string]string {
+// OutMap transfer *ReRound5Message to map
+func (re *ReRound5Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = re.FromID
 	m["FromIndex"] = strconv.Itoa(re.FromIndex)
 	m["ToID"] = ""
 	m["NewSkOk"] = re.NewSkOk
-	m["Type"] = "ReshareRound4Message"
+	m["Type"] = "ReRound4Message"
 	return m
 }

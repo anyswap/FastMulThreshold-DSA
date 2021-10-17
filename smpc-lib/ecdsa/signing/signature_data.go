@@ -20,6 +20,7 @@ import (
 	"math/big"
 )
 
+// PrePubData pre-sign data
 type PrePubData struct {
 	K1     *big.Int
 	R      *big.Int

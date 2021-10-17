@@ -40,22 +40,41 @@ import (
 )
 
 var (
-	ch_t            = 300
+	cht            = 300
+
+	// WaitMsgTimeGG20 wait msg timeout
 	WaitMsgTimeGG20 = 100
-	waitall         = ch_t * recalc_times
-	waitallgg20     = WaitMsgTimeGG20 * recalc_times
+
+	waitall         = cht * recalcTimes
+	waitallgg20     = WaitMsgTimeGG20 * recalcTimes
+
+	// WaitAgree agree timeout
 	WaitAgree       = 120 // second
+
+	// C1Data the data arrive before cmd by p2p
 	C1Data          = common.NewSafeMap(10)
 
 	syncpresign = true
 
-	// callback
+	// GetGroup p2p callback
 	GetGroup               func(string) (int, string)
+
+	// SendToGroupAllNodes p2p callback
 	SendToGroupAllNodes    func(string, string) (string, error)
+
+	// GetSelfEnode p2p callback
 	GetSelfEnode           func() string
+
+	// BroadcastInGroupOthers p2p callback
 	BroadcastInGroupOthers func(string, string) (string, error)
+
+	// SendToPeer p2p callback
 	SendToPeer             func(string, string) error
+
+	// ParseNode p2p callback
 	ParseNode              func(string) string
+
+	// GetEosAccount p2p callback
 	GetEosAccount          func() (string, string, string)
 )
 
@@ -120,7 +139,7 @@ var parts = common.NewSafeMap(10)
 
 // receiveGroupInfo smpc node receive specific msg (for example:group info) from p2p by Call2
 func receiveGroupInfo(msg interface{}) {
-	cur_enode = p2psmpc.GetSelfID()
+	curEnode = p2psmpc.GetSelfID()
 
 	m := strings.Split(msg.(string), "|")
 	if len(m) != 2 {
@@ -156,21 +175,21 @@ func receiveGroupInfo(msg interface{}) {
 	}
 }
 
-//init smpc node with the msg receive from group by Call2
-func Init(groupId string) {
-	common.Debug("======================Init==========================", "get group id", groupId, "init_times", strconv.Itoa(init_times))
+//Init smpc node with the msg receive from group by Call2
+func Init(groupID string) {
+	common.Debug("======================Init==========================", "get group id", groupID, "initTimes", strconv.Itoa(initTimes))
 
-	if init_times >= 1 {
+	if initTimes >= 1 {
 		return
 	}
 
-	init_times = 1
-	InitGroupInfo(groupId)
+	initTimes = 1
+	InitGroupInfo(groupID)
 }
 
-// InitGroupInfo get current node enodeId etc.
-func InitGroupInfo(groupId string) {
-	cur_enode = discover.GetLocalID().String()
+// InitGroupInfo get current node enodeID etc.
+func InitGroupInfo(groupID string) {
+	curEnode = discover.GetLocalID().String()
 	// .......
 }
 
@@ -406,14 +425,14 @@ func Call(msg interface{}, enode string) {
 					msgtype := msgmap["Type"]
 					key := strings.ToLower(val + "-" + from + "-" + msgtype)
 					C1Data.WriteMap(key, s)
-					fmt.Printf("===============================Call, pre-save p2p msg, worker found, key = %v,fromId = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
+					fmt.Printf("===============================Call, pre-save p2p msg, worker found, key = %v,fromID = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
 				}
 			} else {
 				from := msgmap["FromID"]
 				msgtype := msgmap["Type"]
 				key := strings.ToLower(val + "-" + from + "-" + msgtype)
 				C1Data.WriteMap(key, s)
-				fmt.Printf("===============================Call, pre-save p2p msg, worker not found, key = %v,fromId = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
+				fmt.Printf("===============================Call, pre-save p2p msg, worker not found, key = %v,fromID = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
 			}
 
 			return
@@ -424,10 +443,10 @@ func Call(msg interface{}, enode string) {
 			if err = sps.UnmarshalJSON([]byte(msgmap["SyncPreSign"])); err == nil {
 				w, err := FindWorker(sps.MsgPrex)
 				if err == nil {
-					if w.msg_syncpresign.Len() < w.ThresHold {
-						if !Find(w.msg_syncpresign, s) {
-							w.msg_syncpresign.PushBack(s)
-							if w.msg_syncpresign.Len() == w.ThresHold {
+					if w.msgsyncpresign.Len() < w.ThresHold {
+						if !Find(w.msgsyncpresign, s) {
+							w.msgsyncpresign.PushBack(s)
+							if w.msgsyncpresign.Len() == w.ThresHold {
 								w.bsyncpresign <- true
 							}
 						}
@@ -463,26 +482,28 @@ func SetUpMsgList3(msg string, enode string, rch chan interface{}) {
 
 //-----------------------------------------------------------------
 
+// WorkReq base type of work request
 type WorkReq interface {
 	Run(workid int, ch chan interface{}) bool
 }
 
+// RecvMsg msg data by channel or p2p and its sender
 type RecvMsg struct {
 	msg    string
 	sender string
 }
 
 // Run Implement keygen/sign/reshare command and Process accept data
-func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
+func (recv *RecvMsg) Run(workid int, ch chan interface{}) bool {
 	if workid < 0 || workid >= RPCMaxWorker {
-		res2 := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get worker id fail", Err: fmt.Errorf("worker was not found.")}
+		res2 := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get worker id fail", Err: fmt.Errorf("worker was not found")}
 		ch <- res2
 		return false
 	}
 
-	res := self.msg
+	res := recv.msg
 	if res == "" {
-		res2 := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get data fail in RecvMsg.Run", Err: fmt.Errorf("worker was not found.")}
+		res2 := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get data fail in RecvMsg.Run", Err: fmt.Errorf("worker was not found")}
 		ch <- res2
 		return false
 	}
@@ -502,17 +523,17 @@ func (self *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		return true
 	}*/
 
-	var req SmpcReq
+	var req CmdReq
 	msgmap := make(map[string]string)
 	err := json.Unmarshal([]byte(res), &msgmap)
 	if err == nil {
 		if msgmap["Type"] == "SignData" || msgmap["Type"] == "PreSign" || msgmap["Type"] == "ComSignBrocastData" || msgmap["Type"] == "ComSignData" {
 			req = &ReqSmpcSign{}
-			return req.DoReq(res, workid, self.sender, ch)
+			return req.DoReq(res, workid, recv.sender, ch)
 		}
 	}
 
-	return (MsgRun(res, workid, self.sender, ch) == nil)
+	return (MsgRun(res, workid, recv.sender, ch) == nil)
 }
 
 //---------------------------------------------------------------------------
@@ -553,7 +574,7 @@ func HandleSign(key string, uid *big.Int) {
 }
 
 //HandleC1Data C1Data Key, Three formats are included:
-// 1.  key-enodefrom, for reshare only, enodefrom get from enodeId
+// 1.  key-enodefrom, for reshare only, enodefrom get from enodeID
 // 2.  key-uid-msgtype, for example: key-uid-"KGRound0Message"
 // 3.  key-accout,for accept reply
 func HandleC1Data(ac *AcceptReqAddrData, key string) {
@@ -574,7 +595,7 @@ func HandleC1Data(ac *AcceptReqAddrData, key string) {
 			return
 		}
 
-		_, enodes := GetGroup(ac.GroupId)
+		_, enodes := GetGroup(ac.GroupID)
 		nodes := strings.Split(enodes, common.Sep2)
 		for _, node := range nodes {
 			node2 := ParseNode(node)
@@ -605,7 +626,7 @@ func HandleC1Data(ac *AcceptReqAddrData, key string) {
 		return
 	}
 
-	_, enodes := GetGroup(ac.GroupId)
+	_, enodes := GetGroup(ac.GroupID)
 	nodes := strings.Split(enodes, common.Sep2)
 
 	for _, node := range nodes {
@@ -703,7 +724,7 @@ func DisAcceptMsg(raw string, workid int) {
 		return
 	}
 
-	var req SmpcReq
+	var req CmdReq
 	rawtype, key := GetRawType(raw)
 	switch rawtype {
 	case "REQADDR":
@@ -728,12 +749,12 @@ func DisAcceptMsg(raw string, workid int) {
 // MsgRun  1.Parse the command data and implement the process 2.analyze the accept data   
 func MsgRun(raw string, workid int, sender string, ch chan interface{}) error {
 	if raw == "" || workid < 0 || sender == "" {
-		res := RpcSmpcRes{Ret: "", Tip: "msg run fail.", Err: fmt.Errorf("msg run fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "msg run fail.", Err: fmt.Errorf("msg run fail")}
 		ch <- res
 		return fmt.Errorf("msg run fail")
 	}
 
-	var req SmpcReq
+	var req CmdReq
 	rawtype, _ := GetRawType(raw)
 	switch rawtype {
 	case "REQADDR":
@@ -762,7 +783,7 @@ func MsgRun(raw string, workid int, sender string, ch chan interface{}) error {
 //------------------------------------------------------------------------------------
 
 // GetGroupSigsDataByRaw get account sigs data from special tx data(raw data)
-// account sigs data:  Signatures generated by respective accounts,the signature object is the pubkey of eNode,that is,enodeId.
+// account sigs data:  Signatures generated by respective accounts,the signature object is the pubkey of eNode,that is,enodeID.
 // account sigs data: sig1 | sig2 | ... | sigN   (N is the count of nodes in group.)
 func GetGroupSigsDataByRaw(raw string) (string, error) {
 	if raw == "" {
@@ -786,7 +807,7 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 	var groupsigs string
 	var groupid string
 
-	var req2 SmpcReq
+	var req2 CmdReq
 	req := TxDataReqAddr{}
 	err = json.Unmarshal(tx.Data(), &req)
 	if err == nil && req.TxType == "REQSMPCADDR" {
@@ -835,13 +856,13 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 		en := strings.Split(sigs[j], "@")
 		for _, node := range nodes {
 			node2 := ParseNode(node)
-			enId := strings.Split(en[0], "//")
-			if len(enId) < 2 {
-				fmt.Printf("==========================GetGroupSigsDataByRaw,len enid = %v========================\n", len(enId))
+			enID := strings.Split(en[0], "//")
+			if len(enID) < 2 {
+				fmt.Printf("==========================GetGroupSigsDataByRaw,len enid = %v========================\n", len(enID))
 				return "", fmt.Errorf("group sigs error")
 			}
 
-			if strings.EqualFold(node2, enId[1]) {
+			if strings.EqualFold(node2, enID[1]) {
 				enodesigs := []rune(sigs[j])
 				if len(enodesigs) <= len(node) {
 					fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v========================\n", node, enodesigs, len(node), len(enodesigs), enodes, groupsigs)
@@ -954,285 +975,285 @@ func DisMsg(msg string) {
 	switch msgCode {
 	case "C1":
 		///bug
-		if w.msg_c1.Len() >= w.NodeCnt {
+		if w.msgc1.Len() >= w.NodeCnt {
 			return
 		}
 		///
-		if Find(w.msg_c1, msg) {
+		if Find(w.msgc1, msg) {
 			return
 		}
 
-		w.msg_c1.PushBack(msg)
-		common.Debug("======================DisMsg, after pushback================", "w.msg_c1 len", w.msg_c1.Len(), "w.NodeCnt", w.NodeCnt, "key", prexs[0])
-		if w.msg_c1.Len() == w.NodeCnt {
-			common.Debug("======================DisMsg, Get All C1==================", "w.msg_c1 len", w.msg_c1.Len(), "w.NodeCnt", w.NodeCnt, "key", prexs[0])
+		w.msgc1.PushBack(msg)
+		common.Debug("======================DisMsg, after pushback================", "w.msgc1 len", w.msgc1.Len(), "w.NodeCnt", w.NodeCnt, "key", prexs[0])
+		if w.msgc1.Len() == w.NodeCnt {
+			common.Debug("======================DisMsg, Get All C1==================", "w.msgc1 len", w.msgc1.Len(), "w.NodeCnt", w.NodeCnt, "key", prexs[0])
 			w.bc1 <- true
 		}
 	case "BIP32C1":
 		///bug
-		if w.msg_bip32c1.Len() >= w.NodeCnt {
+		if w.msgbip32c1.Len() >= w.NodeCnt {
 			return
 		}
 		///
-		if Find(w.msg_bip32c1, msg) {
+		if Find(w.msgbip32c1, msg) {
 			return
 		}
 
-		w.msg_bip32c1.PushBack(msg)
-		if w.msg_bip32c1.Len() == w.NodeCnt {
+		w.msgbip32c1.PushBack(msg)
+		if w.msgbip32c1.Len() == w.NodeCnt {
 			w.bbip32c1 <- true
 		}
 	case "D1":
 		///bug
-		if w.msg_d1_1.Len() >= w.NodeCnt {
+		if w.msgd1d1.Len() >= w.NodeCnt {
 			return
 		}
 		///
-		if Find(w.msg_d1_1, msg) {
+		if Find(w.msgd1d1, msg) {
 			return
 		}
 
-		w.msg_d1_1.PushBack(msg)
-		if w.msg_d1_1.Len() == w.NodeCnt {
-			w.bd1_1 <- true
+		w.msgd1d1.PushBack(msg)
+		if w.msgd1d1.Len() == w.NodeCnt {
+			w.bd1d1 <- true
 		}
 	case "SHARE1":
 		///bug
-		if w.msg_share1.Len() >= (w.NodeCnt - 1) {
+		if w.msgshare1.Len() >= (w.NodeCnt - 1) {
 			return
 		}
 		///
-		if Find(w.msg_share1, msg) {
+		if Find(w.msgshare1, msg) {
 			return
 		}
 
-		w.msg_share1.PushBack(msg)
-		if w.msg_share1.Len() == (w.NodeCnt - 1) {
+		w.msgshare1.PushBack(msg)
+		if w.msgshare1.Len() == (w.NodeCnt - 1) {
 			w.bshare1 <- true
 		}
 	//case "ZKFACTPROOF":
 	case "NTILDEH1H2":
 		///bug
-		if w.msg_zkfact.Len() >= w.NodeCnt {
+		if w.msgzkfact.Len() >= w.NodeCnt {
 			return
 		}
 		///
-		if Find(w.msg_zkfact, msg) {
+		if Find(w.msgzkfact, msg) {
 			return
 		}
 
-		w.msg_zkfact.PushBack(msg)
-		if w.msg_zkfact.Len() == w.NodeCnt {
+		w.msgzkfact.PushBack(msg)
+		if w.msgzkfact.Len() == w.NodeCnt {
 			w.bzkfact <- true
 		}
 	case "ZKUPROOF":
 		///bug
-		if w.msg_zku.Len() >= w.NodeCnt {
+		if w.msgzku.Len() >= w.NodeCnt {
 			return
 		}
 		///
-		if Find(w.msg_zku, msg) {
+		if Find(w.msgzku, msg) {
 			return
 		}
 
-		w.msg_zku.PushBack(msg)
-		if w.msg_zku.Len() == w.NodeCnt {
+		w.msgzku.PushBack(msg)
+		if w.msgzku.Len() == w.NodeCnt {
 			w.bzku <- true
 		}
 	case "MTAZK1PROOF":
 		///bug
-		if w.msg_mtazk1proof.Len() >= (w.ThresHold - 1) {
+		if w.msgmtazk1proof.Len() >= (w.ThresHold - 1) {
 			return
 		}
 		///
-		if Find(w.msg_mtazk1proof, msg) {
+		if Find(w.msgmtazk1proof, msg) {
 			return
 		}
 
-		w.msg_mtazk1proof.PushBack(msg)
-		if w.msg_mtazk1proof.Len() == (w.ThresHold - 1) {
+		w.msgmtazk1proof.PushBack(msg)
+		if w.msgmtazk1proof.Len() == (w.ThresHold - 1) {
 			common.Debug("=====================Get All MTAZK1PROOF====================", "key", prexs[0])
 			w.bmtazk1proof <- true
 		}
 		//sign
 	case "C11":
 		///bug
-		if w.msg_c11.Len() >= w.ThresHold {
+		if w.msgc11.Len() >= w.ThresHold {
 			return
 		}
 		///
-		if Find(w.msg_c11, msg) {
+		if Find(w.msgc11, msg) {
 			return
 		}
 
 		common.Debug("=====================Get C11====================", "msg", msg, "key", prexs[0])
-		w.msg_c11.PushBack(msg)
-		if w.msg_c11.Len() == w.ThresHold {
+		w.msgc11.PushBack(msg)
+		if w.msgc11.Len() == w.ThresHold {
 			common.Debug("=====================Get All C11====================", "key", prexs[0])
 			w.bc11 <- true
 		}
 	case "KC":
 		///bug
-		if w.msg_kc.Len() >= w.ThresHold {
+		if w.msgkc.Len() >= w.ThresHold {
 			return
 		}
 		///
-		if Find(w.msg_kc, msg) {
+		if Find(w.msgkc, msg) {
 			return
 		}
 
-		w.msg_kc.PushBack(msg)
-		if w.msg_kc.Len() == w.ThresHold {
+		w.msgkc.PushBack(msg)
+		if w.msgkc.Len() == w.ThresHold {
 			common.Debug("=====================Get All KC====================", "key", prexs[0])
 			w.bkc <- true
 		}
 	case "MKG":
 		///bug
-		if w.msg_mkg.Len() >= (w.ThresHold - 1) {
+		if w.msgmkg.Len() >= (w.ThresHold - 1) {
 			return
 		}
 		///
-		if Find(w.msg_mkg, msg) {
+		if Find(w.msgmkg, msg) {
 			return
 		}
 
-		w.msg_mkg.PushBack(msg)
-		if w.msg_mkg.Len() == (w.ThresHold - 1) {
+		w.msgmkg.PushBack(msg)
+		if w.msgmkg.Len() == (w.ThresHold - 1) {
 			common.Debug("=====================Get All MKG====================", "key", prexs[0])
 			w.bmkg <- true
 		}
 	case "MKW":
 		///bug
-		if w.msg_mkw.Len() >= (w.ThresHold - 1) {
+		if w.msgmkw.Len() >= (w.ThresHold - 1) {
 			return
 		}
 		///
-		if Find(w.msg_mkw, msg) {
+		if Find(w.msgmkw, msg) {
 			return
 		}
 
-		w.msg_mkw.PushBack(msg)
-		if w.msg_mkw.Len() == (w.ThresHold - 1) {
+		w.msgmkw.PushBack(msg)
+		if w.msgmkw.Len() == (w.ThresHold - 1) {
 			common.Debug("=====================Get All MKW====================", "key", prexs[0])
 			w.bmkw <- true
 		}
 	case "DELTA1":
 		///bug
-		if w.msg_delta1.Len() >= w.ThresHold {
+		if w.msgdelta1.Len() >= w.ThresHold {
 			return
 		}
 		///
-		if Find(w.msg_delta1, msg) {
+		if Find(w.msgdelta1, msg) {
 			return
 		}
 
-		w.msg_delta1.PushBack(msg)
-		if w.msg_delta1.Len() == w.ThresHold {
+		w.msgdelta1.PushBack(msg)
+		if w.msgdelta1.Len() == w.ThresHold {
 			common.Debug("=====================Get All DELTA1====================", "key", prexs[0])
 			w.bdelta1 <- true
 		}
 	case "D11":
 		///bug
-		if w.msg_d11_1.Len() >= w.ThresHold {
+		if w.msgd11d1.Len() >= w.ThresHold {
 			return
 		}
 		///
-		if Find(w.msg_d11_1, msg) {
+		if Find(w.msgd11d1, msg) {
 			return
 		}
 
-		w.msg_d11_1.PushBack(msg)
-		if w.msg_d11_1.Len() == w.ThresHold {
+		w.msgd11d1.PushBack(msg)
+		if w.msgd11d1.Len() == w.ThresHold {
 			common.Debug("=====================Get All D11====================", "key", prexs[0])
-			w.bd11_1 <- true
+			w.bd11d1 <- true
 		}
 	case "CommitBigVAB":
 		///bug
-		if w.msg_commitbigvab.Len() >= w.ThresHold {
+		if w.msgcommitbigvab.Len() >= w.ThresHold {
 			return
 		}
 		///
-		if Find(w.msg_commitbigvab, msg) {
+		if Find(w.msgcommitbigvab, msg) {
 			return
 		}
 
-		w.msg_commitbigvab.PushBack(msg)
-		if w.msg_commitbigvab.Len() == w.ThresHold {
+		w.msgcommitbigvab.PushBack(msg)
+		if w.msgcommitbigvab.Len() == w.ThresHold {
 			common.Debug("=====================Get All CommitBigVAB====================", "key", prexs[0])
 			w.bcommitbigvab <- true
 		}
 	case "ZKABPROOF":
 		///bug
-		if w.msg_zkabproof.Len() >= w.ThresHold {
+		if w.msgzkabproof.Len() >= w.ThresHold {
 			return
 		}
 		///
-		if Find(w.msg_zkabproof, msg) {
+		if Find(w.msgzkabproof, msg) {
 			return
 		}
 
-		w.msg_zkabproof.PushBack(msg)
-		if w.msg_zkabproof.Len() == w.ThresHold {
+		w.msgzkabproof.PushBack(msg)
+		if w.msgzkabproof.Len() == w.ThresHold {
 			common.Debug("=====================Get All ZKABPROOF====================", "key", prexs[0])
 			w.bzkabproof <- true
 		}
 	case "CommitBigUT":
 		///bug
-		if w.msg_commitbigut.Len() >= w.ThresHold {
+		if w.msgcommitbigut.Len() >= w.ThresHold {
 			return
 		}
 		///
-		if Find(w.msg_commitbigut, msg) {
+		if Find(w.msgcommitbigut, msg) {
 			return
 		}
 
-		w.msg_commitbigut.PushBack(msg)
-		if w.msg_commitbigut.Len() == w.ThresHold {
+		w.msgcommitbigut.PushBack(msg)
+		if w.msgcommitbigut.Len() == w.ThresHold {
 			common.Debug("=====================Get All CommitBigUT====================", "key", prexs[0])
 			w.bcommitbigut <- true
 		}
 	case "CommitBigUTD11":
 		///bug
-		if w.msg_commitbigutd11.Len() >= w.ThresHold {
+		if w.msgcommitbigutd11.Len() >= w.ThresHold {
 			return
 		}
 		///
-		if Find(w.msg_commitbigutd11, msg) {
+		if Find(w.msgcommitbigutd11, msg) {
 			return
 		}
 
-		w.msg_commitbigutd11.PushBack(msg)
-		if w.msg_commitbigutd11.Len() == w.ThresHold {
+		w.msgcommitbigutd11.PushBack(msg)
+		if w.msgcommitbigutd11.Len() == w.ThresHold {
 			common.Debug("=====================Get All CommitBigUTD11====================", "key", prexs[0])
 			w.bcommitbigutd11 <- true
 		}
 	case "SS1":
 		///bug
-		if w.msg_ss1.Len() >= w.ThresHold {
+		if w.msgss1.Len() >= w.ThresHold {
 			return
 		}
 		///
-		if Find(w.msg_ss1, msg) {
+		if Find(w.msgss1, msg) {
 			return
 		}
 
-		w.msg_ss1.PushBack(msg)
-		if w.msg_ss1.Len() == w.ThresHold {
+		w.msgss1.PushBack(msg)
+		if w.msgss1.Len() == w.ThresHold {
 			common.Info("=====================Get All SS1====================", "key", prexs[0])
 			w.bss1 <- true
 		}
 	case "PaillierKey":
 		///bug
-		if w.msg_paillierkey.Len() >= w.NodeCnt {
+		if w.msgpaillierkey.Len() >= w.NodeCnt {
 			return
 		}
 		///
-		if Find(w.msg_paillierkey, msg) {
+		if Find(w.msgpaillierkey, msg) {
 			return
 		}
 
-		w.msg_paillierkey.PushBack(msg)
-		if w.msg_paillierkey.Len() == w.NodeCnt {
+		w.msgpaillierkey.PushBack(msg)
+		if w.msgpaillierkey.Len() == w.NodeCnt {
 			common.Debug("=====================Get All PaillierKey====================", "key", prexs[0])
 			w.bpaillierkey <- true
 		}
@@ -1240,156 +1261,156 @@ func DisMsg(msg string) {
 	//////////////////ed
 	case "EDC11":
 		///bug
-		if w.msg_edc11.Len() >= w.NodeCnt {
+		if w.msgedc11.Len() >= w.NodeCnt {
 			return
 		}
 		///
-		if Find(w.msg_edc11, msg) {
+		if Find(w.msgedc11, msg) {
 			return
 		}
 
-		w.msg_edc11.PushBack(msg)
-		if w.msg_edc11.Len() == w.NodeCnt {
+		w.msgedc11.PushBack(msg)
+		if w.msgedc11.Len() == w.NodeCnt {
 			w.bedc11 <- true
 		}
 	case "EDZK":
 		///bug
-		if w.msg_edzk.Len() >= w.NodeCnt {
+		if w.msgedzk.Len() >= w.NodeCnt {
 			return
 		}
 		///
-		if Find(w.msg_edzk, msg) {
+		if Find(w.msgedzk, msg) {
 			return
 		}
 
-		w.msg_edzk.PushBack(msg)
-		if w.msg_edzk.Len() == w.NodeCnt {
+		w.msgedzk.PushBack(msg)
+		if w.msgedzk.Len() == w.NodeCnt {
 			w.bedzk <- true
 		}
 	case "EDD11":
 		///bug
-		if w.msg_edd11.Len() >= w.NodeCnt {
+		if w.msgedd11.Len() >= w.NodeCnt {
 			return
 		}
 		///
-		if Find(w.msg_edd11, msg) {
+		if Find(w.msgedd11, msg) {
 			return
 		}
 
-		w.msg_edd11.PushBack(msg)
-		if w.msg_edd11.Len() == w.NodeCnt {
+		w.msgedd11.PushBack(msg)
+		if w.msgedd11.Len() == w.NodeCnt {
 			w.bedd11 <- true
 		}
 	case "EDSHARE1":
 		///bug
-		if w.msg_edshare1.Len() >= (w.NodeCnt - 1) {
+		if w.msgedshare1.Len() >= (w.NodeCnt - 1) {
 			return
 		}
 		///
-		if Find(w.msg_edshare1, msg) {
+		if Find(w.msgedshare1, msg) {
 			return
 		}
 
-		w.msg_edshare1.PushBack(msg)
-		if w.msg_edshare1.Len() == (w.NodeCnt - 1) {
+		w.msgedshare1.PushBack(msg)
+		if w.msgedshare1.Len() == (w.NodeCnt - 1) {
 			w.bedshare1 <- true
 		}
 	case "EDCFSB":
 		///bug
-		if w.msg_edcfsb.Len() >= w.NodeCnt {
+		if w.msgedcfsb.Len() >= w.NodeCnt {
 			return
 		}
 		///
-		if Find(w.msg_edcfsb, msg) {
+		if Find(w.msgedcfsb, msg) {
 			return
 		}
 
-		w.msg_edcfsb.PushBack(msg)
-		if w.msg_edcfsb.Len() == w.NodeCnt {
+		w.msgedcfsb.PushBack(msg)
+		if w.msgedcfsb.Len() == w.NodeCnt {
 			w.bedcfsb <- true
 		}
 	case "EDC21":
 		///bug
-		if w.msg_edc21.Len() >= w.NodeCnt {
+		if w.msgedc21.Len() >= w.NodeCnt {
 			return
 		}
 		///
-		if Find(w.msg_edc21, msg) {
+		if Find(w.msgedc21, msg) {
 			return
 		}
 
-		w.msg_edc21.PushBack(msg)
-		if w.msg_edc21.Len() == w.NodeCnt {
+		w.msgedc21.PushBack(msg)
+		if w.msgedc21.Len() == w.NodeCnt {
 			w.bedc21 <- true
 		}
 	case "EDZKR":
 		///bug
-		if w.msg_edzkr.Len() >= w.NodeCnt {
+		if w.msgedzkr.Len() >= w.NodeCnt {
 			return
 		}
 		///
-		if Find(w.msg_edzkr, msg) {
+		if Find(w.msgedzkr, msg) {
 			return
 		}
 
-		w.msg_edzkr.PushBack(msg)
-		if w.msg_edzkr.Len() == w.NodeCnt {
+		w.msgedzkr.PushBack(msg)
+		if w.msgedzkr.Len() == w.NodeCnt {
 			w.bedzkr <- true
 		}
 	case "EDD21":
 		///bug
-		if w.msg_edd21.Len() >= w.NodeCnt {
+		if w.msgedd21.Len() >= w.NodeCnt {
 			return
 		}
 		///
-		if Find(w.msg_edd21, msg) {
+		if Find(w.msgedd21, msg) {
 			return
 		}
 
-		w.msg_edd21.PushBack(msg)
-		if w.msg_edd21.Len() == w.NodeCnt {
+		w.msgedd21.PushBack(msg)
+		if w.msgedd21.Len() == w.NodeCnt {
 			w.bedd21 <- true
 		}
 	case "EDC31":
 		///bug
-		if w.msg_edc31.Len() >= w.NodeCnt {
+		if w.msgedc31.Len() >= w.NodeCnt {
 			return
 		}
 		///
-		if Find(w.msg_edc31, msg) {
+		if Find(w.msgedc31, msg) {
 			return
 		}
 
-		w.msg_edc31.PushBack(msg)
-		if w.msg_edc31.Len() == w.NodeCnt {
+		w.msgedc31.PushBack(msg)
+		if w.msgedc31.Len() == w.NodeCnt {
 			w.bedc31 <- true
 		}
 	case "EDD31":
 		///bug
-		if w.msg_edd31.Len() >= w.NodeCnt {
+		if w.msgedd31.Len() >= w.NodeCnt {
 			return
 		}
 		///
-		if Find(w.msg_edd31, msg) {
+		if Find(w.msgedd31, msg) {
 			return
 		}
 
-		w.msg_edd31.PushBack(msg)
-		if w.msg_edd31.Len() == w.NodeCnt {
+		w.msgedd31.PushBack(msg)
+		if w.msgedd31.Len() == w.NodeCnt {
 			w.bedd31 <- true
 		}
 	case "EDS":
 		///bug
-		if w.msg_eds.Len() >= w.NodeCnt {
+		if w.msgeds.Len() >= w.NodeCnt {
 			return
 		}
 		///
-		if Find(w.msg_eds, msg) {
+		if Find(w.msgeds, msg) {
 			return
 		}
 
-		w.msg_eds.PushBack(msg)
-		if w.msg_eds.Len() == w.NodeCnt {
+		w.msgeds.PushBack(msg)
+		if w.msgeds.Len() == w.NodeCnt {
 			w.beds <- true
 		}
 	default:

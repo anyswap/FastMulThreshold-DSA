@@ -33,13 +33,13 @@ func (round *round5) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index, err := round.GetDNodeIDIndex(round.kgid)
+	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
 		return err
 	}
 
 	oldindex := -1
-	for k, v := range round.save.Ids {
+	for k, v := range round.save.IDs {
 		if v.Cmp(round.save.CurDNodeID) == 0 {
 			oldindex = k
 			break
@@ -51,7 +51,7 @@ func (round *round5) Start() error {
 
 	for k, v := range round.idsign {
 		index := -1
-		for kk, vv := range round.save.Ids {
+		for kk, vv := range round.save.IDs {
 			if v.Cmp(vv) == 0 {
 				index = kk
 				break
@@ -61,15 +61,15 @@ func (round *round5) Start() error {
 		u1PaillierPk := round.save.U1PaillierPk[oldindex]
 		u1nt := round.save.U1NtildeH1H2[index]
 		msg4, _ := round.temp.signRound4Messages[k].(*SignRound4Message)
-		rlt111 := msg4.U1u1MtAZK2Proof.MtAZK2Verify_nhh(round.temp.ukc, msg4.U1KGamma1Cipher, u1PaillierPk, u1nt)
+		rlt111 := msg4.U1u1MtAZK2Proof.MtAZK2Verifynhh(round.temp.ukc, msg4.U1KGamma1Cipher, u1PaillierPk, u1nt)
 		if !rlt111 {
-			return errors.New("verify mkg fail.")
+			return errors.New("verify mkg fail")
 		}
 
 		msg41, _ := round.temp.signRound4Messages1[k].(*SignRound4Message1)
-		rlt112 := msg41.U1u1MtAZK3Proof.MtAZK3Verify_nhh(round.temp.ukc, msg41.U1Kw1Cipher, u1PaillierPk, u1nt)
+		rlt112 := msg41.U1u1MtAZK3Proof.MtAZK3Verifynhh(round.temp.ukc, msg41.U1Kw1Cipher, u1PaillierPk, u1nt)
 		if !rlt112 {
-			return errors.New("verify mkw fail.")
+			return errors.New("verify mkw fail")
 		}
 
 		alpha1U1, _ := round.save.U1PaillierSk.Decrypt(msg4.U1KGamma1Cipher)
@@ -109,9 +109,9 @@ func (round *round5) Start() error {
 		Delta1:           delta1,
 	}
 	srm.SetFromID(round.kgid)
-	srm.SetFromIndex(cur_index)
+	srm.SetFromIndex(curIndex)
 
-	round.temp.signRound5Messages[cur_index] = srm
+	round.temp.signRound5Messages[curIndex] = srm
 	round.out <- srm
 
 	//fmt.Printf("============= round5.start success, current node id = %v =============\n", round.kgid)

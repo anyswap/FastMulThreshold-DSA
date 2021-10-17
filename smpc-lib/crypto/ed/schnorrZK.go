@@ -64,8 +64,8 @@ func Prove(sk [32]byte) [64]byte {
 	return signature
 }
 
-// Verify_zk verify SK zero knowledge proof data
-func Verify_zk(signature [64]byte, pk [32]byte) bool {
+// VerifyZk verify SK zero knowledge proof data
+func VerifyZk(signature [64]byte, pk [32]byte) bool {
 
 	var sG, X, eX, RCal ExtendedGroupElement
 
@@ -100,7 +100,7 @@ func Verify_zk(signature [64]byte, pk [32]byte) bool {
 
 	if bytes.Equal(eCal[:], eTem[:]) {
 		return true
-	} else {
-		return false
 	}
+
+	return false
 }

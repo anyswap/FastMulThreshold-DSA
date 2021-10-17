@@ -85,8 +85,8 @@ func (round *base) CanProceed() bool {
 	return true
 }
 
-// GetIds get from all nodes
-func (round *base) GetIds() (smpc.SortableIDSSlice, error) {
+// GetIDs get from all nodes
+func (round *base) GetIDs() (smpc.SortableIDSSlice, error) {
 	var ids smpc.SortableIDSSlice
 	for _, v := range round.temp.reshareRound0Messages {
 		uid, ok := new(big.Int).SetString(v.GetFromID(), 10)
@@ -109,7 +109,7 @@ func (round *base) GetDNodeIDIndex(id string) (int, error) {
 
 	idtmp, ok := new(big.Int).SetString(id, 10)
 	if !ok {
-		return -1, errors.New("get id big number fail.")
+		return -1, errors.New("get id big number fail")
 	}
 
 	for k, v := range round.idreshare {

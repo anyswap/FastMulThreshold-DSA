@@ -91,7 +91,7 @@ func (round *round1) Start() error {
 	kg := &KGRound1Message{
 		KGRoundMessage: new(KGRoundMessage),
 		ComC:           commitU1G.C,
-		ComC_bip32:     commitC1G.C,
+		ComCBip32:     commitC1G.C,
 		U1PaillierPk:   u1PaillierPk,
 	}
 	kg.SetFromID(round.dnodeid)

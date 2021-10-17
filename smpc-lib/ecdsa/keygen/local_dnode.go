@@ -27,6 +27,7 @@ import (
 	"math/big"
 )
 
+// LocalDNode current local node
 type LocalDNode struct {
 	*smpc.BaseDNode
 	temp localTempData
@@ -35,20 +36,8 @@ type LocalDNode struct {
 	end  chan<- LocalDNodeSaveData
 }
 
-type localMessageStore struct {
-	kgRound0Messages,
-	kgRound1Messages,
-	kgRound2Messages,
-	kgRound2Messages1,
-	kgRound3Messages,
-	kgRound4Messages,
-	kgRound5Messages,
-	kgRound6Messages,
-	kgRound7Messages []smpc.Message
-}
-
+// localTempData  Store some data of MPC calculation process 
 type localTempData struct {
-	//localMessageStore
 	kgRound0Messages,
 	kgRound1Messages,
 	kgRound2Messages,
@@ -104,8 +93,8 @@ func NewLocalDNode(
 	}
 
 	uid := random.GetRandomIntFromZn(secp256k1.S256().N)
-	p.Id = fmt.Sprintf("%v", uid)
-	fmt.Printf("=========== NewLocalDNode, uid = %v, p.Id = %v =============\n", uid, p.Id)
+	p.ID = fmt.Sprintf("%v", uid)
+	fmt.Printf("=========== NewLocalDNode, uid = %v, p.ID = %v =============\n", uid, p.ID)
 
 	p.DNodeCountInGroup = DNodeCountInGroup
 	p.ThresHold = threshold
@@ -122,14 +111,17 @@ func NewLocalDNode(
 	return p
 }
 
+// FirstRound first round
 func (p *LocalDNode) FirstRound() smpc.Round {
-	return newRound0(&p.data, &p.temp, p.out, p.end, p.Id, p.DNodeCountInGroup, p.ThresHold, p.PaillierKeyLength)
+	return newRound0(&p.data, &p.temp, p.out, p.end, p.ID, p.DNodeCountInGroup, p.ThresHold, p.PaillierKeyLength)
 }
 
+// FinalizeRound get finalize round
 func (p *LocalDNode) FinalizeRound() smpc.Round {
 	return nil
 }
 
+// Finalize weather gg20 round
 func (p *LocalDNode) Finalize() bool {
 	return false
 }
@@ -144,12 +136,14 @@ func (p *LocalDNode) Update(msg smpc.Message) (ok bool, err error) {
 	return smpc.BaseUpdate(p, msg)
 }
 
+// DNodeID get the ID of current DNode
 func (p *LocalDNode) DNodeID() string {
-	return p.Id
+	return p.ID
 }
 
+// SetDNodeID set the ID of current DNode
 func (p *LocalDNode) SetDNodeID(id string) {
-	p.Id = id
+	p.ID = id
 }
 
 // CheckFull  Check for empty messages 
@@ -229,7 +223,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return false, errors.New("h1 and h2 were equal for this mpc node")
 		}
 		if !pf1.Verify(H1, H2, Ntilde) || !pf2.Verify(H2, H1, Ntilde) {
-			return false, errors.New("ntilde zk proof check fail.")
+			return false, errors.New("ntilde zk proof check fail")
 		}
 		////////
 

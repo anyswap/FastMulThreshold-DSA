@@ -30,25 +30,25 @@ func (round *round2) Start() error {
 	round.started = true
 	round.resetOK()
 
-	ids, err := round.GetIds()
+	ids, err := round.GetIDs()
 	if err != nil {
-		return errors.New("ed,round.Start get ids fail.")
+		return errors.New("ed,round.Start get ids fail")
 	}
-	round.Save.Ids = ids
+	round.Save.IDs = ids
 
-	cur_index, err := round.GetDNodeIDIndex(round.dnodeid)
+	curIndex, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
 		return err
 	}
-	round.Save.CurDNodeID = ids[cur_index]
+	round.Save.CurDNodeID = ids[curIndex]
 
 	kg := &KGRound2Message{
 		KGRoundMessage: new(KGRoundMessage),
 		ZkPk:           round.temp.zkPk,
 	}
 	kg.SetFromID(round.dnodeid)
-	kg.SetFromIndex(cur_index)
-	round.temp.kgRound2Messages[cur_index] = kg
+	kg.SetFromIndex(curIndex)
+	round.temp.kgRound2Messages[curIndex] = kg
 	round.out <- kg
 
 	return nil

@@ -36,13 +36,13 @@ func (round *round4) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index, err := round.GetDNodeIDIndex(round.kgid)
+	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
 		return err
 	}
 
 	oldindex := -1
-	for k, v := range round.save.Ids {
+	for k, v := range round.save.IDs {
 		if v.Cmp(round.save.CurDNodeID) == 0 {
 			oldindex = k
 			break
@@ -51,7 +51,7 @@ func (round *round4) Start() error {
 
 	for k, v := range round.idsign {
 		index := -1
-		for kk, vv := range round.save.Ids {
+		for kk, vv := range round.save.IDs {
 			if v.Cmp(vv) == 0 {
 				index = kk
 				break
@@ -61,21 +61,21 @@ func (round *round4) Start() error {
 		msg2, _ := round.temp.signRound2Messages[k].(*SignRound2Message)
 		msg3, _ := round.temp.signRound3Messages[k].(*SignRound3Message)
 
-		if k == cur_index {
+		if k == curIndex {
 			u1PaillierPk := round.save.U1PaillierPk[index]
 			u1nt := round.save.U1NtildeH1H2[index]
-			u1rlt1 := msg2.U1u1MtAZK1Proof.MtAZK1Verify_nhh(msg3.Kc, u1PaillierPk, u1nt)
+			u1rlt1 := msg2.U1u1MtAZK1Proof.MtAZK1Verifynhh(msg3.Kc, u1PaillierPk, u1nt)
 			if !u1rlt1 {
 				fmt.Printf("============round4.start,verify mtazk1 proof fail.==============\n")
-				return errors.New("verify mtazk1 proof fail.")
+				return errors.New("verify mtazk1 proof fail")
 			}
 		} else {
 			u1PaillierPk := round.save.U1PaillierPk[index]
 			u1nt := round.save.U1NtildeH1H2[oldindex]
-			u1rlt1 := msg2.U1u1MtAZK1Proof.MtAZK1Verify_nhh(msg3.Kc, u1PaillierPk, u1nt)
+			u1rlt1 := msg2.U1u1MtAZK1Proof.MtAZK1Verifynhh(msg3.Kc, u1PaillierPk, u1nt)
 			if !u1rlt1 {
 				fmt.Printf("============round4.start,verify mtazk1 proof fail.==============\n")
-				return errors.New("verify mtazk1 proof fail.")
+				return errors.New("verify mtazk1 proof fail")
 			}
 
 		}
@@ -112,21 +112,21 @@ func (round *round4) Start() error {
 
 	for k, v := range round.idsign {
 		index := -1
-		for kk, vv := range round.save.Ids {
+		for kk, vv := range round.save.IDs {
 			if v.Cmp(vv) == 0 {
 				index = kk
 				break
 			}
 		}
 
-		if k == cur_index {
+		if k == curIndex {
 			u1PaillierPk := round.save.U1PaillierPk[index]
 			msg3, _ := round.temp.signRound3Messages[k].(*SignRound3Message)
 			u1KGamma1Cipher := u1PaillierPk.HomoMul(msg3.Kc, round.temp.u1Gamma)
 			beta1U1StarCipher, u1BetaR1, _ := u1PaillierPk.Encrypt(betaU1Star[k])
 			u1KGamma1Cipher = u1PaillierPk.HomoAdd(u1KGamma1Cipher, beta1U1StarCipher)
 			//u1nt := round.save.U1NtildeH1H2[index]
-			u1u1MtAZK2Proof := ec2.MtAZK2Prove_nhh(round.temp.u1Gamma, betaU1Star[k], u1BetaR1, round.temp.ukc, round.save.U1PaillierPk[oldindex], round.save.U1NtildeH1H2[oldindex])
+			u1u1MtAZK2Proof := ec2.MtAZK2Provenhh(round.temp.u1Gamma, betaU1Star[k], u1BetaR1, round.temp.ukc, round.save.U1PaillierPk[oldindex], round.save.U1NtildeH1H2[oldindex])
 
 			srm := &SignRound4Message{
 				SignRoundMessage: new(SignRoundMessage),
@@ -134,8 +134,8 @@ func (round *round4) Start() error {
 				U1u1MtAZK2Proof:  u1u1MtAZK2Proof,
 			}
 			srm.SetFromID(round.kgid)
-			srm.SetFromIndex(cur_index)
-			round.temp.signRound4Messages[cur_index] = srm
+			srm.SetFromIndex(curIndex)
+			round.temp.signRound4Messages[curIndex] = srm
 
 		} else {
 			u1PaillierPk := round.save.U1PaillierPk[index]
@@ -144,7 +144,7 @@ func (round *round4) Start() error {
 			beta1U1StarCipher, u1BetaR1, _ := u1PaillierPk.Encrypt(betaU1Star[k])
 			u1KGamma1Cipher = u1PaillierPk.HomoAdd(u1KGamma1Cipher, beta1U1StarCipher)
 			//u1nt := round.save.U1NtildeH1H2[index]
-			u1u1MtAZK2Proof := ec2.MtAZK2Prove_nhh(round.temp.u1Gamma, betaU1Star[k], u1BetaR1, msg3.Kc, u1PaillierPk, round.save.U1NtildeH1H2[oldindex])
+			u1u1MtAZK2Proof := ec2.MtAZK2Provenhh(round.temp.u1Gamma, betaU1Star[k], u1BetaR1, msg3.Kc, u1PaillierPk, round.save.U1NtildeH1H2[oldindex])
 
 			srm := &SignRound4Message{
 				SignRoundMessage: new(SignRoundMessage),
@@ -152,7 +152,7 @@ func (round *round4) Start() error {
 				U1u1MtAZK2Proof:  u1u1MtAZK2Proof,
 			}
 			srm.SetFromID(round.kgid)
-			srm.SetFromIndex(cur_index)
+			srm.SetFromIndex(curIndex)
 			srm.AppendToID(fmt.Sprintf("%v", v))
 			round.out <- srm
 		}
@@ -162,20 +162,20 @@ func (round *round4) Start() error {
 
 	for k, v := range round.idsign {
 		index := -1
-		for kk, vv := range round.save.Ids {
+		for kk, vv := range round.save.IDs {
 			if v.Cmp(vv) == 0 {
 				index = kk
 				break
 			}
 		}
 
-		if k == cur_index {
+		if k == curIndex {
 			u1PaillierPk := round.save.U1PaillierPk[index]
 			msg3, _ := round.temp.signRound3Messages[k].(*SignRound3Message)
 			u1Kw1Cipher := u1PaillierPk.HomoMul(msg3.Kc, round.temp.w1)
 			v1U1StarCipher, u1VR1, _ := u1PaillierPk.Encrypt(vU1Star[k])
 			u1Kw1Cipher = u1PaillierPk.HomoAdd(u1Kw1Cipher, v1U1StarCipher) // send to u1
-			u1u1MtAZK3Proof := ec2.MtAZK3Prove_nhh(round.temp.w1, vU1Star[k], u1VR1, round.temp.ukc, round.save.U1PaillierPk[oldindex], round.save.U1NtildeH1H2[oldindex])
+			u1u1MtAZK3Proof := ec2.MtAZK3Provenhh(round.temp.w1, vU1Star[k], u1VR1, round.temp.ukc, round.save.U1PaillierPk[oldindex], round.save.U1NtildeH1H2[oldindex])
 
 			srm := &SignRound4Message1{
 				SignRoundMessage: new(SignRoundMessage),
@@ -183,8 +183,8 @@ func (round *round4) Start() error {
 				U1u1MtAZK3Proof:  u1u1MtAZK3Proof,
 			}
 			srm.SetFromID(round.kgid)
-			srm.SetFromIndex(cur_index)
-			round.temp.signRound4Messages1[cur_index] = srm
+			srm.SetFromIndex(curIndex)
+			round.temp.signRound4Messages1[curIndex] = srm
 
 		} else {
 			u1PaillierPk := round.save.U1PaillierPk[index]
@@ -192,7 +192,7 @@ func (round *round4) Start() error {
 			u1Kw1Cipher := u1PaillierPk.HomoMul(msg3.Kc, round.temp.w1)
 			v1U1StarCipher, u1VR1, _ := u1PaillierPk.Encrypt(vU1Star[k])
 			u1Kw1Cipher = u1PaillierPk.HomoAdd(u1Kw1Cipher, v1U1StarCipher) // send to u1
-			u1u1MtAZK3Proof := ec2.MtAZK3Prove_nhh(round.temp.w1, vU1Star[k], u1VR1, msg3.Kc, u1PaillierPk, round.save.U1NtildeH1H2[oldindex])
+			u1u1MtAZK3Proof := ec2.MtAZK3Provenhh(round.temp.w1, vU1Star[k], u1VR1, msg3.Kc, u1PaillierPk, round.save.U1NtildeH1H2[oldindex])
 
 			srm := &SignRound4Message1{
 				SignRoundMessage: new(SignRoundMessage),
@@ -200,7 +200,7 @@ func (round *round4) Start() error {
 				U1u1MtAZK3Proof:  u1u1MtAZK3Proof,
 			}
 			srm.SetFromID(round.kgid)
-			srm.SetFromIndex(cur_index)
+			srm.SetFromIndex(curIndex)
 			srm.AppendToID(fmt.Sprintf("%v", v))
 			round.out <- srm
 		}

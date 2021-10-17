@@ -34,37 +34,37 @@ func (round *round6) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index, err := round.GetDNodeIDIndex(round.dnodeid)
+	curIndex, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
 		return err
 	}
 
-	ids, err := round.GetIds()
+	ids, err := round.GetIDs()
 	if err != nil {
-		return errors.New("round.Start get ids fail.")
+		return errors.New("round.start get ids fail")
 	}
 
 	var PkSet2 []byte
 	for k, id := range ids {
 		msg4, ok := round.temp.kgRound4Messages[k].(*KGRound4Message)
 		if !ok {
-			return errors.New("ed,round.Start get round4 msg fail")
+			return errors.New("ed,round.start get round4 msg fail")
 		}
 
 		msg5, ok := round.temp.kgRound5Messages[k].(*KGRound5Message)
 		if !ok {
-			return errors.New("ed,round.Start get round5 msg fail")
+			return errors.New("ed,round.start get round5 msg fail")
 		}
 
 		msg3, ok := round.temp.kgRound3Messages[k].(*KGRound3Message)
 		if !ok {
-			return errors.New("ed,round.Start get round3 msg fail")
+			return errors.New("ed,round.start get round3 msg fail")
 		}
 
-		shareUFlag := ed.Verify_vss(msg4.Share, round.temp.uids[cur_index], msg5.CfsBBytes)
+		shareUFlag := ed.VerifyVss(msg4.Share, round.temp.uids[curIndex], msg5.CfsBBytes)
 		if !shareUFlag {
-			fmt.Printf("Error: VSS Share Verification Not Pass at User: %v, k  = %v \n", id, k)
-			return errors.New("smpc back-end internal error:VSS Share verification fail")
+			fmt.Printf("error: vss share verification not pass at user: %v, k  = %v \n", id, k)
+			return errors.New("smpc back-end internal error:vss share verification fail")
 		}
 
 		var temPk [32]byte

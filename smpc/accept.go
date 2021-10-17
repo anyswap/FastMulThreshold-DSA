@@ -27,6 +27,7 @@ import (
 
 //---------------------------------------------------------------
 
+// NodeReply node accept or not accept the keygen/sign/reshare
 type NodeReply struct {
 	Enode     string
 	Status    string
@@ -34,16 +35,22 @@ type NodeReply struct {
 	Initiator string // "1"/"0"
 }
 
-type RpcType int32
+// RPCType rpc cmd type
+type RPCType int32
 
 const (
-	Rpc_REQADDR RpcType = 0
-	Rpc_SIGN    RpcType = 2
-	Rpc_RESHARE RpcType = 3
+    	// RPCREQADDR keygen 
+	RPCREQADDR RPCType = 0
+
+	// RPCSIGN sign
+	RPCSIGN    RPCType = 2
+	
+	// RPCRESHARE reshare
+	RPCRESHARE RPCType = 3
 )
 
 // GetAllReplyFromGroup get all accept reply from group node 
-func GetAllReplyFromGroup(wid int, gid string, rt RpcType, initiator string) []NodeReply {
+func GetAllReplyFromGroup(wid int, gid string, rt RPCType, initiator string) []NodeReply {
 	if gid == "" {
 		return nil
 	}
@@ -74,13 +81,13 @@ func GetAllReplyFromGroup(wid int, gid string, rt RpcType, initiator string) []N
 		return nil
 	}
 
-	var req SmpcReq
+	var req CmdReq
 	switch rt {
-	case Rpc_SIGN:
+	case RPCSIGN:
 		req = &ReqSmpcSign{}
-	case Rpc_RESHARE:
+	case RPCRESHARE:
 		req = &ReqSmpcReshare{}
-	case Rpc_REQADDR:
+	case RPCREQADDR:
 		req = &ReqSmpcAddr{}
 	default:
 		fmt.Printf("Unsupported request type")
@@ -93,13 +100,13 @@ func GetAllReplyFromGroup(wid int, gid string, rt RpcType, initiator string) []N
 //---------------------------------------------------------------------------
 
 // GetReqAddrKeyByOtherKey sign key --->AccepSignData -----> pubkey ----->PubKeyData ---->reqaddr key
-func GetReqAddrKeyByOtherKey(key string, rt RpcType) string {
+func GetReqAddrKeyByOtherKey(key string, rt RPCType) string {
 	if key == "" {
 		return ""
 	}
 
-	var req SmpcReq
-	if rt == Rpc_SIGN {
+	var req CmdReq
+	if rt == RPCSIGN {
 		req = &ReqSmpcSign{}
 		return req.GetReqAddrKeyByKey(key)
 	}
@@ -132,7 +139,7 @@ func CheckAccept(pubkey string, mode string, account string) bool {
 							return true
 						}
 
-						if mode == "0" && CheckAcc(cur_enode, account, ac.Sigs) {
+						if mode == "0" && CheckAcc(curEnode, account, ac.Sigs) {
 							return true
 						}
 					}
@@ -146,11 +153,12 @@ func CheckAccept(pubkey string, mode string, account string) bool {
 
 //-----------------------------------------------------------------------------------
 
+// AcceptReqAddrData the data of keygen cmd,include:weather initiator,from accout,gid,keygen sub-gid,pubkey,threshold,accept or reject the keygen .. and so on. 
 type AcceptReqAddrData struct {
 	Initiator string //enode id
 	Account   string
 	Cointype  string
-	GroupId   string
+	GroupID   string
 	Nonce     string
 	LimitNum  string
 	Mode      string
@@ -166,7 +174,7 @@ type AcceptReqAddrData struct {
 
 	AllReply []NodeReply
 
-	WorkId int
+	WorkID int
 
 	Sigs string //5:enodeid1:account1:enodeid2:account2:enodeid3:account3:enodeid4:account4:enodeid5:account5
 }
@@ -174,10 +182,10 @@ type AcceptReqAddrData struct {
 // SaveAcceptReqAddrData save the reqaddr command data to local db
 func SaveAcceptReqAddrData(ac *AcceptReqAddrData) error {
 	if ac == nil {
-		return fmt.Errorf("no accept data.")
+		return fmt.Errorf("accept data was not found")
 	}
 
-	key := Keccak256Hash([]byte(strings.ToLower(ac.Account + ":" + ac.Cointype + ":" + ac.GroupId + ":" + ac.Nonce + ":" + ac.LimitNum + ":" + ac.Mode))).Hex()
+	key := Keccak256Hash([]byte(strings.ToLower(ac.Account + ":" + ac.Cointype + ":" + ac.GroupID + ":" + ac.Nonce + ":" + ac.LimitNum + ":" + ac.Mode))).Hex()
 
 	alos, err := Encode2(ac)
 	if err != nil {
@@ -200,6 +208,7 @@ func SaveAcceptReqAddrData(ac *AcceptReqAddrData) error {
 
 //-------------------------------------------------------------------------------------
 
+// TxDataAcceptReqAddr the data of the special tx of accepting keygen
 type TxDataAcceptReqAddr struct {
 	TxType    string
 	Key       string
@@ -273,7 +282,7 @@ func AcceptReqAddr(initiator string, account string, cointype string, groupid st
 		arl = allreply
 	}
 
-	wid := ac.WorkId
+	wid := ac.WorkID
 	if workid >= 0 {
 		wid = workid
 	}
@@ -283,7 +292,7 @@ func AcceptReqAddr(initiator string, account string, cointype string, groupid st
 		gs = sigs
 	}
 
-	ac2 := &AcceptReqAddrData{Initiator: in, Account: ac.Account, Cointype: ac.Cointype, GroupId: ac.GroupId, Nonce: ac.Nonce, LimitNum: ac.LimitNum, Mode: ac.Mode, TimeStamp: ac.TimeStamp, Deal: de, Accept: acp, Status: sts, PubKey: pk, Tip: ttip, Error: eif, AllReply: arl, WorkId: wid, Sigs: gs}
+	ac2 := &AcceptReqAddrData{Initiator: in, Account: ac.Account, Cointype: ac.Cointype, GroupID: ac.GroupID, Nonce: ac.Nonce, LimitNum: ac.LimitNum, Mode: ac.Mode, TimeStamp: ac.TimeStamp, Deal: de, Accept: acp, Status: sts, PubKey: pk, Tip: ttip, Error: eif, AllReply: arl, WorkID: wid, Sigs: gs}
 
 	e, err := Encode2(ac2)
 	if err != nil {
@@ -317,10 +326,11 @@ func AcceptReqAddr(initiator string, account string, cointype string, groupid st
 
 //--------------------------------------------------------------------------------------
 
+// AcceptSignData the data of sign cmd,include:weather initiator,from accout,gid,sign sub-gid,pubkey,threshold,accept or reject the sign .. and so on. 
 type AcceptSignData struct {
 	Initiator  string //enode id
 	Account    string
-	GroupId    string
+	GroupID    string
 	Nonce      string
 	PubKey     string
 	MsgHash    []string
@@ -339,17 +349,17 @@ type AcceptSignData struct {
 	Error  string
 
 	AllReply []NodeReply
-	WorkId   int
+	WorkID   int
 }
 
 // SaveAcceptSignData save the sign command data to local db
 func SaveAcceptSignData(ac *AcceptSignData) error {
 	if ac == nil {
-		return fmt.Errorf("no accept data.")
+		return fmt.Errorf("no accept data")
 	}
 
 	//key := hash(acc + nonce + pubkey + hash + keytype + groupid + threshold + mode)
-	key := Keccak256Hash([]byte(strings.ToLower(ac.Account + ":" + ac.Nonce + ":" + ac.PubKey + ":" + get_sign_hash(ac.MsgHash, ac.Keytype) + ":" + ac.Keytype + ":" + ac.GroupId + ":" + ac.LimitNum + ":" + ac.Mode))).Hex()
+	key := Keccak256Hash([]byte(strings.ToLower(ac.Account + ":" + ac.Nonce + ":" + ac.PubKey + ":" + getSignHash(ac.MsgHash, ac.Keytype) + ":" + ac.Keytype + ":" + ac.GroupID + ":" + ac.LimitNum + ":" + ac.Mode))).Hex()
 
 	alos, err := Encode2(ac)
 	if err != nil {
@@ -374,6 +384,7 @@ func SaveAcceptSignData(ac *AcceptSignData) error {
 
 //-----------------------------------------------------------------------------------------------------
 
+// TxDataAcceptSign the data of the special tx of accepting sign
 type TxDataAcceptSign struct {
 	TxType     string
 	Key        string
@@ -386,7 +397,7 @@ type TxDataAcceptSign struct {
 // AcceptSign  set the status of signing request 
 // if the status is not "Pending",move the Corresponding data to  General database,otherwise stay the database for saving data related to sign command 
 func AcceptSign(initiator string, account string, pubkey string, msghash []string, keytype string, groupid string, nonce string, threshold string, mode string, deal string, accept string, status string, rsv string, tip string, errinfo string, allreply []NodeReply, workid int) (string, error) {
-	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + nonce + ":" + pubkey + ":" + get_sign_hash(msghash, keytype) + ":" + keytype + ":" + groupid + ":" + threshold + ":" + mode))).Hex()
+	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + nonce + ":" + pubkey + ":" + getSignHash(msghash, keytype) + ":" + keytype + ":" + groupid + ":" + threshold + ":" + mode))).Hex()
 
 	exsit, da := GetPubKeyData([]byte(key))
 	if exsit {
@@ -450,12 +461,12 @@ func AcceptSign(initiator string, account string, pubkey string, msghash []strin
 		arl = allreply
 	}
 
-	wid := ac.WorkId
+	wid := ac.WorkID
 	if workid >= 0 {
 		wid = workid
 	}
 
-	ac2 := &AcceptSignData{Initiator: in, Account: ac.Account, GroupId: ac.GroupId, Nonce: ac.Nonce, PubKey: ac.PubKey, MsgHash: ac.MsgHash, MsgContext: ac.MsgContext, Keytype: ac.Keytype, LimitNum: ac.LimitNum, Mode: ac.Mode, TimeStamp: ac.TimeStamp, Deal: de, Accept: acp, Status: sts, Rsv: ah, Tip: ttip, Error: eif, AllReply: arl, WorkId: wid}
+	ac2 := &AcceptSignData{Initiator: in, Account: ac.Account, GroupID: ac.GroupID, Nonce: ac.Nonce, PubKey: ac.PubKey, MsgHash: ac.MsgHash, MsgContext: ac.MsgContext, Keytype: ac.Keytype, LimitNum: ac.LimitNum, Mode: ac.Mode, TimeStamp: ac.TimeStamp, Deal: de, Accept: acp, Status: sts, Rsv: ah, Tip: ttip, Error: eif, AllReply: arl, WorkID: wid}
 
 	e, err := Encode2(ac2)
 	if err != nil {
@@ -489,11 +500,12 @@ func AcceptSign(initiator string, account string, pubkey string, msghash []strin
 
 //----------------------------------------------------------------------------------
 
+// AcceptReShareData the data of reshare cmd,include:weather initiator,from accout,gid,reshare sub-gid,pubkey,threshold,accept or reject the reshare .. and so on. 
 type AcceptReShareData struct {
 	Initiator  string //enode id
 	Account    string
-	GroupId    string
-	TSGroupId  string
+	GroupID    string
+	TSGroupID  string
 	PubKey     string
 	LimitNum   string
 	PubAccount string
@@ -510,16 +522,16 @@ type AcceptReShareData struct {
 	Error  string
 
 	AllReply []NodeReply
-	WorkId   int
+	WorkID   int
 }
 
 // SaveAcceptReShareData save the reshare command data to local db
 func SaveAcceptReShareData(ac *AcceptReShareData) error {
 	if ac == nil {
-		return fmt.Errorf("Accept data was not found.")
+		return fmt.Errorf("Accept data was not found")
 	}
 
-	key := Keccak256Hash([]byte(strings.ToLower(ac.Account + ":" + ac.GroupId + ":" + ac.TSGroupId + ":" + ac.PubKey + ":" + ac.LimitNum + ":" + ac.Mode))).Hex()
+	key := Keccak256Hash([]byte(strings.ToLower(ac.Account + ":" + ac.GroupID + ":" + ac.TSGroupID + ":" + ac.PubKey + ":" + ac.LimitNum + ":" + ac.Mode))).Hex()
 
 	alos, err := Encode2(ac)
 	if err != nil {
@@ -544,6 +556,7 @@ func SaveAcceptReShareData(ac *AcceptReShareData) error {
 
 //--------------------------------------------------------------------------------------
 
+// TxDataAcceptReShare the data of the special tx of accepting reshare
 type TxDataAcceptReShare struct {
 	TxType    string
 	Key       string
@@ -618,12 +631,12 @@ func AcceptReShare(initiator string, account string, groupid string, tsgroupid s
 		arl = allreply
 	}
 
-	wid := ac.WorkId
+	wid := ac.WorkID
 	if workid >= 0 {
 		wid = workid
 	}
 
-	ac2 := &AcceptReShareData{Initiator: in, Account: ac.Account, GroupId: ac.GroupId, TSGroupId: ac.TSGroupId, PubKey: ac.PubKey, LimitNum: ac.LimitNum, PubAccount: ac.PubAccount, Mode: ac.Mode, Sigs: ac.Sigs, TimeStamp: ac.TimeStamp, Deal: de, Accept: acp, Status: sts, NewSk: ah, Tip: ttip, Error: eif, AllReply: arl, WorkId: wid}
+	ac2 := &AcceptReShareData{Initiator: in, Account: ac.Account, GroupID: ac.GroupID, TSGroupID: ac.TSGroupID, PubKey: ac.PubKey, LimitNum: ac.LimitNum, PubAccount: ac.PubAccount, Mode: ac.Mode, Sigs: ac.Sigs, TimeStamp: ac.TimeStamp, Deal: de, Accept: acp, Status: sts, NewSk: ah, Tip: ttip, Error: eif, AllReply: arl, WorkID: wid}
 
 	e, err := Encode2(ac2)
 	if err != nil {
@@ -657,6 +670,7 @@ func AcceptReShare(initiator string, account string, groupid string, tsgroupid s
 
 //---------------------------------------------------------------------
 
+// RawReply the reply of node,accept or reject the keygen/sign/reshare cmd request
 type RawReply struct {
 	From      string
 	Accept    string
@@ -695,7 +709,7 @@ func GetRawReply(l *list.List) *common.SafeMap {
 			continue
 		}
 
-		var req2 SmpcReq
+		var req2 CmdReq
 		req, ok := txdata.(*TxDataReqAddr)
 		if ok {
 			reply := &RawReply{From: from, Accept: "true", TimeStamp: req.TimeStamp}
@@ -766,19 +780,19 @@ func GetRawReply(l *list.List) *common.SafeMap {
 }
 
 // CheckReply  Detect whether all nodes in the group have sent accept data 
-func CheckReply(l *list.List, rt RpcType, key string) bool {
+func CheckReply(l *list.List, rt RPCType, key string) bool {
 	if l == nil || key == "" {
 		return false
 	}
 
-	var req SmpcReq
-	if rt == Rpc_RESHARE {
+	var req CmdReq
+	if rt == RPCRESHARE {
 		req = &ReqSmpcReshare{}
 		return req.CheckReply(nil, l, key)
 	}
 
 	k := ""
-	if rt == Rpc_REQADDR {
+	if rt == RPCREQADDR {
 		k = key
 	} else {
 		k = GetReqAddrKeyByOtherKey(key, rt)
@@ -807,9 +821,9 @@ func CheckReply(l *list.List, rt RpcType, key string) bool {
 	}
 
 	switch rt {
-	case Rpc_REQADDR:
+	case RPCREQADDR:
 		req = &ReqSmpcAddr{}
-	case Rpc_SIGN:
+	case RPCSIGN:
 		req = &ReqSmpcSign{}
 	default:
 		return false

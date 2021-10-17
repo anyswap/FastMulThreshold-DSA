@@ -81,8 +81,8 @@ func (round *base) CanProceed() bool {
 	return true
 }
 
-// GetIds get from all nodes
-func (round *base) GetIds() (smpc.SortableIDSSlice, error) {
+// GetIDs get from all nodes
+func (round *base) GetIDs() (smpc.SortableIDSSlice, error) {
 	var ids smpc.SortableIDSSlice
 	for _, v := range round.temp.kgRound0Messages {
 		uidtmp, _ := hex.DecodeString(v.GetFromID())
@@ -100,7 +100,7 @@ func (round *base) GetDNodeIDIndex(id string) (int, error) {
 		return -1, nil
 	}
 
-	ids, err := round.GetIds()
+	ids, err := round.GetIDs()
 	if err != nil {
 		return -1, err
 	}

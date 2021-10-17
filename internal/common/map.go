@@ -21,17 +21,20 @@ import (
 	"sync"
 )
 
+// SafeMap map + sync mutex
 type SafeMap struct {
 	sync.RWMutex
 	Map map[string]interface{}
 }
 
+// NewSafeMap new SafeMap
 func NewSafeMap(size int) *SafeMap {
 	sm := new(SafeMap)
 	sm.Map = make(map[string]interface{})
 	return sm
 }
 
+// ReadMap get value by key
 func (sm *SafeMap) ReadMap(key string) (interface{}, bool) {
 	sm.RLock()
 	value, ok := sm.Map[key]
@@ -39,18 +42,21 @@ func (sm *SafeMap) ReadMap(key string) (interface{}, bool) {
 	return value, ok
 }
 
+// WriteMap write value by key
 func (sm *SafeMap) WriteMap(key string, value interface{}) {
 	sm.Lock()
 	sm.Map[key] = value
 	sm.Unlock()
 }
 
+// DeleteMap delete value by key
 func (sm *SafeMap) DeleteMap(key string) {
 	sm.Lock()
 	delete(sm.Map, key)
 	sm.Unlock()
 }
 
+// ListMap get all (key,value)
 func (sm *SafeMap) ListMap() ([]string, []interface{}) {
 	sm.RLock()
 	l := len(sm.Map)
@@ -67,6 +73,7 @@ func (sm *SafeMap) ListMap() ([]string, []interface{}) {
 	return key, value
 }
 
+// MapLength get len of map
 func (sm *SafeMap) MapLength() int {
 	sm.RLock()
 	l := len(sm.Map)

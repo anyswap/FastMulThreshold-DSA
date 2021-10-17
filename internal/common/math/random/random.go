@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-//commitment question 2
+// GetRandomInt get random int
 func GetRandomInt(length int) *big.Int {
 	// NewInt allocates and returns a new Int set to x.
 	/*one := big.NewInt(1)
@@ -31,6 +31,7 @@ func GetRandomInt(length int) *big.Int {
 	return rndNum
 }
 
+// GetRandomIntFromZn get random int from n
 func GetRandomIntFromZn(n *big.Int) *big.Int {
 	var rndNumZn *big.Int
 	zero := big.NewInt(0)
@@ -45,6 +46,7 @@ func GetRandomIntFromZn(n *big.Int) *big.Int {
 	return rndNumZn
 }
 
+// GetRandomIntFromZnStar get random int < n, >1,and gcd(val,n) = 1
 func GetRandomIntFromZnStar(n *big.Int) *big.Int {
 	var rndNumZnStar *big.Int
 	gcdNum := big.NewInt(0)
@@ -60,6 +62,7 @@ func GetRandomIntFromZnStar(n *big.Int) *big.Int {
 	return rndNumZnStar
 }
 
+// GetSafeRandomPrimeInt get safe big prime
 func GetSafeRandomPrimeInt() (*big.Int, *big.Int) {
 	var q *big.Int
 	var p *big.Int

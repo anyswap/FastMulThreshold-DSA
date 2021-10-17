@@ -27,8 +27,10 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
-var ErrMessageTooLong = errors.New("[ERROR]: message is too long.")
+// ErrMessageTooLong error info to print
+var ErrMessageTooLong = errors.New("[ERROR]: message is too long")
 
+// PublicKey the paillier pubkey
 type PublicKey struct {
 	Length string   `json:"Length"`
 	N      *big.Int `json:"N"`  // n = p*q, where p and q are prime
@@ -36,6 +38,7 @@ type PublicKey struct {
 	N2     *big.Int `json:"N2"` // N2 = N * N
 }
 
+// PrivateKey the paillier private key
 type PrivateKey struct {
 	Length string `json:"Length"`
 	PublicKey
@@ -137,6 +140,7 @@ func (publicKey *PublicKey) HomoMul(cipher, k *big.Int) *big.Int {
 
 //------------------------------------------------------------------------------
 
+// ZkFactProof zkpact proof
 type ZkFactProof struct {
 	H1 *big.Int
 	H2 *big.Int
@@ -184,13 +188,14 @@ func (publicKey *PublicKey) ZkFactVerify(zkFactProof *ZkFactProof) bool {
 
 	if e.Cmp(zkFactProof.E) == 0 {
 		return true
-	} else {
-		return false
-	}
+	} 
+	
+	return false
 }
 
 //---------------------------------------------------------------------------
 
+// MarshalJSON marshal PublicKey to json bytes
 func (publicKey *PublicKey) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Length string `json:"Length"`
@@ -205,6 +210,7 @@ func (publicKey *PublicKey) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON unmarshal raw to PublicKey
 func (publicKey *PublicKey) UnmarshalJSON(raw []byte) error {
 	var pub struct {
 		Length string `json:"Length"`
@@ -225,6 +231,7 @@ func (publicKey *PublicKey) UnmarshalJSON(raw []byte) error {
 
 //--------------------------------------------------------------------------
 
+// MarshalJSON marshal PrivateKey to json bytes
 func (privateKey *PrivateKey) MarshalJSON() ([]byte, error) {
 	pk, err := (&(privateKey.PublicKey)).MarshalJSON()
 	if err != nil {
@@ -244,6 +251,7 @@ func (privateKey *PrivateKey) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON unmarshal raw to PrivateKey
 func (privateKey *PrivateKey) UnmarshalJSON(raw []byte) error {
 	var pri struct {
 		Length    string `json:"Length"`
@@ -270,6 +278,7 @@ func (privateKey *PrivateKey) UnmarshalJSON(raw []byte) error {
 
 //-----------------------------------------------------------------------
 
+// CreatPair create paillier pubkey/private key
 func CreatPair(length int) (*PublicKey, *PrivateKey) {
 	one := big.NewInt(1)
 

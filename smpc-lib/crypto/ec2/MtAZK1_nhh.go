@@ -27,7 +27,8 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
-type MtAZK1Proof_nhh struct {
+// MtAZK1Proofnhh mtazk1 zk proof 
+type MtAZK1Proofnhh struct {
 	Z  *big.Int
 	U  *big.Int
 	W  *big.Int
@@ -36,8 +37,8 @@ type MtAZK1Proof_nhh struct {
 	S2 *big.Int
 }
 
-// MtAZK1Prove_nhh  Generate zero knowledge proof data mtazk1proof_ nhh 
-func MtAZK1Prove_nhh(m *big.Int, r *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtAZK1Proof_nhh {
+// MtAZK1Provenhh  Generate zero knowledge proof data mtazk1proof_ nhh 
+func MtAZK1Provenhh(m *big.Int, r *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtAZK1Proofnhh {
 	N3Ntilde := new(big.Int).Mul(s256.S256().N3(), ntildeH1H2.Ntilde)
 	NNtilde := new(big.Int).Mul(s256.S256().N, ntildeH1H2.Ntilde)
 
@@ -80,12 +81,12 @@ func MtAZK1Prove_nhh(m *big.Int, r *big.Int, publicKey *PublicKey, ntildeH1H2 *N
 	s2 := new(big.Int).Mul(e, rho)
 	s2 = new(big.Int).Add(s2, gamma)
 
-	mtAZKProof := &MtAZK1Proof_nhh{Z: z, U: u, W: w, S: s, S1: s1, S2: s2}
+	mtAZKProof := &MtAZK1Proofnhh{Z: z, U: u, W: w, S: s, S1: s1, S2: s2}
 	return mtAZKProof
 }
 
-// MtAZK1Verify_nhh  Verify zero knowledge proof data mtazk1proof_ nhh 
-func (mtAZKProof *MtAZK1Proof_nhh) MtAZK1Verify_nhh(c *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
+// MtAZK1Verifynhh  Verify zero knowledge proof data mtazk1proof_ nhh 
+func (mtAZKProof *MtAZK1Proofnhh) MtAZK1Verifynhh(c *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
 	if mtAZKProof.S1.Cmp(s256.S256().N3()) >= 0 { //MtAZK1 question 1
 		return false
 	}
@@ -129,7 +130,8 @@ func (mtAZKProof *MtAZK1Proof_nhh) MtAZK1Verify_nhh(c *big.Int, publicKey *Publi
 	return true
 }
 
-func (u1u1MtAZK1Proof *MtAZK1Proof_nhh) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshal MtAZK1Proofnhh to json bytes
+func (mtAZKProof *MtAZK1Proofnhh) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Z  string `json:"Z"`
 		U  string `json:"U"`
@@ -138,16 +140,17 @@ func (u1u1MtAZK1Proof *MtAZK1Proof_nhh) MarshalJSON() ([]byte, error) {
 		S1 string `json:"S1"`
 		S2 string `json:"S2"`
 	}{
-		Z:  fmt.Sprintf("%v", u1u1MtAZK1Proof.Z),
-		U:  fmt.Sprintf("%v", u1u1MtAZK1Proof.U),
-		W:  fmt.Sprintf("%v", u1u1MtAZK1Proof.W),
-		S:  fmt.Sprintf("%v", u1u1MtAZK1Proof.S),
-		S1: fmt.Sprintf("%v", u1u1MtAZK1Proof.S1),
-		S2: fmt.Sprintf("%v", u1u1MtAZK1Proof.S2),
+		Z:  fmt.Sprintf("%v", mtAZKProof.Z),
+		U:  fmt.Sprintf("%v", mtAZKProof.U),
+		W:  fmt.Sprintf("%v", mtAZKProof.W),
+		S:  fmt.Sprintf("%v", mtAZKProof.S),
+		S1: fmt.Sprintf("%v", mtAZKProof.S1),
+		S2: fmt.Sprintf("%v", mtAZKProof.S2),
 	})
 }
 
-func (u1u1MtAZK1Proof *MtAZK1Proof_nhh) UnmarshalJSON(raw []byte) error {
+// UnmarshalJSON unmarshal raw to MtAZK1Proofnhh
+func (mtAZKProof *MtAZK1Proofnhh) UnmarshalJSON(raw []byte) error {
 	var proof struct {
 		Z  string `json:"Z"`
 		U  string `json:"U"`
@@ -160,11 +163,11 @@ func (u1u1MtAZK1Proof *MtAZK1Proof_nhh) UnmarshalJSON(raw []byte) error {
 		return err
 	}
 
-	u1u1MtAZK1Proof.Z, _ = new(big.Int).SetString(proof.Z, 10)
-	u1u1MtAZK1Proof.U, _ = new(big.Int).SetString(proof.U, 10)
-	u1u1MtAZK1Proof.W, _ = new(big.Int).SetString(proof.W, 10)
-	u1u1MtAZK1Proof.S, _ = new(big.Int).SetString(proof.S, 10)
-	u1u1MtAZK1Proof.S1, _ = new(big.Int).SetString(proof.S1, 10)
-	u1u1MtAZK1Proof.S2, _ = new(big.Int).SetString(proof.S2, 10)
+	mtAZKProof.Z, _ = new(big.Int).SetString(proof.Z, 10)
+	mtAZKProof.U, _ = new(big.Int).SetString(proof.U, 10)
+	mtAZKProof.W, _ = new(big.Int).SetString(proof.W, 10)
+	mtAZKProof.S, _ = new(big.Int).SetString(proof.S, 10)
+	mtAZKProof.S1, _ = new(big.Int).SetString(proof.S1, 10)
+	mtAZKProof.S2, _ = new(big.Int).SetString(proof.S2, 10)
 	return nil
 }

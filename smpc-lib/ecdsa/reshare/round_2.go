@@ -34,21 +34,21 @@ func (round *round2) Start() error {
 	round.resetOK()
 
 	if !round.oldnode {
-		ids, err := round.GetIds()
+		ids, err := round.GetIDs()
 		if err != nil {
-			return errors.New("round.Start get ids fail.")
+			return errors.New("round.Start get ids fail")
 		}
-		round.Save.Ids = ids
+		round.Save.IDs = ids
 		round.Save.CurDNodeID, _ = new(big.Int).SetString(round.dnodeid, 10)
 
 		return nil
 	}
 
-	ids, err := round.GetIds()
+	ids, err := round.GetIDs()
 	if err != nil {
-		return errors.New("round.Start get ids fail.")
+		return errors.New("round.Start get ids fail")
 	}
-	round.Save.Ids = ids
+	round.Save.IDs = ids
 	round.Save.CurDNodeID, _ = new(big.Int).SetString(round.dnodeid, 10)
 
 	skP1Shares, err := round.temp.skP1Poly.Vss2(ids)
@@ -58,40 +58,40 @@ func (round *round2) Start() error {
 
 	round.temp.skP1Shares = skP1Shares
 
-	cur_index_reshare, err := round.GetDNodeIDIndex(round.dnodeid)
+	curIndexReshare, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
 		return err
 	}
 
-	cur_index := -1
-	for k, v := range round.Save.Ids {
+	curIndex := -1
+	for k, v := range round.Save.IDs {
 		if v.Cmp(round.Save.CurDNodeID) == 0 {
-			cur_index = k
+			curIndex = k
 			break
 		}
 	}
 
-	if cur_index < 0 {
-		return errors.New("get current node index fail.")
+	if curIndex < 0 {
+		return errors.New("get current node index fail")
 	}
 
 	for k, id := range ids {
 		for _, v := range skP1Shares {
-			re := &ReshareRound2Message{
-				ReshareRoundMessage: new(ReshareRoundMessage),
-				Id:                  v.Id,
+			re := &ReRound2Message{
+				ReRoundMessage: new(ReRoundMessage),
+				ID:                  v.ID,
 				Share:               v.Share,
 			}
 			re.SetFromID(round.dnodeid)
-			re.SetFromIndex(cur_index_reshare)
+			re.SetFromIndex(curIndexReshare)
 
-			vv := ec2.GetSharesId(v)
-			if vv != nil && vv.Cmp(id) == 0 && k == cur_index {
-				fmt.Printf("=========== round2, it is self. share struct id = %v, share = %v, k = %v ===========\n", v.Id, v.Share, k)
-				round.temp.reshareRound2Messages[cur_index_reshare] = re
+			vv := ec2.GetSharesID(v)
+			if vv != nil && vv.Cmp(id) == 0 && k == curIndex {
+				fmt.Printf("=========== round2, it is self. share struct id = %v, share = %v, k = %v ===========\n", v.ID, v.Share, k)
+				round.temp.reshareRound2Messages[curIndexReshare] = re
 				break
 			} else if vv != nil && vv.Cmp(id) == 0 {
-				fmt.Printf("=========== round2, share struct id = %v, share = %v, k = %v ===========\n", v.Id, v.Share, k)
+				fmt.Printf("=========== round2, share struct id = %v, share = %v, k = %v ===========\n", v.ID, v.Share, k)
 				re.AppendToID(fmt.Sprintf("%v", id)) //id-->dnodeid
 				round.out <- re
 				//fmt.Printf("============ round2 send msg to peer = %v ============\n",id)
@@ -100,14 +100,14 @@ func (round *round2) Start() error {
 		}
 	}
 
-	re := &ReshareRound2Message1{
-		ReshareRoundMessage: new(ReshareRoundMessage),
+	re := &ReRound2Message1{
+		ReRoundMessage: new(ReRoundMessage),
 		ComD:                round.temp.comd,
 		SkP1PolyG:           round.temp.skP1PolyG,
 	}
 	re.SetFromID(round.dnodeid)
-	re.SetFromIndex(cur_index_reshare)
-	round.temp.reshareRound2Messages1[cur_index_reshare] = re
+	re.SetFromIndex(curIndexReshare)
+	round.temp.reshareRound2Messages1[curIndexReshare] = re
 	round.out <- re
 
 	//fmt.Printf("============ round2 send msg to peer success ============\n")
@@ -116,10 +116,10 @@ func (round *round2) Start() error {
 
 // CanAccept is it legal to receive this message 
 func (round *round2) CanAccept(msg smpc.Message) bool {
-	if _, ok := msg.(*ReshareRound2Message); ok {
+	if _, ok := msg.(*ReRound2Message); ok {
 		return !msg.IsBroadcast()
 	}
-	if _, ok := msg.(*ReshareRound2Message1); ok {
+	if _, ok := msg.(*ReRound2Message1); ok {
 		return msg.IsBroadcast()
 	}
 	return false

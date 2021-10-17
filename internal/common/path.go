@@ -53,6 +53,7 @@ func AbsolutePath(datadir string, filename string) string {
 	return filepath.Join(datadir, filename)
 }
 
+// InitDir init data dir
 func InitDir(dir string) {
 	if dir == "" {
 		datadir = DefaultDataDir()
@@ -92,10 +93,12 @@ func DefaultDataDir() string {
 	return ""
 }
 
+// HomeDir get home dir
 func HomeDir() string {
 	return homeDir()
 }
 
+// homeDir xxx
 func homeDir() string {
 	if home := os.Getenv("HOME"); home != "" {
 		return home

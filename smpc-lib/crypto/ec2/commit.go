@@ -24,6 +24,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
+// Commitment commitment data
 type Commitment struct {
 	C *big.Int
 	D []*big.Int
@@ -96,9 +97,9 @@ func (commitment *Commitment) Verify() bool {
 func (commitment *Commitment) DeCommit() (bool, []*big.Int) {
 	if commitment.Verify() {
 		return true, commitment.D[1:]
-	} else {
-		return false, nil
 	}
+	
+	return false, nil
 
 }
 

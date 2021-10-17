@@ -32,13 +32,13 @@ import (
 
 //---------------------------------------EDDSA start-----------------------------------------------------------------------
 
-// ProcessInboundMessages_EDDSA Analyze the obtained P2P messages and enter next round
-func ProcessInboundMessages_EDDSA(msgprex string, finishChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
+// ProcessInboundMessagesEDDSA Analyze the obtained P2P messages and enter next round
+func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
 	defer wg.Done()
 	fmt.Printf("start processing inbound messages, key = %v \n", msgprex)
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
-		res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("ed,fail to process inbound messages")}
+		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("ed,fail to process inbound messages")}
 		ch <- res
 		return
 	}
@@ -53,7 +53,7 @@ func ProcessInboundMessages_EDDSA(msgprex string, finishChan chan struct{}, wg *
 			msgmap := make(map[string]string)
 			err := json.Unmarshal([]byte(m), &msgmap)
 			if err != nil {
-				res := RpcSmpcRes{Ret: "", Err: err}
+				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
 			}
@@ -63,17 +63,17 @@ func ProcessInboundMessages_EDDSA(msgprex string, finishChan chan struct{}, wg *
 				w.MsgToEnode[from] = msgmap["ENode"]
 			}
 
-			mm := GetRealMessage_EDDSA(msgmap)
+			mm := GetRealMessageEDDSA(msgmap)
 			if mm == nil {
-				res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("ed,fail to process inbound messages")}
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("ed,fail to process inbound messages")}
 				ch <- res
 				return
 			}
 
 			_, err = w.DNode.Update(mm)
 			if err != nil {
-				common.Error("====================ProcessInboundMessages_EDDSA,dnode update fail=======================", "receiv msg", m, "err", err)
-				res := RpcSmpcRes{Ret: "", Err: err}
+				common.Error("====================ProcessInboundMessagesEDDSA,dnode update fail=======================", "receiv msg", m, "err", err)
+				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
 			}
@@ -81,8 +81,8 @@ func ProcessInboundMessages_EDDSA(msgprex string, finishChan chan struct{}, wg *
 	}
 }
 
-// GetRealMessage_EDDSA get the message data struct by map. (p2p msg ---> map)
-func GetRealMessage_EDDSA(msg map[string]string) smpclib.Message {
+// GetRealMessageEDDSA get the message data struct by map. (p2p msg ---> map)
+func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 	from := msg["FromID"]
 	var to []string
 	v, ok := msg["ToID"]
@@ -186,21 +186,21 @@ func GetRealMessage_EDDSA(msg map[string]string) smpclib.Message {
 	return kg
 }
 
-// processKeyGen_EDDSA  Obtain the data to be sent in each round and send it to other nodes until the end of the request command 
-func processKeyGen_EDDSA(msgprex string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan edkeygen.LocalDNodeSaveData) error {
+// processKeyGenEDDSA  Obtain the data to be sent in each round and send it to other nodes until the end of the request command 
+func processKeyGenEDDSA(msgprex string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan edkeygen.LocalDNodeSaveData) error {
 	for {
 		select {
 		case <-errChan: // when keyGenParty return
-			fmt.Printf("=========== processKeyGen_EDDSA,error channel closed fail to start local smpc node, key = %v ===========\n", msgprex)
+			fmt.Printf("=========== processKeyGenEDDSA,error channel closed fail to start local smpc node, key = %v ===========\n", msgprex)
 			return errors.New("error channel closed fail to start local smpc node")
 
 		case <-time.After(time.Second * 300):
-			fmt.Printf("====================== processKeyGen_EDDSA,ed keygen timeout, key = %v ====================\n", msgprex)
+			fmt.Printf("====================== processKeyGenEDDSA,ed keygen timeout, key = %v ====================\n", msgprex)
 			return errors.New("ed keygen timeout")
 		case msg := <-outCh:
 			err := ProcessOutCh(msgprex, msg)
 			if err != nil {
-				fmt.Printf("================= processKeyGen_EDDSA,process outch err = %v,key = %v ==========\n", err, msgprex)
+				fmt.Printf("================= processKeyGenEDDSA,process outch err = %v,key = %v ==========\n", err, msgprex)
 				return err
 			}
 		case msg := <-endCh:
@@ -214,19 +214,20 @@ func processKeyGen_EDDSA(msgprex string, errChan chan struct{}, outCh <-chan smp
 
 			s := "XXX" + common.Sep11 + string(msg.Pk[:]) + common.Sep11 + string(msg.TSk[:]) + common.Sep11 + string(msg.FinalPkBytes[:])
 			w.edsave.PushBack(string(s))
-			fmt.Printf("=======================processKeyGen_EDDSA,success finish ed keygen, key = %v =======================\n", msgprex)
+			fmt.Printf("=======================processKeyGenEDDSA,success finish ed keygen, key = %v =======================\n", msgprex)
 			return nil
 		}
 	}
 }
 
-type KGLocalDBSaveData_ed struct {
+// KGLocalDBSaveDataED ed keygen save data
+type KGLocalDBSaveDataED struct {
 	Save       *edkeygen.LocalDNodeSaveData
 	MsgToEnode map[string]string
 }
 
-// OutMap  Convert KGLocalDBSaveData_ed data struct to map 
-func (kgsave *KGLocalDBSaveData_ed) OutMap() map[string]string {
+// OutMap  Convert KGLocalDBSaveDataED data struct to map 
+func (kgsave *KGLocalDBSaveDataED) OutMap() map[string]string {
 	out := kgsave.Save.OutMap()
 	for key, value := range kgsave.MsgToEnode {
 		out[key] = value
@@ -235,18 +236,18 @@ func (kgsave *KGLocalDBSaveData_ed) OutMap() map[string]string {
 	return out
 }
 
-// GetKGLocalDBSaveData_ed get KGLocalDBSaveData_ed data struct from map
-func GetKGLocalDBSaveData_ed(data map[string]string) *KGLocalDBSaveData_ed {
+// GetKGLocalDBSaveDataED get KGLocalDBSaveDataED data struct from map
+func GetKGLocalDBSaveDataED(data map[string]string) *KGLocalDBSaveDataED {
 	save := edkeygen.GetLocalDNodeSaveData(data)
 	msgtoenode := make(map[string]string)
-	for _, v := range save.Ids {
+	for _, v := range save.IDs {
 		var tmp [32]byte
 		copy(tmp[:], v.Bytes())
 		id := strings.ToLower(hex.EncodeToString(tmp[:]))
 		msgtoenode[id] = data[id]
 	}
 
-	kgsave := &KGLocalDBSaveData_ed{Save: save, MsgToEnode: msgtoenode}
+	kgsave := &KGLocalDBSaveDataED{Save: save, MsgToEnode: msgtoenode}
 	return kgsave
 }
 

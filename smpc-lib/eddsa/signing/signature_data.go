@@ -26,6 +26,7 @@ import (
 	edlib "crypto/ed25519"
 )
 
+// InputVerify  Ed algorithm validation data 
 type InputVerify struct {
 	FinalR  [32]byte
 	FinalS  [32]byte
@@ -78,12 +79,13 @@ func EdVerify(input InputVerify) bool {
 	return pass
 }
 
+// EdSignData ed sign result (r,s)
 type EdSignData struct {
 	Rx [32]byte
 	Sx [32]byte
 }
 
-//TODO
+// PrePubData pre-sign data 
 type PrePubData struct {
 	K1     *big.Int
 	R      *big.Int

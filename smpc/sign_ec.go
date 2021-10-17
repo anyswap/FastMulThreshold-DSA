@@ -39,7 +39,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 	fmt.Printf("start sign processing inbound messages\n")
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
-		res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("fail to sign process inbound messages")}
+		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to sign process inbound messages")}
 		ch <- res
 		return
 	}
@@ -54,14 +54,14 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 			msgmap := make(map[string]string)
 			err := json.Unmarshal([]byte(m), &msgmap)
 			if err != nil {
-				res := RpcSmpcRes{Ret: "", Err: err}
+				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
 			}
 
 			mm := SignGetRealMessage(msgmap)
 			if mm == nil {
-				res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("fail to sign process inbound messages")}
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to sign process inbound messages")}
 				ch <- res
 				return
 			}
@@ -69,7 +69,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 			_, err = w.DNode.Update(mm)
 			if err != nil {
 				fmt.Printf("========== SignProcessInboundMessages, dnode update fail, receiv smpc msg = %v, err = %v ============\n", m, err)
-				res := RpcSmpcRes{Ret: "", Err: err}
+				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
 			}
@@ -106,7 +106,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//2 message
 	if msg["Type"] == "SignRound2Message" {
-		proof := &ec2.MtAZK1Proof_nhh{}
+		proof := &ec2.MtAZK1Proofnhh{}
 		if err := proof.UnmarshalJSON([]byte(msg["U1u1MtAZK1Proof"])); err == nil {
 
 			srm := &signing.SignRound2Message{
@@ -139,7 +139,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//4 message
 	if msg["Type"] == "SignRound4Message" {
-		proof := &ec2.MtAZK2Proof_nhh{}
+		proof := &ec2.MtAZK2Proofnhh{}
 		if err := proof.UnmarshalJSON([]byte(msg["U1u1MtAZK2Proof"])); err == nil {
 			cipher, _ := new(big.Int).SetString(msg["U1KGamma1Cipher"], 10)
 			srm := &signing.SignRound4Message{
@@ -158,7 +158,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//4-1 message
 	if msg["Type"] == "SignRound4Message1" {
-		proof := &ec2.MtAZK3Proof_nhh{}
+		proof := &ec2.MtAZK3Proofnhh{}
 		if err := proof.UnmarshalJSON([]byte(msg["U1u1MtAZK3Proof"])); err == nil {
 			cipher, _ := new(big.Int).SetString(msg["U1Kw1Cipher"], 10)
 			srm := &signing.SignRound4Message1{
@@ -301,7 +301,7 @@ func SignProcessOutCh(msgprex string, msgtoenode map[string]string, msg smpclib.
 
 	msgmap := msg.OutMap()
 	msgmap["Key"] = msgprex
-	msgmap["ENode"] = cur_enode
+	msgmap["ENode"] = curEnode
 	s, err := json.Marshal(msgmap)
 	if err != nil {
 		return err

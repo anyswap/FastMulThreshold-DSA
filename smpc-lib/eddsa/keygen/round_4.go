@@ -34,14 +34,14 @@ func (round *round4) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index, err := round.GetDNodeIDIndex(round.dnodeid)
+	curIndex, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
 		return err
 	}
 
-	ids, err := round.GetIds()
+	ids, err := round.GetIDs()
 	if err != nil {
-		return errors.New("round.Start get ids fail.")
+		return errors.New("round.start get ids fail")
 	}
 
 	var PkSet []byte
@@ -70,7 +70,7 @@ func (round *round4) Start() error {
 
 		var t [32]byte
 		copy(t[:], msg3.DPk[32:])
-		zkPkFlag := ed.Verify_zk(msg2.ZkPk, t)
+		zkPkFlag := ed.VerifyZk(msg2.ZkPk, t)
 		if !zkPkFlag {
 			fmt.Printf("Error: ZeroKnowledge Proof (Pk) Not Pass at User: %v \n", id)
 			return errors.New("smpc back-end internal error:zeroknowledge check fail")
@@ -83,7 +83,7 @@ func (round *round4) Start() error {
 	var a [32]byte
 	var aDigest [64]byte
 
-	msg3, ok := round.temp.kgRound3Messages[cur_index].(*KGRound3Message)
+	msg3, ok := round.temp.kgRound3Messages[curIndex].(*KGRound3Message)
 	if !ok {
 		return errors.New("round get msg3 fail")
 	}
@@ -134,9 +134,9 @@ func (round *round4) Start() error {
 			Share:          shares[k],
 		}
 		kg.SetFromID(round.dnodeid)
-		kg.SetFromIndex(cur_index)
+		kg.SetFromIndex(curIndex)
 
-		if k == cur_index {
+		if k == curIndex {
 			round.temp.kgRound4Messages[k] = kg
 		} else {
 

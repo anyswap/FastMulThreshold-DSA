@@ -36,13 +36,13 @@ func (round *round3) Start() error {
 
 	// use round.temp.reshareRound1Messages replace round.idreshare,because round.idreshare == nil when oldnode == false
 	for k := range round.temp.reshareRound1Messages {
-		msg2, ok := round.temp.reshareRound2Messages[k].(*ReshareRound2Message)
+		msg2, ok := round.temp.reshareRound2Messages[k].(*ReRound2Message)
 		if !ok {
 			return errors.New("round.Start get round2 msg fail")
 		}
 
-		ushare := &ec2.ShareStruct2{Id: msg2.Id, Share: msg2.Share}
-		msg21, ok := round.temp.reshareRound2Messages1[k].(*ReshareRound2Message1)
+		ushare := &ec2.ShareStruct2{ID: msg2.ID, Share: msg2.Share}
+		msg21, ok := round.temp.reshareRound2Messages1[k].(*ReRound2Message1)
 		if !ok {
 			return errors.New("round.Start get round2-1 msg fail")
 		}
@@ -54,7 +54,7 @@ func (round *round3) Start() error {
 		}
 
 		//verify commitment
-		msg1, ok := round.temp.reshareRound1Messages[k].(*ReshareRound1Message)
+		msg1, ok := round.temp.reshareRound1Messages[k].(*ReRound1Message)
 		if !ok {
 			return errors.New("round.Start get round1 msg fail")
 		}
@@ -71,10 +71,10 @@ func (round *round3) Start() error {
 	var newskU1 *big.Int
 
 	for k := range round.temp.reshareRound1Messages {
-		msg21, _ := round.temp.reshareRound2Messages1[k].(*ReshareRound2Message1)
-		msg1, _ := round.temp.reshareRound1Messages[k].(*ReshareRound1Message)
-		msg2, _ := round.temp.reshareRound2Messages[k].(*ReshareRound2Message)
-		ushare := &ec2.ShareStruct2{Id: msg2.Id, Share: msg2.Share}
+		msg21, _ := round.temp.reshareRound2Messages1[k].(*ReRound2Message1)
+		msg1, _ := round.temp.reshareRound1Messages[k].(*ReRound1Message)
+		msg2, _ := round.temp.reshareRound2Messages[k].(*ReRound2Message)
+		ushare := &ec2.ShareStruct2{ID: msg2.ID, Share: msg2.Share}
 
 		deCommit := &ec2.Commitment{C: msg1.ComC, D: msg21.ComD}
 		_, u1G := deCommit.DeCommit()
@@ -90,10 +90,10 @@ func (round *round3) Start() error {
 			continue
 		}
 
-		msg2, _ := round.temp.reshareRound2Messages[k].(*ReshareRound2Message)
-		ushare := &ec2.ShareStruct2{Id: msg2.Id, Share: msg2.Share}
-		msg21, _ := round.temp.reshareRound2Messages1[k].(*ReshareRound2Message1)
-		msg1, _ := round.temp.reshareRound1Messages[k].(*ReshareRound1Message)
+		msg2, _ := round.temp.reshareRound2Messages[k].(*ReRound2Message)
+		ushare := &ec2.ShareStruct2{ID: msg2.ID, Share: msg2.Share}
+		msg21, _ := round.temp.reshareRound2Messages1[k].(*ReRound2Message1)
+		msg1, _ := round.temp.reshareRound1Messages[k].(*ReRound1Message)
 
 		deCommit := &ec2.Commitment{C: msg1.ComC, D: msg21.ComD}
 
@@ -114,35 +114,35 @@ func (round *round3) Start() error {
 
 	idtmp, ok := new(big.Int).SetString(round.dnodeid, 10)
 	if !ok {
-		return errors.New("get id big number fail.")
+		return errors.New("get id big number fail")
 	}
 
-	cur_index := -1
-	for k, v := range round.Save.Ids {
+	curIndex := -1
+	for k, v := range round.Save.IDs {
 		if v.Cmp(idtmp) == 0 {
-			cur_index = k
+			curIndex = k
 			break
 		}
 	}
 
-	if cur_index < 0 {
+	if curIndex < 0 {
 		return errors.New("get cur index fail")
 	}
 
 	u1PaillierPk, u1PaillierSk := ec2.GenerateKeyPair(round.paillierkeylength)
 
 	//round.Save.U1PaillierSk = u1PaillierSk
-	//round.Save.U1PaillierPk[cur_index] = u1PaillierPk
+	//round.Save.U1PaillierPk[curIndex] = u1PaillierPk
 	round.temp.u1PaillierSk = u1PaillierSk
 	round.temp.u1PaillierPk = u1PaillierPk
 
-	re := &ReshareRound3Message{
-		ReshareRoundMessage: new(ReshareRoundMessage),
+	re := &ReRound3Message{
+		ReRoundMessage: new(ReRoundMessage),
 		U1PaillierPk:        u1PaillierPk,
 	}
 	re.SetFromID(round.dnodeid)
-	re.SetFromIndex(cur_index)
-	round.temp.reshareRound3Messages[cur_index] = re
+	re.SetFromIndex(curIndex)
+	round.temp.reshareRound3Messages[curIndex] = re
 	round.out <- re
 
 	//fmt.Printf("========= round3 start success ==========\n")
@@ -151,7 +151,7 @@ func (round *round3) Start() error {
 
 // CanAccept is it legal to receive this message 
 func (round *round3) CanAccept(msg smpc.Message) bool {
-	if _, ok := msg.(*ReshareRound3Message); ok {
+	if _, ok := msg.(*ReRound3Message); ok {
 		return msg.IsBroadcast()
 	}
 	return false

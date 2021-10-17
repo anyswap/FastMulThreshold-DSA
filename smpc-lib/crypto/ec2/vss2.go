@@ -23,22 +23,26 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
+// PolyGStruct2 (x,y)
 type PolyGStruct2 struct {
 	PolyG [][]*big.Int //x and y
 }
 
+// PolyStruct2 coefficient set
 type PolyStruct2 struct {
 	Poly []*big.Int // coefficient set
 }
 
+// ShareStruct2 f(xi)
 type ShareStruct2 struct {
-	Id    *big.Int // ID, x coordinate
+	ID    *big.Int // ID, x coordinate
 	Share *big.Int
 }
 
-func GetSharesId(ss *ShareStruct2) *big.Int {
+// GetSharesID get ID
+func GetSharesID(ss *ShareStruct2) *big.Int {
 	if ss != nil {
-		return ss.Id
+		return ss.ID
 	}
 
 	return nil
@@ -74,7 +78,7 @@ func (polyStruct *PolyStruct2) Vss2(ids []*big.Int) ([]*ShareStruct2, error) {
 
 	for i := 0; i < len(ids); i++ {
 		shareVal := calculatePolynomial2(polyStruct.Poly, ids[i])
-		shareStruct := &ShareStruct2{Id: ids[i], Share: shareVal}
+		shareStruct := &ShareStruct2{ID: ids[i], Share: shareVal}
 		shares = append(shares, shareStruct)
 	}
 
@@ -84,7 +88,7 @@ func (polyStruct *PolyStruct2) Vss2(ids []*big.Int) ([]*ShareStruct2, error) {
 // Verify2 Verify Lagrange polynomial value
 func (share *ShareStruct2) Verify2(polyG *PolyGStruct2) bool {
 
-	idVal := share.Id
+	idVal := share.ID
 
 	computePointX, computePointY := polyG.PolyG[0][0], polyG.PolyG[0][1]
 
@@ -92,7 +96,7 @@ func (share *ShareStruct2) Verify2(polyG *PolyGStruct2) bool {
 		pointX, pointY := s256.S256().ScalarMult(polyG.PolyG[i][0], polyG.PolyG[i][1], idVal.Bytes())
 
 		computePointX, computePointY = s256.S256().Add(computePointX, computePointY, pointX, pointY)
-		idVal = new(big.Int).Mul(idVal, share.Id)
+		idVal = new(big.Int).Mul(idVal, share.ID)
 		idVal = new(big.Int).Mod(idVal, s256.S256().N)
 	}
 
@@ -100,9 +104,9 @@ func (share *ShareStruct2) Verify2(polyG *PolyGStruct2) bool {
 
 	if computePointX.Cmp(originalPointX) == 0 && computePointY.Cmp(originalPointY) == 0 {
 		return true
-	} else {
-		return false
 	}
+	
+	return false
 }
 
 // Combine2 Calculating Lagrange interpolation formula 
@@ -111,7 +115,7 @@ func Combine2(shares []*ShareStruct2) (*big.Int, error) {
 	// build x coordinate set
 	xSet := make([]*big.Int, 0)
 	for _, share := range shares {
-		xSet = append(xSet, share.Id)
+		xSet = append(xSet, share.ID)
 	}
 
 	// for
@@ -123,7 +127,7 @@ func Combine2(shares []*ShareStruct2) (*big.Int, error) {
 		// calculate times()
 		for j := 0; j < len(xSet); j++ {
 			if j != i {
-				sub := new(big.Int).Sub(xSet[j], share.Id)
+				sub := new(big.Int).Sub(xSet[j], share.ID)
 				subInverse := new(big.Int).ModInverse(sub, s256.S256().N)
 				div := new(big.Int).Mul(xSet[j], subInverse)
 				times = new(big.Int).Mul(times, div)

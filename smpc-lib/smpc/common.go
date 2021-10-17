@@ -25,6 +25,7 @@ import (
 	"strings"
 )
 
+// SortableIDSSlice type define []*big.Int
 type SortableIDSSlice []*big.Int
 
 func (s SortableIDSSlice) Len() int {
@@ -63,8 +64,8 @@ func GetRandomInt(length int) *big.Int {
 	return rndNum
 }
 
-// DECDSA_Sign_Calc_v calc v of (r,s,v)
-func DECDSA_Sign_Calc_v(r, deltaGammaGy, pkx, pky, R, S *big.Int, hashBytes []byte, invert bool) int {
+// DECDSASignCalcv calc v of (r,s,v)
+func DECDSASignCalcv(r, deltaGammaGy, pkx, pky, R, S *big.Int, hashBytes []byte, invert bool) int {
 	//v
 	recid := secp256k1.Get_ecdsa_sign_v(r, deltaGammaGy)
 	if invert == true {

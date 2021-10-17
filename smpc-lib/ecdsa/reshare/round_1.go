@@ -92,8 +92,8 @@ func (round *round1) Start() error {
 	round.temp.skP1Poly = skP1Poly
 	round.temp.skP1PolyG = skP1PolyG.PolyG
 
-	re := &ReshareRound1Message{
-		ReshareRoundMessage: new(ReshareRoundMessage),
+	re := &ReRound1Message{
+		ReRoundMessage: new(ReRoundMessage),
 		ComC:                commitSkP1G.C,
 	}
 	re.SetFromID(round.dnodeid)
@@ -108,7 +108,7 @@ func (round *round1) Start() error {
 
 // CanAccept is it legal to receive this message 
 func (round *round1) CanAccept(msg smpc.Message) bool {
-	if _, ok := msg.(*ReshareRound1Message); ok {
+	if _, ok := msg.(*ReRound1Message); ok {
 		return msg.IsBroadcast()
 	}
 	return false

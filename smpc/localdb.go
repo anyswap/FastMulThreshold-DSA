@@ -100,7 +100,7 @@ func GetPubKeyData(key []byte) (bool, interface{}) {
 	pubs5, err := Decode2(ss, "AcceptReShareData")
 	if err == nil {
 		pd, ok := pubs5.(*AcceptReShareData)
-		if ok && pd.TSGroupId != "" {
+		if ok && pd.TSGroupID != "" {
 			return true, pd
 		}
 	}
@@ -139,7 +139,7 @@ func PutPubKeyData(key []byte, value []byte) error {
 // DeletePubKeyData delete value from general database by key
 func DeletePubKeyData(key []byte) error {
 	if key == nil || db == nil {
-		return fmt.Errorf("delete pubkey data from db fail.")
+		return fmt.Errorf("delete pubkey data from db fail")
 	}
 
 	err := db.Delete(key)
@@ -206,7 +206,7 @@ func putSkU1ToLocalDb(key []byte, value []byte) error {
 		return fmt.Errorf("put sku1 data to db fail")
 	}
 
-	cm, err := EncryptMsg(string(value), cur_enode)
+	cm, err := EncryptMsg(string(value), curEnode)
 	if err != nil {
 		common.Error("===============putSkU1ToLocalDb, encrypt sku1 data fail.=================", "err", err)
 		return err
@@ -230,7 +230,7 @@ func putBip32cToLocalDb(key []byte, value []byte) error {
 		return fmt.Errorf("put bip32c to db fail")
 	}
 
-	cm, err := EncryptMsg(string(value), cur_enode)
+	cm, err := EncryptMsg(string(value), curEnode)
 	if err != nil {
 		common.Error("===============putBip32cToLocalDb, encrypt bip32c fail.=================", "err", err)
 		return err
@@ -251,7 +251,7 @@ func putBip32cToLocalDb(key []byte, value []byte) error {
 // deleteSkU1FromLocalDb delete Sk from local db
 func deleteSkU1FromLocalDb(key []byte) error {
 	if key == nil || dbsk == nil {
-		return fmt.Errorf("delete sku1 from db fail,param error.")
+		return fmt.Errorf("delete sku1 from db fail,param error")
 	}
 
 	err := dbsk.Delete(key)
@@ -269,7 +269,7 @@ func deleteSkU1FromLocalDb(key []byte) error {
 // deleteBip32cFromLocalDb delete bip32 c value from local db
 func deleteBip32cFromLocalDb(key []byte) error {
 	if key == nil || dbbip32 == nil {
-		return fmt.Errorf("delete bip32c from db fail,param error.")
+		return fmt.Errorf("delete bip32c from db fail,param error")
 	}
 
 	err := dbbip32.Delete(key)
@@ -337,7 +337,7 @@ func PutReqAddrInfoData(key []byte, value []byte) error {
 // DeleteReqAddrInfoData delete value from database for saving data related to generate pubkey command 
 func DeleteReqAddrInfoData(key []byte) error {
 	if key == nil || reqaddrinfodb == nil {
-		return fmt.Errorf("delete reqaddr info from db fail.")
+		return fmt.Errorf("delete reqaddr info from db fail")
 	}
 
 	err := reqaddrinfodb.Delete(key)
@@ -405,7 +405,7 @@ func PutSignInfoData(key []byte, value []byte) error {
 // DeleteSignInfoData delete value from database for saving data related to sign command 
 func DeleteSignInfoData(key []byte) error {
 	if key == nil || signinfodb == nil {
-		return fmt.Errorf("delete sign info from db fail.")
+		return fmt.Errorf("delete sign info from db fail")
 	}
 
 	err := signinfodb.Delete(key)
@@ -442,7 +442,7 @@ func GetReShareInfoData(key []byte) (bool, interface{}) {
 	pubs, err := Decode2(ss, "AcceptReShareData")
 	if err == nil {
 		pd, ok := pubs.(*AcceptReShareData)
-		if ok && pd.TSGroupId != "" {
+		if ok && pd.TSGroupID != "" {
 			return true, pd
 		}
 	}
@@ -473,7 +473,7 @@ func PutReShareInfoData(key []byte, value []byte) error {
 // DeleteReShareInfoData delete value from database for saving data related to reshare command 
 func DeleteReShareInfoData(key []byte) error {
 	if key == nil || reshareinfodb == nil {
-		return fmt.Errorf("delete reshare info from db fail.")
+		return fmt.Errorf("delete reshare info from db fail")
 	}
 
 	err := reshareinfodb.Delete(key)
@@ -505,12 +505,12 @@ func GetGroupDir() string { //TODO
 // GetDbDir get general database dir  
 func GetDbDir() string {
 	dir := common.DefaultDataDir()
-	tmp := dir + "/dcrmdata/dcrmdb" + cur_enode
+	tmp := dir + "/dcrmdata/dcrmdb" + curEnode
 	if common.FileExist(tmp) == true {
 		return tmp
 	}
 
-	dir += "/smpcdata/smpcdb" + cur_enode
+	dir += "/smpcdata/smpcdb" + curEnode
 	return dir
 }
 
@@ -531,12 +531,12 @@ func GetSmpcDb() *ethdb.LDBDatabase {
 // GetSkU1Dir get private key database dir  
 func GetSkU1Dir() string {
 	dir := common.DefaultDataDir()
-	tmp := dir + "/dcrmdata/sk" + cur_enode
+	tmp := dir + "/dcrmdata/sk" + curEnode
 	if common.FileExist(tmp) == true {
 		return tmp
 	}
 
-	dir += "/smpcdata/sk" + cur_enode
+	dir += "/smpcdata/sk" + curEnode
 	return dir
 }
 
@@ -557,7 +557,7 @@ func GetSmpcSkDb() *ethdb.LDBDatabase {
 // GetBip32CDir get bip32 c value database dir 
 func GetBip32CDir() string {
 	dir := common.DefaultDataDir()
-	dir += "/smpcdata/bip32" + cur_enode
+	dir += "/smpcdata/bip32" + curEnode
 	return dir
 }
 
@@ -578,7 +578,7 @@ func GetSmpcBip32Db() *ethdb.LDBDatabase {
 // GetPreDbDir get pre-sign data database dir
 func GetPreDbDir() string {
 	dir := common.DefaultDataDir()
-	dir += "/smpcdata/smpcpredb" + cur_enode
+	dir += "/smpcdata/smpcpredb" + curEnode
 	return dir
 }
 
@@ -599,7 +599,7 @@ func GetSmpcPreDb() *ethdb.LDBDatabase {
 // GetPreKeyDir get public key group information database dir
 func GetPreKeyDir() string {
 	dir := common.DefaultDataDir()
-	dir += "/smpcdata/smpcprekey" + cur_enode
+	dir += "/smpcdata/smpcprekey" + curEnode
 	return dir
 }
 
@@ -620,12 +620,12 @@ func GetSmpcPreKeyDb() *ethdb.LDBDatabase {
 // GetReqAddrInfoDir get dir of database for saving data related to generate pubkey command
 func GetReqAddrInfoDir() string {
 	dir := common.DefaultDataDir()
-	dir += "/smpcdata/smpcreqaddrinfo" + cur_enode
+	dir += "/smpcdata/smpcreqaddrinfo" + curEnode
 	return dir
 }
 
-// GetSmpcReqAddrInfoDb open database for saving data related to generate pubkey command
-func GetSmpcReqAddrInfoDb() *ethdb.LDBDatabase {
+// GetCmdReqAddrInfoDb open database for saving data related to generate pubkey command
+func GetCmdReqAddrInfoDb() *ethdb.LDBDatabase {
 	dir := GetReqAddrInfoDir()
 	reqaddrinfodb, err := ethdb.NewLDBDatabase(dir, cache, handles)
 	if err != nil {
@@ -641,7 +641,7 @@ func GetSmpcReqAddrInfoDb() *ethdb.LDBDatabase {
 // GetSignInfoDir get dir of database for saving data related to sign command
 func GetSignInfoDir() string {
 	dir := common.DefaultDataDir()
-	dir += "/smpcdata/smpcsigninfo" + cur_enode
+	dir += "/smpcdata/smpcsigninfo" + curEnode
 	return dir
 }
 
@@ -662,7 +662,7 @@ func GetSmpcSignInfoDb() *ethdb.LDBDatabase {
 // GetReShareInfoDir get dir of database for saving data related to reshare command
 func GetReShareInfoDir() string {
 	dir := common.DefaultDataDir()
-	dir += "/smpcdata/smpcreshareinfo" + cur_enode
+	dir += "/smpcdata/smpcreshareinfo" + curEnode
 	return dir
 }
 
@@ -712,7 +712,7 @@ func StartSmpcLocalDb() error {
 		return errors.New("open prekey fail")
 	}
 
-	reqaddrinfodb = GetSmpcReqAddrInfoDb()
+	reqaddrinfodb = GetCmdReqAddrInfoDb()
 	if reqaddrinfodb == nil {
 		common.Error("======================StartSmpcLocalDb,open reqaddrinfodb fail=====================")
 		return errors.New("open reqaddrinfodb fail")
@@ -827,7 +827,7 @@ func CleanUpAllSignInfo() {
 
 //------------------------------------------------------------------------------------------------
 
-// CleanUpAllSignInfo Delete the data related to reshare command from the corresponding sub database, and correspondingly change the status of the command data to timeout in the general database.
+// CleanUpAllReshareInfo Delete the data related to reshare command from the corresponding sub database, and correspondingly change the status of the command data to timeout in the general database.
 func CleanUpAllReshareInfo() {
 	if reshareinfodb == nil {
 		return
@@ -873,12 +873,12 @@ func CleanUpAllReshareInfo() {
 // GetAccountsDir get dir of the database for saving all pubkeys  
 func GetAccountsDir() string {
 	dir := common.DefaultDataDir()
-	tmp := dir + "/dcrmdata/dcrmaccounts" + cur_enode
+	tmp := dir + "/dcrmdata/dcrmaccounts" + curEnode
 	if common.FileExist(tmp) == true {
 		return tmp
 	}
 
-	dir += "/smpcdata/smpcaccounts" + cur_enode
+	dir += "/smpcdata/smpcaccounts" + curEnode
 	return dir
 }
 
@@ -980,7 +980,7 @@ func PutAccountDataToDb(key []byte, value []byte) error {
 // DeleteAccountDataFromDb delete value from database for saving all pubkeys
 func DeleteAccountDataFromDb(key []byte) error {
 	if key == nil || accountsdb == nil {
-		return fmt.Errorf("delete account data from db fail.")
+		return fmt.Errorf("delete account data from db fail")
 	}
 
 	err := accountsdb.Delete(key)

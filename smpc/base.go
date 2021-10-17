@@ -41,7 +41,8 @@ import (
 
 //---------------------------------------------------------------------------
 
-type SmpcReq interface {
+// CmdReq interface of request keygen/sign/reshare
+type CmdReq interface {
 	GetReplyFromGroup(wid int, gid string, initiator string) []NodeReply
 	GetReqAddrKeyByKey(key string) string
 	GetRawReply(ret *common.SafeMap, reply *RawReply)
@@ -54,7 +55,8 @@ type SmpcReq interface {
 
 //-----------------------------------------------------------------------
 
-type RpcSmpcRes struct {
+// RPCSmpcRes smpc rpc result
+type RPCSmpcRes struct {
 	Ret string
 	Tip string
 	Err error
@@ -72,50 +74,50 @@ func GetChannelValue(t int, obj interface{}) (string, string, error) {
 	case chan interface{}:
 		select {
 		case v := <-ch:
-			ret, ok := v.(RpcSmpcRes)
+			ret, ok := v.(RPCSmpcRes)
 			if ok {
 				return ret.Ret, ret.Tip, ret.Err
 			}
 		case <-timeout:
-			return "", "smpc back-end internal error:get result from channel timeout", fmt.Errorf("get result from channel timeout.")
+			return "", "smpc back-end internal error:get result from channel timeout", fmt.Errorf("get result from channel timeout")
 		}
 	case chan string:
 		select {
 		case v := <-ch:
 			return v, "", nil
 		case <-timeout:
-			return "", "smpc back-end internal error:get result from channel timeout", fmt.Errorf("get result from channel timeout.")
+			return "", "smpc back-end internal error:get result from channel timeout", fmt.Errorf("get result from channel timeout")
 		}
 	case chan int64:
 		select {
 		case v := <-ch:
 			return strconv.Itoa(int(v)), "", nil
 		case <-timeout:
-			return "", "smpc back-end internal error:get result from channel timeout", fmt.Errorf("get result from channel timeout.")
+			return "", "smpc back-end internal error:get result from channel timeout", fmt.Errorf("get result from channel timeout")
 		}
 	case chan int:
 		select {
 		case v := <-ch:
 			return strconv.Itoa(v), "", nil
 		case <-timeout:
-			return "", "smpc back-end internal error:get result from channel timeout", fmt.Errorf("get result from channel timeout.")
+			return "", "smpc back-end internal error:get result from channel timeout", fmt.Errorf("get result from channel timeout")
 		}
 	case chan bool:
 		select {
 		case v := <-ch:
 			if !v {
 				return "false", "", nil
-			} else {
-				return "true", "", nil
 			}
+
+			return "true", "", nil
 		case <-timeout:
-			return "", "smpc back-end internal error:get result from channel timeout", fmt.Errorf("get result from channel timeout.")
+			return "", "smpc back-end internal error:get result from channel timeout", fmt.Errorf("get result from channel timeout")
 		}
 	default:
-		return "", "smpc back-end internal error:unknown channel type", fmt.Errorf("unknown channel type.")
+		return "", "smpc back-end internal error:unknown channel type", fmt.Errorf("unknown channel type")
 	}
 
-	return "", "smpc back-end internal error:unknown error.", fmt.Errorf("get result from channel fail,unsupported channel type.")
+	return "", "smpc back-end internal error:unknown error.", fmt.Errorf("get result from channel fail,unsupported channel type")
 }
 
 //----------------------------------------------------------------------------------------
@@ -158,7 +160,7 @@ func Encode2(obj interface{}) (string, error) {
 		}
 		return buff.String(), nil
 	default:
-		return "", fmt.Errorf("encode fail.")
+		return "", fmt.Errorf("encode fail")
 	}
 }
 
@@ -220,7 +222,7 @@ func Decode2(s string, datatype string) (interface{}, error) {
 		return &res, nil
 	}
 
-	return nil, fmt.Errorf("decode fail.")
+	return nil, fmt.Errorf("decode fail")
 }
 
 //--------------------------------------------------------------------------------------
@@ -228,7 +230,7 @@ func Decode2(s string, datatype string) (interface{}, error) {
 // Compress compress the bytes,and return the result
 func Compress(c []byte) (string, error) {
 	if c == nil {
-		return "", fmt.Errorf("compress fail.")
+		return "", fmt.Errorf("compress fail")
 	}
 
 	var in bytes.Buffer
@@ -252,7 +254,7 @@ func Compress(c []byte) (string, error) {
 func UnCompress(s string) (string, error) {
 
 	if s == "" {
-		return "", fmt.Errorf("param error.")
+		return "", fmt.Errorf("param error")
 	}
 
 	var data bytes.Buffer
@@ -274,13 +276,15 @@ func UnCompress(s string) (string, error) {
 
 //---------------------------------------------------------------------------------------
 
-type SmpcHash [32]byte
+// ByteHash bytehash type define
+type ByteHash [32]byte
 
-func (h SmpcHash) Hex() string { return hexutil.Encode(h[:]) }
+// Hex hash to hex string
+func (h ByteHash) Hex() string { return hexutil.Encode(h[:]) }
 
 // Keccak256Hash calculates and returns the Keccak256 hash of the input data,
 // converting it to an internal Hash data structure.
-func Keccak256Hash(data ...[]byte) (h SmpcHash) {
+func Keccak256Hash(data ...[]byte) (h ByteHash) {
 	d := sha3.NewKeccak256()
 	for _, b := range data {
 		_, err := d.Write(b)
@@ -334,8 +338,8 @@ func DoubleHash(id string, keytype string) *big.Int {
 	return digestBigInt
 }
 
-// GetIds Convert each ID into a hash value according to different keytypes and put it into an array for sorting 
-func GetIds(keytype string, groupid string) smpclib.SortableIDSSlice {
+// GetIDs Convert each ID into a hash value according to different keytypes and put it into an array for sorting 
+func GetIDs(keytype string, groupid string) smpclib.SortableIDSSlice {
 	var ids smpclib.SortableIDSSlice
 	_, nodes := GetGroup(groupid)
 	others := strings.Split(nodes, common.Sep2)
@@ -419,26 +423,26 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 		return "", "", "", nil, err
 	}
 
-	var smpc_req SmpcReq
+	var smpcreq CmdReq
 	txtype := GetTxTypeFromData(tx.Data())
 	switch txtype {
 	case "REQSMPCADDR":
-		smpc_req = &ReqSmpcAddr{}
+		smpcreq = &ReqSmpcAddr{}
 	case "SIGN":
-		smpc_req = &ReqSmpcSign{}
+		smpcreq = &ReqSmpcSign{}
 	case "PRESIGNDATA":
-		smpc_req = &ReqSmpcSign{}
+		smpcreq = &ReqSmpcSign{}
 	case "RESHARE":
-		smpc_req = &ReqSmpcReshare{}
+		smpcreq = &ReqSmpcReshare{}
 	case "ACCEPTREQADDR":
-		smpc_req = &ReqSmpcAddr{}
+		smpcreq = &ReqSmpcAddr{}
 	case "ACCEPTSIGN":
-		smpc_req = &ReqSmpcSign{}
+		smpcreq = &ReqSmpcSign{}
 	case "ACCEPTRESHARE":
-		smpc_req = &ReqSmpcReshare{}
+		smpcreq = &ReqSmpcReshare{}
 	default:
 		return "", "", "", nil, fmt.Errorf("Unsupported request type")
 	}
 
-	return smpc_req.CheckTxData(tx.Data(), from.Hex(), tx.Nonce())
+	return smpcreq.CheckTxData(tx.Data(), from.Hex(), tx.Nonce())
 }

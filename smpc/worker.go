@@ -26,10 +26,19 @@ import (
 )
 
 var (
+    	// RPCReqQueueCache the queue of RPCReq
 	RPCReqQueueCache = make(chan RPCReq, RPCMaxQueue)
+
+	// RPCMaxWorker  max worker nums
 	RPCMaxWorker = 2000
+
+	// RPCMaxQueue max counts of RPCReq in queue
 	RPCMaxQueue  = 2000
+
+	// RPCReqQueue the channel of RPCReq
 	RPCReqQueue  chan RPCReq
+
+	// workers the array of worker
 	workers      []*RPCReqWorker
 )
 
@@ -44,12 +53,14 @@ func InitChan() {
 }
 
 //-----------------------------------------------------------------------------------------
+
+// RPCReq rpc req or p2p data
 type RPCReq struct {
 	rpcdata WorkReq
 	ch      chan interface{}
 }
 
-//rpc-req
+// ReqDispatcher worker pool
 type ReqDispatcher struct {
 	// A pool of workers channels that are registered with the dispatcher
 	WorkerPool chan chan RPCReq
@@ -95,6 +106,7 @@ func (d *ReqDispatcher) dispatch() {
 
 //-------------------------------------------------------------------------------------
 
+// RPCReqWorker worker
 type RPCReqWorker struct {
 	RPCReqWorkerPool chan chan RPCReq
 	RPCReqChannel    chan RPCReq
@@ -107,30 +119,30 @@ type RPCReqWorker struct {
 	ThresHold        int
 	sid              string //save the key
 	//
-	msg_acceptreqaddrres *list.List
-	msg_acceptreshareres *list.List
-	msg_acceptsignres    *list.List
+	msgacceptreqaddrres *list.List
+	msgacceptreshareres *list.List
+	msgacceptsignres    *list.List
 
-	msg_syncpresign    *list.List
-	msg_c1             *list.List
-	msg_kc             *list.List
-	msg_mkg            *list.List
-	msg_mkw            *list.List
-	msg_delta1         *list.List
-	msg_d1_1           *list.List
-	msg_share1         *list.List
-	msg_zkfact         *list.List
-	msg_zku            *list.List
-	msg_bip32c1        *list.List
-	msg_mtazk1proof    *list.List
-	msg_c11            *list.List
-	msg_d11_1          *list.List
-	msg_commitbigvab   *list.List
-	msg_zkabproof      *list.List
-	msg_commitbigut    *list.List
-	msg_commitbigutd11 *list.List
-	msg_ss1            *list.List
-	msg_paillierkey    *list.List
+	msgsyncpresign    *list.List
+	msgc1             *list.List
+	msgkc             *list.List
+	msgmkg            *list.List
+	msgmkw            *list.List
+	msgdelta1         *list.List
+	msgd1d1           *list.List
+	msgshare1         *list.List
+	msgzkfact         *list.List
+	msgzku            *list.List
+	msgbip32c1        *list.List
+	msgmtazk1proof    *list.List
+	msgc11            *list.List
+	msgd11d1          *list.List
+	msgcommitbigvab   *list.List
+	msgzkabproof      *list.List
+	msgcommitbigut    *list.List
+	msgcommitbigutd11 *list.List
+	msgss1            *list.List
+	msgpaillierkey    *list.List
 
 	rsv    *list.List
 	pkx    *list.List
@@ -149,7 +161,7 @@ type RPCReqWorker struct {
 	bmkg              chan bool
 	bmkw              chan bool
 	bdelta1           chan bool
-	bd1_1             chan bool
+	bd1d1             chan bool
 	bshare1           chan bool
 	bzkfact           chan bool
 	bzku              chan bool
@@ -163,35 +175,35 @@ type RPCReqWorker struct {
 	bss1              chan bool
 	bpaillierkey      chan bool
 	bc11              chan bool
-	bd11_1            chan bool
+	bd11d1            chan bool
 
 	//ed
 	bedc11       chan bool
-	msg_edc11    *list.List
+	msgedc11    *list.List
 	bedzk        chan bool
-	msg_edzk     *list.List
+	msgedzk     *list.List
 	bedd11       chan bool
-	msg_edd11    *list.List
+	msgedd11    *list.List
 	bedshare1    chan bool
-	msg_edshare1 *list.List
+	msgedshare1 *list.List
 	bedcfsb      chan bool
-	msg_edcfsb   *list.List
+	msgedcfsb   *list.List
 	edsave       *list.List
 	edsku1       *list.List
 	edpk         *list.List
 
 	bedc21    chan bool
-	msg_edc21 *list.List
+	msgedc21 *list.List
 	bedzkr    chan bool
-	msg_edzkr *list.List
+	msgedzkr *list.List
 	bedd21    chan bool
-	msg_edd21 *list.List
+	msgedd21 *list.List
 	bedc31    chan bool
-	msg_edc31 *list.List
+	msgedc31 *list.List
 	bedd31    chan bool
-	msg_edd31 *list.List
+	msgedd31 *list.List
 	beds      chan bool
-	msg_eds   *list.List
+	msgeds   *list.List
 
 	acceptReqAddrChan     chan string
 	acceptWaitReqAddrChan chan string
@@ -201,8 +213,6 @@ type RPCReqWorker struct {
 	acceptWaitSignChan    chan string
 
 	//for smpc lib
-	msg_wire       *list.List
-	bwire          chan bool
 	SmpcMsg        chan string
 	DNode          smpclib.DNode
 	MsgToEnode     map[string]string
@@ -215,29 +225,29 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		RPCReqWorkerPool:     workerPool,
 		RPCReqChannel:        make(chan RPCReq),
 		rpcquit:              make(chan bool),
-		msg_share1:           list.New(),
-		msg_zkfact:           list.New(),
-		msg_zku:              list.New(),
-		msg_bip32c1:          list.New(),
-		msg_mtazk1proof:      list.New(),
-		msg_c1:               list.New(),
-		msg_d1_1:             list.New(),
-		msg_c11:              list.New(),
-		msg_kc:               list.New(),
-		msg_mkg:              list.New(),
-		msg_mkw:              list.New(),
-		msg_delta1:           list.New(),
-		msg_d11_1:            list.New(),
-		msg_commitbigvab:     list.New(),
-		msg_zkabproof:        list.New(),
-		msg_commitbigut:      list.New(),
-		msg_commitbigutd11:   list.New(),
-		msg_ss1:              list.New(),
-		msg_paillierkey:      list.New(),
-		msg_acceptreqaddrres: list.New(),
-		msg_acceptreshareres: list.New(),
-		msg_acceptsignres:    list.New(),
-		msg_syncpresign:      list.New(),
+		msgshare1:           list.New(),
+		msgzkfact:           list.New(),
+		msgzku:              list.New(),
+		msgbip32c1:          list.New(),
+		msgmtazk1proof:      list.New(),
+		msgc1:               list.New(),
+		msgd1d1:             list.New(),
+		msgc11:              list.New(),
+		msgkc:               list.New(),
+		msgmkg:              list.New(),
+		msgmkw:              list.New(),
+		msgdelta1:           list.New(),
+		msgd11d1:            list.New(),
+		msgcommitbigvab:     list.New(),
+		msgzkabproof:        list.New(),
+		msgcommitbigut:      list.New(),
+		msgcommitbigutd11:   list.New(),
+		msgss1:              list.New(),
+		msgpaillierkey:      list.New(),
+		msgacceptreqaddrres: list.New(),
+		msgacceptreshareres: list.New(),
+		msgacceptsignres:    list.New(),
+		msgsyncpresign:      list.New(),
 
 		rsv:    list.New(),
 		pkx:    list.New(),
@@ -253,7 +263,7 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		bsendsignres:      make(chan bool, 1),
 		bsyncpresign:      make(chan bool, 1),
 		bc1:               make(chan bool, 1),
-		bd1_1:             make(chan bool, 1),
+		bd1d1:             make(chan bool, 1),
 		bc11:              make(chan bool, 1),
 		bkc:               make(chan bool, 1),
 		bcommitbigvab:     make(chan bool, 1),
@@ -270,34 +280,34 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		bbip32c1:          make(chan bool, 1),
 		bmtazk1proof:      make(chan bool, 1),
 		bdelta1:           make(chan bool, 1),
-		bd11_1:            make(chan bool, 1),
+		bd11d1:            make(chan bool, 1),
 
 		//ed
 		bedc11:       make(chan bool, 1),
-		msg_edc11:    list.New(),
+		msgedc11:    list.New(),
 		bedzk:        make(chan bool, 1),
-		msg_edzk:     list.New(),
+		msgedzk:     list.New(),
 		bedd11:       make(chan bool, 1),
-		msg_edd11:    list.New(),
+		msgedd11:    list.New(),
 		bedshare1:    make(chan bool, 1),
-		msg_edshare1: list.New(),
+		msgedshare1: list.New(),
 		bedcfsb:      make(chan bool, 1),
-		msg_edcfsb:   list.New(),
+		msgedcfsb:   list.New(),
 		edsave:       list.New(),
 		edsku1:       list.New(),
 		edpk:         list.New(),
 		bedc21:       make(chan bool, 1),
-		msg_edc21:    list.New(),
+		msgedc21:    list.New(),
 		bedzkr:       make(chan bool, 1),
-		msg_edzkr:    list.New(),
+		msgedzkr:    list.New(),
 		bedd21:       make(chan bool, 1),
-		msg_edd21:    list.New(),
+		msgedd21:    list.New(),
 		bedc31:       make(chan bool, 1),
-		msg_edc31:    list.New(),
+		msgedc31:    list.New(),
 		bedd31:       make(chan bool, 1),
-		msg_edd31:    list.New(),
+		msgedd31:    list.New(),
 		beds:         make(chan bool, 1),
-		msg_eds:      list.New(),
+		msgeds:      list.New(),
 
 		sid:       "",
 		NodeCnt:   5,
@@ -311,8 +321,6 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		acceptSignChan:        make(chan string, 1),
 		acceptWaitSignChan:    make(chan string, 1),
 
-		msg_wire:       list.New(),
-		bwire:          make(chan bool, 1),
 		SmpcMsg:        make(chan string, 100),
 		MsgToEnode:     make(map[string]string),
 		PreSaveSmpcMsg: make([]string, 0),
@@ -333,119 +341,119 @@ func (w *RPCReqWorker) Clear() {
 
 	var next *list.Element
 
-	for e := w.msg_acceptreshareres.Front(); e != nil; e = next {
+	for e := w.msgacceptreshareres.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_acceptreshareres.Remove(e)
+		w.msgacceptreshareres.Remove(e)
 	}
 
-	for e := w.msg_acceptsignres.Front(); e != nil; e = next {
+	for e := w.msgacceptsignres.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_acceptsignres.Remove(e)
+		w.msgacceptsignres.Remove(e)
 	}
 
-	for e := w.msg_acceptreqaddrres.Front(); e != nil; e = next {
+	for e := w.msgacceptreqaddrres.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_acceptreqaddrres.Remove(e)
+		w.msgacceptreqaddrres.Remove(e)
 	}
 
-	for e := w.msg_syncpresign.Front(); e != nil; e = next {
+	for e := w.msgsyncpresign.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_syncpresign.Remove(e)
+		w.msgsyncpresign.Remove(e)
 	}
 
-	for e := w.msg_c1.Front(); e != nil; e = next {
+	for e := w.msgc1.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_c1.Remove(e)
+		w.msgc1.Remove(e)
 	}
 
-	for e := w.msg_kc.Front(); e != nil; e = next {
+	for e := w.msgkc.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_kc.Remove(e)
+		w.msgkc.Remove(e)
 	}
 
-	for e := w.msg_mkg.Front(); e != nil; e = next {
+	for e := w.msgmkg.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_mkg.Remove(e)
+		w.msgmkg.Remove(e)
 	}
 
-	for e := w.msg_mkw.Front(); e != nil; e = next {
+	for e := w.msgmkw.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_mkw.Remove(e)
+		w.msgmkw.Remove(e)
 	}
 
-	for e := w.msg_delta1.Front(); e != nil; e = next {
+	for e := w.msgdelta1.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_delta1.Remove(e)
+		w.msgdelta1.Remove(e)
 	}
 
-	for e := w.msg_d1_1.Front(); e != nil; e = next {
+	for e := w.msgd1d1.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_d1_1.Remove(e)
+		w.msgd1d1.Remove(e)
 	}
 
-	for e := w.msg_share1.Front(); e != nil; e = next {
+	for e := w.msgshare1.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_share1.Remove(e)
+		w.msgshare1.Remove(e)
 	}
 
-	for e := w.msg_zkfact.Front(); e != nil; e = next {
+	for e := w.msgzkfact.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_zkfact.Remove(e)
+		w.msgzkfact.Remove(e)
 	}
 
-	for e := w.msg_zku.Front(); e != nil; e = next {
+	for e := w.msgzku.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_zku.Remove(e)
+		w.msgzku.Remove(e)
 	}
 
-	for e := w.msg_bip32c1.Front(); e != nil; e = next {
+	for e := w.msgbip32c1.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_bip32c1.Remove(e)
+		w.msgbip32c1.Remove(e)
 	}
 
-	for e := w.msg_mtazk1proof.Front(); e != nil; e = next {
+	for e := w.msgmtazk1proof.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_mtazk1proof.Remove(e)
+		w.msgmtazk1proof.Remove(e)
 	}
 
-	for e := w.msg_c11.Front(); e != nil; e = next {
+	for e := w.msgc11.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_c11.Remove(e)
+		w.msgc11.Remove(e)
 	}
 
-	for e := w.msg_d11_1.Front(); e != nil; e = next {
+	for e := w.msgd11d1.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_d11_1.Remove(e)
+		w.msgd11d1.Remove(e)
 	}
 
-	for e := w.msg_commitbigvab.Front(); e != nil; e = next {
+	for e := w.msgcommitbigvab.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_commitbigvab.Remove(e)
+		w.msgcommitbigvab.Remove(e)
 	}
 
-	for e := w.msg_zkabproof.Front(); e != nil; e = next {
+	for e := w.msgzkabproof.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_zkabproof.Remove(e)
+		w.msgzkabproof.Remove(e)
 	}
 
-	for e := w.msg_commitbigut.Front(); e != nil; e = next {
+	for e := w.msgcommitbigut.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_commitbigut.Remove(e)
+		w.msgcommitbigut.Remove(e)
 	}
 
-	for e := w.msg_commitbigutd11.Front(); e != nil; e = next {
+	for e := w.msgcommitbigutd11.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_commitbigutd11.Remove(e)
+		w.msgcommitbigutd11.Remove(e)
 	}
 
-	for e := w.msg_ss1.Front(); e != nil; e = next {
+	for e := w.msgss1.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_ss1.Remove(e)
+		w.msgss1.Remove(e)
 	}
 
-	for e := w.msg_paillierkey.Front(); e != nil; e = next {
+	for e := w.msgpaillierkey.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_paillierkey.Remove(e)
+		w.msgpaillierkey.Remove(e)
 	}
 
 	for e := w.pkx.Front(); e != nil; e = next {
@@ -517,8 +525,8 @@ func (w *RPCReqWorker) Clear() {
 	if len(w.bc1) == 1 {
 		<-w.bc1
 	}
-	if len(w.bd1_1) == 1 {
-		<-w.bd1_1
+	if len(w.bd1d1) == 1 {
+		<-w.bd1d1
 	}
 	if len(w.bc11) == 1 {
 		<-w.bc11
@@ -553,46 +561,46 @@ func (w *RPCReqWorker) Clear() {
 	if len(w.bdelta1) == 1 {
 		<-w.bdelta1
 	}
-	if len(w.bd11_1) == 1 {
-		<-w.bd11_1
+	if len(w.bd11d1) == 1 {
+		<-w.bd11d1
 	}
 
 	//ed
 	if len(w.bedc11) == 1 {
 		<-w.bedc11
 	}
-	for e := w.msg_edc11.Front(); e != nil; e = next {
+	for e := w.msgedc11.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edc11.Remove(e)
+		w.msgedc11.Remove(e)
 	}
 
 	if len(w.bedzk) == 1 {
 		<-w.bedzk
 	}
-	for e := w.msg_edzk.Front(); e != nil; e = next {
+	for e := w.msgedzk.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edzk.Remove(e)
+		w.msgedzk.Remove(e)
 	}
 	if len(w.bedd11) == 1 {
 		<-w.bedd11
 	}
-	for e := w.msg_edd11.Front(); e != nil; e = next {
+	for e := w.msgedd11.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edd11.Remove(e)
+		w.msgedd11.Remove(e)
 	}
 	if len(w.bedshare1) == 1 {
 		<-w.bedshare1
 	}
-	for e := w.msg_edshare1.Front(); e != nil; e = next {
+	for e := w.msgedshare1.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edshare1.Remove(e)
+		w.msgedshare1.Remove(e)
 	}
 	if len(w.bedcfsb) == 1 {
 		<-w.bedcfsb
 	}
-	for e := w.msg_edcfsb.Front(); e != nil; e = next {
+	for e := w.msgedcfsb.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edcfsb.Remove(e)
+		w.msgedcfsb.Remove(e)
 	}
 	for e := w.edsave.Front(); e != nil; e = next {
 		next = e.Next()
@@ -610,44 +618,44 @@ func (w *RPCReqWorker) Clear() {
 	if len(w.bedc21) == 1 {
 		<-w.bedc21
 	}
-	for e := w.msg_edc21.Front(); e != nil; e = next {
+	for e := w.msgedc21.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edc21.Remove(e)
+		w.msgedc21.Remove(e)
 	}
 	if len(w.bedzkr) == 1 {
 		<-w.bedzkr
 	}
-	for e := w.msg_edzkr.Front(); e != nil; e = next {
+	for e := w.msgedzkr.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edzkr.Remove(e)
+		w.msgedzkr.Remove(e)
 	}
 	if len(w.bedd21) == 1 {
 		<-w.bedd21
 	}
-	for e := w.msg_edd21.Front(); e != nil; e = next {
+	for e := w.msgedd21.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edd21.Remove(e)
+		w.msgedd21.Remove(e)
 	}
 	if len(w.bedc31) == 1 {
 		<-w.bedc31
 	}
-	for e := w.msg_edc31.Front(); e != nil; e = next {
+	for e := w.msgedc31.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edc31.Remove(e)
+		w.msgedc31.Remove(e)
 	}
 	if len(w.bedd31) == 1 {
 		<-w.bedd31
 	}
-	for e := w.msg_edd31.Front(); e != nil; e = next {
+	for e := w.msgedd31.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edd31.Remove(e)
+		w.msgedd31.Remove(e)
 	}
 	if len(w.beds) == 1 {
 		<-w.beds
 	}
-	for e := w.msg_eds.Front(); e != nil; e = next {
+	for e := w.msgeds.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_eds.Remove(e)
+		w.msgeds.Remove(e)
 	}
 
 	if len(w.acceptWaitReqAddrChan) == 1 {
@@ -666,15 +674,6 @@ func (w *RPCReqWorker) Clear() {
 		<-w.acceptWaitSignChan
 	}
 
-	for e := w.msg_wire.Front(); e != nil; e = next {
-		next = e.Next()
-		w.msg_wire.Remove(e)
-	}
-	if len(w.bwire) == 1 {
-		<-w.bwire
-	}
-
-	//fmt.Printf("=====================RpcReqWorker.Clear, reset w.SmpcMsg, key = %v =====================\n",w.sid)
 	w.SmpcMsg = make(chan string, 100)
 	w.DNode = nil
 	w.MsgToEnode = make(map[string]string)
@@ -687,119 +686,119 @@ func (w *RPCReqWorker) Clear2() {
 
 	var next *list.Element
 
-	for e := w.msg_acceptreshareres.Front(); e != nil; e = next {
+	for e := w.msgacceptreshareres.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_acceptreshareres.Remove(e)
+		w.msgacceptreshareres.Remove(e)
 	}
 
-	for e := w.msg_acceptsignres.Front(); e != nil; e = next {
+	for e := w.msgacceptsignres.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_acceptsignres.Remove(e)
+		w.msgacceptsignres.Remove(e)
 	}
 
-	for e := w.msg_acceptreqaddrres.Front(); e != nil; e = next {
+	for e := w.msgacceptreqaddrres.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_acceptreqaddrres.Remove(e)
+		w.msgacceptreqaddrres.Remove(e)
 	}
 
-	for e := w.msg_syncpresign.Front(); e != nil; e = next {
+	for e := w.msgsyncpresign.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_syncpresign.Remove(e)
+		w.msgsyncpresign.Remove(e)
 	}
 
-	for e := w.msg_c1.Front(); e != nil; e = next {
+	for e := w.msgc1.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_c1.Remove(e)
+		w.msgc1.Remove(e)
 	}
 
-	for e := w.msg_kc.Front(); e != nil; e = next {
+	for e := w.msgkc.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_kc.Remove(e)
+		w.msgkc.Remove(e)
 	}
 
-	for e := w.msg_mkg.Front(); e != nil; e = next {
+	for e := w.msgmkg.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_mkg.Remove(e)
+		w.msgmkg.Remove(e)
 	}
 
-	for e := w.msg_mkw.Front(); e != nil; e = next {
+	for e := w.msgmkw.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_mkw.Remove(e)
+		w.msgmkw.Remove(e)
 	}
 
-	for e := w.msg_delta1.Front(); e != nil; e = next {
+	for e := w.msgdelta1.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_delta1.Remove(e)
+		w.msgdelta1.Remove(e)
 	}
 
-	for e := w.msg_d1_1.Front(); e != nil; e = next {
+	for e := w.msgd1d1.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_d1_1.Remove(e)
+		w.msgd1d1.Remove(e)
 	}
 
-	for e := w.msg_share1.Front(); e != nil; e = next {
+	for e := w.msgshare1.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_share1.Remove(e)
+		w.msgshare1.Remove(e)
 	}
 
-	for e := w.msg_zkfact.Front(); e != nil; e = next {
+	for e := w.msgzkfact.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_zkfact.Remove(e)
+		w.msgzkfact.Remove(e)
 	}
 
-	for e := w.msg_zku.Front(); e != nil; e = next {
+	for e := w.msgzku.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_zku.Remove(e)
+		w.msgzku.Remove(e)
 	}
 
-	for e := w.msg_bip32c1.Front(); e != nil; e = next {
+	for e := w.msgbip32c1.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_bip32c1.Remove(e)
+		w.msgbip32c1.Remove(e)
 	}
 
-	for e := w.msg_mtazk1proof.Front(); e != nil; e = next {
+	for e := w.msgmtazk1proof.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_mtazk1proof.Remove(e)
+		w.msgmtazk1proof.Remove(e)
 	}
 
-	for e := w.msg_c11.Front(); e != nil; e = next {
+	for e := w.msgc11.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_c11.Remove(e)
+		w.msgc11.Remove(e)
 	}
 
-	for e := w.msg_d11_1.Front(); e != nil; e = next {
+	for e := w.msgd11d1.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_d11_1.Remove(e)
+		w.msgd11d1.Remove(e)
 	}
 
-	for e := w.msg_commitbigvab.Front(); e != nil; e = next {
+	for e := w.msgcommitbigvab.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_commitbigvab.Remove(e)
+		w.msgcommitbigvab.Remove(e)
 	}
 
-	for e := w.msg_zkabproof.Front(); e != nil; e = next {
+	for e := w.msgzkabproof.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_zkabproof.Remove(e)
+		w.msgzkabproof.Remove(e)
 	}
 
-	for e := w.msg_commitbigut.Front(); e != nil; e = next {
+	for e := w.msgcommitbigut.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_commitbigut.Remove(e)
+		w.msgcommitbigut.Remove(e)
 	}
 
-	for e := w.msg_commitbigutd11.Front(); e != nil; e = next {
+	for e := w.msgcommitbigutd11.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_commitbigutd11.Remove(e)
+		w.msgcommitbigutd11.Remove(e)
 	}
 
-	for e := w.msg_ss1.Front(); e != nil; e = next {
+	for e := w.msgss1.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_ss1.Remove(e)
+		w.msgss1.Remove(e)
 	}
 
-	for e := w.msg_paillierkey.Front(); e != nil; e = next {
+	for e := w.msgpaillierkey.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_paillierkey.Remove(e)
+		w.msgpaillierkey.Remove(e)
 	}
 
 	for e := w.pkx.Front(); e != nil; e = next {
@@ -871,8 +870,8 @@ func (w *RPCReqWorker) Clear2() {
 	if len(w.bc1) == 1 {
 		<-w.bc1
 	}
-	if len(w.bd1_1) == 1 {
-		<-w.bd1_1
+	if len(w.bd1d1) == 1 {
+		<-w.bd1d1
 	}
 	if len(w.bc11) == 1 {
 		<-w.bc11
@@ -907,46 +906,46 @@ func (w *RPCReqWorker) Clear2() {
 	if len(w.bdelta1) == 1 {
 		<-w.bdelta1
 	}
-	if len(w.bd11_1) == 1 {
-		<-w.bd11_1
+	if len(w.bd11d1) == 1 {
+		<-w.bd11d1
 	}
 
 	//ed
 	if len(w.bedc11) == 1 {
 		<-w.bedc11
 	}
-	for e := w.msg_edc11.Front(); e != nil; e = next {
+	for e := w.msgedc11.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edc11.Remove(e)
+		w.msgedc11.Remove(e)
 	}
 
 	if len(w.bedzk) == 1 {
 		<-w.bedzk
 	}
-	for e := w.msg_edzk.Front(); e != nil; e = next {
+	for e := w.msgedzk.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edzk.Remove(e)
+		w.msgedzk.Remove(e)
 	}
 	if len(w.bedd11) == 1 {
 		<-w.bedd11
 	}
-	for e := w.msg_edd11.Front(); e != nil; e = next {
+	for e := w.msgedd11.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edd11.Remove(e)
+		w.msgedd11.Remove(e)
 	}
 	if len(w.bedshare1) == 1 {
 		<-w.bedshare1
 	}
-	for e := w.msg_edshare1.Front(); e != nil; e = next {
+	for e := w.msgedshare1.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edshare1.Remove(e)
+		w.msgedshare1.Remove(e)
 	}
 	if len(w.bedcfsb) == 1 {
 		<-w.bedcfsb
 	}
-	for e := w.msg_edcfsb.Front(); e != nil; e = next {
+	for e := w.msgedcfsb.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edcfsb.Remove(e)
+		w.msgedcfsb.Remove(e)
 	}
 	for e := w.edsave.Front(); e != nil; e = next {
 		next = e.Next()
@@ -964,44 +963,44 @@ func (w *RPCReqWorker) Clear2() {
 	if len(w.bedc21) == 1 {
 		<-w.bedc21
 	}
-	for e := w.msg_edc21.Front(); e != nil; e = next {
+	for e := w.msgedc21.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edc21.Remove(e)
+		w.msgedc21.Remove(e)
 	}
 	if len(w.bedzkr) == 1 {
 		<-w.bedzkr
 	}
-	for e := w.msg_edzkr.Front(); e != nil; e = next {
+	for e := w.msgedzkr.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edzkr.Remove(e)
+		w.msgedzkr.Remove(e)
 	}
 	if len(w.bedd21) == 1 {
 		<-w.bedd21
 	}
-	for e := w.msg_edd21.Front(); e != nil; e = next {
+	for e := w.msgedd21.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edd21.Remove(e)
+		w.msgedd21.Remove(e)
 	}
 	if len(w.bedc31) == 1 {
 		<-w.bedc31
 	}
-	for e := w.msg_edc31.Front(); e != nil; e = next {
+	for e := w.msgedc31.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edc31.Remove(e)
+		w.msgedc31.Remove(e)
 	}
 	if len(w.bedd31) == 1 {
 		<-w.bedd31
 	}
-	for e := w.msg_edd31.Front(); e != nil; e = next {
+	for e := w.msgedd31.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_edd31.Remove(e)
+		w.msgedd31.Remove(e)
 	}
 	if len(w.beds) == 1 {
 		<-w.beds
 	}
-	for e := w.msg_eds.Front(); e != nil; e = next {
+	for e := w.msgeds.Front(); e != nil; e = next {
 		next = e.Next()
-		w.msg_eds.Remove(e)
+		w.msgeds.Remove(e)
 	}
 
 	if len(w.acceptWaitReqAddrChan) == 1 {
@@ -1020,13 +1019,6 @@ func (w *RPCReqWorker) Clear2() {
 		<-w.acceptWaitSignChan
 	}
 
-	for e := w.msg_wire.Front(); e != nil; e = next {
-		next = e.Next()
-		w.msg_wire.Remove(e)
-	}
-	if len(w.bwire) == 1 {
-		<-w.bwire
-	}
 	w.SmpcMsg = make(chan string, 100)
 	w.DNode = nil
 	w.MsgToEnode = make(map[string]string)
@@ -1075,7 +1067,7 @@ func FindWorker(sid string) (*RPCReqWorker, error) {
 	}()
 
 	if sid == "" {
-		return nil, fmt.Errorf("input worker id error.")
+		return nil, fmt.Errorf("input worker id error")
 	}
 
 	for i := 0; i < RPCMaxWorker; i++ {
@@ -1090,13 +1082,13 @@ func FindWorker(sid string) (*RPCReqWorker, error) {
 		}
 	}
 
-	return nil, fmt.Errorf(" The worker with the specified worker id was not found .")
+	return nil, fmt.Errorf(" The worker with the specified worker id was not found")
 }
 
 //---------------------------------------------------------------------------------------------
 
-// GetWorkerId get worker's id
-func GetWorkerId(w *RPCReqWorker) (int, error) {
+// GetWorkerID get worker's id
+func GetWorkerID(w *RPCReqWorker) (int, error) {
 	if w == nil {
 		return -1, fmt.Errorf("fail get worker id")
 	}

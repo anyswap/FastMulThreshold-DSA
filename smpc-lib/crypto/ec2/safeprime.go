@@ -24,33 +24,41 @@ import (
 )
 
 const (
+        // PrimeTestTimes the times to try to juede weather is prime
 	PrimeTestTimes = 30
 )
 
 var (
+        // SafePrimeCh the channel to save safeprime
 	SafePrimeCh = make(chan SafePrime, 4)
+
 	zero        = big.NewInt(0)
 	one         = big.NewInt(1)
 	two         = big.NewInt(2)
 )
 
+// SafePrime prime 
 type SafePrime struct {
 	q *big.Int
 	p *big.Int // p = 2q+1
 }
 
+// Q get q
 func (sp *SafePrime) Q() *big.Int {
 	return sp.q
 }
 
+// P get p
 func (sp *SafePrime) P() *big.Int {
 	return sp.p
 }
 
+// SetQ set q
 func (sp *SafePrime) SetQ(q *big.Int) {
 	sp.q = q
 }
 
+// SetP set p
 func (sp *SafePrime) SetP(p *big.Int) {
 	sp.p = p
 }
@@ -74,6 +82,7 @@ func (sp *SafePrime) CheckValidate() bool {
 	return false
 }
 
+// GetP get p
 func GetP(q *big.Int) *big.Int {
 	i := new(big.Int)
 	i.Mul(q, two)
@@ -81,6 +90,7 @@ func GetP(q *big.Int) *big.Int {
 	return i
 }
 
+// probablyPrime judge weather is prime
 func probablyPrime(prime *big.Int) bool {
 	return prime != nil && prime.ProbablyPrime(PrimeTestTimes)
 }

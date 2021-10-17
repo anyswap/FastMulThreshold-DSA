@@ -43,8 +43,8 @@ func (round *round0) Start() error {
 	round.started = true
 	round.resetOK()
 
-	re := &ReshareRound0Message{
-		ReshareRoundMessage: new(ReshareRoundMessage),
+	re := &ReRound0Message{
+		ReRoundMessage: new(ReRoundMessage),
 	}
 	re.SetFromID(round.dnodeid)
 	re.SetFromIndex(-1)
@@ -57,7 +57,7 @@ func (round *round0) Start() error {
 
 // CanAccept is it legal to receive this message 
 func (round *round0) CanAccept(msg smpc.Message) bool {
-	if _, ok := msg.(*ReshareRound0Message); ok {
+	if _, ok := msg.(*ReRound0Message); ok {
 		return msg.IsBroadcast()
 	}
 	return false

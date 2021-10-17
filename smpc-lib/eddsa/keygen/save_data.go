@@ -24,6 +24,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
 
+// LocalDNodeSaveData the ed data need to save in local db
 type LocalDNodeSaveData struct {
 	//
 	Sk           [64]byte
@@ -32,12 +33,13 @@ type LocalDNodeSaveData struct {
 	FinalPkBytes [32]byte
 	//
 
-	Ids        smpc.SortableIDSSlice
+	IDs        smpc.SortableIDSSlice
 	CurDNodeID *big.Int
 }
 
+// NewLocalDNodeSaveData new LocalDNodeSaveData
 func NewLocalDNodeSaveData(DNodeCount int) (saveData LocalDNodeSaveData) {
-	saveData.Ids = nil
+	saveData.IDs = nil
 	saveData.CurDNodeID = nil
 	return
 }
@@ -58,11 +60,11 @@ func (sd *LocalDNodeSaveData) OutMap() map[string]string {
 	finalpk := hex.EncodeToString(sd.FinalPkBytes[:])
 	sdout["FinalPkBytes"] = finalpk
 
-	ids := make([]string, len(sd.Ids))
-	for k, v := range sd.Ids {
+	ids := make([]string, len(sd.IDs))
+	for k, v := range sd.IDs {
 		ids[k] = fmt.Sprintf("%v", v)
 	}
-	sdout["Ids"] = strings.Join(ids, "|")
+	sdout["IDs"] = strings.Join(ids, "|")
 
 	sdout["CurDNodeID"] = fmt.Sprintf("%v", sd.CurDNodeID)
 
@@ -88,7 +90,7 @@ func GetLocalDNodeSaveData(data map[string]string) *LocalDNodeSaveData {
 	finalpk, _ := hex.DecodeString(data["FinalPkBytes"])
 	copy(FinalPkBytes[:], finalpk[:])
 
-	idstmp := strings.Split(data["Ids"], "|")
+	idstmp := strings.Split(data["IDs"], "|")
 	ids := make(smpc.SortableIDSSlice, len(idstmp))
 	for k, v := range idstmp {
 		ids[k], _ = new(big.Int).SetString(v, 10)
@@ -96,6 +98,6 @@ func GetLocalDNodeSaveData(data map[string]string) *LocalDNodeSaveData {
 
 	curdnodeid, _ := new(big.Int).SetString(data["CurDNodeID"], 10)
 
-	sd := &LocalDNodeSaveData{Sk: Sk, TSk: TSk, Pk: Pk, FinalPkBytes: FinalPkBytes, Ids: ids, CurDNodeID: curdnodeid}
+	sd := &LocalDNodeSaveData{Sk: Sk, TSk: TSk, Pk: Pk, FinalPkBytes: FinalPkBytes, IDs: ids, CurDNodeID: curdnodeid}
 	return sd
 }

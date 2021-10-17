@@ -32,7 +32,7 @@ func (round *round3) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index, err := round.GetDNodeIDIndex(round.kgid)
+	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
 		return err
 	}
@@ -42,9 +42,9 @@ func (round *round3) Start() error {
 		Kc:               round.temp.ukc,
 	}
 	srm.SetFromID(round.kgid)
-	srm.SetFromIndex(cur_index)
+	srm.SetFromIndex(curIndex)
 
-	round.temp.signRound3Messages[cur_index] = srm
+	round.temp.signRound3Messages[curIndex] = srm
 	round.out <- srm
 
 	//fmt.Printf("============= round3.start success, current node id = %v =======\n", round.kgid)

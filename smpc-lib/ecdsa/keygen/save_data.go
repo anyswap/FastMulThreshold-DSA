@@ -24,6 +24,7 @@ import (
 	"strings"
 )
 
+// LocalDNodeSaveData the data will save to local db after keygen
 type LocalDNodeSaveData struct {
 	//save to local db
 	Pkx *big.Int
@@ -35,7 +36,7 @@ type LocalDNodeSaveData struct {
 	U1PaillierPk []*ec2.PublicKey
 	U1NtildeH1H2 []*ec2.NtildeH1H2
 
-	Ids        smpc.SortableIDSSlice
+	IDs        smpc.SortableIDSSlice
 	CurDNodeID *big.Int
 }
 
@@ -48,7 +49,7 @@ func NewLocalDNodeSaveData(DNodeCount int) (saveData LocalDNodeSaveData) {
 	saveData.U1PaillierSk = nil
 	saveData.U1PaillierPk = make([]*ec2.PublicKey, DNodeCount)
 	saveData.U1NtildeH1H2 = make([]*ec2.NtildeH1H2, DNodeCount)
-	saveData.Ids = nil
+	saveData.IDs = nil
 	saveData.CurDNodeID = nil
 	return
 }
@@ -92,11 +93,11 @@ func (sd *LocalDNodeSaveData) OutMap() map[string]string {
 
 	sdout["U1NtildeH1H2"] = strings.Join(nth, "|")
 
-	ids := make([]string, len(sd.Ids))
-	for k, v := range sd.Ids {
+	ids := make([]string, len(sd.IDs))
+	for k, v := range sd.IDs {
 		ids[k] = fmt.Sprintf("%v", v)
 	}
-	sdout["Ids"] = strings.Join(ids, "|")
+	sdout["IDs"] = strings.Join(ids, "|")
 
 	sdout["CurDNodeID"] = fmt.Sprintf("%v", sd.CurDNodeID)
 
@@ -140,7 +141,7 @@ func GetLocalDNodeSaveData(data map[string]string) *LocalDNodeSaveData {
 		nt[k] = nttmp
 	}
 
-	idstmp := strings.Split(data["Ids"], "|")
+	idstmp := strings.Split(data["IDs"], "|")
 	ids := make(smpc.SortableIDSSlice, len(idstmp))
 	for k, v := range idstmp {
 		ids[k], _ = new(big.Int).SetString(v, 10)
@@ -148,7 +149,7 @@ func GetLocalDNodeSaveData(data map[string]string) *LocalDNodeSaveData {
 
 	curdnodeid, _ := new(big.Int).SetString(data["CurDNodeID"], 10)
 
-	sd := &LocalDNodeSaveData{Pkx: pkx, Pky: pky, C: c, SkU1: sku1, U1PaillierSk: usk, U1PaillierPk: pk, U1NtildeH1H2: nt, Ids: ids, CurDNodeID: curdnodeid}
+	sd := &LocalDNodeSaveData{Pkx: pkx, Pky: pky, C: c, SkU1: sku1, U1PaillierSk: usk, U1PaillierPk: pk, U1NtildeH1H2: nt, IDs: ids, CurDNodeID: curdnodeid}
 	return sd
 }
 

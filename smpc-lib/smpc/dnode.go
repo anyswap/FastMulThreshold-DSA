@@ -22,6 +22,7 @@ import (
 	"sync"
 )
 
+// DNode base interface of local dnode
 type DNode interface {
 	Start() error
 	Update(msg Message) (ok bool, err error)
@@ -40,10 +41,11 @@ type DNode interface {
 	unlock()
 }
 
+// BaseDNode the base type of LocalDNode 
 type BaseDNode struct {
 	mtx               sync.Mutex
 	rnd               Round
-	Id                string
+	ID                string
 	DNodeCountInGroup int
 	ThresHold         int
 	PaillierKeyLength int
@@ -60,6 +62,7 @@ func (p *BaseDNode) setRound(round Round) error {
 	return nil
 }
 
+// Round get the round of current dnode
 func (p *BaseDNode) Round() Round {
 	return p.rnd
 }

@@ -84,7 +84,7 @@ func (round *base) CanProceed() bool {
 	return true
 }
 
-func (round *base) GetIds() (smpc.SortableIDSSlice, error) {
+func (round *base) GetIDs() (smpc.SortableIDSSlice, error) {
 	var ids smpc.SortableIDSSlice
 	for _, v := range round.temp.kgRound0Messages {
 		uid, ok := new(big.Int).SetString(v.GetFromID(), 10)
@@ -106,10 +106,10 @@ func (round *base) GetDNodeIDIndex(id string) (int, error) {
 
 	idtmp, ok := new(big.Int).SetString(id, 10)
 	if !ok {
-		return -1, errors.New("get id big number fail.")
+		return -1, errors.New("get id big number fail")
 	}
 
-	ids, err := round.GetIds()
+	ids, err := round.GetIDs()
 	if err != nil {
 		return -1, err
 	}

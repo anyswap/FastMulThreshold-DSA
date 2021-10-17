@@ -298,7 +298,7 @@ func sendTx(tx *solana.Transaction) {
 	fmt.Printf("\nSend transaction success: %v\n", txid) // 2Rt9koHr14HL3MKKoq1iqSE1z8vC6a7MCsNih7R4v2XyGSVDzstDJqagicJUfwTmZFD9WHTFtuY3r6qgwd6haWrH*/
 }
 
-func tx_test() {
+func txtest() {
 	tx := buildUnsignedTx("7R9zUfmcXPUFGEtWtjuFUjhW5WD2i4G6ZL4TFbDJSozu", "2z55nksdCojo3jDW5reezbZMEvBQmdgPvMa7djMn3vR4", big.NewInt(2333))
 	//tx := buildUnsignedTx("DLnwyzASiNxwAz4wUfaHWnrZNi27YWCQf6JMSbH1b2pP", "2z55nksdCojo3jDW5reezbZMEvBQmdgPvMa7djMn3vR4", big.NewInt(333))
 
@@ -329,12 +329,14 @@ func tx_test() {
 	sendTx(signedTx)
 }
 
+// GetClient get client
 func GetClient() *rpc.Client {
 	var endpoint = "https://testnet.solana.com"
 	cli := rpc.NewClient(endpoint)
 	return cli
 }
 
+// PubkeyHexToAddress pubkey hex string to address
 func PubkeyHexToAddress(pubkeyHex string) (string, error) {
 	bz, err := hex.DecodeString(pubkeyHex)
 	if err != nil {
@@ -344,6 +346,7 @@ func PubkeyHexToAddress(pubkeyHex string) (string, error) {
 	return fmt.Sprintf("%s", pub), nil
 }
 
+// PublicKeyFromBytes public key form bytes
 func PublicKeyFromBytes(in []byte) (out solana.PublicKey) {
 	byteCount := len(in)
 	if byteCount == 0 {
@@ -382,7 +385,7 @@ func main() {
 	flag.Parse()
 
 	if *sol == true {
-	    tx_test()
+	    txtest()
 	    return
 	}
 

@@ -39,7 +39,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 	fmt.Printf("start processing inbound messages\n")
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
-		res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("fail to process inbound messages")}
+		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to process inbound messages")}
 		ch <- res
 		return
 	}
@@ -54,7 +54,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			msgmap := make(map[string]string)
 			err := json.Unmarshal([]byte(m), &msgmap)
 			if err != nil {
-				res := RpcSmpcRes{Ret: "", Err: err}
+				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
 			}
@@ -67,7 +67,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 
 			mm := GetRealMessage(msgmap)
 			if mm == nil {
-				res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("fail to process inbound messages")}
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to process inbound messages")}
 				ch <- res
 				return
 			}
@@ -75,7 +75,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			_, err = w.DNode.Update(mm)
 			if err != nil {
 				common.Error("====================ProcessInboundMessages,dnode update fail=======================", "receiv msg", m, "err", err)
-				res := RpcSmpcRes{Ret: "", Err: err}
+				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
 			}
@@ -103,11 +103,11 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 		err := pub.UnmarshalJSON([]byte(msg["U1PaillierPk"]))
 		if err == nil {
 			comc, _ := new(big.Int).SetString(msg["ComC"], 10)
-			comc_bip32, _ := new(big.Int).SetString(msg["ComC_bip32"], 10)
+			ComCBip32, _ := new(big.Int).SetString(msg["ComC_bip32"], 10)
 			kg := &keygen.KGRound1Message{
 				KGRoundMessage: new(keygen.KGRoundMessage),
 				ComC:           comc,
-				ComC_bip32:     comc_bip32,
+				ComCBip32:     ComCBip32,
 				U1PaillierPk:   pub,
 			}
 			kg.SetFromID(from)
@@ -119,11 +119,11 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 
 	//2 message
 	if msg["Type"] == "KGRound2Message" {
-		id, _ := new(big.Int).SetString(msg["Id"], 10)
+		id, _ := new(big.Int).SetString(msg["ID"], 10)
 		sh, _ := new(big.Int).SetString(msg["Share"], 10)
 		kg := &keygen.KGRound2Message{
 			KGRoundMessage: new(keygen.KGRoundMessage),
-			Id:             id,
+			ID:             id,
 			Share:          sh,
 		}
 		kg.SetFromID(from)
@@ -223,13 +223,13 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 	//6 message
 	if msg["Type"] == "KGRound6Message" {
 		b := false
-		if msg["Check_Pubkey_Status"] == "true" {
+		if msg["CheckPubkeyStatus"] == "true" {
 			b = true
 		}
 
 		kg := &keygen.KGRound6Message{
 			KGRoundMessage:      new(keygen.KGRoundMessage),
-			Check_Pubkey_Status: b,
+			CheckPubkeyStatus: b,
 		}
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
@@ -305,6 +305,7 @@ func processKeyGen(msgprex string, errChan chan struct{}, outCh <-chan smpclib.M
 	}
 }
 
+// KGLocalDBSaveData keygen save data
 type KGLocalDBSaveData struct {
 	Save       *keygen.LocalDNodeSaveData
 	MsgToEnode map[string]string
@@ -324,7 +325,7 @@ func (kgsave *KGLocalDBSaveData) OutMap() map[string]string {
 func GetKGLocalDBSaveData(data map[string]string) *KGLocalDBSaveData {
 	save := keygen.GetLocalDNodeSaveData(data)
 	msgtoenode := make(map[string]string)
-	for _, v := range save.Ids {
+	for _, v := range save.IDs {
 		msgtoenode[fmt.Sprintf("%v", v)] = data[fmt.Sprintf("%v", v)]
 	}
 
@@ -347,7 +348,7 @@ func ProcessOutCh(msgprex string, msg smpclib.Message) error {
 
 	msgmap := msg.OutMap()
 	msgmap["Key"] = msgprex
-	msgmap["ENode"] = cur_enode
+	msgmap["ENode"] = curEnode
 	s, err := json.Marshal(msgmap)
 	if err != nil {
 		fmt.Printf("====================ProcessOutCh, marshal err = %v, key = %v ========================\n", err, msgprex)

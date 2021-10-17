@@ -96,11 +96,12 @@ func IsValidReShareAccept(from string, gid string) bool {
 
 //--------------------------------------------------------------------------------
 
+// TxDataReShare the data of the special tx of reshare
 type TxDataReShare struct {
 	TxType    string
 	PubKey    string
-	GroupId   string
-	TSGroupId string
+	GroupID   string
+	TSGroupID string
 	ThresHold string
 	Account   string
 	Mode      string
@@ -122,20 +123,20 @@ func ReShare(raw string) (string, string, error) {
 		return "", "check raw fail,it is not *TxDataReShare", fmt.Errorf("check raw data fail")
 	}
 
-	common.Debug("=====================ReShare, SendMsgToSmpcGroup ================", "raw", raw, "gid", rh.GroupId, "key", key)
-	SendMsgToSmpcGroup(raw, rh.GroupId)
-	SetUpMsgList(raw, cur_enode)
+	common.Debug("=====================ReShare, SendMsgToSmpcGroup ================", "raw", raw, "gid", rh.GroupID, "key", key)
+	SendMsgToSmpcGroup(raw, rh.GroupID)
+	SetUpMsgList(raw, curEnode)
 	return key, "", nil
 }
 
 //-----------------------------------------------------------------------------------
 
-// RpcAcceptReShare Agree to the reshare request 
+// RPCAcceptReShare Agree to the reshare request 
 // raw : accept data, including the key of the reshare request
-func RpcAcceptReShare(raw string) (string, string, error) {
+func RPCAcceptReShare(raw string) (string, string, error) {
 	_, _, _, txdata, err := CheckRaw(raw)
 	if err != nil {
-		common.Error("=====================RpcAcceptReShare,check raw data error ================", "raw", raw, "err", err)
+		common.Error("=====================RPCAcceptReShare,check raw data error ================", "raw", raw, "err", err)
 		return "Failure", err.Error(), err
 	}
 
@@ -148,9 +149,9 @@ func RpcAcceptReShare(raw string) (string, string, error) {
 	if exsit {
 		ac, ok := da.(*AcceptReShareData)
 		if ok && ac != nil {
-			common.Debug("=====================RpcAcceptReShare, SendMsgToSmpcGroup ================", "raw", raw, "gid", ac.GroupId, "key", acceptrh.Key)
-			SendMsgToSmpcGroup(raw, ac.GroupId)
-			SetUpMsgList(raw, cur_enode)
+			common.Debug("=====================RPCAcceptReShare, SendMsgToSmpcGroup ================", "raw", raw, "gid", ac.GroupID, "key", acceptrh.Key)
+			SendMsgToSmpcGroup(raw, ac.GroupID)
+			SetUpMsgList(raw, curEnode)
 			return "Success", "", nil
 		}
 	}
@@ -160,6 +161,7 @@ func RpcAcceptReShare(raw string) (string, string, error) {
 
 //-------------------------------------------------------------------------------------
 
+// ReShareStatus reshare result
 type ReShareStatus struct {
 	Status    string
 	Pubkey    string
@@ -188,17 +190,19 @@ func GetReShareStatus(key string) (string, string, error) {
 
 //-------------------------------------------------------------------------------------
 
+// ReShareCurNodeInfo the data of current node's approve list
 type ReShareCurNodeInfo struct {
 	Key       string
 	PubKey    string
-	GroupId   string
-	TSGroupId string
+	GroupID   string
+	TSGroupID string
 	ThresHold string
 	Account   string
 	Mode      string
 	TimeStamp string
 }
 
+// ReShareCurNodeInfoSort sort the info of current node's approve list
 type ReShareCurNodeInfoSort struct {
 	Info []*ReShareCurNodeInfo
 }
@@ -252,7 +256,7 @@ func GetCurNodeReShareInfo() ([]*ReShareCurNodeInfo, string, error) {
 				return
 			}
 
-			los := &ReShareCurNodeInfo{Key: key, PubKey: vv.PubKey, GroupId: vv.GroupId, TSGroupId: vv.TSGroupId, ThresHold: vv.LimitNum, Account: vv.Account, Mode: vv.Mode, TimeStamp: vv.TimeStamp}
+			los := &ReShareCurNodeInfo{Key: key, PubKey: vv.PubKey, GroupID: vv.GroupID, TSGroupID: vv.TSGroupID, ThresHold: vv.LimitNum, Account: vv.Account, Mode: vv.Mode, TimeStamp: vv.TimeStamp}
 			ch <- los
 			common.Debug("================GetCurNodeReShareInfo success return============================", "key", key)
 		}(string(key2), da, data)
@@ -280,19 +284,19 @@ func GetCurNodeReShareInfo() ([]*ReShareCurNodeInfo, string, error) {
 func _reshare(wsid string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{}) {
 
 	rch := make(chan interface{}, 1)
-	smpc_reshare(wsid, initator, groupid, pubkey, account, mode, sigs, rch)
-	ret, _, cherr := GetChannelValue(ch_t, rch)
+	smpcReshare(wsid, initator, groupid, pubkey, account, mode, sigs, rch)
+	ret, _, cherr := GetChannelValue(cht, rch)
 	if ret != "" {
 		w, err := FindWorker(wsid)
 		if w == nil || err != nil {
-			res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker", Err: fmt.Errorf("get worker error.")}
+			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker", Err: fmt.Errorf("get worker error")}
 			ch <- res
 			return
 		}
 
 		//sid-enode:SendReShareRes:Success:ret
 		//sid-enode:SendReShareRes:Fail:err
-		mp := []string{w.sid, cur_enode}
+		mp := []string{w.sid, curEnode}
 		enode := strings.Join(mp, "-")
 		s0 := "SendReShareRes"
 		s1 := "Success"
@@ -302,19 +306,19 @@ func _reshare(wsid string, initator string, groupid string, pubkey string, accou
 
 		tip, reply := AcceptReShare("", initator, groupid, w.groupid, pubkey, w.limitnum, mode, "true", "true", "Success", ret, "", "", nil, w.id)
 		if reply != nil {
-			res := RpcSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("update reshare status error.")}
+			res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("update reshare status error")}
 			ch <- res
 			return
 		}
 
 		common.Info("================reshare,the terminal res is success=================", "key", wsid)
-		res := RpcSmpcRes{Ret: ret, Tip: tip, Err: err}
+		res := RPCSmpcRes{Ret: ret, Tip: tip, Err: err}
 		ch <- res
 		return
 	}
 
 	if cherr != nil {
-		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:reshare fail", Err: cherr}
+		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:reshare fail", Err: cherr}
 		ch <- res
 		return
 	}
@@ -322,30 +326,30 @@ func _reshare(wsid string, initator string, groupid string, pubkey string, accou
 
 //---------------------------------------------------------------------------------------
 
-// smpc_reshare execute reshare
+// smpcReshare execute reshare
 // ec2
 // msgprex = hash
 // return value is the backup for smpc sig.
-func smpc_reshare(msgprex string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{}) {
+func smpcReshare(msgprex string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{}) {
 
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
-		res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker", Err: fmt.Errorf("no find worker.")}
+		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker", Err: fmt.Errorf("no find worker")}
 		ch <- res
 		return
 	}
 	id := w.id
 
 	var ch1 = make(chan interface{}, 1)
-	for i := 0; i < recalc_times; i++ {
+	for i := 0; i < recalcTimes; i++ {
 		if len(ch1) != 0 {
 			<-ch1
 		}
 
-		ReShare_ec2(msgprex, initator, groupid, pubkey, account, mode, sigs, ch1, id)
-		ret, _, cherr := GetChannelValue(ch_t, ch1)
+		ReShareEC2(msgprex, initator, groupid, pubkey, account, mode, sigs, ch1, id)
+		ret, _, cherr := GetChannelValue(cht, ch1)
 		if ret != "" && cherr == nil {
-			res := RpcSmpcRes{Ret: ret, Tip: "", Err: cherr}
+			res := RPCSmpcRes{Ret: ret, Tip: "", Err: cherr}
 			ch <- res
 			break
 		}
@@ -357,26 +361,26 @@ func smpc_reshare(msgprex string, initator string, groupid string, pubkey string
 
 //-------------------------------------------------------------------------------------------------------
 
-// ReShare_ec2 execute reshare
+// ReShareEC2 execute reshare
 // msgprex = hash
 // return value is the backup for the smpc sig
-func ReShare_ec2(msgprex string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{}, id int) {
+func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{}, id int) {
 	if id < 0 || id >= len(workers) {
-		res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("no find worker.")}
+		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("no find worker")}
 		ch <- res
 		return
 	}
 
 	w := workers[id]
 	if w.groupid == "" {
-		res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("get group id fail.")}
+		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get group id fail")}
 		ch <- res
 		return
 	}
 
 	ns, _ := GetGroup(groupid)
 	if ns != w.NodeCnt {
-		res := RpcSmpcRes{Ret: "", Err: GetRetErr(ErrGroupNotReady)}
+		res := RPCSmpcRes{Ret: "", Err: GetRetErr(ErrGroupNotReady)}
 		ch <- res
 		return
 	}
@@ -390,8 +394,8 @@ func ReShare_ec2(msgprex string, initator string, groupid string, pubkey string,
 
 	if oldnode {
 		_, ok := da.(*PubKeyData)
-		if !ok || (da.(*PubKeyData)).GroupId == "" {
-			res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get sign data from db fail", Err: fmt.Errorf("get sign data from db fail")}
+		if !ok || (da.(*PubKeyData)).GroupID == "" {
+			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get sign data from db fail", Err: fmt.Errorf("get sign data from db fail")}
 			ch <- res
 			return
 		}
@@ -399,7 +403,7 @@ func ReShare_ec2(msgprex string, initator string, groupid string, pubkey string,
 		save := (da.(*PubKeyData)).Save
 		mm := strings.Split(save, common.SepSave)
 		if len(mm) == 0 {
-			res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("reshare get save data fail")}
+			res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("reshare get save data fail")}
 			ch <- res
 			return
 		}
@@ -408,13 +412,13 @@ func ReShare_ec2(msgprex string, initator string, groupid string, pubkey string,
 		///sku1
 		da2 := getSkU1FromLocalDb(smpcpks[:])
 		if da2 == nil {
-			res := RpcSmpcRes{Ret: "", Tip: "reshare get sku1 fail", Err: fmt.Errorf("reshare get sku1 fail")}
+			res := RPCSmpcRes{Ret: "", Tip: "reshare get sku1 fail", Err: fmt.Errorf("reshare get sku1 fail")}
 			ch <- res
 			return
 		}
 		sku1 := new(big.Int).SetBytes(da2)
 		if sku1 == nil {
-			res := RpcSmpcRes{Ret: "", Tip: "reshare get sku1 fail", Err: fmt.Errorf("reshare get sku1 fail")}
+			res := RPCSmpcRes{Ret: "", Tip: "reshare get sku1 fail", Err: fmt.Errorf("reshare get sku1 fail")}
 			ch <- res
 			return
 		}
@@ -424,7 +428,7 @@ func ReShare_ec2(msgprex string, initator string, groupid string, pubkey string,
 		sd.Pkx = pkx
 		sd.Pky = pky
 
-		sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, (da.(*PubKeyData)).GroupId, "EC256K1")
+		sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, (da.(*PubKeyData)).GroupID, "EC256K1")
 
 		U1PaillierPk := make([]*ec2.PublicKey, w.NodeCnt)
 		U1NtildeH1H2 := make([]*ec2.NtildeH1H2, w.NodeCnt)
@@ -435,14 +439,14 @@ func ReShare_ec2(msgprex string, initator string, groupid string, pubkey string,
 		sd.U1PaillierPk = U1PaillierPk
 		sd.U1NtildeH1H2 = U1NtildeH1H2
 
-		sd.Ids = GetIds("EC256K1", (da.(*PubKeyData)).GroupId)
-		sd.CurDNodeID = DoubleHash(cur_enode, "EC256K1")
+		sd.IDs = GetIDs("EC256K1", (da.(*PubKeyData)).GroupID)
+		sd.CurDNodeID = DoubleHash(curEnode, "EC256K1")
 
-		msgtoenode := GetMsgToEnode("EC256K1", (da.(*PubKeyData)).GroupId)
+		msgtoenode := GetMsgToEnode("EC256K1", (da.(*PubKeyData)).GroupID)
 		kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
 
 		found := false
-		idreshare := GetIdReshareByGroupId(kgsave.MsgToEnode, w.groupid)
+		idreshare := GetIDReshareByGroupID(kgsave.MsgToEnode, w.groupid)
 		for _, v := range idreshare {
 			if v.Cmp(sd.CurDNodeID) == 0 {
 				found = true
@@ -455,17 +459,17 @@ func ReShare_ec2(msgprex string, initator string, groupid string, pubkey string,
 		}
 
 		if oldnode {
-			fmt.Printf("================= ReShare_ec2,oldnode is true, groupid = %v, w.groupid = %v =======================\n", groupid, w.groupid)
+			fmt.Printf("================= ReShareEC2,oldnode is true, groupid = %v, w.groupid = %v =======================\n", groupid, w.groupid)
 			commStopChan := make(chan struct{})
 			outCh := make(chan smpclib.Message, ns)
 			endCh := make(chan keygen.LocalDNodeSaveData, ns)
 			errChan := make(chan struct{})
 			reshareDNode := reshare.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048, sd, true)
 			w.DNode = reshareDNode
-			reshareDNode.SetDNodeID(fmt.Sprintf("%v", DoubleHash(cur_enode, "EC256K1")))
+			reshareDNode.SetDNodeID(fmt.Sprintf("%v", DoubleHash(curEnode, "EC256K1")))
 
 			uid, _ := new(big.Int).SetString(w.DNode.DNodeID(), 10)
-			w.MsgToEnode[fmt.Sprintf("%v", uid)] = cur_enode
+			w.MsgToEnode[fmt.Sprintf("%v", uid)] = curEnode
 
 			var reshareWg sync.WaitGroup
 			reshareWg.Add(2)
@@ -483,12 +487,12 @@ func ReShare_ec2(msgprex string, initator string, groupid string, pubkey string,
 			if err != nil {
 				fmt.Printf("==========process reshare err = %v ==========\n", err)
 				close(commStopChan)
-				res := RpcSmpcRes{Ret: "", Err: err}
+				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
 			}
 
-			res := RpcSmpcRes{Ret: fmt.Sprintf("%v", newsku1), Err: nil}
+			res := RPCSmpcRes{Ret: fmt.Sprintf("%v", newsku1), Err: nil}
 			ch <- res
 			close(commStopChan)
 			reshareWg.Wait()
@@ -496,17 +500,17 @@ func ReShare_ec2(msgprex string, initator string, groupid string, pubkey string,
 		}
 	}
 
-	fmt.Printf("================= ReShare_ec2,oldnode is false, groupid = %v, w.groupid = %v,w.ThresHold = %v,w.sid = %v, msgprex = %v =======================\n", groupid, w.groupid, w.ThresHold, w.sid, msgprex)
+	fmt.Printf("================= ReShareEC2,oldnode is false, groupid = %v, w.groupid = %v,w.ThresHold = %v,w.sid = %v, msgprex = %v =======================\n", groupid, w.groupid, w.ThresHold, w.sid, msgprex)
 	commStopChan := make(chan struct{})
 	outCh := make(chan smpclib.Message, ns)
 	endCh := make(chan keygen.LocalDNodeSaveData, ns)
 	errChan := make(chan struct{})
 	reshareDNode := reshare.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048, nil, false)
 	w.DNode = reshareDNode
-	reshareDNode.SetDNodeID(fmt.Sprintf("%v", DoubleHash(cur_enode, "EC256K1")))
+	reshareDNode.SetDNodeID(fmt.Sprintf("%v", DoubleHash(curEnode, "EC256K1")))
 
 	uid, _ := new(big.Int).SetString(w.DNode.DNodeID(), 10)
-	w.MsgToEnode[fmt.Sprintf("%v", uid)] = cur_enode
+	w.MsgToEnode[fmt.Sprintf("%v", uid)] = curEnode
 
 	var reshareWg sync.WaitGroup
 	reshareWg.Add(2)
@@ -524,12 +528,12 @@ func ReShare_ec2(msgprex string, initator string, groupid string, pubkey string,
 	if err != nil {
 		fmt.Printf("==========process reshare err = %v ==========\n", err)
 		close(commStopChan)
-		res := RpcSmpcRes{Ret: "", Err: err}
+		res := RPCSmpcRes{Ret: "", Err: err}
 		ch <- res
 		return
 	}
 
-	res := RpcSmpcRes{Ret: fmt.Sprintf("%v", newsku1), Err: nil}
+	res := RPCSmpcRes{Ret: fmt.Sprintf("%v", newsku1), Err: nil}
 	ch <- res
 	close(commStopChan)
 	reshareWg.Wait()
@@ -537,8 +541,8 @@ func ReShare_ec2(msgprex string, initator string, groupid string, pubkey string,
 
 //-------------------------------------------------------------------------------------------------------------
 
-// GetIdReshareByGroupId get uid of node in group by groupid,and sort the uids
-func GetIdReshareByGroupId(msgtoenode map[string]string, groupid string) smpclib.SortableIDSSlice {
+// GetIDReshareByGroupID get uid of node in group by groupid,and sort the uids
+func GetIDReshareByGroupID(msgtoenode map[string]string, groupid string) smpclib.SortableIDSSlice {
 	var ids smpclib.SortableIDSSlice
 
 	_, enodes := GetGroup(groupid)

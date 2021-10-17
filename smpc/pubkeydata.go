@@ -32,25 +32,29 @@ import (
 	"github.com/fsn-dev/cryptoCoins/coins"
 )
 
-type SmpcAccountsBalanceRes struct {
+// AccountsBalanceRes the balance of all smpc addr by pubkey
+type AccountsBalanceRes struct {
 	PubKey   string
 	Balances []SubAddressBalance
 }
 
+// SubAddressBalance the balance of smpc addr 
 type SubAddressBalance struct {
 	Cointype string
 	SmpcAddr string
 	Balance  string
 }
 
-type SmpcAddrRes struct {
+// AddrRes accout ---> pubkey ---> smpc addr by special cointype
+type AddrRes struct {
 	Account  string
 	PubKey   string
 	SmpcAddr string
 	Cointype string
 }
 
-type SmpcPubkeyRes struct {
+// PubkeyRes account --> pubkey --> smpc addrs
+type PubkeyRes struct {
 	Account     string
 	PubKey      string
 	SmpcAddress map[string]string
@@ -62,7 +66,7 @@ type SmpcPubkeyRes struct {
 // pubkey data,such as : account,pubkey,smpc address,cointype 
 func GetPubKeyData2(key string, account string, cointype string) (string, string, error) {
 	if key == "" || cointype == "" {
-		return "", "smpc back-end internal error:parameter error", fmt.Errorf("get pubkey data param error.")
+		return "", "smpc back-end internal error:parameter error", fmt.Errorf("get pubkey data param error")
 	}
 
 	exsit, da := GetPubKeyData([]byte(key))
@@ -81,15 +85,15 @@ func GetPubKeyData2(key string, account string, cointype string) (string, string
 
 		h := coins.NewCryptocoinHandler(cointype)
 		if h == nil {
-			return "", "cointype is not supported", fmt.Errorf("req addr fail.cointype is not supported.")
+			return "", "cointype is not supported", fmt.Errorf("req addr fail.cointype is not supported")
 		}
 
 		ctaddr, err := h.PublicKeyToAddress(pubkey)
 		if err != nil {
-			return "", "smpc back-end internal error:get smpc addr fail from pubkey:" + pubkey, fmt.Errorf("req addr fail.")
+			return "", "smpc back-end internal error:get smpc addr fail from pubkey:" + pubkey, fmt.Errorf("req addr fail")
 		}
 
-		m = &SmpcAddrRes{Account: account, PubKey: pubkey, SmpcAddr: ctaddr, Cointype: cointype}
+		m = &AddrRes{Account: account, PubKey: pubkey, SmpcAddr: ctaddr, Cointype: cointype}
 		b, _ := json.Marshal(m)
 		return string(b), "", nil
 	}
@@ -112,7 +116,7 @@ func GetPubKeyData2(key string, account string, cointype string) (string, string
 		addrmp[ct] = ctaddr
 	}
 
-	m = &SmpcPubkeyRes{Account: account, PubKey: pubkey, SmpcAddress: addrmp}
+	m = &PubkeyRes{Account: account, PubKey: pubkey, SmpcAddress: addrmp}
 	b, _ := json.Marshal(m)
 	return string(b), "", nil
 }
@@ -120,7 +124,7 @@ func GetPubKeyData2(key string, account string, cointype string) (string, string
 //-------------------------------------------------------------------------------------------
 
 // GetAccountsBalance Obtain SMPC addresses in different currencies in pubkey, and then obtain its balance 
-func GetAccountsBalance(pubkey string, geter_acc string) (interface{}, string, error) {
+func GetAccountsBalance(pubkey string, geteracc string) (interface{}, string, error) {
 	keytmp, err2 := hex.DecodeString(pubkey)
 	if err2 != nil {
 		return nil, "decode pubkey fail", err2
@@ -129,7 +133,7 @@ func GetAccountsBalance(pubkey string, geter_acc string) (interface{}, string, e
 	ret, tip, err := GetPubKeyData2(string(keytmp), pubkey, "ALL")
 	var m interface{}
 	if err == nil {
-		dp := SmpcPubkeyRes{}
+		dp := PubkeyRes{}
 		_ = json.Unmarshal([]byte(ret), &dp)
 		balances := make([]SubAddressBalance, 0)
 		var wg sync.WaitGroup
@@ -156,7 +160,7 @@ func GetAccountsBalance(pubkey string, geter_acc string) (interface{}, string, e
 				}
 			}
 		}
-		m = &SmpcAccountsBalanceRes{PubKey: pubkey, Balances: balances}
+		m = &AccountsBalanceRes{PubKey: pubkey, Balances: balances}
 	}
 
 	return m, tip, err
@@ -216,12 +220,12 @@ func GetAddr(pubkey string, cointype string) (string, string, error) {
 
 	h := coins.NewCryptocoinHandler(cointype)
 	if h == nil {
-		return "", "cointype is not supported", fmt.Errorf("req addr fail.cointype is not supported.")
+		return "", "cointype is not supported", fmt.Errorf("req addr fail.cointype is not supported")
 	}
 
 	ctaddr, err := h.PublicKeyToAddress(pubkey)
 	if err != nil {
-		return "", "smpc back-end internal error:get smpc addr fail from pubkey:" + pubkey, fmt.Errorf("get smpc  addr fail.")
+		return "", "smpc back-end internal error:get smpc addr fail from pubkey:" + pubkey, fmt.Errorf("get smpc  addr fail")
 	}
 
 	return ctaddr, "", nil
@@ -229,32 +233,38 @@ func GetAddr(pubkey string, cointype string) (string, string, error) {
 
 //--------------------------------------------------------------------------------
 
+// Err error info
 type Err struct {
 	Info string
 }
 
+// Error error string
 func (e Err) Error() string {
 	return e.Info
 }
 
+// PubAccounts all accounts generate by all group
 type PubAccounts struct {
 	Group []AccountsList
 }
+
+// AccountsList gid --- > generated in this group
 type AccountsList struct {
 	GroupID  string
 	Accounts []PubKeyInfo
 }
 
+// PubKeyInfo pubkey info
 type PubKeyInfo struct {
 	PubKey    string
 	ThresHold string
 	TimeStamp string
 }
 
-// get all accounts generated by special account
-func GetAccounts(geter_acc, mode string) (interface{}, string, error) {
+// GetAccounts get all accounts generated by special account
+func GetAccounts(geteracc, mode string) (interface{}, string, error) {
 	if accountsdb == nil {
-		return nil, "", fmt.Errorf("get accounts fail.")
+		return nil, "", fmt.Errorf("get accounts fail")
 	}
 
 	gp := common.NewSafeMap(10)
@@ -286,7 +296,7 @@ func GetAccounts(geter_acc, mode string) (interface{}, string, error) {
 			}
 
 			pubkeyhex := hex.EncodeToString([]byte(pd.Pub))
-			gid := pd.GroupId
+			gid := pd.GroupID
 			md := pd.Mode
 			limit := pd.LimitNum
 			if mode == md {
@@ -328,8 +338,7 @@ func GetAccounts(geter_acc, mode string) (interface{}, string, error) {
 
 //-----------------------------------------------------------------------------------------
 
-// GetBip32ChildKey
-// rootpubkey is the total public key of the root node
+// GetBip32ChildKey rootpubkey is the total public key of the root node
 // the inputcode format is "m / X1 / x2 /... / xn", where x1,..., xn is the index number of the child node of each level, which is in decimal format, for example: "m / 1234567890123456789012345678901234567890123456789012323455678901234" 
 // the return value is the sub public key of the X1 / x2 /... / xn sub node of the total public key of the root node.  
 func GetBip32ChildKey(rootpubkey string, inputcode string) (string, string, error) {
@@ -439,8 +448,8 @@ func GetBip32ChildKey(rootpubkey string, inputcode string) (string, string, erro
 					SendMsgToSmpcGroup(string(val), gg)
 
 					rch := make(chan interface{}, 1)
-					SetUpMsgList3(string(val), cur_enode, rch)
-					_, _, cherr := GetChannelValue(ch_t+10, rch)
+					SetUpMsgList3(string(val), curEnode, rch)
+					_, _, cherr := GetChannelValue(cht+10, rch)
 					if cherr != nil {
 						common.Error("=====================ExcutePreSignData, failed to pre-generate sign data.========================", "pubkey", rootpubkey, "err", cherr, "Index", index)
 					}

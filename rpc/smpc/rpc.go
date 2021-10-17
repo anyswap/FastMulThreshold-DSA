@@ -40,12 +40,13 @@ func listenSignal(exit chan int) {
 	}
 }
 
+// Service RPC service,include interface
 type Service struct{}
 
 // ReqSmpcAddr this will be called by smpc_reqSmpcAddr
 // raw: tx raw data
 //return pubkey and coins addr
-func (this *Service) ReqSmpcAddr(raw string) map[string]interface{} { //函数名首字母必须大写
+func (service *Service) ReqSmpcAddr(raw string) map[string]interface{} { //函数名首字母必须大写
 	common.Debug("===============ReqSmpcAddr================", "raw", raw)
 
 	data := make(map[string]interface{})
@@ -59,7 +60,7 @@ func (this *Service) ReqSmpcAddr(raw string) map[string]interface{} { //函数�
 		}
 	}
 
-	ret, tip, err := smpc.Req_SmpcAddr(raw)
+	ret, tip, err := smpc.ReqKeyGen(raw)
 	common.Debug("=================ReqSmpcAddr,get result.==================", "ret", ret, "tip", tip, "err", err, "raw", raw)
 	if err != nil {
 		data["result"] = ""
@@ -88,11 +89,11 @@ func (this *Service) ReqSmpcAddr(raw string) map[string]interface{} { //函数�
 // "Accept":"XXX",
 // "TimeStamp":"XXX"
 // }
-func (this *Service) AcceptReqAddr(raw string) map[string]interface{} {
+func (service *Service) AcceptReqAddr(raw string) map[string]interface{} {
 	//fmt.Printf("%v ==========call rpc AcceptReqAddr from web,raw = %v==========\n", common.CurrentTime(), raw)
 
 	data := make(map[string]interface{})
-	ret, tip, err := smpc.RpcAcceptReqAddr(raw)
+	ret, tip, err := smpc.RPCAcceptReqAddr(raw)
 	//common.Info("========================AcceptReqAddr,get result======================","ret",ret,"tip",tip,"err",err,"raw",raw)
 	//fmt.Printf("%v ==========call rpc AcceptReqAddr from web,ret = %v,tip = %v,err = %v,raw = %v==========\n", common.CurrentTime(), ret, tip, err, raw)
 	if err != nil {
@@ -115,7 +116,7 @@ func (this *Service) AcceptReqAddr(raw string) map[string]interface{} {
 }
 
 // GetReqAddrNonce  Get the nonce value of the special transaction generating pubkey 
-func (this *Service) GetReqAddrNonce(account string) map[string]interface{} {
+func (service *Service) GetReqAddrNonce(account string) map[string]interface{} {
 	//fmt.Println("%v =========call rpc.GetReqAddrNonce from web,account = %v =================", common.CurrentTime(), account)
 
 	data := make(map[string]interface{})
@@ -152,7 +153,7 @@ func (this *Service) GetReqAddrNonce(account string) map[string]interface{} {
 }
 
 // GetCurNodeReqAddrInfo  Get the list of generating pubkey command data currently to be approved 
-func (this *Service) GetCurNodeReqAddrInfo(account string) map[string]interface{} {
+func (service *Service) GetCurNodeReqAddrInfo(account string) map[string]interface{} {
 	common.Debug("==================GetCurNodeReqAddrInfo====================", "account", account)
 
 	s, tip, err := smpc.GetCurNodeReqAddrInfo(account)
@@ -176,7 +177,7 @@ func (this *Service) GetCurNodeReqAddrInfo(account string) map[string]interface{
 
 // GetReqAddrStatus  Get the result of generating pubkey
 // key:  This generates the unique identification value of the pubkey command 
-func (this *Service) GetReqAddrStatus(key string) map[string]interface{} {
+func (service *Service) GetReqAddrStatus(key string) map[string]interface{} {
 	common.Debug("==================GetReqAddrStatus====================", "key", key)
 
 	data := make(map[string]interface{})
@@ -209,10 +210,10 @@ func (this *Service) GetReqAddrStatus(key string) map[string]interface{} {
 // "Accept":"XXX",
 // "TimeStamp":"XXX"
 // }
-func (this *Service) AcceptSign(raw string) map[string]interface{} {
+func (service *Service) AcceptSign(raw string) map[string]interface{} {
 
 	data := make(map[string]interface{})
-	ret, tip, err := smpc.RpcAcceptSign(raw)
+	ret, tip, err := smpc.RPCAcceptSign(raw)
 	if err != nil {
 		data["result"] = "Failure"
 		return map[string]interface{}{
@@ -245,7 +246,7 @@ func (this *Service) AcceptSign(raw string) map[string]interface{} {
 // "Mode":"XXX",
 // "TimeStamp":"XXX"
 // }
-func (this *Service) Sign(raw string) map[string]interface{} {
+func (service *Service) Sign(raw string) map[string]interface{} {
 	common.Info("===================Sign=====================", "raw", raw)
 
 	data := make(map[string]interface{})
@@ -270,7 +271,7 @@ func (this *Service) Sign(raw string) map[string]interface{} {
 }
 
 // GetSignNonce  Get the nonce value of the special transaction of the sign command 
-func (this *Service) GetSignNonce(account string) map[string]interface{} {
+func (service *Service) GetSignNonce(account string) map[string]interface{} {
 	data := make(map[string]interface{})
 	if account == "" {
 		data["result"] = "0"
@@ -303,7 +304,7 @@ func (this *Service) GetSignNonce(account string) map[string]interface{} {
 }
 
 // GetCurNodeSignInfo Get the list of sign command data currently to be approved
-func (this *Service) GetCurNodeSignInfo(account string) map[string]interface{} {
+func (service *Service) GetCurNodeSignInfo(account string) map[string]interface{} {
 	common.Debug("==================GetCurNodeSignInfo====================", "account", account)
 
 	s, tip, err := smpc.GetCurNodeSignInfo(account)
@@ -327,7 +328,7 @@ func (this *Service) GetCurNodeSignInfo(account string) map[string]interface{} {
 
 // GetSignStatus  Get the result of sign command
 // key:  This generates the unique identification value of the sign command
-func (this *Service) GetSignStatus(key string) map[string]interface{} {
+func (service *Service) GetSignStatus(key string) map[string]interface{} {
 	common.Debug("==================GetSignStatus====================", "key", key)
 	data := make(map[string]interface{})
 	ret, tip, err := smpc.GetSignStatus(key)
@@ -352,7 +353,7 @@ func (this *Service) GetSignStatus(key string) map[string]interface{} {
 }
 
 // ReShare do reshare
-func (this *Service) ReShare(raw string) map[string]interface{} {
+func (service *Service) ReShare(raw string) map[string]interface{} {
 	common.Debug("===================ReShare=====================", "raw", raw)
 
 	data := make(map[string]interface{})
@@ -378,7 +379,7 @@ func (this *Service) ReShare(raw string) map[string]interface{} {
 }
 
 // GetReShareNonce  Get the nonce value of this resare command special transaction 
-func (this *Service) GetReShareNonce(account string) map[string]interface{} {
+func (service *Service) GetReShareNonce(account string) map[string]interface{} {
 	data := make(map[string]interface{})
 	if account == "" {
 		data["result"] = "0"
@@ -411,11 +412,11 @@ func (this *Service) GetReShareNonce(account string) map[string]interface{} {
 }
 
 // AcceptReShare Agree to reshare
-func (this *Service) AcceptReShare(raw string) map[string]interface{} {
+func (service *Service) AcceptReShare(raw string) map[string]interface{} {
 	//fmt.Printf("%v ==========call rpc AcceptReShare from web,raw = %v==========\n", common.CurrentTime(), raw)
 
 	data := make(map[string]interface{})
-	ret, tip, err := smpc.RpcAcceptReShare(raw)
+	ret, tip, err := smpc.RPCAcceptReShare(raw)
 	//fmt.Printf("%v ==========call rpc AcceptReShare from web,ret = %v,tip = %v,err = %v,raw = %v==========\n", common.CurrentTime(), ret, tip, err, raw)
 	if err != nil {
 		data["result"] = "Failure"
@@ -437,7 +438,7 @@ func (this *Service) AcceptReShare(raw string) map[string]interface{} {
 }
 
 // GetCurNodeReShareInfo  Get the Reshare command approval list 
-func (this *Service) GetCurNodeReShareInfo() map[string]interface{} {
+func (service *Service) GetCurNodeReShareInfo() map[string]interface{} {
 	s, tip, err := smpc.GetCurNodeReShareInfo()
 	//fmt.Printf("%v ==============finish call rpc GetCurNodeReShareInfo ,ret = %v,err = %v ================\n", common.CurrentTime(), s, err)
 	if err != nil {
@@ -458,7 +459,7 @@ func (this *Service) GetCurNodeReShareInfo() map[string]interface{} {
 }
 
 // GetReShareStatus  Get the result of the Reshare command  
-func (this *Service) GetReShareStatus(key string) map[string]interface{} {
+func (service *Service) GetReShareStatus(key string) map[string]interface{} {
 	data := make(map[string]interface{})
 	ret, tip, err := smpc.GetReShareStatus(key)
 	if err != nil {
@@ -483,7 +484,7 @@ func (this *Service) GetReShareStatus(key string) map[string]interface{} {
 // PreGenSignData  Generate the relevant data required by the sign command in advance 
 // raw tx:
 // data = pubkey + subgids
-func (this *Service) PreGenSignData(raw string) map[string]interface{} {
+func (service *Service) PreGenSignData(raw string) map[string]interface{} {
 	common.Info("===================PreGenSignData=====================", "raw", raw)
 
 	data := make(map[string]interface{})
@@ -512,7 +513,7 @@ func (this *Service) PreGenSignData(raw string) map[string]interface{} {
 // Rootpubkey is the total public key pubkey of the root node
 // The inputcode format is "m / X1 / x2 /... / xn", where x1,..., xn is the index number of the child node of each level, which is in decimal format, for example: "m / 1234567890123456789012345678901234567890123456789012323455678901234"
 // inputcode = "m/x1/x2/..../xn"
-func (this *Service) GetBip32ChildKey(rootpubkey string, inputcode string) map[string]interface{} {
+func (service *Service) GetBip32ChildKey(rootpubkey string, inputcode string) map[string]interface{} {
 	data := make(map[string]interface{})
 	pub, tip, err := smpc.GetBip32ChildKey(rootpubkey, inputcode)
 	if err != nil {
@@ -537,7 +538,7 @@ func (this *Service) GetBip32ChildKey(rootpubkey string, inputcode string) map[s
 // GetAccounts get all pubkey by accout and mode
 // gid = "",get all pubkey of all gid
 // gid != "",get all pubkey by gid
-func (this *Service) GetAccounts(account, mode string) map[string]interface{} {
+func (service *Service) GetAccounts(account, mode string) map[string]interface{} {
 	data := make(map[string]interface{})
 	ret, tip, err := smpc.GetAccounts(account, mode)
 	if err != nil {
@@ -560,7 +561,7 @@ func (this *Service) GetAccounts(account, mode string) map[string]interface{} {
 }
 
 // GetAccountsBalance get all accout balances by pubkey
-func (this *Service) GetAccountsBalance(pubkey string, account string) map[string]interface{} {
+func (service *Service) GetAccountsBalance(pubkey string, account string) map[string]interface{} {
 	fmt.Printf("%v ==========call rpc GetAccountsBalance from web, account = %v, pubkey = %v,=============\n", common.CurrentTime(), account, pubkey)
 	data := make(map[string]interface{})
 	if pubkey == "" {
@@ -595,7 +596,7 @@ func (this *Service) GetAccountsBalance(pubkey string, account string) map[strin
 }
 
 // GetBalance get account balance
-func (this *Service) GetBalance(account string, cointype string, smpcaddr string) map[string]interface{} {
+func (service *Service) GetBalance(account string, cointype string, smpcaddr string) map[string]interface{} {
 
 	data := make(map[string]interface{})
 	if account == "" || cointype == "" || smpcaddr == "" {
@@ -630,7 +631,7 @@ func (this *Service) GetBalance(account string, cointype string, smpcaddr string
 }
 
 // GetSmpcAddr get smpc addrs by pubkey
-func (this *Service) GetSmpcAddr(pubkey string) map[string]interface{} {
+func (service *Service) GetSmpcAddr(pubkey string) map[string]interface{} {
 	data := make(map[string]interface{})
 	ret, tip, err := smpc.GetSmpcAddr(pubkey)
 	if err != nil {
@@ -659,9 +660,10 @@ var (
 	err      error
 )
 
-func RpcInit(port int) {
+// RPCInit rpc start init
+func RPCInit(port int) {
 	rpcport = port
-	go startRpcServer()
+	go startRPCServer()
 }
 
 // splitAndTrim splits input separated by a comma
@@ -674,7 +676,7 @@ func splitAndTrim(input string) []string {
 	return result
 }
 
-func startRpcServer() error {
+func startRPCServer() error {
 	go func() error {
 		server = rpc.NewServer()
 		service := new(Service)

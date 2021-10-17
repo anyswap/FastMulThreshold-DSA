@@ -33,29 +33,29 @@ func (round *round5) Start() error {
 
 	idtmp, ok := new(big.Int).SetString(round.dnodeid, 10)
 	if !ok {
-		return errors.New("get id big number fail.")
+		return errors.New("get id big number fail")
 	}
 
-	cur_index := -1
-	for k, v := range round.Save.Ids {
+	curIndex := -1
+	for k, v := range round.Save.IDs {
 		if v.Cmp(idtmp) == 0 {
-			cur_index = k
+			curIndex = k
 			break
 		}
 	}
 
-	if cur_index < 0 {
+	if curIndex < 0 {
 		return errors.New("get cur index fail")
 	}
 
-	re := &ReshareRound5Message{
-		ReshareRoundMessage: new(ReshareRoundMessage),
+	re := &ReRound5Message{
+		ReRoundMessage: new(ReRoundMessage),
 		NewSkOk:             "TRUE",
 	}
 	re.SetFromID(round.dnodeid)
-	re.SetFromIndex(cur_index)
+	re.SetFromIndex(curIndex)
 
-	round.temp.reshareRound5Messages[cur_index] = re
+	round.temp.reshareRound5Messages[curIndex] = re
 	round.out <- re
 
 	//fmt.Printf("========= round5 start success ==========\n")
@@ -64,7 +64,7 @@ func (round *round5) Start() error {
 
 // CanAccept is it legal to receive this message 
 func (round *round5) CanAccept(msg smpc.Message) bool {
-	if _, ok := msg.(*ReshareRound5Message); ok {
+	if _, ok := msg.(*ReRound5Message); ok {
 		return msg.IsBroadcast()
 	}
 

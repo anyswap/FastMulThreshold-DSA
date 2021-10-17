@@ -39,7 +39,7 @@ func (round *round7) Start() error {
 	for k := range round.idsign {
 		msg6, ok := round.temp.signRound6Messages[k].(*SignRound6Message)
 		if !ok {
-			return errors.New("get S fail.")
+			return errors.New("get s fail")
 		}
 
 		var t [32]byte

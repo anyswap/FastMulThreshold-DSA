@@ -30,14 +30,22 @@ import (
 )
 
 var (
+    	// PrePubDataCount the max count of pre-sign data of special groupid and pubkey
 	PrePubDataCount   = 2000
+
+	// PreBip32DataCount the max count of pre-sign data of special groupid and pubkey for bip32
 	PreBip32DataCount = 4
+
+	// PreSigal map
 	PreSigal          = common.NewSafeMap(10)
+
+	// PrePubGids map
 	PrePubGids        = common.NewSafeMap(10)
 )
 
 //------------------------------------------------
 
+// PreSign the data of presign cmd 
 type PreSign struct {
 	Pub       string
 	InputCode string //for bip32
@@ -82,6 +90,7 @@ func (ps *PreSign) UnmarshalJSON(raw []byte) error {
 
 //-------------------------------------------
 
+// PreSignData the pre-sign data
 type PreSignData struct {
 	Key    string
 	K1     *big.Int
@@ -155,6 +164,7 @@ func (psd *PreSignData) UnmarshalJSON(raw []byte) error {
 
 //---------------------------------------
 
+// PickHashData hash -- > pre-sign data that be picked
 type PickHashData struct {
 	Hash string
 	Pre  *PreSignData
@@ -163,7 +173,7 @@ type PickHashData struct {
 // MarshalJSON marshal *PickHashData  to json byte
 func (Phd *PickHashData) MarshalJSON() ([]byte, error) {
 	if Phd.Pre == nil {
-		return nil, errors.New("get pre-sign data fail.")
+		return nil, errors.New("get pre-sign data fail")
 	}
 
 	s, err := Phd.Pre.MarshalJSON()
@@ -205,6 +215,7 @@ func (Phd *PickHashData) UnmarshalJSON(raw []byte) error {
 
 //--------------------------------------------------
 
+// PickHashKey hash --- > the key of picked pre-sign data
 type PickHashKey struct {
 	Hash    string
 	PickKey string
@@ -239,6 +250,7 @@ func (Phk *PickHashKey) UnmarshalJSON(raw []byte) error {
 
 //----------------------------------------------------------------
 
+// SignBrocastData the data (sign raw + the key of picked pre-sign data ) brocast to group
 type SignBrocastData struct {
 	Raw      string
 	PickHash []*PickHashKey
@@ -295,6 +307,7 @@ func (Sbd *SignBrocastData) UnmarshalJSON(raw []byte) error {
 
 //-------------------------------------------------------
 
+// SignPickData raw + (hash,picked pre-sign data)
 type SignPickData struct {
 	Raw      string
 	PickData []*PickHashData
@@ -426,7 +439,7 @@ func UnCompressSignBrocastData(data string) (*SignBrocastData, error) {
 // strings.ToLower(256Hash(pubkey:inputcode:gid:index)) ---> PreSignData
 func GetPreSignKey(pubkey string, inputcode string, gid string, index int) (string, error) {
 	if pubkey == "" || gid == "" || index < 0 {
-		return "", fmt.Errorf("get pre-sign key fail,param error.")
+		return "", fmt.Errorf("get pre-sign key fail,param error")
 	}
 
 	if inputcode != "" {
@@ -534,7 +547,7 @@ func GetTotalCount(pubkey string, inputcode string, gid string) int {
 // PutPreSignData put pre-sign data to local db under the specified pubkey/gid/inputcode
 func PutPreSignData(pubkey string, inputcode string, gid string, index int, val *PreSignData, force bool) error {
 	if predb == nil || val == nil || index < 0 {
-		return fmt.Errorf("put pre-sign data fail,param error.")
+		return fmt.Errorf("put pre-sign data fail,param error")
 	}
 
 	key, err := GetPreSignKey(pubkey, inputcode, gid, index)
@@ -576,7 +589,7 @@ func PutPreSignData(pubkey string, inputcode string, gid string, index int, val 
 		return nil
 	}
 
-	return fmt.Errorf(" The pre-sign data of the key has been put to db before.")
+	return fmt.Errorf(" The pre-sign data of the key has been put to db before")
 }
 
 // BinarySearchPreSignData binary search pre-sign data by datakey under the specified pubkey/gid/inputcode from local db
@@ -634,12 +647,12 @@ func GetPreSignData(pubkey string, inputcode string, gid string, datakey string)
 func DeletePreSignData(pubkey string, inputcode string, gid string, datakey string) error {
 	if predb == nil || pubkey == "" || gid == "" || datakey == "" || PrePubDataCount < 1 {
 		common.Error("=======================DeletePreSignData,delete pre-sign data from db fail========================", "pubkey", pubkey, "gid", gid, "datakey", datakey)
-		return fmt.Errorf("delete pre-sign data from db error.")
+		return fmt.Errorf("delete pre-sign data from db error")
 	}
 
 	index, data := BinarySearchPreSignData(pubkey, inputcode, gid, datakey, 0, PrePubDataCount-1)
 	if data == nil || index < 0 {
-		return fmt.Errorf("pre-sign data was not found.")
+		return fmt.Errorf("pre-sign data was not found")
 	}
 
 	key, err := GetPreSignKey(pubkey, inputcode, gid, index)
@@ -722,6 +735,7 @@ func PickPreSignData(pubkey string, inputcode string, gid string) *PreSignData {
 
 //-----------------------------------------------------------------------
 
+// TxDataPreSignData the data of the special tx of pre-generating sign data
 type TxDataPreSignData struct {
 	TxType string
 	PubKey string
@@ -739,7 +753,7 @@ func PreGenSignData(raw string) (string, error) {
 	pre, ok := txdata.(*TxDataPreSignData)
 	if !ok {
 		common.Error("=====================PreGenSignData, get tx data error================", "raw", raw, "from", from)
-		return "", fmt.Errorf("get tx data error.")
+		return "", fmt.Errorf("get tx data error")
 	}
 
 	ExcutePreSignData(pre)
@@ -788,7 +802,7 @@ func ExcutePreSignData(pre *TxDataPreSignData) {
 						SendMsgToSmpcGroup(string(val), gg)
 
 						rch := make(chan interface{}, 1)
-						SetUpMsgList3(string(val), cur_enode, rch)
+						SetUpMsgList3(string(val), curEnode, rch)
 
 						reply := false
 						timeout := make(chan bool, 1)
@@ -859,7 +873,7 @@ func AutoPreGenSignData() {
 // SavePrekeyToDb save pubkey gid information to the specified batabase
 func SavePrekeyToDb(pubkey string, inputcode string, gid string) error {
 	if prekey == nil {
-		return fmt.Errorf("db open fail.")
+		return fmt.Errorf("db open fail")
 	}
 
 	var pub string

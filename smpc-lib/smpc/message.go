@@ -19,6 +19,7 @@ package smpc
 import (
 )
 
+// Message P2P message for MPC calculation
 type Message interface {
 	GetFromID() string // x,fi(x) ---> id,skui
 	GetFromIndex() int

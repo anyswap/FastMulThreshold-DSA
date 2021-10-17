@@ -25,7 +25,7 @@ var (
 	ErrUnknownChType          = `{Code:4,Error:"unknown channel type."}`
 	ErrGetChValueFail         = `{Code:5,Error:"get channel value fail."}`
 	ErrNoFindWorker           = `{Code:7,Error:"can not find worker."}`
-	ErrGetWorkerIdError       = `{Code:10,Error:"get worker id error."}`
+	ErrGetWorkerIDError       = `{Code:10,Error:"get worker id error."}`
 	ErrGetPrexDataError       = `{Code:11,Error:"get msg prefix data error."}`
 	ErrSendDataToGroupFail    = `{Code:15,Error:"send data to group fail."}`
 	ErrInternalMsgFormatError = `{Code:16,Error:"msg data format error."}`
@@ -41,7 +41,7 @@ var (
 	ErrGetRealEosUserFail     = `{Code:27,Error:"cannot get real eos account."}`
 	ErrSendTxToNetFail        = `{Code:14,Error:"send tx to outside net fail."}`
 	ErrGetC1Timeout           = `{Code:31,Error:"get C1 timeout."}`
-	ErrGetEnodeByUIdFail      = `{Code:32,Error:"can not find proper enodes by uid."}`
+	ErrGetEnodeByUIDFail      = `{Code:32,Error:"can not find proper enodes by uid."}`
 	ErrGetD1Timeout           = `{Code:33,Error:"get D1 timeout."}`
 	ErrGetSHARE1Timeout       = `{Code:34,Error:"get SHARE1 timeout."}`
 	ErrGetAllSHARE1Fail       = `{Code:35,Error:"get all SHARE1 msg fail."}`
@@ -84,6 +84,7 @@ var (
 	ErrSmpcSignVerifyFail     = `{Code:72,Error:"smpc sign verify fail."}`
 )
 
+// ErrorRet error return code
 type ErrorRet struct {
 	Code  int
 	Error string

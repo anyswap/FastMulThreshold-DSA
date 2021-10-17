@@ -42,12 +42,12 @@ func (round *round7) Start() error {
 		msg6, _ := round.temp.signRound6Messages[k].(*SignRound6Message)
 		deCommit := &ec2.Commitment{C: msg1.C11, D: msg6.CommU1D}
 		if !deCommit.Verify() {
-			return errors.New("verify commit fail.")
+			return errors.New("verify commit fail")
 		}
 
 		_, u1GammaG := deCommit.DeCommit()
 		if !ec2.ZkUVerify(u1GammaG, msg6.U1GammaZKProof) {
-			return errors.New("verify zkuproof fail.")
+			return errors.New("verify zkuproof fail")
 		}
 
 		if k == 0 {
@@ -74,11 +74,11 @@ func (round *round7) Start() error {
 	r := deltaGammaGx
 	zero, _ := new(big.Int).SetString("0", 10)
 	if r.Cmp(zero) == 0 {
-		return errors.New("r == 0.")
+		return errors.New("r == 0")
 	}
 
 	if r == nil || deltaGammaGy == nil {
-		return errors.New("calc r fail.")
+		return errors.New("calc r fail")
 	}
 
 	round.end <- PrePubData{K1: round.temp.u1K, R: r, Ry: deltaGammaGy, Sigma1: round.temp.sigma1}

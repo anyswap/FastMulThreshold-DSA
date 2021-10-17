@@ -34,14 +34,14 @@ func (round *round4) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index, err := round.GetDNodeIDIndex(round.dnodeid)
+	curIndex, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
 		return err
 	}
 
-	ids, err := round.GetIds()
+	ids, err := round.GetIDs()
 	if err != nil {
-		return errors.New("round.Start get ids fail.")
+		return errors.New("round.Start get ids fail")
 	}
 
 	for k := range ids {
@@ -50,7 +50,7 @@ func (round *round4) Start() error {
 			return errors.New("round.Start get round2 msg fail")
 		}
 
-		ushare := &ec2.ShareStruct2{Id: msg2.Id, Share: msg2.Share}
+		ushare := &ec2.ShareStruct2{ID: msg2.ID, Share: msg2.Share}
 		msg3, ok := round.temp.kgRound3Messages[k].(*KGRound3Message)
 		if !ok {
 			return errors.New("round.Start get round3 msg fail")
@@ -75,13 +75,13 @@ func (round *round4) Start() error {
 		}
 
 		//verify bip32 commitment
-		deCommit_bip32 := &ec2.Commitment{C: msg1.ComC_bip32, D: msg3.ComC1GD}
-		if !deCommit_bip32.Verify() {
+		deCommitBip32 := &ec2.Commitment{C: msg1.ComCBip32, D: msg3.ComC1GD}
+		if !deCommitBip32.Verify() {
 			fmt.Printf("========= round4 verify commitment for bip32 fail, k = %v ==========\n", k)
 			return errors.New("verify commitment fail")
 		}
 
-		_, c1G := deCommit_bip32.DeCommit()
+		_, c1G := deCommitBip32.DeCommit()
 		msg21, ok := round.temp.kgRound2Messages1[k].(*KGRound2Message1)
 		if !ok {
 			return errors.New("round.Start get round2.1 msg fail")
@@ -92,7 +92,7 @@ func (round *round4) Start() error {
 			//.....
 		} else {
 			fmt.Printf("========= round4 verify threshold for bip32 fail, k = %v ==========\n", k)
-			return errors.New("verify threshold bip32 fail.")
+			return errors.New("verify threshold bip32 fail")
 		}
 	}
 
@@ -105,7 +105,7 @@ func (round *round4) Start() error {
 		msg3, _ := round.temp.kgRound3Messages[k].(*KGRound3Message)
 		msg1, _ := round.temp.kgRound1Messages[k].(*KGRound1Message)
 		msg2, _ := round.temp.kgRound2Messages[k].(*KGRound2Message)
-		ushare := &ec2.ShareStruct2{Id: msg2.Id, Share: msg2.Share}
+		ushare := &ec2.ShareStruct2{ID: msg2.ID, Share: msg2.Share}
 
 		deCommit := &ec2.Commitment{C: msg1.ComC, D: msg3.ComU1GD}
 		_, u1G := deCommit.DeCommit()
@@ -125,7 +125,7 @@ func (round *round4) Start() error {
 		}
 
 		msg2, _ := round.temp.kgRound2Messages[k].(*KGRound2Message)
-		ushare := &ec2.ShareStruct2{Id: msg2.Id, Share: msg2.Share}
+		ushare := &ec2.ShareStruct2{ID: msg2.ID, Share: msg2.Share}
 		msg3, _ := round.temp.kgRound3Messages[k].(*KGRound3Message)
 		msg1, _ := round.temp.kgRound1Messages[k].(*KGRound1Message)
 
@@ -152,7 +152,7 @@ func (round *round4) Start() error {
 	NtildeLength := 2048
 	u1NtildeH1H2, alpha, beta, p, q := ec2.GenerateNtildeH1H2(NtildeLength)
 	if u1NtildeH1H2 == nil {
-		return errors.New("gen ntilde h1 h2 fail.")
+		return errors.New("gen ntilde h1 h2 fail")
 	}
 
 	ntildeProof1 := ec2.NewNtildeProof(u1NtildeH1H2.H1, u1NtildeH1H2.H2, alpha, p, q, u1NtildeH1H2.Ntilde)
@@ -165,10 +165,10 @@ func (round *round4) Start() error {
 		NtildeProof2:   ntildeProof2,
 	}
 	kg.SetFromID(round.dnodeid)
-	kg.SetFromIndex(cur_index)
+	kg.SetFromIndex(curIndex)
 
-	round.Save.U1NtildeH1H2[cur_index] = u1NtildeH1H2
-	round.temp.kgRound4Messages[cur_index] = kg
+	round.Save.U1NtildeH1H2[curIndex] = u1NtildeH1H2
+	round.temp.kgRound4Messages[curIndex] = kg
 	round.out <- kg
 
 	//fmt.Printf("========= round4 start success ==========\n")

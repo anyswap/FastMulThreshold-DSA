@@ -97,11 +97,11 @@ func TestCombine2(t *testing.T) {
 	sk = new(big.Int).Add(sk, u5)
 	sk = new(big.Int).Mod(sk, secp256k1.S256().N)
 
-	shareU1 := &ec2.ShareStruct2{Id: id1, Share: sku1}
-	shareU2 := &ec2.ShareStruct2{Id: id2, Share: sku2}
-	shareU3 := &ec2.ShareStruct2{Id: id3, Share: sku3}
-	shareU4 := &ec2.ShareStruct2{Id: id4, Share: sku4}
-	shareU5 := &ec2.ShareStruct2{Id: id5, Share: sku5}
+	shareU1 := &ec2.ShareStruct2{ID: id1, Share: sku1}
+	shareU2 := &ec2.ShareStruct2{ID: id2, Share: sku2}
+	shareU3 := &ec2.ShareStruct2{ID: id3, Share: sku3}
+	shareU4 := &ec2.ShareStruct2{ID: id4, Share: sku4}
+	shareU5 := &ec2.ShareStruct2{ID: id5, Share: sku5}
 
 	shares := []*ec2.ShareStruct2{shareU1, shareU2, shareU3, shareU4, shareU5}
 	computeSK, _ := ec2.Combine2(shares[:3])

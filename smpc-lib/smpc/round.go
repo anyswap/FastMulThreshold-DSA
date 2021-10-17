@@ -16,6 +16,7 @@
 
 package smpc
 
+// Round  Calculation rounds of MPC algorithm 
 type Round interface {
 	Start() error
 	CanAccept(msg Message) bool
@@ -23,6 +24,6 @@ type Round interface {
 	NextRound() Round
 	RoundNumber() int
 	CanProceed() bool
-	GetIds() (SortableIDSSlice, error)
+	GetIDs() (SortableIDSSlice, error)
 	GetDNodeIDIndex(id string) (int, error)
 }

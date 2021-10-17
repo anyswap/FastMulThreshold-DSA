@@ -22,6 +22,7 @@ import (
 	"math/big"
 )
 
+// NtildeH1H2 ntilde data
 type NtildeH1H2 struct {
 	Ntilde *big.Int
 	H1     *big.Int
@@ -59,6 +60,7 @@ func GenerateNtildeH1H2(length int) (*NtildeH1H2, *big.Int, *big.Int, *big.Int, 
 
 //--------------------------------------------------------------------------
 
+// MarshalJSON marshal NtildeH1H2 to json bytes
 func (ntilde *NtildeH1H2) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Ntilde string `json:"Ntilde"`
@@ -71,6 +73,7 @@ func (ntilde *NtildeH1H2) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON unmarshal raw to NtildeH1H2
 func (ntilde *NtildeH1H2) UnmarshalJSON(raw []byte) error {
 	var nti struct {
 		Ntilde string `json:"Ntilde"`
@@ -89,6 +92,7 @@ func (ntilde *NtildeH1H2) UnmarshalJSON(raw []byte) error {
 
 //----------------------------------------------------------------------
 
+// CreateNt create data for Nt zk proof
 func CreateNt(length int) (*NtildeH1H2, *big.Int, *big.Int, *big.Int, *big.Int) {
 
 	p, P := GetRandomPrime()

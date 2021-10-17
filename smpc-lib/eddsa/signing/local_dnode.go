@@ -25,6 +25,7 @@ import (
 	"math/big"
 )
 
+// LocalDNode current local node
 type LocalDNode struct {
 	*smpc.BaseDNode
 	temp         localTempData
@@ -35,9 +36,10 @@ type LocalDNode struct {
 	finalize     bool
 	predata      *PrePubData //useness for ed
 	txhash       *big.Int
-	finalize_end chan<- *big.Int //useness for ed
+	finalizeend chan<- *big.Int //useness for ed
 }
 
+// localTempData  Store some data of MPC calculation process 
 type localTempData struct {
 	signRound1Messages,
 	signRound2Messages,
@@ -88,7 +90,7 @@ func NewLocalDNode(
 	finalize bool,
 	predata *PrePubData, //nil for ed
 	txhash *big.Int,
-	finalize_end chan<- *big.Int, //useness for ed
+	finalizeend chan<- *big.Int, //useness for ed
 ) smpc.DNode {
 
 	p := &LocalDNode{
@@ -100,13 +102,13 @@ func NewLocalDNode(
 		end:          end,
 		predata:      predata,
 		txhash:       txhash,
-		finalize_end: finalize_end,
+		finalizeend: finalizeend,
 	}
 
 	var id [32]byte
 	copy(id[:], kgid.Bytes())
-	p.Id = hex.EncodeToString(id[:])
-	fmt.Printf("=========== NewLocalDNode, kgid = %v, p.Id = %v =============\n", kgid, p.Id)
+	p.ID = hex.EncodeToString(id[:])
+	fmt.Printf("=========== NewLocalDNode, kgid = %v, p.ID = %v =============\n", kgid, p.ID)
 
 	p.ThresHold = threshold
 	p.PaillierKeyLength = paillierkeylength
@@ -122,12 +124,14 @@ func NewLocalDNode(
 	return p
 }
 
+// FinalizeRound get finalize round
 func (p *LocalDNode) FinalizeRound() smpc.Round {
 	return nil // nil for ed
 }
 
+// FirstRound first round
 func (p *LocalDNode) FirstRound() smpc.Round {
-	return newRound1(&p.temp, p.save, p.idsign, p.out, p.end, p.Id, p.ThresHold, p.PaillierKeyLength, p.txhash)
+	return newRound1(&p.temp, p.save, p.idsign, p.out, p.end, p.ID, p.ThresHold, p.PaillierKeyLength, p.txhash)
 }
 
 // Start ed signing start 
@@ -140,14 +144,17 @@ func (p *LocalDNode) Update(msg smpc.Message) (ok bool, err error) {
 	return smpc.BaseUpdate(p, msg)
 }
 
+// DNodeID get the ID of current DNode
 func (p *LocalDNode) DNodeID() string {
-	return p.Id
+	return p.ID
 }
 
+// SetDNodeID set the ID of current DNode
 func (p *LocalDNode) SetDNodeID(id string) {
-	p.Id = id
+	p.ID = id
 }
 
+// Finalize weather gg20 round
 func (p *LocalDNode) Finalize() bool {
 	return p.finalize
 }

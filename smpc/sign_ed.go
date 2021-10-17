@@ -37,7 +37,7 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *
 	fmt.Printf("start ed sign processing inbound messages\n")
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
-		res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("fail to ed sign process inbound messages")}
+		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to ed sign process inbound messages")}
 		ch <- res
 		return
 	}
@@ -54,14 +54,14 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *
 
 			fmt.Printf("=================== EdSignProcessInboundMessages, msg = %v, err = %v, key = %v ====================\n", m, err, msgprex)
 			if err != nil {
-				res := RpcSmpcRes{Ret: "", Err: err}
+				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
 			}
 
 			mm := EdSignGetRealMessage(msgmap)
 			if mm == nil {
-				res := RpcSmpcRes{Ret: "", Err: fmt.Errorf("fail to ed sign process inbound messages")}
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to ed sign process inbound messages")}
 				ch <- res
 				return
 			}
@@ -69,7 +69,7 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *
 			_, err = w.DNode.Update(mm)
 			if err != nil {
 				fmt.Printf("========== EdSignProcessInboundMessages, dnode update fail, receiv smpc msg = %v, err = %v, key = %v ============\n", m, err, msgprex)
-				res := RpcSmpcRes{Ret: "", Err: err}
+				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
 			}
@@ -196,21 +196,21 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 	return nil
 }
 
-// processSign_ed  Obtain the data to be sent in each round and send it to other nodes until the end of the sign command 
-func processSign_ed(msgprex string, msgtoenode map[string]string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan edsigning.EdSignData) (*edsigning.EdSignData, error) {
+// processSigned  Obtain the data to be sent in each round and send it to other nodes until the end of the sign command 
+func processSigned(msgprex string, msgtoenode map[string]string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan edsigning.EdSignData) (*edsigning.EdSignData, error) {
 	for {
 		select {
 		case <-errChan:
-			fmt.Printf("=========================== processSign_ed,error channel closed fail to start local smpc node, key = %v =====================\n", msgprex)
+			fmt.Printf("=========================== processSigned,error channel closed fail to start local smpc node, key = %v =====================\n", msgprex)
 			return nil, errors.New("error channel closed fail to start local smpc node")
 
 		case <-time.After(time.Second * 300):
-			fmt.Printf("========================== processSign_ed,sign timeout, key = %v ==========================\n", msgprex)
+			fmt.Printf("========================== processSigned,sign timeout, key = %v ==========================\n", msgprex)
 			return nil, errors.New("ed sign timeout")
 		case msg := <-outCh:
 			err := SignProcessOutCh(msgprex, msgtoenode, msg, "")
 			if err != nil {
-				fmt.Printf("======================= processSign_ed, sign process outch err = %v, key = %v ====================\n", err, msgprex)
+				fmt.Printf("======================= processSigned, sign process outch err = %v, key = %v ====================\n", err, msgprex)
 				return nil, err
 			}
 		case msg := <-endCh:

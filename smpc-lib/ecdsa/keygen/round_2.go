@@ -33,11 +33,11 @@ func (round *round2) Start() error {
 	round.started = true
 	round.resetOK()
 
-	ids, err := round.GetIds()
+	ids, err := round.GetIDs()
 	if err != nil {
-		return errors.New("round.Start get ids fail.")
+		return errors.New("round.Start get ids fail")
 	}
-	round.Save.Ids = ids
+	round.Save.IDs = ids
 	round.Save.CurDNodeID, _ = new(big.Int).SetString(round.dnodeid, 10)
 
 	u1Shares, err := round.temp.u1Poly.Vss2(ids)
@@ -47,7 +47,7 @@ func (round *round2) Start() error {
 
 	round.temp.u1Shares = u1Shares
 
-	cur_index, err := round.GetDNodeIDIndex(round.dnodeid)
+	curIndex, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
 		return err
 	}
@@ -56,14 +56,14 @@ func (round *round2) Start() error {
 		for _, v := range u1Shares {
 			kg := &KGRound2Message{
 				KGRoundMessage: new(KGRoundMessage),
-				Id:             v.Id,
+				ID:             v.ID,
 				Share:          v.Share,
 			}
 			kg.SetFromID(round.dnodeid)
-			kg.SetFromIndex(cur_index)
+			kg.SetFromIndex(curIndex)
 
-			vv := ec2.GetSharesId(v)
-			if vv != nil && vv.Cmp(id) == 0 && k == cur_index {
+			vv := ec2.GetSharesID(v)
+			if vv != nil && vv.Cmp(id) == 0 && k == curIndex {
 				round.temp.kgRound2Messages[k] = kg
 				break
 			} else if vv != nil && vv.Cmp(id) == 0 {
@@ -80,8 +80,8 @@ func (round *round2) Start() error {
 		C1:             round.temp.c1,
 	}
 	kg.SetFromID(round.dnodeid)
-	kg.SetFromIndex(cur_index)
-	round.temp.kgRound2Messages1[cur_index] = kg
+	kg.SetFromIndex(curIndex)
+	round.temp.kgRound2Messages1[curIndex] = kg
 	round.out <- kg
 
 	//fmt.Printf("============ round2 send msg to peer success, c1 for bip32 = %v ============\n", kg.C1)

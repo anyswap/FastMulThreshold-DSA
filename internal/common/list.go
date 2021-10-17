@@ -22,15 +22,18 @@ import (
 	"sync"
 )
 
+// Queue list + sync mutex
 type Queue struct {
 	l *list.List
 	m sync.Mutex
 }
 
+// NewQueue new Queue
 func NewQueue() *Queue {
 	return &Queue{l: list.New()}
 }
 
+// PushBack put value to Queue
 func (q *Queue) PushBack(v interface{}) {
 	if v == nil {
 		return
@@ -40,12 +43,14 @@ func (q *Queue) PushBack(v interface{}) {
 	q.l.PushBack(v)
 }
 
+// Front get front element 
 func (q *Queue) Front() *list.Element {
 	q.m.Lock()
 	defer q.m.Unlock()
 	return q.l.Front()
 }
 
+// Remove remove element
 func (q *Queue) Remove(e *list.Element) {
 	if e == nil {
 		return
@@ -55,12 +60,14 @@ func (q *Queue) Remove(e *list.Element) {
 	q.l.Remove(e)
 }
 
+// Len get the len of Queue
 func (q *Queue) Len() int {
 	q.m.Lock()
 	defer q.m.Unlock()
 	return q.l.Len()
 }
 
+// InsertBefore insert value before element e
 func (q *Queue) InsertBefore(v interface{}, e *list.Element) {
 	q.m.Lock()
 	defer q.m.Unlock()

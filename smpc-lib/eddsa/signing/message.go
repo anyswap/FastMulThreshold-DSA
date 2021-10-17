@@ -17,55 +17,60 @@
 package signing
 
 import (
-	//"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
-	//"math/big"
 	"strings"
-	//"fmt"
 	"encoding/hex"
 	"strconv"
 )
 
-//signing
+// SignRoundMessage base type of sign round message
 type SignRoundMessage struct {
 	FromID    string   `json:"FromID"` //DNodeID
 	FromIndex int      `json:"FromIndex"`
 	ToID      []string `json:"ToID"`
 }
 
+// SetFromID set sending nodes's ID
 func (srm *SignRoundMessage) SetFromID(id string) {
 	srm.FromID = id
 }
 
+// SetFromIndex set sending nodes's serial number in group
 func (srm *SignRoundMessage) SetFromIndex(index int) {
 	srm.FromIndex = index
 }
 
+// AppendToID get the ID of nodes that the message will broacast to
 func (srm *SignRoundMessage) AppendToID(toid string) {
 	srm.ToID = append(srm.ToID, toid)
 }
 
-//SignRound1Message
+// SignRound1Message  Round 1 sending message 
 type SignRound1Message struct {
 	*SignRoundMessage
 	CR [32]byte
 }
 
+// GetFromID get the ID of sending nodes in the group
 func (srm *SignRound1Message) GetFromID() string {
 	return srm.FromID
 }
 
+// GetFromIndex get the Serial number of sending nodes in the group 
 func (srm *SignRound1Message) GetFromIndex() int {
 	return srm.FromIndex
 }
 
+// GetToID get the ID of the node that broacasting message to
 func (srm *SignRound1Message) GetToID() []string {
 	return srm.ToID
 }
 
+// IsBroadcast weather broacast the message
 func (srm *SignRound1Message) IsBroadcast() bool {
 	return true
 }
 
+// OutMap transfer *SignRound1Message to map
 func (srm *SignRound1Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = srm.FromID
@@ -79,28 +84,33 @@ func (srm *SignRound1Message) OutMap() map[string]string {
 	return m
 }
 
-//SignRound2Message
+// SignRound2Message  Round 2 sending message 
 type SignRound2Message struct {
 	*SignRoundMessage
 	ZkR [64]byte
 }
 
+// GetFromID get the ID of sending nodes in the group
 func (srm *SignRound2Message) GetFromID() string {
 	return srm.FromID
 }
 
+// GetFromIndex get the Serial number of sending nodes in the group 
 func (srm *SignRound2Message) GetFromIndex() int {
 	return srm.FromIndex
 }
 
+// GetToID get the ID of the node that broacasting message to
 func (srm *SignRound2Message) GetToID() []string {
 	return srm.ToID
 }
 
+// IsBroadcast weather broacast the message
 func (srm *SignRound2Message) IsBroadcast() bool {
 	return true
 }
 
+// OutMap transfer *SignRound2Message to map
 func (srm *SignRound2Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = srm.FromID
@@ -114,28 +124,33 @@ func (srm *SignRound2Message) OutMap() map[string]string {
 	return m
 }
 
-//SignRound3Message
+// SignRound3Message  Round 3 sending message 
 type SignRound3Message struct {
 	*SignRoundMessage
 	DR [64]byte
 }
 
+// GetFromID get the ID of sending nodes in the group
 func (srm *SignRound3Message) GetFromID() string {
 	return srm.FromID
 }
 
+// GetFromIndex get the Serial number of sending nodes in the group 
 func (srm *SignRound3Message) GetFromIndex() int {
 	return srm.FromIndex
 }
 
+// GetToID get the ID of the node that broacasting message to
 func (srm *SignRound3Message) GetToID() []string {
 	return srm.ToID
 }
 
+// IsBroadcast weather broacast the message
 func (srm *SignRound3Message) IsBroadcast() bool {
 	return true
 }
 
+// OutMap transfer *SignRound3Message to map
 func (srm *SignRound3Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = srm.FromID
@@ -149,28 +164,33 @@ func (srm *SignRound3Message) OutMap() map[string]string {
 	return m
 }
 
-//SignRound4Message
+// SignRound4Message  Round 4 sending message 
 type SignRound4Message struct {
 	*SignRoundMessage
 	CSB [32]byte
 }
 
+// GetFromID get the ID of sending nodes in the group
 func (srm *SignRound4Message) GetFromID() string {
 	return srm.FromID
 }
 
+// GetFromIndex get the Serial number of sending nodes in the group 
 func (srm *SignRound4Message) GetFromIndex() int {
 	return srm.FromIndex
 }
 
+// GetToID get the ID of the node that broacasting message to
 func (srm *SignRound4Message) GetToID() []string {
 	return srm.ToID
 }
 
+// IsBroadcast weather broacast the message
 func (srm *SignRound4Message) IsBroadcast() bool {
 	return true
 }
 
+// OutMap transfer *SignRound4Message to map
 func (srm *SignRound4Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = srm.FromID
@@ -184,28 +204,33 @@ func (srm *SignRound4Message) OutMap() map[string]string {
 	return m
 }
 
-//SignRound5Message
+// SignRound5Message  Round 5 sending message 
 type SignRound5Message struct {
 	*SignRoundMessage
 	DSB [64]byte
 }
 
+// GetFromID get the ID of sending nodes in the group
 func (srm *SignRound5Message) GetFromID() string {
 	return srm.FromID
 }
 
+// GetFromIndex get the Serial number of sending nodes in the group 
 func (srm *SignRound5Message) GetFromIndex() int {
 	return srm.FromIndex
 }
 
+// GetToID get the ID of the node that broacasting message to
 func (srm *SignRound5Message) GetToID() []string {
 	return srm.ToID
 }
 
+// IsBroadcast weather broacast the message
 func (srm *SignRound5Message) IsBroadcast() bool {
 	return true
 }
 
+// OutMap transfer *SignRound5Message to map
 func (srm *SignRound5Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = srm.FromID
@@ -219,28 +244,33 @@ func (srm *SignRound5Message) OutMap() map[string]string {
 	return m
 }
 
-//SignRound6Message
+// SignRound6Message  Round 6 sending message 
 type SignRound6Message struct {
 	*SignRoundMessage
 	S [32]byte
 }
 
+// GetFromID get the ID of sending nodes in the group
 func (srm *SignRound6Message) GetFromID() string {
 	return srm.FromID
 }
 
+// GetFromIndex get the Serial number of sending nodes in the group 
 func (srm *SignRound6Message) GetFromIndex() int {
 	return srm.FromIndex
 }
 
+// GetToID get the ID of the node that broacasting message to
 func (srm *SignRound6Message) GetToID() []string {
 	return srm.ToID
 }
 
+// IsBroadcast weather broacast the message
 func (srm *SignRound6Message) IsBroadcast() bool {
 	return true
 }
 
+// OutMap transfer *SignRound6Message to map
 func (srm *SignRound6Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = srm.FromID

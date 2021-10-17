@@ -26,7 +26,8 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
-type MtAZK3Proof_nhh struct {
+// MtAZK3Proofnhh mtazk3 zk proof
+type MtAZK3Proofnhh struct {
 	Ux   *big.Int
 	Uy   *big.Int
 	Z    *big.Int
@@ -41,8 +42,8 @@ type MtAZK3Proof_nhh struct {
 	T2   *big.Int
 }
 
-// MtAZK3Prove_nhh  Generate zero knowledge proof data mtazk3proof_ nhh 
-func MtAZK3Prove_nhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtAZK3Proof_nhh {
+// MtAZK3Provenhh  Generate zero knowledge proof data mtazk3proof_ nhh 
+func MtAZK3Provenhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtAZK3Proofnhh {
 	q3Ntilde := new(big.Int).Mul(s256.S256().N3(), ntildeH1H2.Ntilde)
 	qNtilde := new(big.Int).Mul(s256.S256().N, ntildeH1H2.Ntilde)
 
@@ -112,13 +113,13 @@ func MtAZK3Prove_nhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, publicKey 
 	t2 := new(big.Int).Mul(e, sigma)
 	t2 = new(big.Int).Add(t2, delta)
 
-	mtAZK3Proof := &MtAZK3Proof_nhh{Ux: ux, Uy: uy, Z: z, ZBar: zBar, T: t, V: v, W: w, S: s, S1: s1, S2: s2, T1: t1, T2: t2}
+	mtAZK3Proof := &MtAZK3Proofnhh{Ux: ux, Uy: uy, Z: z, ZBar: zBar, T: t, V: v, W: w, S: s, S1: s1, S2: s2, T1: t1, T2: t2}
 
 	return mtAZK3Proof
 }
 
-// MtAZK3Verify_nhh  Verify zero knowledge proof data mtazk3proof_ nhh 
-func (mtAZK3Proof *MtAZK3Proof_nhh) MtAZK3Verify_nhh(c1 *big.Int, c2 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
+// MtAZK3Verifynhh  Verify zero knowledge proof data mtazk3proof_ nhh 
+func (mtAZK3Proof *MtAZK3Proofnhh) MtAZK3Verifynhh(c1 *big.Int, c2 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
 	if mtAZK3Proof.S1.Cmp(s256.S256().N3()) >= 0 { //MtAZK3 question 1
 		return false
 	}
@@ -180,7 +181,8 @@ func (mtAZK3Proof *MtAZK3Proof_nhh) MtAZK3Verify_nhh(c1 *big.Int, c2 *big.Int, p
 	return true
 }
 
-func (mtAZK3Proof *MtAZK3Proof_nhh) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshal MtAZK3Proofnhh to json bytes
+func (mtAZK3Proof *MtAZK3Proofnhh) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Ux   string `json:"Ux"`
 		Uy   string `json:"Uy"`
@@ -210,7 +212,8 @@ func (mtAZK3Proof *MtAZK3Proof_nhh) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (mtAZK3Proof *MtAZK3Proof_nhh) UnmarshalJSON(raw []byte) error {
+// UnmarshalJSON unmarshal raw to MtAZK3Proofnhh
+func (mtAZK3Proof *MtAZK3Proofnhh) UnmarshalJSON(raw []byte) error {
 	var proof struct {
 		Ux   string `json:"Ux"`
 		Uy   string `json:"Uy"`

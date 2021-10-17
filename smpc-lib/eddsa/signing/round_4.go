@@ -34,7 +34,7 @@ func (round *round4) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index, err := round.GetDNodeIDIndex(round.kgid)
+	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
 		return err
 	}
@@ -45,29 +45,29 @@ func (round *round4) Start() error {
 	for k := range round.idsign {
 		msg1, ok := round.temp.signRound1Messages[k].(*SignRound1Message)
 		if !ok {
-			return errors.New("get CR fail.")
+			return errors.New("get cr fail")
 		}
 
 		msg3, ok := round.temp.signRound3Messages[k].(*SignRound3Message)
 		if !ok {
-			return errors.New("get DR fail.")
+			return errors.New("get dr fail")
 		}
 
 		CRFlag := ed.Verify(msg1.CR, msg3.DR)
 		if !CRFlag {
-			fmt.Printf("Error: Commitment(R) Not Pass at User: %v\n", round.save.CurDNodeID)
+			fmt.Printf("error: commitment(r) not pass at user: %v\n", round.save.CurDNodeID)
 			return errors.New("smpc back-end internal error:commitment verification fail in ed sign")
 		}
 
 		msg2, ok := round.temp.signRound2Messages[k].(*SignRound2Message)
 		if !ok {
-			return errors.New("get ZkR fail.")
+			return errors.New("get zkr fail")
 		}
 
 		var temR [32]byte
 		copy(temR[:], msg3.DR[32:])
 
-		zkRFlag := ed.Verify_zk(msg2.ZkR, temR)
+		zkRFlag := ed.VerifyZk(msg2.ZkR, temR)
 		if !zkRFlag {
 			fmt.Printf("Error: ZeroKnowledge Proof (R) Not Pass at User: %v\n", round.save.CurDNodeID)
 			return errors.New("smpc back-end internal error:zeroknowledge verification fail in ed sign")
@@ -113,20 +113,20 @@ func (round *round4) Start() error {
 	lambda[0] = 1
 	order := ed.GetBytesOrder()
 
-	var cur_byte [32]byte
-	copy(cur_byte[:], round.save.CurDNodeID.Bytes())
+	var curByte [32]byte
+	copy(curByte[:], round.save.CurDNodeID.Bytes())
 
 	for kk, vv := range round.idsign {
-		if kk == cur_index {
+		if kk == curIndex {
 			continue
 		}
 
-		var index_byte [32]byte
-		copy(index_byte[:], vv.Bytes())
+		var indexByte [32]byte
+		copy(indexByte[:], vv.Bytes())
 
 		var time [32]byte
-		t := index_byte //round.temp.uids[oldindex]
-		tt := cur_byte  //round.temp.uids[cur_oldindex]
+		t := indexByte //round.temp.uids[oldindex]
+		tt := curByte  //round.temp.uids[cur_oldindex]
 		ed.ScSub(&time, &t, &tt)
 		time = ed.ScModInverse(time, order)
 		ed.ScMul(&time, &time, &t)
@@ -158,9 +158,9 @@ func (round *round4) Start() error {
 		CSB:              CSB,
 	}
 	srm.SetFromID(round.kgid)
-	srm.SetFromIndex(cur_index)
+	srm.SetFromIndex(curIndex)
 
-	round.temp.signRound4Messages[cur_index] = srm
+	round.temp.signRound4Messages[curIndex] = srm
 	round.out <- srm
 
 	return nil

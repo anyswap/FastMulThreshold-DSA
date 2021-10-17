@@ -32,14 +32,14 @@ func (round *round6) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index, err := round.GetDNodeIDIndex(round.dnodeid)
+	curIndex, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
 		return err
 	}
 
-	ids, err := round.GetIds()
+	ids, err := round.GetIDs()
 	if err != nil {
-		return errors.New("round.Start get ids fail.")
+		return errors.New("round.Start get ids fail")
 	}
 
 	for k := range ids {
@@ -63,18 +63,18 @@ func (round *round6) Start() error {
 
 		if !ec2.ZkUVerify(u1G, msg5.U1zkUProof) {
 			fmt.Printf("========= round6 verify zku fail, k = %v ==========\n", k)
-			return errors.New("verify zku fail.")
+			return errors.New("verify zku fail")
 		}
 	}
 
 	kg := &KGRound6Message{
 		KGRoundMessage:      new(KGRoundMessage),
-		Check_Pubkey_Status: true,
+		CheckPubkeyStatus: true,
 	}
 	kg.SetFromID(round.dnodeid)
-	kg.SetFromIndex(cur_index)
+	kg.SetFromIndex(curIndex)
 
-	round.temp.kgRound6Messages[cur_index] = kg
+	round.temp.kgRound6Messages[curIndex] = kg
 	round.out <- kg
 
 	//fmt.Printf("========= round6 start success ==========\n")

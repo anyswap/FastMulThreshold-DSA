@@ -28,6 +28,7 @@ import (
 	"math/big"
 )
 
+// LocalDNode current local node
 type LocalDNode struct {
 	*smpc.BaseDNode
 	temp    localTempData
@@ -39,18 +40,8 @@ type LocalDNode struct {
 	firstround smpc.Round
 }
 
-type localMessageStore struct {
-	reshareRound0Messages,
-	reshareRound1Messages,
-	reshareRound2Messages,
-	reshareRound2Messages1,
-	reshareRound3Messages,
-	reshareRound4Messages,
-	reshareRound5Messages []smpc.Message
-}
-
+// localTempData  Store some data of MPC calculation process 
 type localTempData struct {
-	//localMessageStore
 	reshareRound0Messages,
 	reshareRound1Messages,
 	reshareRound2Messages,
@@ -120,8 +111,8 @@ func NewLocalDNode(
 		oldnode:   oldnode,
 	}
 
-	p.Id = id
-	fmt.Printf("=========== reshare.NewLocalDNode,p.Id = %v,threshold = %v,DNodeCountInGroup = %v =============\n", p.Id, threshold, DNodeCountInGroup)
+	p.ID = id
+	fmt.Printf("=========== reshare.NewLocalDNode,p.ID = %v,threshold = %v,DNodeCountInGroup = %v =============\n", p.ID, threshold, DNodeCountInGroup)
 
 	p.DNodeCountInGroup = DNodeCountInGroup
 	p.ThresHold = threshold
@@ -137,16 +128,19 @@ func NewLocalDNode(
 	return p
 }
 
+// FirstRound first round
 func (p *LocalDNode) FirstRound() smpc.Round {
-	fr := newRound0(p.data, &p.temp, p.out, p.end, p.Id, p.DNodeCountInGroup, p.ThresHold, p.PaillierKeyLength, p.oldnode)
+	fr := newRound0(p.data, &p.temp, p.out, p.end, p.ID, p.DNodeCountInGroup, p.ThresHold, p.PaillierKeyLength, p.oldnode)
 	p.firstround = fr
 	return fr
 }
 
+// FinalizeRound get finalize round
 func (p *LocalDNode) FinalizeRound() smpc.Round {
 	return nil
 }
 
+// Finalize weather gg20 round
 func (p *LocalDNode) Finalize() bool {
 	return false
 }
@@ -161,12 +155,14 @@ func (p *LocalDNode) Update(msg smpc.Message) (ok bool, err error) {
 	return smpc.BaseUpdate(p, msg)
 }
 
+// DNodeID get the ID of current DNode
 func (p *LocalDNode) DNodeID() string {
-	return p.Id
+	return p.ID
 }
 
+// SetDNodeID set the ID of current DNode
 func (p *LocalDNode) SetDNodeID(id string) {
-	p.Id = id
+	p.ID = id
 }
 
 // CheckFull  Check for empty messages 
@@ -187,7 +183,7 @@ func CheckFull(msg []smpc.Message) bool {
 // StoreMessage Collect data from other nodes
 func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 	switch msg.(type) {
-	case *ReshareRound0Message:
+	case *ReRound0Message:
 		if len(p.temp.reshareRound0Messages) < p.DNodeCountInGroup {
 			p.temp.reshareRound0Messages = append(p.temp.reshareRound0Messages, msg)
 		}
@@ -196,39 +192,39 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			//fmt.Printf("================ StoreMessage,get all 0 messages ==============\n")
 			return true, nil
 		}
-	case *ReshareRound1Message:
+	case *ReRound1Message:
 		index := msg.GetFromIndex()
 		p.temp.reshareRound1Messages[index] = msg
 		if len(p.temp.reshareRound1Messages) == p.ThresHold && CheckFull(p.temp.reshareRound1Messages) {
 			//fmt.Printf("================ StoreMessage,get all 1 messages ==============\n")
 			return true, nil
 		}
-	case *ReshareRound2Message:
+	case *ReRound2Message:
 		index := msg.GetFromIndex()
 		p.temp.reshareRound2Messages[index] = msg
 		if len(p.temp.reshareRound2Messages) == p.ThresHold && CheckFull(p.temp.reshareRound2Messages) {
 			//fmt.Printf("================ StoreMessage,get all 2 messages ==============\n")
 			return true, nil
 		}
-	case *ReshareRound2Message1:
+	case *ReRound2Message1:
 		index := msg.GetFromIndex()
 		p.temp.reshareRound2Messages1[index] = msg
 		if len(p.temp.reshareRound2Messages1) == p.ThresHold && CheckFull(p.temp.reshareRound2Messages1) {
 			//fmt.Printf("================ StoreMessage,get all 2-1 messages ==============\n")
 			return true, nil
 		}
-	case *ReshareRound3Message:
+	case *ReRound3Message:
 		index := msg.GetFromIndex()
 		p.temp.reshareRound3Messages[index] = msg
-		m := msg.(*ReshareRound3Message)
+		m := msg.(*ReRound3Message)
 		p.data.U1PaillierPk[index] = m.U1PaillierPk
 		if len(p.temp.reshareRound3Messages) == p.DNodeCountInGroup && CheckFull(p.temp.reshareRound3Messages) {
 			//fmt.Printf("================ StoreMessage,get all 3 messages ==============\n")
 			return true, nil
 		}
-	case *ReshareRound4Message:
+	case *ReRound4Message:
 		index := msg.GetFromIndex()
-		m := msg.(*ReshareRound4Message)
+		m := msg.(*ReRound4Message)
 
 		////////add for ntilde zk proof check
 		H1 := m.U1NtildeH1H2.H1
@@ -240,7 +236,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return false, errors.New("h1 and h2 were equal for this mpc node")
 		}
 		if !pf1.Verify(H1, H2, Ntilde) || !pf2.Verify(H2, H1, Ntilde) {
-			return false, errors.New("ntilde zk proof check fail.")
+			return false, errors.New("ntilde zk proof check fail")
 		}
 		////////
 
@@ -250,7 +246,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			//fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
 			return true, nil
 		}
-	case *ReshareRound5Message:
+	case *ReRound5Message:
 		index := msg.GetFromIndex()
 		p.temp.reshareRound5Messages[index] = msg
 		if len(p.temp.reshareRound5Messages) == p.DNodeCountInGroup && CheckFull(p.temp.reshareRound5Messages) {
@@ -258,9 +254,9 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 
 			///check newskok
 			for _, v := range p.temp.reshareRound5Messages {
-				m := v.(*ReshareRound5Message)
+				m := v.(*ReRound5Message)
 				if m.NewSkOk != "TRUE" {
-					return false, errors.New("check newsk ok fail.")
+					return false, errors.New("check newsk ok fail")
 				}
 			}
 			////
@@ -275,10 +271,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 	return false, nil
 }
 
-//add for check msg0
+// CheckReshareMsg0 add for check msg0
 func (p *LocalDNode) CheckReshareMsg0(msg smpc.Message) bool {
 	switch msg.(type) {
-	case *ReshareRound0Message:
+	case *ReRound0Message:
 		if len(p.temp.reshareRound0Messages) == (p.DNodeCountInGroup - 1) {
 			p.temp.reshareRound0Messages = append(p.temp.reshareRound0Messages, msg)
 		}
@@ -291,7 +287,8 @@ func (p *LocalDNode) CheckReshareMsg0(msg smpc.Message) bool {
 	return false
 }
 
-func (p *LocalDNode) SetIdReshare(ids smpc.SortableIDSSlice) {
+// SetIDReshare set all IDs of nodes in group to local dnode
+func (p *LocalDNode) SetIDReshare(ids smpc.SortableIDSSlice) {
 	fr, ok := p.firstround.(*round0)
 	if ok {
 		fr.idreshare = ids

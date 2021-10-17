@@ -30,7 +30,7 @@ func (round *round5) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index, err := round.GetDNodeIDIndex(round.dnodeid)
+	curIndex, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
 		return err
 	}
@@ -40,9 +40,9 @@ func (round *round5) Start() error {
 		CfsBBytes:      round.temp.cfsBBytes,
 	}
 	kg.SetFromID(round.dnodeid)
-	kg.SetFromIndex(cur_index)
+	kg.SetFromIndex(curIndex)
 
-	round.temp.kgRound5Messages[cur_index] = kg
+	round.temp.kgRound5Messages[curIndex] = kg
 	round.out <- kg
 
 	//fmt.Printf("========= round5 start success ==========\n")

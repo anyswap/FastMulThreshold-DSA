@@ -27,9 +27,11 @@ import (
 )
 
 var (
-	cur_enode    string
-	init_times   = 0
-	recalc_times = 1
+	curEnode    string
+	initTimes   = 0
+	recalcTimes = 1
+
+	// KeyFile bootnode keyfile
 	KeyFile      string
 )
 
@@ -50,13 +52,14 @@ func init() {
 
 //------------------------------------------------------------------------
 
+// LunchParams lunch params
 type LunchParams struct {
 	WaitMsg      uint64
 	TryTimes     uint64
 	PreSignNum   uint64
 	WaitAgree    uint64
 	Bip32Pre     uint64
-	Sync_PreSign string
+	SyncPreSign string
 }
 
 // Start init gsmpc
@@ -71,12 +74,12 @@ func Start(params *LunchParams) {
 	cryptocoinsconfig.Init()
 	coins.Init()
 
-	cur_enode = p2psmpc.GetSelfID()
+	curEnode = p2psmpc.GetSelfID()
 	accloaded := AccountLoaded()
 
 	go smpclibec2.GenRandomSafePrime()
 
-	common.Debug("======================smpc.Start======================", "accounts loaded", accloaded, "cache", cache, "handles", handles, "cur enode", cur_enode)
+	common.Debug("======================smpc.Start======================", "accounts loaded", accloaded, "cache", cache, "handles", handles, "cur enode", curEnode)
 	err := StartSmpcLocalDb()
 	if err != nil {
 		info := "======================smpc.Start," + err.Error() + ",so terminate smpc node startup"
@@ -85,15 +88,15 @@ func Start(params *LunchParams) {
 		return
 	}
 
-	common.Debug("======================smpc.Start,open all db success======================", "cur_enode", cur_enode)
+	common.Debug("======================smpc.Start,open all db success======================", "curEnode", curEnode)
 
 	PrePubDataCount = int(params.PreSignNum)
 	WaitMsgTimeGG20 = int(params.WaitMsg)
-	recalc_times = int(params.TryTimes)
-	waitallgg20 = WaitMsgTimeGG20 * recalc_times
+	recalcTimes = int(params.TryTimes)
+	waitallgg20 = WaitMsgTimeGG20 * recalcTimes
 	WaitAgree = int(params.WaitAgree)
 	PreBip32DataCount = int(params.Bip32Pre)
-	if params.Sync_PreSign == "true" {
+	if params.SyncPreSign == "true" {
 		syncpresign = true
 	} else {
 		syncpresign = false
@@ -101,7 +104,7 @@ func Start(params *LunchParams) {
 
 	AutoPreGenSignData()
 
-	go HandleRpcSign()
+	go HandleRPCSign()
 
 	// do this must after openning accounts db success,but get accloaded must before it
 	if !accloaded {
@@ -112,5 +115,5 @@ func Start(params *LunchParams) {
 	CleanUpAllSignInfo()
 	CleanUpAllReshareInfo()
 
-	common.Info("================================smpc.Start,init finish.========================", "cur_enode", cur_enode, "waitmsg", WaitMsgTimeGG20, "trytimes", recalc_times, "presignnum", PrePubDataCount, "bip32pre", PreBip32DataCount)
+	common.Info("================================smpc.Start,init finish.========================", "curEnode", curEnode, "waitmsg", WaitMsgTimeGG20, "trytimes", recalcTimes, "presignnum", PrePubDataCount, "bip32pre", PreBip32DataCount)
 }

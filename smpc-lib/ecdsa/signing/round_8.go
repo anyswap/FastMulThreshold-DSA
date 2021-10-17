@@ -25,9 +25,9 @@ import (
 	"math/big"
 )
 
-func newRound8(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- PrePubData, kgid string, threshold int, paillierkeylength int, predata *PrePubData, txhash *big.Int, finalize_end chan<- *big.Int) smpc.Round {
+func newRound8(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- PrePubData, kgid string, threshold int, paillierkeylength int, predata *PrePubData, txhash *big.Int, finalizeend chan<- *big.Int) smpc.Round {
 	return &round8{
-		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, predata, txhash, finalize_end}}
+		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, predata, txhash, finalizeend}}
 }
 
 // Start broacast current node s to other nodes
@@ -40,7 +40,7 @@ func (round *round8) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index, err := round.GetDNodeIDIndex(round.kgid)
+	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
 		return err
 	}
@@ -55,9 +55,9 @@ func (round *round8) Start() error {
 		Us1:              us1,
 	}
 	srm.SetFromID(round.kgid)
-	srm.SetFromIndex(cur_index)
+	srm.SetFromIndex(curIndex)
 
-	round.temp.signRound7Messages[cur_index] = srm
+	round.temp.signRound7Messages[curIndex] = srm
 	round.out <- srm
 
 	//fmt.Printf("============= round8.start success, current node id = %v =======\n", round.kgid)

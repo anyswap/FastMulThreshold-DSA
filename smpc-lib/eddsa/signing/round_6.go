@@ -36,7 +36,7 @@ func (round *round6) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index, err := round.GetDNodeIDIndex(round.kgid)
+	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func (round *round6) Start() error {
 
 	if !bytes.Equal(sBBytes2[:], sBCalBytes[:]) {
 		fmt.Printf("Error: Not Pass Verification (SB = SBCal) at User: %v, message = %v,msg str = %v, pk = %v,RBytes = %v  \n", round.kgid, round.temp.message, hex.EncodeToString(round.temp.message[:]), round.temp.pkfinal[:], round.temp.FinalRBytes[:])
-		return errors.New("Error: Not Pass Verification (SB = SBCal).")
+		return errors.New("error: not pass verification (sb = sbcal)")
 	}
 
 	srm := &SignRound6Message{
@@ -115,9 +115,9 @@ func (round *round6) Start() error {
 		S:                round.temp.s,
 	}
 	srm.SetFromID(round.kgid)
-	srm.SetFromIndex(cur_index)
+	srm.SetFromIndex(curIndex)
 
-	round.temp.signRound6Messages[cur_index] = srm
+	round.temp.signRound6Messages[curIndex] = srm
 	round.out <- srm
 
 	//fmt.Printf("============= ed sign,round6.start success, current node id = %v =============\n", round.kgid)

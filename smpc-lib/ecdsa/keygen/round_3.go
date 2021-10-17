@@ -30,7 +30,7 @@ func (round *round3) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index, err := round.GetDNodeIDIndex(round.dnodeid)
+	curIndex, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
 		return err
 	}
@@ -42,11 +42,11 @@ func (round *round3) Start() error {
 		U1PolyGG:       round.temp.u1PolyG.PolyG,
 	}
 	kg.SetFromID(round.dnodeid)
-	kg.SetFromIndex(cur_index)
-	round.temp.kgRound3Messages[cur_index] = kg
+	kg.SetFromIndex(curIndex)
+	round.temp.kgRound3Messages[curIndex] = kg
 	round.out <- kg
 
-	//fmt.Printf("========= round3 start success, u1polygg = %v, k = %v ==========\n", round.temp.u1PolyG.PolyG, cur_index)
+	//fmt.Printf("========= round3 start success, u1polygg = %v, k = %v ==========\n", round.temp.u1PolyG.PolyG, curIndex)
 	return nil
 }
 

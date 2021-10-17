@@ -52,9 +52,14 @@ import (
 )
 
 const (
+    	// KEYFILE keystore file
 	KEYFILE      = `{"version":3,"id":"16b5e31c-cd1a-4cdc-87a6-fc4164766698","address":"00c37841378920e2ba5151a5d1e074cf367586c4","crypto":{"ciphertext":"2070bf8491759f01b4f3f4d6d4b2e274f105be8dc01edd1ebce8d7d954eb64bd","cipherparams":{"iv":"03263465543e4631db50ecfc6b75a74f"},"cipher":"aes-128-ctr","kdf":"scrypt","kdfparams":{"dklen":32,"salt":"9c7b6430552524f0bc1b47bed69e34b0595bc29af4d12e65ec966b16af9c2cf6","n":8192,"r":8,"p":1},"mac":"44d1b7106c28711b06cda116205ee741cba90ab3df0776d59c246b876ded0e97"}}`
-	SMPC_TO_ADDR = `0x00000000000000000000000000000000000000dc`
-	CHAIN_ID     = 30400 //SMPC_walletService  ID
+	
+	// SmpcToAddr smpc tx to addr
+	SmpcToAddr = `0x00000000000000000000000000000000000000dc`
+
+	// CHID smpc wallet service ID
+	CHID     = 30400 //SMPC_walletService  ID
 )
 
 var (
@@ -229,7 +234,7 @@ func init() {
 
 	// To account
 	toAccDef := accounts.Account{
-		Address: common.HexToAddress(SMPC_TO_ADDR),
+		Address: common.HexToAddress(SmpcToAddr),
 	}
 	fmt.Println("To address: = ", toAccDef.Address.String())
 	var err error
@@ -273,7 +278,7 @@ func init() {
 
 	fmt.Printf("Recover from address = %s\n", keyWrapper.Address.String())
 	// set signer and chain id
-	chainID := big.NewInt(CHAIN_ID)
+	chainID := big.NewInt(CHID)
 	signer = types.NewEIP155Signer(chainID)
 	// init RPC client
 	client = ethrpc.New(*url)
@@ -687,7 +692,7 @@ func homeDir() string {
 	return ""
 }
 
-//  GetPreDbDir Obtain the database path to store the relevant data required by the distributed sign 
+// GetPreDbDir Obtain the database path to store the relevant data required by the distributed sign 
 func GetPreDbDir(eid string, datadir string) string {
 	dir := DefaultDataDir(datadir)
 	dir += "/dcrmdata/dcrmpredb" + eid
@@ -695,6 +700,7 @@ func GetPreDbDir(eid string, datadir string) string {
 	return dir
 }
 
+// PrePubData pre-sign data
 type PrePubData struct {
 	Key    string
 	K1     *big.Int
@@ -705,10 +711,12 @@ type PrePubData struct {
 	Used   bool //useless? TODO
 }
 
+// PreSignDataValue pre-sign data set
 type PreSignDataValue struct {
 	Data []*PrePubData
 }
 
+// Decode decode string by data type
 func Decode(s string, datatype string) (interface{}, error) {
 
 	if datatype == "PreSignDataValue" {
@@ -721,12 +729,13 @@ func Decode(s string, datatype string) (interface{}, error) {
 		return &m, nil
 	}
 
-	return nil, fmt.Errorf("decode obj fail.")
+	return nil, fmt.Errorf("decode obj fail")
 }
 
+// DecodePreSignDataValue decode PreSignDataValue
 func DecodePreSignDataValue(s string) (*PreSignDataValue, error) {
 	if s == "" {
-		return nil, fmt.Errorf("pre-sign data error")
+		return nil, fmt.Errorf("presign data error")
 	}
 
 	ret, err := Decode(s, "PreSignDataValue")
@@ -737,13 +746,15 @@ func DecodePreSignDataValue(s string) (*PreSignDataValue, error) {
 	return ret.(*PreSignDataValue), nil
 }
 
-type DcrmHash [32]byte
+// MPCHash type define
+type MPCHash [32]byte
 
-func (h DcrmHash) Hex() string { return hexutil.Encode(h[:]) }
+// Hex hash to hex string
+func (h MPCHash) Hex() string { return hexutil.Encode(h[:]) }
 
 // Keccak256Hash calculates and returns the Keccak256 hash of the input data,
 // converting it to an internal Hash data structure.
-func Keccak256Hash(data ...[]byte) (h DcrmHash) {
+func Keccak256Hash(data ...[]byte) (h MPCHash) {
 	d := sha3.NewKeccak256()
 	for _, b := range data {
 		_, err := d.Write(b)
@@ -908,6 +919,7 @@ func PrintSignResultToLocalFile() {
 	return
 }
 
+// PrintTime print time
 func PrintTime(t time.Time, key string, status string, loopcount int) {
 	d := time.Since(t)
 	str := "-------------------------------------------------------\n"
@@ -1197,11 +1209,11 @@ func getSmpcAddr() error {
 	pub := (*pubkey)
 
 	if pub == "" || (*coin) == "" {
-		return fmt.Errorf("pubkey error.")
+		return fmt.Errorf("pubkey error")
 	}
 
 	if (*coin) != "FSN" && (*coin) != "BTC" { //only btc/fsn tmp
-		return fmt.Errorf("coin type unsupported.")
+		return fmt.Errorf("coin type unsupported")
 	}
 
 	if len(pub) != 132 && len(pub) != 130 {
@@ -1311,7 +1323,7 @@ func getJSONData(successResponse json.RawMessage) ([]byte, error) {
 // signTX build tx with sign
 func signTX(signer types.EIP155Signer, privatekey *ecdsa.PrivateKey, nonce uint64, playload []byte) (string, error) {
 	toAccDef := accounts.Account{
-		Address: common.HexToAddress(SMPC_TO_ADDR),
+		Address: common.HexToAddress(SmpcToAddr),
 	}
 	// build tx
 	tx := types.NewTransaction(
@@ -1324,13 +1336,13 @@ func signTX(signer types.EIP155Signer, privatekey *ecdsa.PrivateKey, nonce uint6
 	// sign tx by privatekey
 	signature, signatureErr := crypto.Sign(signer.Hash(tx).Bytes(), privatekey)
 	if signatureErr != nil {
-		fmt.Println("signature create error:")
+		fmt.Println("signature create error")
 		panic(signatureErr)
 	}
 	// build tx with sign
 	sigTx, signErr := tx.WithSignature(signer, signature)
 	if signErr != nil {
-		fmt.Println("signer with signature error:")
+		fmt.Println("signer with signature error")
 		panic(signErr)
 	}
 	// get raw TX

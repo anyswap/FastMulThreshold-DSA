@@ -23,6 +23,7 @@ import (
 	"io"
 )
 
+// Vss  Calculate secret sharing value 
 func Vss(secret [32]byte, ids [][32]byte, t int, n int) ([][32]byte, [][32]byte, [][32]byte) {
 
 	var cfs, cfsBBytes, shares [][32]byte
@@ -103,8 +104,8 @@ func Vss2(secret [32]byte, t int, n int, uids map[string][32]byte) ([][32]byte, 
 	return cfs, cfsBBytes, shares
 }
 
-// Verify_vss verify secret sharing value
-func Verify_vss(share [32]byte, id [32]byte, cfsBBytes [][32]byte) bool {
+// VerifyVss verify secret sharing value
+func VerifyVss(share [32]byte, id [32]byte, cfsBBytes [][32]byte) bool {
 	var rlt1, rlt2, tem ExtendedGroupElement
 
 	rlt1.FromBytes(&cfsBBytes[0])
@@ -127,11 +128,12 @@ func Verify_vss(share [32]byte, id [32]byte, cfsBBytes [][32]byte) bool {
 
 	if bytes.Equal(rlt1Bytes[:], rlt2Bytes[:]) {
 		return true
-	} else {
-		return false
 	}
+
+	return false
 }
 
+// Combine  Calculate the function value of Lagrange polynomial 
 func Combine(shares [][32]byte, ids [][32]byte) [32]byte {
 	var one [32]byte
 	one[0] = 1

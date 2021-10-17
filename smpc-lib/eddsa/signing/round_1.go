@@ -32,9 +32,9 @@ var (
 )
 
 func newRound1(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- EdSignData, kgid string, threshold int, paillierkeylength int, txhash *big.Int) smpc.Round {
-	finalize_endCh := make(chan *big.Int, threshold)
+	finalizeendCh := make(chan *big.Int, threshold)
 	return &round1{
-		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, nil, txhash, finalize_endCh}}
+		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, nil, txhash, finalizeendCh}}
 }
 
 // Start get sk pkfinal R
@@ -47,7 +47,7 @@ func (round *round1) Start() error {
 	round.started = true
 	round.resetOK()
 
-	cur_index, err := round.GetDNodeIDIndex(round.kgid)
+	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func (round *round1) Start() error {
 	copy(pkfinal[:], round.save.FinalPkBytes[:32])
 
 	var uids [][32]byte
-	for _, v := range round.save.Ids {
+	for _, v := range round.save.IDs {
 		var tem [32]byte
 		tmp := v.Bytes()
 		copy(tem[:], tmp[:])
@@ -125,9 +125,9 @@ func (round *round1) Start() error {
 		CR:               CR,
 	}
 	srm.SetFromID(round.kgid)
-	srm.SetFromIndex(cur_index)
+	srm.SetFromIndex(curIndex)
 
-	round.temp.signRound1Messages[cur_index] = srm
+	round.temp.signRound1Messages[curIndex] = srm
 	round.out <- srm
 
 	//fmt.Printf("============= ed sign,round1.start success, current node id = %v =======\n", round.kgid)

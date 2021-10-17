@@ -34,18 +34,18 @@ func (round *round4) Start() error {
 
 	idtmp, ok := new(big.Int).SetString(round.dnodeid, 10)
 	if !ok {
-		return errors.New("get id big number fail.")
+		return errors.New("get id big number fail")
 	}
 
-	cur_index := -1
-	for k, v := range round.Save.Ids {
+	curIndex := -1
+	for k, v := range round.Save.IDs {
 		if v.Cmp(idtmp) == 0 {
-			cur_index = k
+			curIndex = k
 			break
 		}
 	}
 
-	if cur_index < 0 {
+	if curIndex < 0 {
 		return errors.New("get cur index fail")
 	}
 
@@ -53,23 +53,23 @@ func (round *round4) Start() error {
 	NtildeLength := 2048
 	u1NtildeH1H2, alpha, beta, p, q := ec2.GenerateNtildeH1H2(NtildeLength)
 	if u1NtildeH1H2 == nil {
-		return errors.New("gen ntilde h1 h2 fail.")
+		return errors.New("gen ntilde h1 h2 fail")
 	}
 
 	ntildeProof1 := ec2.NewNtildeProof(u1NtildeH1H2.H1, u1NtildeH1H2.H2, alpha, p, q, u1NtildeH1H2.Ntilde)
 	ntildeProof2 := ec2.NewNtildeProof(u1NtildeH1H2.H2, u1NtildeH1H2.H1, beta, p, q, u1NtildeH1H2.Ntilde)
 
-	re := &ReshareRound4Message{
-		ReshareRoundMessage: new(ReshareRoundMessage),
+	re := &ReRound4Message{
+		ReRoundMessage: new(ReRoundMessage),
 		U1NtildeH1H2:        u1NtildeH1H2,
 		NtildeProof1:        ntildeProof1,
 		NtildeProof2:        ntildeProof2,
 	}
 	re.SetFromID(round.dnodeid)
-	re.SetFromIndex(cur_index)
+	re.SetFromIndex(curIndex)
 
 	round.temp.u1NtildeH1H2 = u1NtildeH1H2
-	round.temp.reshareRound4Messages[cur_index] = re
+	round.temp.reshareRound4Messages[curIndex] = re
 	round.out <- re
 
 	//fmt.Printf("========= round4 start success ==========\n")
@@ -78,7 +78,7 @@ func (round *round4) Start() error {
 
 // CanAccept is it legal to receive this message 
 func (round *round4) CanAccept(msg smpc.Message) bool {
-	if _, ok := msg.(*ReshareRound4Message); ok {
+	if _, ok := msg.(*ReRound4Message); ok {
 		return msg.IsBroadcast()
 	}
 	return false

@@ -24,46 +24,54 @@ import (
 	"strings"
 )
 
-//keygen
+// KGRoundMessage base type of kg round message
 type KGRoundMessage struct {
 	FromID    string   `json:"FromID"` //DNodeID
 	FromIndex int      `json:"FromIndex"`
 	ToID      []string `json:"ToID"`
 }
 
+// SetFromID set sending nodes's ID
 func (kg *KGRoundMessage) SetFromID(id string) {
 	kg.FromID = id
 }
 
+// SetFromIndex set sending nodes's serial number in group
 func (kg *KGRoundMessage) SetFromIndex(index int) {
 	kg.FromIndex = index
 }
 
+// AppendToID get the ID of nodes that the message will broacast to
 func (kg *KGRoundMessage) AppendToID(toid string) {
 	kg.ToID = append(kg.ToID, toid)
 }
 
-//KGRound0Message
+// KGRound0Message  Round 0 sending message 
 type KGRound0Message struct {
 	*KGRoundMessage
 }
 
+// GetFromID get the ID of sending nodes in the group
 func (kg *KGRound0Message) GetFromID() string {
 	return kg.FromID
 }
 
+// GetFromIndex get the Serial number of sending nodes in the group 
 func (kg *KGRound0Message) GetFromIndex() int {
 	return kg.FromIndex
 }
 
+// GetToID get the ID of the node that broacasting message to
 func (kg *KGRound0Message) GetToID() []string {
 	return kg.ToID
 }
 
+// IsBroadcast weather broacast the message
 func (kg *KGRound0Message) IsBroadcast() bool {
 	return true
 }
 
+// OutMap transfer *KGRound0Message to map
 func (kg *KGRound0Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = kg.FromID
@@ -73,39 +81,44 @@ func (kg *KGRound0Message) OutMap() map[string]string {
 	return m
 }
 
-//KGRound1Message
+// KGRound1Message  Round 1 sending message 
 type KGRound1Message struct {
 	*KGRoundMessage
 
 	ComC       *big.Int `json:"ComC"`
-	ComC_bip32 *big.Int `json:"ComC_bip32"`
+	ComCBip32 *big.Int `json:"ComCBip32"`
 
 	U1PaillierPk *ec2.PublicKey `json:"U1PaillierPk"`
 }
 
+// GetFromID get the ID of sending nodes in the group
 func (kg *KGRound1Message) GetFromID() string {
 	return kg.FromID
 }
 
+// GetFromIndex get the Serial number of sending nodes in the group 
 func (kg *KGRound1Message) GetFromIndex() int {
 	return kg.FromIndex
 }
 
+// GetToID get the ID of the node that broacasting message to
 func (kg *KGRound1Message) GetToID() []string {
 	return kg.ToID
 }
 
+// IsBroadcast weather broacast the message
 func (kg *KGRound1Message) IsBroadcast() bool {
 	return true
 }
 
+// OutMap transfer *KGRound1Message to map
 func (kg *KGRound1Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = ""
 	m["ComC"] = fmt.Sprintf("%v", kg.ComC)
-	m["ComC_bip32"] = fmt.Sprintf("%v", kg.ComC_bip32)
+	m["ComC_bip32"] = fmt.Sprintf("%v", kg.ComCBip32)
 
 	pk, err := kg.U1PaillierPk.MarshalJSON()
 	if err == nil {
@@ -116,64 +129,74 @@ func (kg *KGRound1Message) OutMap() map[string]string {
 	return m
 }
 
-//KGRound2Message
+// KGRound2Message  Round 2 sending message 
 type KGRound2Message struct {
 	*KGRoundMessage
 
-	Id    *big.Int
+	ID    *big.Int
 	Share *big.Int
 }
 
+// GetFromID get the ID of sending nodes in the group
 func (kg *KGRound2Message) GetFromID() string {
 	return kg.FromID
 }
 
+// GetFromIndex get the Serial number of sending nodes in the group 
 func (kg *KGRound2Message) GetFromIndex() int {
 	return kg.FromIndex
 }
 
+// GetToID get the ID of the node that broacasting message to
 func (kg *KGRound2Message) GetToID() []string {
 	return kg.ToID
 }
 
+// IsBroadcast weather broacast the message
 func (kg *KGRound2Message) IsBroadcast() bool {
 	return false
 }
 
+// OutMap transfer *KGRound2Message to map
 func (kg *KGRound2Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = strings.Join(kg.ToID, ":")
-	m["Id"] = fmt.Sprintf("%v", kg.Id)
+	m["ID"] = fmt.Sprintf("%v", kg.ID)
 	m["Share"] = fmt.Sprintf("%v", kg.Share)
 	m["Type"] = "KGRound2Message"
 	return m
 }
 
-//KGRound2Message1
+// KGRound2Message1  Round 2 sending message 
 type KGRound2Message1 struct {
 	*KGRoundMessage
 
 	C1 *big.Int
 }
 
+// GetFromID get the ID of sending nodes in the group
 func (kg *KGRound2Message1) GetFromID() string {
 	return kg.FromID
 }
 
+// GetFromIndex get the Serial number of sending nodes in the group 
 func (kg *KGRound2Message1) GetFromIndex() int {
 	return kg.FromIndex
 }
 
+// GetToID get the ID of the node that broacasting message to
 func (kg *KGRound2Message1) GetToID() []string {
 	return kg.ToID
 }
 
+// IsBroadcast weather broacast the message
 func (kg *KGRound2Message1) IsBroadcast() bool {
 	return true
 }
 
+// OutMap transfer *KGRound2Message1 to map
 func (kg *KGRound2Message1) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = kg.FromID
@@ -184,7 +207,7 @@ func (kg *KGRound2Message1) OutMap() map[string]string {
 	return m
 }
 
-//KGRound3Message
+// KGRound3Message  Round 3 sending message 
 type KGRound3Message struct {
 	*KGRoundMessage
 	ComU1GD  []*big.Int
@@ -192,22 +215,27 @@ type KGRound3Message struct {
 	U1PolyGG [][]*big.Int
 }
 
+// GetFromID get the ID of sending nodes in the group
 func (kg *KGRound3Message) GetFromID() string {
 	return kg.FromID
 }
 
+// GetFromIndex get the Serial number of sending nodes in the group 
 func (kg *KGRound3Message) GetFromIndex() int {
 	return kg.FromIndex
 }
 
+// GetToID get the ID of the node that broacasting message to
 func (kg *KGRound3Message) GetToID() []string {
 	return kg.ToID
 }
 
+// IsBroadcast weather broacast the message
 func (kg *KGRound3Message) IsBroadcast() bool {
 	return true
 }
 
+// OutMap transfer *KGRound3Message to map
 func (kg *KGRound3Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = kg.FromID
@@ -245,7 +273,7 @@ func (kg *KGRound3Message) OutMap() map[string]string {
 	return m
 }
 
-//KGRound4Message
+// KGRound4Message  Round 4 sending message 
 type KGRound4Message struct {
 	*KGRoundMessage
 	U1NtildeH1H2 *ec2.NtildeH1H2
@@ -255,22 +283,27 @@ type KGRound4Message struct {
 	NtildeProof2 *ec2.NtildeProof
 }
 
+// GetFromID get the ID of sending nodes in the group
 func (kg *KGRound4Message) GetFromID() string {
 	return kg.FromID
 }
 
+// GetFromIndex get the Serial number of sending nodes in the group 
 func (kg *KGRound4Message) GetFromIndex() int {
 	return kg.FromIndex
 }
 
+// GetToID get the ID of the node that broacasting message to
 func (kg *KGRound4Message) GetToID() []string {
 	return kg.ToID
 }
 
+// IsBroadcast weather broacast the message
 func (kg *KGRound4Message) IsBroadcast() bool {
 	return true
 }
 
+// OutMap transfer *KGRound4Message to map
 func (kg *KGRound4Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = kg.FromID
@@ -296,28 +329,33 @@ func (kg *KGRound4Message) OutMap() map[string]string {
 	return m
 }
 
-//KGRound5Message
+// KGRound5Message  Round 5 sending message 
 type KGRound5Message struct {
 	*KGRoundMessage
 	U1zkUProof *ec2.ZkUProof
 }
 
+// GetFromID get the ID of sending nodes in the group
 func (kg *KGRound5Message) GetFromID() string {
 	return kg.FromID
 }
 
+// GetFromIndex get the Serial number of sending nodes in the group 
 func (kg *KGRound5Message) GetFromIndex() int {
 	return kg.FromIndex
 }
 
+// GetToID get the ID of the node that broacasting message to
 func (kg *KGRound5Message) GetToID() []string {
 	return kg.ToID
 }
 
+// IsBroadcast weather broacast the message
 func (kg *KGRound5Message) IsBroadcast() bool {
 	return true
 }
 
+// OutMap transfer *KGRound5Message to map
 func (kg *KGRound5Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = kg.FromID
@@ -333,38 +371,43 @@ func (kg *KGRound5Message) OutMap() map[string]string {
 	return m
 }
 
-//KGRound6Message
+// KGRound6Message  Round 6 sending message 
 type KGRound6Message struct {
 	*KGRoundMessage
-	Check_Pubkey_Status bool
+	CheckPubkeyStatus bool
 }
 
+// GetFromID get the ID of sending nodes in the group
 func (kg *KGRound6Message) GetFromID() string {
 	return kg.FromID
 }
 
+// GetFromIndex get the Serial number of sending nodes in the group 
 func (kg *KGRound6Message) GetFromIndex() int {
 	return kg.FromIndex
 }
 
+// GetToID get the ID of the node that broacasting message to
 func (kg *KGRound6Message) GetToID() []string {
 	return kg.ToID
 }
 
+// IsBroadcast weather broacast the message
 func (kg *KGRound6Message) IsBroadcast() bool {
 	return true
 }
 
+// OutMap transfer *KGRound6Message to map
 func (kg *KGRound6Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = ""
 
-	if kg.Check_Pubkey_Status {
-		m["Check_Pubkey_Status"] = "true"
+	if kg.CheckPubkeyStatus {
+		m["CheckPubkeyStatus"] = "true"
 	} else {
-		m["Check_Pubkey_Status"] = "false"
+		m["CheckPubkeyStatus"] = "false"
 	}
 
 	m["Type"] = "KGRound6Message"

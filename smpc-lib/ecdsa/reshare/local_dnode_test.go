@@ -31,8 +31,8 @@ func TestCheckFull(t *testing.T) {
     
     threshold := 3
     for i:=0;i<threshold;i++ {
-	re := &reshare.ReshareRound0Message{
-		ReshareRoundMessage: new(reshare.ReshareRoundMessage),
+	re := &reshare.ReRound0Message{
+		ReRoundMessage: new(reshare.ReRoundMessage),
 	}
 	re.SetFromID("62472382178168225119626719865491481459304781844424379027070392269894567214882")
 	re.SetFromIndex(-1)

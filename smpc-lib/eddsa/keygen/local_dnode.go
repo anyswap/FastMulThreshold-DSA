@@ -26,6 +26,7 @@ import (
 	"io"
 )
 
+// LocalDNode current local node
 type LocalDNode struct {
 	*smpc.BaseDNode
 	temp localTempData
@@ -34,6 +35,7 @@ type LocalDNode struct {
 	end  chan<- LocalDNodeSaveData
 }
 
+// localTempData  Store some data of MPC calculation process 
 type localTempData struct {
 	kgRound0Messages,
 	kgRound1Messages,
@@ -94,10 +96,10 @@ func NewLocalDNode(
 	one[0] = 1
 	ed.ScMulAdd(&id, &id, &one, &zero)
 
-	p.Id = hex.EncodeToString(id[:])
+	p.ID = hex.EncodeToString(id[:])
 	//uid := smpc.GetRandomIntFromZn(secp256k1.S256().N)
-	//p.Id = fmt.Sprintf("%v",uid)
-	fmt.Printf("=========== ed,NewLocalDNode, id = %v, p.Id = %v =============\n", id, p.Id)
+	//p.ID = fmt.Sprintf("%v",uid)
+	fmt.Printf("=========== ed,NewLocalDNode, id = %v, p.ID = %v =============\n", id, p.ID)
 
 	p.DNodeCountInGroup = DNodeCountInGroup
 	p.ThresHold = threshold
@@ -111,14 +113,17 @@ func NewLocalDNode(
 	return p
 }
 
+// FirstRound first round
 func (p *LocalDNode) FirstRound() smpc.Round {
-	return newRound0(&p.data, &p.temp, p.out, p.end, p.Id, p.DNodeCountInGroup, p.ThresHold)
+	return newRound0(&p.data, &p.temp, p.out, p.end, p.ID, p.DNodeCountInGroup, p.ThresHold)
 }
 
+// FinalizeRound get finalize round
 func (p *LocalDNode) FinalizeRound() smpc.Round {
 	return nil
 }
 
+// Finalize weather gg20 round
 func (p *LocalDNode) Finalize() bool {
 	return false
 }
@@ -133,12 +138,14 @@ func (p *LocalDNode) Update(msg smpc.Message) (ok bool, err error) {
 	return smpc.BaseUpdate(p, msg)
 }
 
+// DNodeID get the ID of current DNode
 func (p *LocalDNode) DNodeID() string { //lower
-	return p.Id
+	return p.ID
 }
 
+// SetDNodeID set the ID of current DNode
 func (p *LocalDNode) SetDNodeID(id string) {
-	p.Id = id
+	p.ID = id
 }
 
 // CheckFull  Check for empty messages 

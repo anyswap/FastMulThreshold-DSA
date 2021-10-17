@@ -2,10 +2,10 @@
  *  Copyright (C) 2020-2021  AnySwap Ltd. All rights reserved.
  *  Copyright (C) 2020-2021  huangweijun@anyswap.exchange
  *
- *  This library is free software; you can redistribute it and/or
+ *  this library is free software; you can redistribute it and/or
  *  modify it under the Apache License, Version 2.0.
  *
- *  This library is distributed in the hope that it will be useful,
+ *  this library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
@@ -25,16 +25,27 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 )
 
+// RPCTEST test
 var RPCTEST bool = false
 
 const (
+    	// SUCCESS success 
 	SUCCESS string = "Success"
+
+	// FAIL fail
 	FAIL    string = "Error"
+
+	// NULLRET retur nil
 	NULLRET string = "Null"
+
+	// REPEAT repeat
 	REPEAT  string = "Repeat"
+
+	// PENDING pending
 	PENDING string = "Pending"
 )
 
+// Result rpc result
 type Result struct {
 	Status string // Success, Error, Null, Repeat, Pending
 	Tip    string
@@ -42,16 +53,19 @@ type Result struct {
 	Data   interface{}
 }
 
+// Enode enode
 type Enode struct {
 	Enode string
 }
 
+// Version version info
 type Version struct {
 	Version string
 	Commit  string
 	Date    string
 }
 
+// EnodeStatus the status of enode
 type EnodeStatus struct {
 	Enode  string
 	Status string
@@ -67,7 +81,7 @@ func packageResult(status, tip, errors string, msg interface{}) map[string]inter
 }
 
 // GetVersion get gsmpc version
-func (this *Service) GetVersion() map[string]interface{} {
+func (service *Service) GetVersion() map[string]interface{} {
 	fmt.Printf("==== GetVersion() ====\n")
 	v, c, d := params.GetVersion()
 	fmt.Printf("==== GetVersion() ====, version: %v, commit: %v, date: %v\n", v, c, d)
@@ -76,7 +90,7 @@ func (this *Service) GetVersion() map[string]interface{} {
 }
 
 // GetEnode get gsmpc node enodeId
-func (this *Service) GetEnode() map[string]interface{} {
+func (service *Service) GetEnode() map[string]interface{} {
 	//fmt.Printf("==== GetEnode() ====\n")
 	en := layer2.GetEnode()
 	reten := &Enode{Enode: en}
@@ -85,11 +99,13 @@ func (this *Service) GetEnode() map[string]interface{} {
 	return packageResult(SUCCESS, "", "", reten)
 }
 
+// GroupID group id
 type GroupID struct {
 	Gid  string
 	Sgid string
 }
 
+// GroupInfo group info
 type GroupInfo struct {
 	Gid    string
 	Count  int
@@ -97,7 +113,7 @@ type GroupInfo struct {
 }
 
 // ReshareGroup create reshare group
-func (this *Service) ReshareGroup(threshold string, enodes []string) map[string]interface{} {
+func (service *Service) ReshareGroup(threshold string, enodes []string) map[string]interface{} {
 	fmt.Printf("==== ReshareSDKGroup() ====, threshold: %v, enodes: %v\n", threshold, enodes)
 	all, err := layer2.CheckAddPeer(threshold, enodes, true)
 	if err != nil {
@@ -128,12 +144,13 @@ func (this *Service) ReshareGroup(threshold string, enodes []string) map[string]
 	return packageResult(SUCCESS, "", "", ret)
 }
 
-func (this *Service) CreateGroup(threshold string, enodes []string) map[string]interface{} {
-	return this.CreateSDKGroup(threshold, enodes, false)
+// CreateGroup create group 
+func (service *Service) CreateGroup(threshold string, enodes []string) map[string]interface{} {
+	return service.CreateSDKGroup(threshold, enodes, false)
 }
 
 // CreateSDKGroup create group
-func (this *Service) CreateSDKGroup(threshold string, enodes []string, subGroup bool) map[string]interface{} {
+func (service *Service) CreateSDKGroup(threshold string, enodes []string, subGroup bool) map[string]interface{} {
 	//fmt.Printf("==== CreateSDKGroup() ====\n")
 	_, err := layer2.CheckAddPeer(threshold, enodes, subGroup)
 	if err != nil {
@@ -161,21 +178,25 @@ type sdkGroupInfo struct {
 	GroupList []GroupInfo
 }
 
-func (this *Service) GetGroupByID(gid string) map[string]interface{} {
+// GetGroupByID get group by gid
+func (service *Service) GetGroupByID(gid string) map[string]interface{} {
 	fmt.Printf("==== GetGroupByID() ====, gid: %v\n", gid)
 	return getGroupByID(gid)
 }
 
-func (this *Service) GetSDKGroup(enode string) map[string]interface{} {
+// GetSDKGroup get sdk group 
+func (service *Service) GetSDKGroup(enode string) map[string]interface{} {
 	return getSDKGroup(enode, "1+1+1")
 }
 
-func (this *Service) GetSDKGroup4Smpc() map[string]interface{} {
+// GetSDKGroup4Smpc get group for smpc
+func (service *Service) GetSDKGroup4Smpc() map[string]interface{} {
 	enode := layer2.GetEnode()
 	return getSDKGroup(enode, "")
 }
 
-func (this *Service) GetSDKGroupPerson(enode string) map[string]interface{} {
+// GetSDKGroupPerson get person group
+func (service *Service) GetSDKGroupPerson(enode string) map[string]interface{} {
 	return getSDKGroup(enode, "1+2")
 }
 
@@ -243,7 +264,7 @@ func getSDKGroup(enode, groupType string) map[string]interface{} {
 }
 
 // GetEnodeStatus get enode status
-func (this *Service) GetEnodeStatus(enode string) map[string]interface{} {
+func (service *Service) GetEnodeStatus(enode string) map[string]interface{} {
 	fmt.Printf("==== GetEnodeStatus() ====, enode: %v\n", enode)
 	es := &EnodeStatus{Enode: enode}
 	status := SUCCESS
@@ -261,8 +282,8 @@ func (this *Service) GetEnodeStatus(enode string) map[string]interface{} {
 	return packageResult(status, errString, errString, es)
 }
 
-// TEST
-func (this *Service) GetSDKGroupAll() map[string]interface{} {
+// GetSDKGroupAll for test
+func (service *Service) GetSDKGroupAll() map[string]interface{} {
 	if RPCTEST == false {
 		return packageResult(FAIL, "", "RPCTEST == false", "")
 	}
@@ -271,7 +292,8 @@ func (this *Service) GetSDKGroupAll() map[string]interface{} {
 	return packageResult(SUCCESS, "", "", retMsg)
 }
 
-func (this *Service) BroadcastInSDKGroupAll(gid, msg string) map[string]interface{} {
+// BroadcastInSDKGroupAll broacast msg to all nodes in group by gid
+func (service *Service) BroadcastInSDKGroupAll(gid, msg string) map[string]interface{} {
 	if RPCTEST == false {
 		return packageResult(FAIL, "", "RPCTEST == false", "")
 	}
@@ -284,7 +306,8 @@ func (this *Service) BroadcastInSDKGroupAll(gid, msg string) map[string]interfac
 	return packageResult(status, "", retMsg, msg)
 }
 
-func (this *Service) SendToGroupAllNodes(gid, msg string) map[string]interface{} {
+// SendToGroupAllNodes send msg to all nodes in group by gid
+func (service *Service) SendToGroupAllNodes(gid, msg string) map[string]interface{} {
 	if RPCTEST == false {
 		return packageResult(FAIL, "", "RPCTEST == false", "")
 	}

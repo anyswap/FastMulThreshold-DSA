@@ -24,12 +24,15 @@ import (
 )
 
 const (
+    	// Iterations iter times
 	Iterations              = 128
+
 	mustGetRandomIntMaxBits = 5000
 	hashInputDelimiter      = byte('$')
 )
 
 type (
+    	// NtildeProof ntilde zk proof
 	NtildeProof struct {
 		Alpha,
 		T [Iterations]*big.Int
@@ -47,7 +50,7 @@ func NewNtildeProof(h1, h2, x, p, q, N *big.Int) *NtildeProof {
 		alpha[i] = modN.Exp(h1, a[i])
 	}
 	msg := append([]*big.Int{h1, h2, N}, alpha[:]...)
-	c := SHA512_256i(msg...)
+	c := Sha512_256i(msg...)
 	t := [Iterations]*big.Int{}
 	cIBI := new(big.Int)
 	for i := range t {
@@ -65,7 +68,7 @@ func (p *NtildeProof) Verify(h1, h2, N *big.Int) bool {
 	}
 	modN := ModInt(N)
 	msg := append([]*big.Int{h1, h2, N}, p.Alpha[:]...)
-	c := SHA512_256i(msg...)
+	c := Sha512_256i(msg...)
 	cIBI := new(big.Int)
 	for i := 0; i < Iterations; i++ {
 		if p.Alpha[i] == nil || p.T[i] == nil {
@@ -85,6 +88,7 @@ func (p *NtildeProof) Verify(h1, h2, N *big.Int) bool {
 
 //-------------------------------------------------------------------------------
 
+// MarshalJSON marshal NtildeProof to json bytes
 func (p *NtildeProof) MarshalJSON() ([]byte, error) {
 	l := len(p.Alpha)
 	var alpha string
@@ -112,6 +116,7 @@ func (p *NtildeProof) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON unmarshal raw to NtildeProof
 func (p *NtildeProof) UnmarshalJSON(raw []byte) error {
 	var pf struct {
 		Alpha string `json:"Alpha"`
@@ -124,7 +129,7 @@ func (p *NtildeProof) UnmarshalJSON(raw []byte) error {
 	al := strings.Split(pf.Alpha, "|")
 
 	if len(al) != Iterations {
-		return errors.New("unmarshal ntilde zk proof alpha json data fail.")
+		return errors.New("unmarshal ntilde zk proof alpha json data fail")
 	}
 
 	var alpha [Iterations]*big.Int
@@ -134,7 +139,7 @@ func (p *NtildeProof) UnmarshalJSON(raw []byte) error {
 
 	tt := strings.Split(pf.T, "|")
 	if len(tt) != Iterations {
-		return errors.New("unmarshal ntilde zk proof t json data fail.")
+		return errors.New("unmarshal ntilde zk proof t json data fail")
 	}
 
 	var t [Iterations]*big.Int
@@ -149,56 +154,65 @@ func (p *NtildeProof) UnmarshalJSON(raw []byte) error {
 
 //-------------------------------------------------------------------------------------------
 
-// modInt is a *big.Int that performs all of its arithmetic with modular reduction.
-type modInt big.Int
+// ModIntNtildeZk is a *big.Int that performs all of its arithmetic with modular reduction.
+type ModIntNtildeZk big.Int
 
-func ModInt(mod *big.Int) *modInt {
-	return (*modInt)(mod)
+// ModInt transfer to *ModIntNtildeZk
+func ModInt(mod *big.Int) *ModIntNtildeZk {
+	return (*ModIntNtildeZk)(mod)
 }
 
-func (mi *modInt) Add(x, y *big.Int) *big.Int {
+// Add x+y
+func (mi *ModIntNtildeZk) Add(x, y *big.Int) *big.Int {
 	i := new(big.Int)
 	i.Add(x, y)
 	return i.Mod(i, mi.i())
 }
 
-func (mi *modInt) Sub(x, y *big.Int) *big.Int {
+// Sub x-y
+func (mi *ModIntNtildeZk) Sub(x, y *big.Int) *big.Int {
 	i := new(big.Int)
 	i.Sub(x, y)
 	return i.Mod(i, mi.i())
 }
 
-func (mi *modInt) Div(x, y *big.Int) *big.Int {
+// Div x/y
+func (mi *ModIntNtildeZk) Div(x, y *big.Int) *big.Int {
 	i := new(big.Int)
 	i.Div(x, y)
 	return i.Mod(i, mi.i())
 }
 
-func (mi *modInt) Mul(x, y *big.Int) *big.Int {
+// Mul x*y
+func (mi *ModIntNtildeZk) Mul(x, y *big.Int) *big.Int {
 	i := new(big.Int)
 	i.Mul(x, y)
 	return i.Mod(i, mi.i())
 }
 
-func (mi *modInt) Exp(x, y *big.Int) *big.Int {
+// Exp x^y
+func (mi *ModIntNtildeZk) Exp(x, y *big.Int) *big.Int {
 	return new(big.Int).Exp(x, y, mi.i())
 }
 
-func (mi *modInt) Neg(x *big.Int) *big.Int {
+// Neg -x
+func (mi *ModIntNtildeZk) Neg(x *big.Int) *big.Int {
 	i := new(big.Int)
 	i.Neg(x)
 	return i.Mod(i, mi.i())
 }
 
-func (mi *modInt) Inverse(g *big.Int) *big.Int {
+// Inverse inverse
+func (mi *ModIntNtildeZk) Inverse(g *big.Int) *big.Int {
 	return new(big.Int).ModInverse(g, mi.i())
 }
 
-func (mi *modInt) Sqrt(x *big.Int) *big.Int {
+// Sqrt x^2
+func (mi *ModIntNtildeZk) Sqrt(x *big.Int) *big.Int {
 	return new(big.Int).ModSqrt(x, mi.i())
 }
 
-func (mi *modInt) i() *big.Int {
+func (mi *ModIntNtildeZk) i() *big.Int {
 	return (*big.Int)(mi)
 }
 
@@ -216,11 +230,12 @@ func MustGetRandomInt(bits int) *big.Int {
 	// Generate cryptographically strong pseudo-random int between 0 - max
 	n, err := rand.Int(rand.Reader, max)
 	if err != nil {
-		panic(fmt.Errorf("rand.Int failure in MustGetRandomInt!"))
+		panic(fmt.Errorf("rand.Int failure in MustGetRandomInt"))
 	}
 	return n
 }
 
+// GetRandomPositiveInt get prime int >0 and <upper
 func GetRandomPositiveInt(upper *big.Int) *big.Int {
 	if upper == nil || zero.Cmp(upper) != -1 {
 		return nil
@@ -235,6 +250,7 @@ func GetRandomPositiveInt(upper *big.Int) *big.Int {
 	return try
 }
 
+// GetRandomPrimeInt get random prime int
 func GetRandomPrimeInt(bits int) *big.Int {
 	if bits <= 0 {
 		return nil
@@ -269,6 +285,7 @@ func GetRandomPositiveRelativelyPrimeInt(n *big.Int) *big.Int {
 	return try
 }
 
+// IsNumberInMultiplicativeGroup is num in multiplicative group
 func IsNumberInMultiplicativeGroup(n, v *big.Int) bool {
 	if n == nil || v == nil || zero.Cmp(n) != -1 {
 		return false
@@ -278,7 +295,7 @@ func IsNumberInMultiplicativeGroup(n, v *big.Int) bool {
 		gcd.GCD(nil, nil, v, n).Cmp(one) == 0
 }
 
-//  GetRandomGeneratorOfTheQuadraticResidue Return a random generator of RQn with high probability.
+// GetRandomGeneratorOfTheQuadraticResidue Return a random generator of RQn with high probability.
 //  THIS METHOD ONLY WORKS IF N IS THE PRODUCT OF TWO SAFE PRIMES!
 // https://github.com/didiercrunch/paillier/blob/d03e8850a8e4c53d04e8016a2ce8762af3278b71/utils.go#L39
 func GetRandomGeneratorOfTheQuadraticResidue(n *big.Int) *big.Int {
@@ -289,9 +306,9 @@ func GetRandomGeneratorOfTheQuadraticResidue(n *big.Int) *big.Int {
 
 //---------------------------------------------------------------------------------------------------------
 
-// SHA512_256 SHA-512/256 is protected against length extension attacks and is more performant than SHA-256 on 64-bit architectures.
+// Sha512_256 SHA-512/256 is protected against length extension attacks and is more performant than SHA-256 on 64-bit architectures.
 // https://en.wikipedia.org/wiki/Template:Comparison_of_SHA_functions
-func SHA512_256(in ...[]byte) []byte {
+func Sha512_256(in ...[]byte) []byte {
 	var data []byte
 	state := crypto.SHA512_256.New()
 	inLen := len(in)
@@ -316,13 +333,14 @@ func SHA512_256(in ...[]byte) []byte {
 	// n < len(data) or an error will never happen.
 	// see: https://golang.org/pkg/hash/#Hash and https://github.com/golang/go/wiki/Hashing#the-hashhash-interface
 	if _, err := state.Write(data); err != nil {
-		fmt.Printf("SHA512_256 Write() failed: %v\n", err)
+		fmt.Printf("Sha512_256 Write() failed: %v\n", err)
 		return nil
 	}
 	return state.Sum(nil)
 }
 
-func SHA512_256i(in ...*big.Int) *big.Int {
+// Sha512_256i crypto.SHA512_256
+func Sha512_256i(in ...*big.Int) *big.Int {
 	var data []byte
 	state := crypto.SHA512_256.New()
 	inLen := len(in)
@@ -338,7 +356,7 @@ func SHA512_256i(in ...*big.Int) *big.Int {
 	ptrs := make([][]byte, inLen)
 	for i, n := range in {
 		if n == nil {
-			fmt.Printf("===================SHA512_256i, n is nil, i = %v, inLen = %v, ==================\n", i, inLen)
+			fmt.Printf("===================Sha512_256i, n is nil, i = %v, inLen = %v, ==================\n", i, inLen)
 			continue
 		}
 
@@ -354,13 +372,14 @@ func SHA512_256i(in ...*big.Int) *big.Int {
 	// n < len(data) or an error will never happen.
 	// see: https://golang.org/pkg/hash/#Hash and https://github.com/golang/go/wiki/Hashing#the-hashhash-interface
 	if _, err := state.Write(data); err != nil {
-		fmt.Printf("SHA512_256i Write() failed: %v\n", err)
+		fmt.Printf("Sha512_256i Write() failed: %v\n", err)
 		return nil
 	}
 	return new(big.Int).SetBytes(state.Sum(nil))
 }
 
-func SHA512_256iOne(in *big.Int) *big.Int {
+// Sha512_256iOne crypto.SHA512_256
+func Sha512_256iOne(in *big.Int) *big.Int {
 	var data []byte
 	state := crypto.SHA512_256.New()
 	if in == nil {
@@ -370,8 +389,8 @@ func SHA512_256iOne(in *big.Int) *big.Int {
 	// n < len(data) or an error will never happen.
 	// see: https://golang.org/pkg/hash/#Hash and https://github.com/golang/go/wiki/Hashing#the-hashhash-interface
 	if _, err := state.Write(data); err != nil {
-		//Logger.Errorf("SHA512_256iOne Write() failed: %v", err)
-		fmt.Printf("SHA512_256iOne Write() failed: %v\n", err)
+		//Logger.Errorf("Sha512_256iOne Write() failed: %v", err)
+		fmt.Printf("Sha512_256iOne Write() failed: %v\n", err)
 		return nil
 	}
 	return new(big.Int).SetBytes(state.Sum(nil))

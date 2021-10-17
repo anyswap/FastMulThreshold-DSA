@@ -33,18 +33,18 @@ func (round *round6) Start() error {
 
 	idtmp, ok := new(big.Int).SetString(round.dnodeid, 10)
 	if !ok {
-		return errors.New("get id big number fail.")
+		return errors.New("get id big number fail")
 	}
 
-	cur_index := -1
-	for k, v := range round.Save.Ids {
+	curIndex := -1
+	for k, v := range round.Save.IDs {
 		if v.Cmp(idtmp) == 0 {
-			cur_index = k
+			curIndex = k
 			break
 		}
 	}
 
-	if cur_index < 0 {
+	if curIndex < 0 {
 		return errors.New("get cur index fail")
 	}
 
@@ -52,8 +52,8 @@ func (round *round6) Start() error {
 	round.Save.Pkx = round.temp.pkx
 	round.Save.Pky = round.temp.pky
 	round.Save.U1PaillierSk = round.temp.u1PaillierSk
-	round.Save.U1PaillierPk[cur_index] = round.temp.u1PaillierPk
-	round.Save.U1NtildeH1H2[cur_index] = round.temp.u1NtildeH1H2
+	round.Save.U1PaillierPk[curIndex] = round.temp.u1PaillierPk
+	round.Save.U1NtildeH1H2[curIndex] = round.temp.u1NtildeH1H2
 
 	round.end <- *round.Save
 

@@ -35,6 +35,7 @@ import (
 	"time"
 )
 
+// ReqSmpcSign sign cmd request
 type ReqSmpcSign struct {
 }
 
@@ -63,16 +64,16 @@ func (req *ReqSmpcSign) GetReplyFromGroup(wid int, gid string, initiator string)
 			in = "1"
 		}
 
-		iter := w.msg_acceptsignres.Front()
+		iter := w.msgacceptsignres.Front()
 		if iter != nil {
 			mdss := iter.Value.(string)
 			key, _, _, _, _ := CheckRaw(mdss)
-			key2 := GetReqAddrKeyByOtherKey(key, Rpc_SIGN)
+			key2 := GetReqAddrKeyByOtherKey(key, RPCSIGN)
 			exsit, da := GetPubKeyData([]byte(key2))
 			if exsit {
 				ac, ok := da.(*AcceptReqAddrData)
 				if ok && ac != nil {
-					ret := GetRawReply(w.msg_acceptsignres)
+					ret := GetRawReply(w.msgacceptsignres)
 					//sigs:  5:eid1:acc1:eid2:acc2:eid3:acc3:eid4:acc4:eid5:acc5
 					mms := strings.Split(ac.Sigs, common.Sep)
 					for k, mm := range mms {
@@ -174,7 +175,7 @@ func (req *ReqSmpcSign) CheckReply(ac *AcceptReqAddrData, l *list.List, key stri
 	}
 
 	mms := strings.Split(ac.Sigs, common.Sep)
-	_, enodes := GetGroup(sig.GroupId)
+	_, enodes := GetGroup(sig.GroupID)
 	nodes := strings.Split(enodes, common.Sep2)
 	for _, node := range nodes {
 		node2 := ParseNode(node)
@@ -211,9 +212,10 @@ func (req *ReqSmpcSign) CheckReply(ac *AcceptReqAddrData, l *list.List, key stri
 
 //--------------------------------------------------------------------------------------------------------------------
 
+// SyncPreSign the status of pre-generating sign data
 type SyncPreSign struct {
 	MsgPrex string
-	EnodeId string
+	EnodeID string
 	Msg     string // "success" or "fail"
 }
 
@@ -221,11 +223,11 @@ type SyncPreSign struct {
 func (sps *SyncPreSign) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		MsgPrex string `json:"MsgPrex"`
-		EnodeId string `json:"EnodeId"`
+		EnodeID string `json:"EnodeID"`
 		Msg     string `json:"Msg"`
 	}{
 		MsgPrex: sps.MsgPrex,
-		EnodeId: sps.EnodeId,
+		EnodeID: sps.EnodeID,
 		Msg:     sps.Msg,
 	})
 }
@@ -234,7 +236,7 @@ func (sps *SyncPreSign) MarshalJSON() ([]byte, error) {
 func (sps *SyncPreSign) UnmarshalJSON(raw []byte) error {
 	var pre struct {
 		MsgPrex string `json:"MsgPrex"`
-		EnodeId string `json:"EnodeId"`
+		EnodeID string `json:"EnodeID"`
 		Msg     string `json:"Msg"`
 	}
 	if err := json.Unmarshal(raw, &pre); err != nil {
@@ -242,7 +244,7 @@ func (sps *SyncPreSign) UnmarshalJSON(raw []byte) error {
 	}
 
 	sps.MsgPrex = pre.MsgPrex
-	sps.EnodeId = pre.EnodeId
+	sps.EnodeID = pre.EnodeID
 	sps.Msg = pre.Msg
 	return nil
 }
@@ -259,7 +261,7 @@ func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 		msg = "fail"
 	}
 
-	sps := &SyncPreSign{MsgPrex: msgprex, EnodeId: cur_enode, Msg: msg}
+	sps := &SyncPreSign{MsgPrex: msgprex, EnodeID: curEnode, Msg: msg}
 	m := make(map[string]string)
 	spsjson, err := sps.MarshalJSON()
 	if err == nil {
@@ -272,10 +274,10 @@ func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 	}
 	SendMsgToSmpcGroup(string(val), w.groupid)
 
-	if w.msg_syncpresign.Len() < w.ThresHold {
-		if !Find(w.msg_syncpresign, string(val)) {
-			w.msg_syncpresign.PushBack(string(val))
-			if w.msg_syncpresign.Len() == w.ThresHold {
+	if w.msgsyncpresign.Len() < w.ThresHold {
+		if !Find(w.msgsyncpresign, string(val)) {
+			w.msgsyncpresign.PushBack(string(val))
+			if w.msgsyncpresign.Len() == w.ThresHold {
 				w.bsyncpresign <- true
 			}
 		}
@@ -290,7 +292,7 @@ func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 		for {
 			select {
 			case <-w.bsyncpresign:
-				iter := w.msg_syncpresign.Front()
+				iter := w.msgsyncpresign.Front()
 				for iter != nil {
 					val := iter.Value.(string)
 					if val == "" {
@@ -341,7 +343,7 @@ func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 // DoReq   1.Parse the sign or pre-sign command and implement the process 2.analyze the accept data   
 func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan interface{}) bool {
 	if raw == "" || workid < 0 || sender == "" {
-		res := RpcSmpcRes{Ret: "", Tip: "do req fail.", Err: fmt.Errorf("do req fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "do req fail.", Err: fmt.Errorf("do req fail")}
 		ch <- res
 		return false
 	}
@@ -359,7 +361,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 				w := workers[workid]
 				w.sid = sd.Key
-				w.groupid = sd.GroupId
+				w.groupid = sd.GroupID
 
 				w.NodeCnt = sd.NodeCnt
 				w.ThresHold = sd.ThresHold
@@ -387,13 +389,13 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				if sd.InputCodeT != "" {
 					da3 := getBip32cFromLocalDb(smpcpks[:])
 					if da3 == nil {
-						res := RpcSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
+						res := RPCSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
 						ch <- res
 						return false
 					}
 					bip32c := new(big.Int).SetBytes(da3)
 					if bip32c == nil {
-						res := RpcSmpcRes{Ret: "", Tip: "presign get bip32 error", Err: fmt.Errorf("presign get bip32 error")}
+						res := RPCSmpcRes{Ret: "", Tip: "presign get bip32 error", Err: fmt.Errorf("presign get bip32 error")}
 						ch <- res
 						return false
 					}
@@ -422,13 +424,13 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				childpubkeyhex := hex.EncodeToString(childpub)
 				_, _, err = GetSmpcAddr(childpubkeyhex)
 				if err != nil {
-					res := RpcSmpcRes{Ret: "", Tip: "get pubkey error", Err: fmt.Errorf("get pubkey error")}
+					res := RPCSmpcRes{Ret: "", Tip: "get pubkey error", Err: fmt.Errorf("get pubkey error")}
 					ch <- res
 					return false
 				}
 
 				var ch1 = make(chan interface{}, 1)
-				for i := 0; i < recalc_times; i++ {
+				for i := 0; i < recalcTimes; i++ {
 					common.Debug("===============ReqSmpcSign.DoReq,sign recalc===================", "i", i, "msgprex", sd.MsgPrex, "key", sd.Key)
 					if len(ch1) != 0 {
 						<-ch1
@@ -436,26 +438,26 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 					//w.Clear2()
 					//Sign_ec2(sd.Key, sd.Save, sd.Sku1, sd.Txhash, sd.Keytype, sd.Pkx, sd.Pky, ch1, workid)
-					Sign_ec3(sd.Key, sd.Txhash, sd.Keytype, sd.Save, childPKx, childPKy, ch1, workid, sd.Pre)
+					SignEC3(sd.Key, sd.Txhash, sd.Keytype, sd.Save, childPKx, childPKy, ch1, workid, sd.Pre)
 					ret, _, cherr := GetChannelValue(WaitMsgTimeGG20+10, ch1)
 					if ret != "" && cherr == nil {
 
 						ww, err2 := FindWorker(sd.MsgPrex)
 						if err2 != nil || ww == nil {
-							res2 := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker", Err: fmt.Errorf("no find worker")}
+							res2 := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker", Err: fmt.Errorf("no find worker")}
 							ch <- res2
 							return false
 						}
 
 						ww.rsv.PushBack(ret)
-						res2 := RpcSmpcRes{Ret: ret, Tip: "", Err: nil}
+						res2 := RPCSmpcRes{Ret: ret, Tip: "", Err: nil}
 						ch <- res2
 						return true
 					}
 
 				}
 
-				res2 := RpcSmpcRes{Ret: "", Tip: "sign fail", Err: fmt.Errorf("sign fail")}
+				res2 := RPCSmpcRes{Ret: "", Tip: "sign fail", Err: fmt.Errorf("sign fail")}
 				ch <- res2
 				return false
 			}
@@ -476,7 +478,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				exsit, da := GetPubKeyData(smpcpks[:])
 				if !exsit {
 					common.Debug("============================PreSign at ReqSmpcSign.DoReq,not exist presign data===========================", "pubkey", ps.Pub)
-					res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get presign data from db fail", Err: fmt.Errorf("get presign data from db fail")}
+					res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get presign data from db fail", Err: fmt.Errorf("get presign data from db fail")}
 					ch <- res
 					return false
 				}
@@ -484,26 +486,26 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				pd, ok := da.(*PubKeyData)
 				if !ok {
 					common.Debug("============================PreSign at ReqSmpcSign.DoReq,presign data error==========================", "pubkey", ps.Pub)
-					res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get presign data from db fail", Err: fmt.Errorf("get presign data from db fail")}
+					res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get presign data from db fail", Err: fmt.Errorf("get presign data from db fail")}
 					ch <- res
 					return false
 				}
 
-				nodecount, _ := GetGroup(pd.GroupId)
+				nodecount, _ := GetGroup(pd.GroupID)
 				w.NodeCnt = nodecount
 
 				save := pd.Save
-				common.Debug("============================ReqSmpcSign.DoReq==========================", "w.SmpcFrom", w.SmpcFrom, "w.groupid", w.groupid, "w.NodeCnt", w.NodeCnt, "pd.GroupId", pd.GroupId)
+				common.Debug("============================ReqSmpcSign.DoReq==========================", "w.SmpcFrom", w.SmpcFrom, "w.groupid", w.groupid, "w.NodeCnt", w.NodeCnt, "pd.GroupID", pd.GroupID)
 				///sku1
 				da2 := getSkU1FromLocalDb(smpcpks[:])
 				if da2 == nil {
-					res := RpcSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
+					res := RPCSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
 					ch <- res
 					return false
 				}
 				sku1 := new(big.Int).SetBytes(da2)
 				if sku1 == nil {
-					res := RpcSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
+					res := RPCSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
 					ch <- res
 					return false
 				}
@@ -512,13 +514,13 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				if ps.InputCode != "" {
 					da4 := getBip32cFromLocalDb(smpcpks[:])
 					if da4 == nil {
-						res := RpcSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
+						res := RPCSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
 						ch <- res
 						return false
 					}
 					bip32c := new(big.Int).SetBytes(da4)
 					if bip32c == nil {
-						res := RpcSmpcRes{Ret: "", Tip: "presign get bip32 error", Err: fmt.Errorf("presign get bip32 error")}
+						res := RPCSmpcRes{Ret: "", Tip: "presign get bip32 error", Err: fmt.Errorf("presign get bip32 error")}
 						ch <- res
 						return false
 					}
@@ -553,17 +555,17 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				}
 
 				var ch1 = make(chan interface{}, 1)
-				//pre := PreSign_ec3(w.sid,save,sku1,"ECDSA",ch1,workid)
-				pre := PreSign_ec3(w.sid, save, childSKU1, "EC256K1", ch1, workid)
+				//pre := PreSignEC3(w.sid,save,sku1,"ECDSA",ch1,workid)
+				pre := PreSignEC3(w.sid, save, childSKU1, "EC256K1", ch1, workid)
 				if pre == nil {
 					common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid, "err", "return result is nil")
 					if syncpresign && !SynchronizePreSignData(w.sid, w.id, false) {
-						res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+						res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
 						ch <- res
 						return false
 					}
 
-					res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+					res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
 					ch <- res
 					return false
 				}
@@ -578,13 +580,13 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 					common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time,put pre-sign data to local db fail. ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid, "err", err)
 					if syncpresign && !SynchronizePreSignData(w.sid, w.id, false) {
 						common.Info("================================PreSign at RecvMsg.Run, put pre-sign data to local db fail=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index, "err", err)
-						res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+						res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
 						ch <- res
 						return false
 					}
 
 					common.Info("================================PreSign at RecvMsg.Run, put pre-sign data to local db fail=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index, "err", err)
-					res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+					res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
 					ch <- res
 					return false
 				}
@@ -598,13 +600,13 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 						common.Info("================================PreSign at RecvMsg.Run, delete pre-sign data from local db fail=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index, "err", err)
 					}
 
-					res := RpcSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+					res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
 					ch <- res
 					return false
 				}
 
 				common.Info("============================PreSign at RecvMsg.Run, pre-generated sign data succeeded.==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid)
-				res := RpcSmpcRes{Ret: "success", Tip: "", Err: nil}
+				res := RPCSmpcRes{Ret: "success", Tip: "", Err: nil}
 				ch <- res
 				return true
 			}
@@ -619,16 +621,16 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 					if ok {
 						pickdata := make([]*PickHashData, 0)
 						for _, vv := range signbrocast.PickHash {
-							pre := GetPreSignData(sig.PubKey, sig.InputCode, sig.GroupId, vv.PickKey)
+							pre := GetPreSignData(sig.PubKey, sig.InputCode, sig.GroupID, vv.PickKey)
 							if pre == nil {
-								res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get pre-sign data fail", Err: fmt.Errorf("get pre-sign data fail.")}
+								res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get pre-sign data fail", Err: fmt.Errorf("get pre-sign data fail")}
 								ch <- res
 								return false
 							}
 
 							pd := &PickHashData{Hash: vv.Hash, Pre: pre}
 							pickdata = append(pickdata, pd)
-							DeletePreSignData(sig.PubKey, sig.InputCode, sig.GroupId, vv.PickKey)
+							DeletePreSignData(sig.PubKey, sig.InputCode, sig.GroupID, vv.PickKey)
 						}
 
 						signpick := &SignPickData{Raw: signbrocast.Raw, PickData: pickdata}
@@ -660,96 +662,98 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 	common.Debug("=====================DoReq,check raw data finish ================", "key", key, "from", from, "err", err, "raw", raw)
 	if err != nil {
 		common.Error("===============DoReq,check raw error===================", "err ", err)
-		res := RpcSmpcRes{Ret: "", Tip: err.Error(), Err: err}
+		res := RPCSmpcRes{Ret: "", Tip: err.Error(), Err: err}
 		ch <- res
 		return false
 	}
 
 	acceptsig, ok := txdata.(*TxDataAcceptSign)
-	if ok {
-		w, err := FindWorker(acceptsig.Key)
-		if err != nil || w == nil {
-			common.Info("===============DoReq, worker was not found.=====================", "accept sign key ", acceptsig.Key, "from ", from)
-			c1data := strings.ToLower(acceptsig.Key + "-" + from)
-			C1Data.WriteMap(c1data, raw)
-			res := RpcSmpcRes{Ret: "Failure", Tip: "get sign accept data fail from db when no find worker.", Err: fmt.Errorf("get sign accept data fail from db when no find worker")}
-			ch <- res
-			return false
-		}
-
-		exsit, da := GetSignInfoData([]byte(acceptsig.Key))
-		if !exsit {
-			common.Error("===============DoReq, get sign accept data fail from db=====================", "key ", acceptsig.Key, "from ", from)
-			res := RpcSmpcRes{Ret: "Failure", Tip: "smpc back-end internal error:get sign accept data fail from db in init accept data", Err: fmt.Errorf("get sign accept data fail from db")}
-			ch <- res
-			return false
-		}
-
-		ac, ok := da.(*AcceptSignData)
-		if !ok || ac == nil {
-			common.Error("===============DoReq, it is acceptsign and decode accept data fail=====================", "key ", acceptsig.Key, "from ", from)
-			res := RpcSmpcRes{Ret: "Failure", Tip: "smpc back-end internal error:decode accept data fail", Err: fmt.Errorf("decode accept data fail")}
-			ch <- res
-			return false
-		}
-
-		if ac.Deal == "true" || ac.Status == "Success" || ac.Status == "Failure" || ac.Status == "Timeout" {
-			common.Info("===============DoReq,sign has handled before=====================", "key ", acceptsig.Key, "from ", from)
-			res := RpcSmpcRes{Ret: "", Tip: "sign has handled before", Err: fmt.Errorf("sign has handled before")}
-			ch <- res
-			return false
-		}
-
-		status := "Pending"
-		accept := "false"
-		if acceptsig.Accept == "AGREE" {
-			accept = "true"
-		} else {
-			status = "Failure"
-		}
-
-		id, _ := GetWorkerId(w)
-		DisAcceptMsg(raw, id)
-		reqaddrkey := GetReqAddrKeyByOtherKey(acceptsig.Key, Rpc_SIGN)
-		exsit, da = GetPubKeyData([]byte(reqaddrkey))
-		if !exsit {
-			common.Error("===============DoReq, get reqaddr sigs data fail=====================", "key ", acceptsig.Key, "from ", from)
-			res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
-			ch <- res
-			return false
-		}
-
-		acceptreqdata, ok := da.(*AcceptReqAddrData)
-		if !ok || acceptreqdata == nil {
-			common.Error("===============DoReq, get reqaddr sigs data fail =====================", "key ", acceptsig.Key, "from ", from)
-			res := RpcSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
-			ch <- res
-			return false
-		}
-
-		HandleC1Data(acceptreqdata, acceptsig.Key)
-
-		ars := GetAllReplyFromGroup(id, ac.GroupId, Rpc_SIGN, ac.Initiator)
-		if ac.Deal == "true" || ac.Status == "Success" || ac.Status == "Failure" || ac.Status == "Timeout" {
-			common.Info("===============DoReq,sign has handled before=====================", "key ", acceptsig.Key, "from ", from)
-			res := RpcSmpcRes{Ret: "", Tip: "sign has handled before", Err: fmt.Errorf("sign has handled before")}
-			ch <- res
-			return false
-		}
-
-		tip, err := AcceptSign(ac.Initiator, ac.Account, ac.PubKey, ac.MsgHash, ac.Keytype, ac.GroupId, ac.Nonce, ac.LimitNum, ac.Mode, "false", accept, status, "", "", "", ars, ac.WorkId)
-		if err != nil {
-			res := RpcSmpcRes{Ret: "Failure", Tip: tip, Err: err}
-			ch <- res
-			return false
-		}
-
-		res := RpcSmpcRes{Ret: "Success", Tip: "", Err: nil}
+	if !ok {
+		res := RPCSmpcRes{Ret: "", Tip: "sign data error", Err: fmt.Errorf("sign data error")}
 		ch <- res
-		return true
+		return false
 	}
 
-	return false
+	w, err := FindWorker(acceptsig.Key)
+	if err != nil || w == nil {
+		common.Info("===============DoReq, worker was not found.=====================", "accept sign key ", acceptsig.Key, "from ", from)
+		c1data := strings.ToLower(acceptsig.Key + "-" + from)
+		C1Data.WriteMap(c1data, raw)
+		res := RPCSmpcRes{Ret: "Failure", Tip: "get sign accept data fail from db when no find worker.", Err: fmt.Errorf("get sign accept data fail from db when no find worker")}
+		ch <- res
+		return false
+	}
+
+	exsit, da := GetSignInfoData([]byte(acceptsig.Key))
+	if !exsit {
+		common.Error("===============DoReq, get sign accept data fail from db=====================", "key ", acceptsig.Key, "from ", from)
+		res := RPCSmpcRes{Ret: "Failure", Tip: "smpc back-end internal error:get sign accept data fail from db in init accept data", Err: fmt.Errorf("get sign accept data fail from db")}
+		ch <- res
+		return false
+	}
+
+	ac, ok := da.(*AcceptSignData)
+	if !ok || ac == nil {
+		common.Error("===============DoReq, it is acceptsign and decode accept data fail=====================", "key ", acceptsig.Key, "from ", from)
+		res := RPCSmpcRes{Ret: "Failure", Tip: "smpc back-end internal error:decode accept data fail", Err: fmt.Errorf("decode accept data fail")}
+		ch <- res
+		return false
+	}
+
+	if ac.Deal == "true" || ac.Status == "Success" || ac.Status == "Failure" || ac.Status == "Timeout" {
+		common.Info("===============DoReq,sign has handled before=====================", "key ", acceptsig.Key, "from ", from)
+		res := RPCSmpcRes{Ret: "", Tip: "sign has handled before", Err: fmt.Errorf("sign has handled before")}
+		ch <- res
+		return false
+	}
+
+	status := "Pending"
+	accept := "false"
+	if acceptsig.Accept == "AGREE" {
+		accept = "true"
+	} else {
+		status = "Failure"
+	}
+
+	id, _ := GetWorkerID(w)
+	DisAcceptMsg(raw, id)
+	reqaddrkey := GetReqAddrKeyByOtherKey(acceptsig.Key, RPCSIGN)
+	exsit, da = GetPubKeyData([]byte(reqaddrkey))
+	if !exsit {
+		common.Error("===============DoReq, get reqaddr sigs data fail=====================", "key ", acceptsig.Key, "from ", from)
+		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
+		ch <- res
+		return false
+	}
+
+	acceptreqdata, ok := da.(*AcceptReqAddrData)
+	if !ok || acceptreqdata == nil {
+		common.Error("===============DoReq, get reqaddr sigs data fail =====================", "key ", acceptsig.Key, "from ", from)
+		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
+		ch <- res
+		return false
+	}
+
+	HandleC1Data(acceptreqdata, acceptsig.Key)
+
+	ars := GetAllReplyFromGroup(id, ac.GroupID, RPCSIGN, ac.Initiator)
+	if ac.Deal == "true" || ac.Status == "Success" || ac.Status == "Failure" || ac.Status == "Timeout" {
+		common.Info("===============DoReq,sign has handled before=====================", "key ", acceptsig.Key, "from ", from)
+		res := RPCSmpcRes{Ret: "", Tip: "sign has handled before", Err: fmt.Errorf("sign has handled before")}
+		ch <- res
+		return false
+	}
+
+	tip, err := AcceptSign(ac.Initiator, ac.Account, ac.PubKey, ac.MsgHash, ac.Keytype, ac.GroupID, ac.Nonce, ac.LimitNum, ac.Mode, "false", accept, status, "", "", "", ars, ac.WorkID)
+	if err != nil {
+		res := RPCSmpcRes{Ret: "Failure", Tip: tip, Err: err}
+		ch <- res
+		return false
+	}
+
+	res := RPCSmpcRes{Ret: "Success", Tip: "", Err: nil}
+	ch <- res
+	return true
 }
 
 //-----------------------------------------------------------------------------------------------------
@@ -774,27 +778,27 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 		inputcode := sig.InputCode
 		hash := sig.MsgHash
 		keytype := sig.Keytype
-		groupid := sig.GroupId
+		groupid := sig.GroupID
 		threshold := sig.ThresHold
 		mode := sig.Mode
 		timestamp := sig.TimeStamp
 
 		if from == "" || pubkey == "" || hash == nil || keytype == "" || groupid == "" || threshold == "" || mode == "" || timestamp == "" {
-			return "", "", "", nil, fmt.Errorf("param error from raw data.")
+			return "", "", "", nil, fmt.Errorf("param error from raw data")
 		}
 
 		//check input code
 		if inputcode != "" {
 			indexs := strings.Split(inputcode, "/")
 			if len(indexs) < 2 || indexs[0] != "m" {
-				return "", "", "", nil, fmt.Errorf("param error from raw data.")
+				return "", "", "", nil, fmt.Errorf("param error from raw data")
 			}
 		}
 		//
 
 		nums := strings.Split(threshold, "/")
 		if len(nums) != 2 {
-			return "", "", "", nil, fmt.Errorf("threshold is not right.")
+			return "", "", "", nil, fmt.Errorf("threshold is not right")
 		}
 		nodecnt, err := strconv.Atoi(nums[1])
 		if err != nil {
@@ -805,7 +809,7 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 			return "", "", "", nil, err
 		}
 		if nodecnt < limit || limit < 2 {
-			return "", "", "", nil, fmt.Errorf("threshold format error.")
+			return "", "", "", nil, fmt.Errorf("threshold format error")
 		}
 
 		nc, _ := GetGroup(groupid)
@@ -831,7 +835,7 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 		}
 
 		if pubs.Mode != mode {
-			return "", "", "", nil, fmt.Errorf("can not sign with different mode in pubkey.")
+			return "", "", "", nil, fmt.Errorf("can not sign with different mode in pubkey")
 		}
 
 		if len(sig.MsgContext) > 16 {
@@ -843,7 +847,7 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 			}
 		}
 
-		key := Keccak256Hash([]byte(strings.ToLower(from + ":" + fmt.Sprintf("%v", nonce) + ":" + pubkey + ":" + get_sign_hash(hash, keytype) + ":" + keytype + ":" + groupid + ":" + threshold + ":" + mode))).Hex()
+		key := Keccak256Hash([]byte(strings.ToLower(from + ":" + fmt.Sprintf("%v", nonce) + ":" + pubkey + ":" + getSignHash(hash, keytype) + ":" + keytype + ":" + groupid + ":" + threshold + ":" + mode))).Hex()
 		return key, from, fmt.Sprintf("%v", nonce), &sig, nil
 	}
 
@@ -854,7 +858,7 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 		subgids := pre.SubGid
 
 		if from == "" || pubkey == "" || subgids == nil {
-			return "", "", "", nil, fmt.Errorf("param error from raw data.")
+			return "", "", "", nil, fmt.Errorf("param error from raw data")
 		}
 		//
 
@@ -871,7 +875,7 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 	err = json.Unmarshal(txdata, &acceptsig)
 	if err == nil && acceptsig.TxType == "ACCEPTSIGN" {
 		if acceptsig.MsgHash == nil {
-			return "", "", "", nil, fmt.Errorf("accept data error.")
+			return "", "", "", nil, fmt.Errorf("accept data error")
 		}
 
 		if len(acceptsig.MsgContext) > 16 {
@@ -1015,18 +1019,18 @@ func (req *ReqSmpcSign) DisAcceptMsg(raw string, workid int, key string) {
 		return
 	}
 
-	if Find(w.msg_acceptsignres, raw) {
+	if Find(w.msgacceptsignres, raw) {
 		common.Debug("======================ReqSmpcSign.DisAcceptMsg,receive one msg and already in list.===========================", "raw", raw, "key", key)
 		return
 	}
 
-	if !CheckSignDulpRawReply(raw, w.msg_acceptsignres) {
+	if !CheckSignDulpRawReply(raw, w.msgacceptsignres) {
 		return
 	}
 
-	w.msg_acceptsignres.PushBack(raw)
-	if w.msg_acceptsignres.Len() >= w.ThresHold {
-		if !CheckReply(w.msg_acceptsignres, Rpc_SIGN, key) {
+	w.msgacceptsignres.PushBack(raw)
+	if w.msgacceptsignres.Len() >= w.ThresHold {
+		if !CheckReply(w.msgacceptsignres, RPCSIGN, key) {
 			common.Debug("=====================ReqSmpcSign.DisAcceptMsg,receive one msg, but Not all accept data has been received ===================", "raw", raw, "key", key)
 			return
 		}
@@ -1044,7 +1048,7 @@ func (req *ReqSmpcSign) DisAcceptMsg(raw string, workid int, key string) {
 		}
 
 		common.Debug("=====================ReqSmpcSign.DisAcceptMsg,receive one msg,all accept data has been received,set acceptSignChan ===================", "raw", raw, "key", key)
-		workers[ac.WorkId].acceptSignChan <- "go on"
+		workers[ac.WorkID].acceptSignChan <- "go on"
 	}
 }
 

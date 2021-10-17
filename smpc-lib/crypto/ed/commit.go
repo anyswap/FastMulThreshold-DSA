@@ -78,7 +78,7 @@ func Verify(C [32]byte, D [64]byte) bool {
 
 	if bytes.Equal(C[:], rsDigest256[:]) {
 		return true
-	} else {
-		return false
 	}
+	
+	return false
 }

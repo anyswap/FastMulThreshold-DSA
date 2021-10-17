@@ -39,7 +39,7 @@ type (
 		paillierkeylength int
 		predata           *PrePubData
 		txhash            *big.Int
-		finalize_end      chan<- *big.Int
+		finalizeend      chan<- *big.Int
 	}
 	round1 struct {
 		*base
@@ -92,8 +92,8 @@ func (round *base) CanProceed() bool {
 	return true
 }
 
-// GetIds get from all nodes
-func (round *base) GetIds() (smpc.SortableIDSSlice, error) {
+// GetIDs get from all nodes
+func (round *base) GetIDs() (smpc.SortableIDSSlice, error) {
 	return round.idsign, nil
 }
 
@@ -105,7 +105,7 @@ func (round *base) GetDNodeIDIndex(id string) (int, error) {
 
 	idtmp, ok := new(big.Int).SetString(id, 10)
 	if !ok {
-		return -1, errors.New("get id big number fail.")
+		return -1, errors.New("get id big number fail")
 	}
 
 	for k, v := range round.idsign {
