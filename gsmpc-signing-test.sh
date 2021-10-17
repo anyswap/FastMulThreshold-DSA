@@ -4,13 +4,10 @@
 
 echo ------------------------------------------------- pwd : $(pwd)   ------------------------------------------------------------------
 cp -r $1/bin/cmd/gsmpc $1/test/bin/gsmpctest
-cp -r $1/bin/cmd/bootnode $1/test/bin/bootnodetest
 cp -r $1/bin/cmd/gsmpc-client $1/test/bin/gsmpc-client-test
 
 chmod a+x test/reqaddr.sh
 chmod a+x test/sign.sh
-
-$(pwd)/bootnode-test.sh $1 &
 
 sleep 20
 
@@ -152,19 +149,19 @@ echo -------------------------------------------------- begin to start 5 gsmpc n
 
 gsmpc=$1/test/bin/gsmpctest
 $gsmpc --rpcport $port --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node1 --port 48541 --nodekey "$1/test/nodekey/node1.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 10 2>&1 | tee $1/test/log/node1.log &
-sleep 3
+sleep 2
 
 $gsmpc --rpcport $port2 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node2 --port 48542 --nodekey "$1/test/nodekey/node2.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 10 2>&1 | tee $1/test/log/node2.log &
-sleep 3
+sleep 2
 
 $gsmpc --rpcport $port3 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node3 --port 48543 --nodekey "$1/test/nodekey/node3.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 10 2>&1 | tee $1/test/log/node3.log &
-sleep 3
+sleep 2
 
 $gsmpc --rpcport $port4 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node4 --port 48544 --nodekey "$1/test/nodekey/node4.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 10 2>&1 | tee $1/test/log/node4.log &
-sleep 3
+sleep 2
 
 $gsmpc --rpcport $port5 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node5 --port 48545 --nodekey "$1/test/nodekey/node5.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 10 2>&1 | tee $1/test/log/node5.log &
-sleep 10
+sleep 4
 
 echo ------------------------------------------------ 5 gsmpc nodes start finish --------------------------------------------------------------
 echo 
@@ -172,7 +169,7 @@ echo
 echo ------------------------------- !!!every smpc node begin to generate 4 LARGE PRIME NUMBERS, this will take some time,it will take about 10 minutes, please BE PATIENT!!!  -----------------------------------------------
 echo
 
-sleep 400
+sleep 220 
 
 echo -------------------------------------------------------------  Generation of 4 LARGE PRIME NUMBERS completed ------------------------------------------------------------------
 
@@ -235,7 +232,7 @@ echo
 echo ------------------------------------------------------- begin to generate pubkey -----------------------------------------------------------------
 
 $1/test/bin/gsmpc-client-test -cmd REQSMPCADDR --keystore $keyfile1 --passwdfile $pf1 -ts 3/5 --keytype $kt -gid $gid -mode 0 -url http://127.0.0.1:$port -sig $nodesig1 -sig $nodesig2 -sig $nodesig3 -sig $nodesig4 -sig $nodesig5 > $1/test/tmp/eee &
-sleep 50
+sleep 50 
 
 val=$(cat $1/test/tmp/eee)
 val=`echo ${val##*=}`
@@ -270,7 +267,7 @@ echo $str | tee $1/test/reqaddr.sh
 echo 
 
 $1/test/reqaddr.sh &
-sleep 10 
+sleep 5 
 
 val=$(cat $1/test/tmp/fff)
 val=`echo ${val##*PubKey}`
@@ -279,12 +276,12 @@ echo
 echo ------------------------------------------------------------------ pubkey : $pubkey ------------------------------------------------------------
 
 $1/test/bin/gsmpc-client-test -cmd PRESIGNDATA --keystore $keyfile1 --passwdfile $pf1 -pubkey $pubkey -subgid $subgid  -url  http://127.0.0.1:$port --keytype $kt &
-sleep 10
+sleep 5
 
 rm -rf $1/test/tmp/ggg
 
 $1/test/bin/gsmpc-client-test -cmd SIGN --loop 1 --n 1 -ts 3/5 --keystore $keyfile1 --passwdfile $pf1 --keytype $kt --logfilepath $1/test/tmp/logfile -gid $subgid -mode 0 -url http://127.0.0.1:$port -pubkey $pubkey -msghash 0x90e032be062dd0dc689fa23df8c044936a2478cb602b292c7397354238a67d88  -msgcontext '{"swapInfo":{"swapid":"0x4f62545cdd05cc346c75bb42f685a18a02621e91512e0806eac528d0b2f6aa5f","swaptype":1,"bind":"0x0520e8e5e08169c4dbc1580dc9bf56638532773a","identifier":"ssUSDT2FSN"},"extra":{"ethExtra":{"gas":90000,"gasPrice":10000000000,"nonce":1}}}' > $1/test/tmp/ggg &
-sleep 50
+sleep 40
 
 val=$(cat $1/test/tmp/ggg)
 val=`echo ${val##*keyID=}`
@@ -301,7 +298,7 @@ $1/test/bin/gsmpc-client-test  -cmd ACCEPTSIGN -url http://127.0.0.1:$port2 --ke
 sleep 4
 
 $1/test/bin/gsmpc-client-test  -cmd ACCEPTSIGN -url http://127.0.0.1:$port3 --keystore $keyfile3 --passwdfile $pf3 --key $signkey &
-sleep 60
+sleep 40 
 
 a='curl -X POST -H "Content-Type":application/json --data '
 b="'"

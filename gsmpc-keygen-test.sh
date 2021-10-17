@@ -4,14 +4,12 @@
 
 echo ------------------------------------------------- pwd : $(pwd)   ------------------------------------------------------------------
 cp -r $1/bin/cmd/gsmpc $1/test/bin/gsmpctest
-cp -r $1/bin/cmd/bootnode $1/test/bin/bootnodetest
+#cp -r $1/bin/cmd/bootnode $1/test/bin/bootnodetest
 cp -r $1/bin/cmd/gsmpc-client $1/test/bin/gsmpc-client-test
 
 chmod a+x test/reqaddr.sh
-chmod a+x test/sign.sh
 
-$(pwd)/bootnode-test.sh $1 &
-
+#$1/bootnode-test.sh $1 &
 sleep 20
 
 path=$1/test/tmp/aaa
@@ -172,7 +170,7 @@ echo
 echo ------------------------------- !!!every smpc node begin to generate 4 LARGE PRIME NUMBERS, this will take some time,it will take about 10 minutes, please BE PATIENT!!!  -----------------------------------------------
 echo
 
-sleep 400
+sleep 300
 
 echo -------------------------------------------------------------  Generation of 4 LARGE PRIME NUMBERS completed ------------------------------------------------------------------
 
@@ -277,52 +275,6 @@ val=`echo ${val##*PubKey}`
 pubkey=`echo ${val:5:130}`
 echo
 echo ------------------------------------------------------------------ pubkey : $pubkey ------------------------------------------------------------
-
-$1/test/bin/gsmpc-client-test -cmd PRESIGNDATA --keystore $keyfile1 --passwdfile $pf1 -pubkey $pubkey -subgid $subgid  -url  http://127.0.0.1:$port --keytype $kt &
-sleep 10
-
-rm -rf $1/test/tmp/ggg
-
-$1/test/bin/gsmpc-client-test -cmd SIGN --loop 1 --n 1 -ts 3/5 --keystore $keyfile1 --passwdfile $pf1 --keytype $kt --logfilepath $1/test/tmp/logfile -gid $subgid -mode 0 -url http://127.0.0.1:$port -pubkey $pubkey -msghash 0x90e032be062dd0dc689fa23df8c044936a2478cb602b292c7397354238a67d88  -msgcontext '{"swapInfo":{"swapid":"0x4f62545cdd05cc346c75bb42f685a18a02621e91512e0806eac528d0b2f6aa5f","swaptype":1,"bind":"0x0520e8e5e08169c4dbc1580dc9bf56638532773a","identifier":"ssUSDT2FSN"},"extra":{"ethExtra":{"gas":90000,"gasPrice":10000000000,"nonce":1}}}' > $1/test/tmp/ggg &
-sleep 50
-
-val=$(cat $1/test/tmp/ggg)
-val=`echo ${val##*keyID=}`
-signkey=`echo ${val:0:66}`
-echo
-echo ------------------------------------------------------------------sign cmd key : $signkey ---------------------------------------------------------------------------
-
-rm -rf $1/test/tmp/hhh
-
-$1/test/bin/gsmpc-client-test -cmd ACCEPTSIGN  -url http://127.0.0.1:$port --keystore $keyfile1 --passwdfile $pf1 --key $signkey &
-sleep 4
-
-$1/test/bin/gsmpc-client-test  -cmd ACCEPTSIGN -url http://127.0.0.1:$port2 --keystore $keyfile2 --passwdfile $pf2 --key $signkey &
-sleep 4
-
-$1/test/bin/gsmpc-client-test  -cmd ACCEPTSIGN -url http://127.0.0.1:$port3 --keystore $keyfile3 --passwdfile $pf3 --key $signkey &
-sleep 60
-
-a='curl -X POST -H "Content-Type":application/json --data '
-b="'"
-c='{"jsonrpc":"2.0","method":"smpc_getSignStatus","params":["'
-d="$signkey"
-e='"],"id":67}'
-f=" http://127.0.0.1:$port"
-g=" > $1/test/tmp/hhh &"
-
-str=$a$b$c$d$e$b$f$g
-echo $str | tee $1/test/sign.sh
-echo
-
-$1/test/sign.sh &
-sleep 10 
-
-val=$(cat $1/test/tmp/hhh)
-val=`echo ${val##*Rsv}`
-rsv=`echo ${val:6:130}`
-echo
-echo ---------------------------------------------------------------------- sign rsv : $rsv --------------------------------------------------------------------------------
 
 killall -9 gsmpctest bootnodetest
 
