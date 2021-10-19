@@ -24,6 +24,10 @@ import (
 	"math/big"
 )
 
+const (
+	paillierBitsLen = 2048
+)
+
 // Start send vss data to corresponding peer
 func (round *round2) Start() error {
 	if round.started {
@@ -39,6 +43,24 @@ func (round *round2) Start() error {
 	}
 	round.Save.IDs = ids
 	round.Save.CurDNodeID, _ = new(big.Int).SetString(round.dnodeid, 10)
+
+	//check paillier.N bitlen
+	for _,msg := range round.temp.kgRound1Messages {
+		m,ok := msg.(*KGRound1Message)
+		if !ok {
+			return errors.New("error kg round1 message")
+		}
+
+		paiPk := m.U1PaillierPk
+		if paiPk == nil {
+			return errors.New("error kg round1 message")
+		}
+
+		if paiPk.N.BitLen() < paillierBitsLen {
+			return errors.New("got paillier N with not enough bits")
+		}
+	}
+	//
 
 	u1Shares, err := round.temp.u1Poly.Vss2(ids)
 	if err != nil {

@@ -22,6 +22,10 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
 
+const (
+	ntildeBitsLen = 2048
+)
+
 // Start broacast zku proof data
 func (round *round5) Start() error {
 	if round.started {
@@ -35,6 +39,24 @@ func (round *round5) Start() error {
 	if err != nil {
 		return err
 	}
+
+	//check Ntilde bitlen
+	for _,msg := range round.temp.kgRound4Messages {
+		m,ok := msg.(*KGRound4Message)
+		if !ok {
+			return errors.New("error kg round4 message")
+		}
+
+		ntilde := m.U1NtildeH1H2
+		if ntilde == nil || ntilde.Ntilde == nil {
+			return errors.New("error kg round4 message")
+		}
+
+		if ntilde.Ntilde.BitLen() < ntildeBitsLen {
+			return errors.New("got ntilde with not enough bits")
+		}
+	}
+	//
 
 	u1zkUProof := ec2.ZkUProve(round.temp.u1)
 	if u1zkUProof == nil {
