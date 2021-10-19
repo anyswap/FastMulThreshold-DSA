@@ -25,6 +25,8 @@ if [ $1 = $mod2 ]; then
 fi
 
 if [ $1 = $mod1 ]; then
+    chmod a+x ./gsmpc-test.sh
+    chmod a+x ./bootnode-test.sh
     ./gsmpc-test.sh $(pwd) 5871 "" EC256K1
 else
     export GO111MODULE=on

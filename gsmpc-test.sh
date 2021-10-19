@@ -152,16 +152,16 @@ echo -------------------------------------------------- begin to start 5 gsmpc n
 
 gsmpc=$1/test/bin/gsmpctest
 $gsmpc --rpcport $port --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node1 --port 48541 --nodekey "$1/test/nodekey/node1.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 10 2>&1 | tee $1/test/log/node1.log &
-sleep 3
+sleep 6
 
 $gsmpc --rpcport $port2 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node2 --port 48542 --nodekey "$1/test/nodekey/node2.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 10 2>&1 | tee $1/test/log/node2.log &
-sleep 3
+sleep 6
 
 $gsmpc --rpcport $port3 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node3 --port 48543 --nodekey "$1/test/nodekey/node3.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 10 2>&1 | tee $1/test/log/node3.log &
-sleep 3
+sleep 6
 
 $gsmpc --rpcport $port4 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node4 --port 48544 --nodekey "$1/test/nodekey/node4.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 10 2>&1 | tee $1/test/log/node4.log &
-sleep 3
+sleep 6
 
 $gsmpc --rpcport $port5 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node5 --port 48545 --nodekey "$1/test/nodekey/node5.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 10 2>&1 | tee $1/test/log/node5.log &
 sleep 10
@@ -177,7 +177,7 @@ sleep 400
 echo -------------------------------------------------------------  Generation of 4 LARGE PRIME NUMBERS completed ------------------------------------------------------------------
 
 $1/test/bin/gsmpc-client-test -cmd SetGroup -url http://127.0.0.1:$port -ts 3/5 -node http://127.0.0.1:$port -node http://127.0.0.1:$port2 -node http://127.0.0.1:$port3 -node http://127.0.0.1:$port4 -node http://127.0.0.1:$port5 > $1/test/tmp/bbb &
-sleep 4
+sleep 10
 
 val=$(cat $1/test/tmp/bbb)
 gid=`echo ${val:0-128:128}`
@@ -185,7 +185,7 @@ echo
 echo --------------------------------------------------------- gid : $gid ---------------------------------------------------------------------------------
 
 $1/test/bin/gsmpc-client-test -cmd SetGroup -url http://127.0.0.1:$port -ts 3/5 -node http://127.0.0.1:$port -node http://127.0.0.1:$port2 -node http://127.0.0.1:$port3 > $1/test/tmp/ccc &
-sleep 4
+sleep 10
 
 val=$(cat $1/test/tmp/ccc)
 subgid=`echo ${val:0-128:128}`
@@ -194,7 +194,7 @@ echo ---------------------------------------------------------- subgid : $subgid
 
 
 $1/test/bin/gsmpc-client-test -cmd EnodeSig -url http://127.0.0.1:$port --keystore $keyfile1 --passwdfile $pf1 > $1/test/tmp/ddd1 &
-sleep 4
+sleep 10
 
 val=$(cat $1/test/tmp/ddd1)
 nodesig1=`echo ${val:0-284:284}`
@@ -202,14 +202,14 @@ echo ---------------------------------------- node sig 1 : $nodesig1 -----------
 
 
 $1/test/bin/gsmpc-client-test -cmd EnodeSig -url http://127.0.0.1:$port2 --keystore $keyfile2 --passwdfile $pf2 > $1/test/tmp/ddd2 &
-sleep 4
+sleep 10
 
 val=$(cat $1/test/tmp/ddd2)
 nodesig2=`echo ${val:0-284:284}`
 echo ----------------------------------------- node sig 2 : $nodesig2 -------------------------------------------------------------------
 
 $1/test/bin/gsmpc-client-test -cmd EnodeSig -url http://127.0.0.1:$port3 --keystore $keyfile3 --passwdfile $pf3 > $1/test/tmp/ddd3 &
-sleep 4
+sleep 10
 
 val=$(cat $1/test/tmp/ddd3)
 nodesig3=`echo ${val:0-284:284}`
@@ -217,7 +217,7 @@ echo ----------------------------------------- node sig 3 : $nodesig3 ----------
 
 
 $1/test/bin/gsmpc-client-test -cmd EnodeSig -url http://127.0.0.1:$port4 --keystore $keyfile4 --passwdfile $pf4 > $1/test/tmp/ddd4 &
-sleep 4
+sleep 10
 
 val=$(cat $1/test/tmp/ddd4)
 nodesig4=`echo ${val:0-284:284}`
@@ -225,7 +225,7 @@ echo ----------------------------------------- node sig 4 : $nodesig4 ----------
 
 
 $1/test/bin/gsmpc-client-test -cmd EnodeSig -url http://127.0.0.1:$port5 --keystore $keyfile5 --passwdfile $pf5 > $1/test/tmp/ddd5 &
-sleep 4
+sleep 10
 
 val=$(cat $1/test/tmp/ddd5)
 nodesig5=`echo ${val:0-284:284}`
@@ -235,7 +235,7 @@ echo
 echo ------------------------------------------------------- begin to generate pubkey -----------------------------------------------------------------
 
 $1/test/bin/gsmpc-client-test -cmd REQSMPCADDR --keystore $keyfile1 --passwdfile $pf1 -ts 3/5 --keytype $kt -gid $gid -mode 0 -url http://127.0.0.1:$port -sig $nodesig1 -sig $nodesig2 -sig $nodesig3 -sig $nodesig4 -sig $nodesig5 > $1/test/tmp/eee &
-sleep 50
+sleep 70
 
 val=$(cat $1/test/tmp/eee)
 val=`echo ${val##*=}`
@@ -243,19 +243,19 @@ key=`echo ${val:0:66}`
 echo ----------------------------------------------------------- keygen cmd key : $key -----------------------------------------------------------------------------------
 
 $1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port --keystore $keyfile1 --passwdfile $pf1 -key $key &
-sleep 4
+sleep 10
 
 $1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port2 --keystore $keyfile2 --passwdfile $pf2 -key $key &
-sleep 4
+sleep 10
 
 $1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port3 --keystore $keyfile3 --passwdfile $pf3 -key $key &
-sleep 4
+sleep 10
 
 $1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port4 --keystore $keyfile4 --passwdfile $pf4 -key $key &
-sleep 4
+sleep 10
 
 $1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port5 --keystore $keyfile5 --passwdfile $pf5 -key $key &
-sleep 50
+sleep 70
 
 a='curl -X POST -H "Content-Type":application/json --data '
 b="'"
@@ -270,7 +270,7 @@ echo $str | tee $1/test/reqaddr.sh
 echo 
 
 $1/test/reqaddr.sh &
-sleep 10 
+sleep 15 
 
 val=$(cat $1/test/tmp/fff)
 val=`echo ${val##*PubKey}`
@@ -284,7 +284,7 @@ sleep 10
 rm -rf $1/test/tmp/ggg
 
 $1/test/bin/gsmpc-client-test -cmd SIGN --loop 1 --n 1 -ts 3/5 --keystore $keyfile1 --passwdfile $pf1 --keytype $kt --logfilepath $1/test/tmp/logfile -gid $subgid -mode 0 -url http://127.0.0.1:$port -pubkey $pubkey -msghash 0x90e032be062dd0dc689fa23df8c044936a2478cb602b292c7397354238a67d88  -msgcontext '{"swapInfo":{"swapid":"0x4f62545cdd05cc346c75bb42f685a18a02621e91512e0806eac528d0b2f6aa5f","swaptype":1,"bind":"0x0520e8e5e08169c4dbc1580dc9bf56638532773a","identifier":"ssUSDT2FSN"},"extra":{"ethExtra":{"gas":90000,"gasPrice":10000000000,"nonce":1}}}' > $1/test/tmp/ggg &
-sleep 50
+sleep 70
 
 val=$(cat $1/test/tmp/ggg)
 val=`echo ${val##*keyID=}`
@@ -295,13 +295,13 @@ echo ------------------------------------------------------------------sign cmd 
 rm -rf $1/test/tmp/hhh
 
 $1/test/bin/gsmpc-client-test -cmd ACCEPTSIGN  -url http://127.0.0.1:$port --keystore $keyfile1 --passwdfile $pf1 --key $signkey &
-sleep 4
+sleep 10
 
 $1/test/bin/gsmpc-client-test  -cmd ACCEPTSIGN -url http://127.0.0.1:$port2 --keystore $keyfile2 --passwdfile $pf2 --key $signkey &
-sleep 4
+sleep 10
 
 $1/test/bin/gsmpc-client-test  -cmd ACCEPTSIGN -url http://127.0.0.1:$port3 --keystore $keyfile3 --passwdfile $pf3 --key $signkey &
-sleep 60
+sleep 70
 
 a='curl -X POST -H "Content-Type":application/json --data '
 b="'"
@@ -316,7 +316,7 @@ echo $str | tee $1/test/sign.sh
 echo
 
 $1/test/sign.sh &
-sleep 10 
+sleep 15 
 
 val=$(cat $1/test/tmp/hhh)
 val=`echo ${val##*Rsv}`
