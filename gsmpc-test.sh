@@ -329,18 +329,7 @@ killall -9 gsmpctest bootnodetest
 rm -rf $1/test/bin/gsmpctest
 rm -rf $1/test/bin/bootnodetest
 rm -rf $1/test/bin/gsmpc-client-test
-rm -rf $1/test/log/*.log
+#rm -rf $1/test/log/*.log
 rm -rf $1/test/nodedata/node*
 rm -rf $1/test/nodekey/*.key
-
-tmpdir1=`ls `
-tmpdir2="$1"
-tmpdir3=`/test/tmp/`
-tmpdir=$tmpdir1$tmpdir2$tmpdir3
-for i in $tmpdir;do
-if [ "$i" != readme ];then 
-    rm -rf $1/test/tmp/$i;
-fi;
-done;
-
 
