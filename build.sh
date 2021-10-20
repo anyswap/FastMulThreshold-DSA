@@ -13,6 +13,8 @@ if [ $1 = $mod2 ]; then
 	rm -rf test/bin/gsmpctest
 	rm -rf test/bin/bootnodetest
 	rm -rf test/bin/gsmpc-client-test
+	rm -rf test/reqaddr.sh
+	rm -rf test/sign.sh
 	rm -rf test/log/*.log
 	rm -rf test/nodedata/node*
 	rm -rf test/nodekey/*.key
