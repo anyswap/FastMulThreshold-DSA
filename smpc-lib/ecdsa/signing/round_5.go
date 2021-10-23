@@ -20,6 +20,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
+	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 	"math/big"
 )
 
@@ -90,6 +93,7 @@ func (round *round5) Start() error {
 	for i := 0; i < round.threshold; i++ {
 		delta1 = new(big.Int).Add(delta1, round.temp.betaU1[i])
 	}
+	delta1 = new(big.Int).Mod(delta1, secp256k1.S256().N)
 	round.temp.delta1 = delta1
 
 	sigma1 := uu1[0]
@@ -102,11 +106,33 @@ func (round *round5) Start() error {
 	for i := 0; i < round.threshold; i++ {
 		sigma1 = new(big.Int).Add(sigma1, round.temp.vU1[i])
 	}
+	sigma1 = new(big.Int).Mod(sigma1, secp256k1.S256().N)
 	round.temp.sigma1 = sigma1
+
+	// gg20: calculate T_i = g^sigma_i * h^l_i = sigma_i*G + l_i*h*G
+	l1 := random.GetRandomIntFromZn(secp256k1.S256().N)
+	one,_ := new(big.Int).SetString("1",10)
+	Gx,Gy := secp256k1.S256().ScalarBaseMult(one.Bytes())
+	l1Gx,l1Gy := secp256k1.S256().ScalarMult(Gx,Gy,l1.Bytes())
+	sigmaGx,sigmaGy := secp256k1.S256().ScalarBaseMult(sigma1.Bytes())
+	t1X,t1Y := secp256k1.S256().Add(sigmaGx,sigmaGy,l1Gx,l1Gy)
+	// gg20: generate the ZK proof of T_i
+	tProof := ec2.TProve(t1X,t1Y,Gx,Gy,sigma1,l1)
+	if tProof == nil {
+	    return errors.New("prove Ti proof fail")
+	}
+	//
+
+	round.temp.t1X = t1X
+	round.temp.t1Y = t1Y
+	round.temp.l1 = l1
 
 	srm := &SignRound5Message{
 		SignRoundMessage: new(SignRoundMessage),
 		Delta1:           delta1,
+		T1X:		t1X,
+		T1Y:		t1Y,
+		Tpf:		tProof,
 	}
 	srm.SetFromID(round.kgid)
 	srm.SetFromIndex(curIndex)

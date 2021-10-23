@@ -177,15 +177,25 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//5 message
 	if msg["Type"] == "SignRound5Message" {
-		delta, _ := new(big.Int).SetString(msg["Delta1"], 10)
-		srm := &signing.SignRound5Message{
-			SignRoundMessage: new(signing.SignRoundMessage),
-			Delta1:           delta,
+		proof := &ec2.TProof{}
+		if err := proof.UnmarshalJSON([]byte(msg["Tpf"])); err == nil {
+		    delta, _ := new(big.Int).SetString(msg["Delta1"], 10)
+		    t1x, _ := new(big.Int).SetString(msg["T1X"], 10)
+		    t1y, _ := new(big.Int).SetString(msg["T1Y"], 10)
+		    srm := &signing.SignRound5Message{
+			    SignRoundMessage: new(signing.SignRoundMessage),
+			    Delta1:           delta,
+			    T1X:           t1x,
+			    T1Y:           t1y,
+			    Tpf:	proof,
+		    }
+		    srm.SetFromID(from)
+		    srm.SetFromIndex(index)
+		    srm.ToID = to
+		    return srm
 		}
-		srm.SetFromID(from)
-		srm.SetFromIndex(index)
-		srm.ToID = to
-		return srm
+
+		return nil
 	}
 
 	//6 message

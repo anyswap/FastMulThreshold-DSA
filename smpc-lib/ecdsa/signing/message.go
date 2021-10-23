@@ -260,6 +260,9 @@ func (srm *SignRound4Message1) OutMap() map[string]string {
 type SignRound5Message struct {
 	*SignRoundMessage
 	Delta1 *big.Int
+	T1X *big.Int
+	T1Y *big.Int
+	Tpf *ec2.TProof
 }
 
 // GetFromID get the ID of sending nodes in the group
@@ -291,6 +294,13 @@ func (srm *SignRound5Message) OutMap() map[string]string {
 	m["Type"] = "SignRound5Message"
 
 	m["Delta1"] = fmt.Sprintf("%v", srm.Delta1)
+	m["T1X"] = fmt.Sprintf("%v", srm.T1X)
+	m["T1Y"] = fmt.Sprintf("%v", srm.T1Y)
+
+	proof, err := srm.Tpf.MarshalJSON()
+	if err == nil {
+	    m["Tpf"] = string(proof) 
+	}
 
 	return m
 }

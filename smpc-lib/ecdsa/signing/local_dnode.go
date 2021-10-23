@@ -22,6 +22,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
+	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"math/big"
 )
 
@@ -75,6 +76,10 @@ type localTempData struct {
 	uu1    []*big.Int
 	delta1 *big.Int
 	sigma1 *big.Int
+
+	t1X *big.Int
+	t1Y *big.Int
+	l1 *big.Int
 
 	//round 6
 	deltaSum *big.Int
@@ -232,6 +237,16 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		}
 	case *SignRound5Message:
 		index := msg.GetFromIndex()
+		m := msg.(*SignRound5Message)
+
+		// check tproof
+		one,_ := new(big.Int).SetString("1",10)
+		Gx,Gy := secp256k1.S256().ScalarBaseMult(one.Bytes())
+		if !ec2.TVerify(m.T1X,m.T1Y,Gx,Gy,m.Tpf) {
+		    return false,fmt.Errorf("verify tproof fail")
+		}
+		//
+
 		p.temp.signRound5Messages[index] = msg
 		if len(p.temp.signRound5Messages) == p.ThresHold && CheckFull(p.temp.signRound5Messages) {
 			//fmt.Printf("================ StoreMessage,get all 5 messages ==============\n")
