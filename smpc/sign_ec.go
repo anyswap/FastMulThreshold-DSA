@@ -224,10 +224,32 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//7 message
 	if msg["Type"] == "SignRound7Message" {
+		proof := &ec2.PDLwSlackProof{}
+		if err := proof.UnmarshalJSON([]byte(msg["PdlwSlackPf"])); err == nil {
+			k1rx, _ := new(big.Int).SetString(msg["K1RX"], 10)
+			k1ry, _ := new(big.Int).SetString(msg["K1RY"], 10)
+			srm := &signing.SignRound7Message{
+				SignRoundMessage: new(signing.SignRoundMessage),
+				K1RX:          k1rx,
+				K1RY:          k1ry,
+				PdlwSlackPf:   proof,
+			}
+			srm.SetFromID(from)
+			srm.SetFromIndex(index)
+			srm.ToID = to
+			return srm
+		}
+
+		return nil
+	}
+
+	//8 message
+	if msg["Type"] == "SignRound8Message" {
+
 		us1, _ := new(big.Int).SetString(msg["Us1"], 10)
-		srm := &signing.SignRound7Message{
+		srm := &signing.SignRound8Message{
 			SignRoundMessage: new(signing.SignRoundMessage),
-			Us1:              us1,
+			Us1:               us1,
 		}
 		srm.SetFromID(from)
 		srm.SetFromIndex(index)

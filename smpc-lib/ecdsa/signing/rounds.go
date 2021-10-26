@@ -62,13 +62,16 @@ type (
 	round7 struct {
 		*round6
 	}
+	round8 struct {
+		*round7
+	}
 
 	//finalize
-	round8 struct {
+	round9 struct {
 		*base
 	}
-	round9 struct {
-		*round8
+	round10 struct {
+		*round9
 	}
 )
 
