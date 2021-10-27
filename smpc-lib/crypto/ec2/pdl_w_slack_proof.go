@@ -89,6 +89,7 @@ func NewPDLwSlackProof(wit *PDLwSlackWitness, st *PDLwSlackStatement) *PDLwSlack
     u3 := commitmentUnknownOrder(st.H1, st.H2, st.NTilde, alpha, gamma)
 
     e := Sha512_256i(st.Rx, st.Ry, st.K1RX, st.K1RY, st.CipherText, z, u1Gx, u1Gy, u2, u3)
+    e = new(big.Int).Mod(e, secp256k1.S256().N)
     if e == nil {
 	return nil
     }
@@ -127,6 +128,7 @@ func Hash256Sum(in ...*big.Int) *big.Int {
 	sha3256.Write([]byte(hellomulti))
 	eBytes := sha3256.Sum(nil)
 	e := new(big.Int).SetBytes(eBytes)
+	e = new(big.Int).Mod(e, secp256k1.S256().N)
 
 	return e
 }
@@ -140,6 +142,7 @@ func PDLwSlackVerify(st *PDLwSlackStatement,p *PDLwSlackProof) bool {
     }
 
     e := Sha512_256i(st.Rx, st.Ry, st.K1RX, st.K1RY, st.CipherText, p.Z, p.U1X, p.U1Y, p.U2, p.U3)
+    e = new(big.Int).Mod(e, secp256k1.S256().N)
     
     tmp := new(big.Int).Mod(p.S1,secp256k1.S256().N)
     gS1X,gS1Y := secp256k1.S256().ScalarMult(st.Rx, st.Ry,tmp.Bytes())

@@ -243,11 +243,32 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 		return nil
 	}
 
-	//8 message
+	// 8 message
 	if msg["Type"] == "SignRound8Message" {
+		proof := &ec2.STProof{}
+		if err := proof.UnmarshalJSON([]byte(msg["STpf"])); err == nil {
+			s1x, _ := new(big.Int).SetString(msg["S1X"], 10)
+			s1y, _ := new(big.Int).SetString(msg["S1Y"], 10)
+			srm := &signing.SignRound8Message{
+				SignRoundMessage: new(signing.SignRoundMessage),
+				S1X:          s1x,
+				S1Y:          s1y,
+				STpf:   proof,
+			}
+			srm.SetFromID(from)
+			srm.SetFromIndex(index)
+			srm.ToID = to
+			return srm
+		}
+
+		return nil
+	}
+	
+	// 9 message
+	if msg["Type"] == "SignRound9Message" {
 
 		us1, _ := new(big.Int).SetString(msg["Us1"], 10)
-		srm := &signing.SignRound8Message{
+		srm := &signing.SignRound9Message{
 			SignRoundMessage: new(signing.SignRoundMessage),
 			Us1:               us1,
 		}

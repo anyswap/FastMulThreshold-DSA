@@ -511,6 +511,10 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				}
 
 				childSKU1 := sku1
+				smpcpub := (da.(*PubKeyData)).Pub
+				smpcpkx, smpcpky := secp256k1.S256().Unmarshal(([]byte(smpcpub))[:])
+				childPKx := smpcpkx
+				childPKy := smpcpky
 				if ps.InputCode != "" {
 					da4 := getBip32cFromLocalDb(smpcpks[:])
 					if da4 == nil {
@@ -525,12 +529,8 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 						return false
 					}
 
-					smpcpub := (da.(*PubKeyData)).Pub
-					smpcpkx, smpcpky := secp256k1.S256().Unmarshal(([]byte(smpcpub))[:])
 					indexs := strings.Split(ps.InputCode, "/")
 					TRb := bip32c.Bytes()
-					childPKx := smpcpkx
-					childPKy := smpcpky
 					for idxi := 1; idxi < len(indexs); idxi++ {
 						h := hmac.New(sha512.New, TRb)
 						h.Write(childPKx.Bytes())
@@ -556,7 +556,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 				var ch1 = make(chan interface{}, 1)
 				//pre := PreSignEC3(w.sid,save,sku1,"ECDSA",ch1,workid)
-				pre := PreSignEC3(w.sid, save, childSKU1, "EC256K1", ch1, workid)
+				pre := PreSignEC3(w.sid, save, childSKU1, childPKx,childPKy,"EC256K1", ch1, workid)
 				if pre == nil {
 					common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid, "err", "return result is nil")
 					if syncpresign && !SynchronizePreSignData(w.sid, w.id, false) {

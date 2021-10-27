@@ -50,7 +50,8 @@ type localTempData struct {
 	signRound5Messages,
 	signRound6Messages,
 	signRound7Messages,
-	signRound8Messages []smpc.Message
+	signRound8Messages,
+	signRound9Messages []smpc.Message
 
 	// temp data (thrown away after sign)
 
@@ -141,12 +142,13 @@ func NewLocalDNode(
 	p.temp.signRound6Messages = make([]smpc.Message, threshold)
 	p.temp.signRound7Messages = make([]smpc.Message, threshold)
 	p.temp.signRound8Messages = make([]smpc.Message, threshold)
+	p.temp.signRound9Messages = make([]smpc.Message, threshold)
 	return p
 }
 
 // FinalizeRound get finalize round
 func (p *LocalDNode) FinalizeRound() smpc.Round {
-	return newRound9(&p.temp, p.save, p.idsign, p.out, p.end, p.ID, p.ThresHold, p.PaillierKeyLength, p.predata, p.txhash, p.finalizeend)
+	return newRound10(&p.temp, p.save, p.idsign, p.out, p.end, p.ID, p.ThresHold, p.PaillierKeyLength, p.predata, p.txhash, p.finalizeend)
 }
 
 // FirstRound first round
@@ -279,14 +281,14 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		    //fmt.Printf("================ StoreMessage,get all 8 messages ==============\n")
 		    return true,nil
 		}
-	/*case *smpc.SignRound9Message:
+	case *SignRound9Message:
 		index := msg.GetFromIndex()
 		p.temp.signRound9Messages[index] = msg
 		if len(p.temp.signRound9Messages) == p.ThresHold && CheckFull(p.temp.signRound9Messages) {
-		    fmt.Printf("================ StoreMessage,get all 9 messages ==============\n")
+		    //fmt.Printf("================ StoreMessage,get all 9 messages ==============\n")
 		    return true,nil
 		}
-	case *smpc.SignRound10Message:
+	/*case *smpc.SignRound10Message:
 		index := msg.GetFromIndex()
 		p.temp.signRound10Messages[index] = msg
 		if len(p.temp.signRound10Messages) == p.ThresHold && CheckFull(p.temp.signRound10Messages) {

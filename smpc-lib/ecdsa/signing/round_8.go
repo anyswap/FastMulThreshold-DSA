@@ -35,6 +35,11 @@ func (round *round8) Start() error {
 	round.started = true
 	round.resetOK()
 
+	curIndex, err := round.GetDNodeIDIndex(round.kgid)
+	if err != nil {
+		return err
+	}
+
 	var K1Rx *big.Int
 	var K1Ry *big.Int
 
@@ -93,7 +98,28 @@ func (round *round8) Start() error {
 	    return fmt.Errorf("consistency check failed: g != R products")
 	}
 
-	round.end <- PrePubData{K1: round.temp.u1K, R: round.temp.deltaGammaGx, Ry: round.temp.deltaGammaGy, Sigma1: round.temp.sigma1}
+	S1X,S1Y := secp256k1.S256().ScalarMult(round.temp.deltaGammaGx,round.temp.deltaGammaGy,round.temp.sigma1.Bytes())
+	one,_ := new(big.Int).SetString("1",10)
+	Gx,Gy := secp256k1.S256().ScalarBaseMult(one.Bytes())
+
+	stProof := ec2.NewSTProof(round.temp.t1X,round.temp.t1Y,round.temp.deltaGammaGx,round.temp.deltaGammaGy,Gx,Gy,round.temp.sigma1,round.temp.l1)
+	if stProof == nil {
+	    return fmt.Errorf("new stproof fail")
+	}
+
+	srm := &SignRound8Message{
+		SignRoundMessage: new(SignRoundMessage),
+		S1X:   S1X,
+		S1Y:   S1Y,
+		STpf: stProof,
+	}
+	srm.SetFromID(round.kgid)
+	srm.SetFromIndex(curIndex)
+
+	round.temp.signRound8Messages[curIndex] = srm
+	round.out <- srm
+
+	//round.end <- PrePubData{K1: round.temp.u1K, R: round.temp.deltaGammaGx, Ry: round.temp.deltaGammaGy, Sigma1: round.temp.sigma1}
 	
 	//fmt.Printf("============= round8.start success, current node id = %v =======\n", round.kgid)
 	return nil
@@ -101,15 +127,29 @@ func (round *round8) Start() error {
 
 // CanAccept is it legal to receive this message 
 func (round *round8) CanAccept(msg smpc.Message) bool {
+	if _, ok := msg.(*SignRound8Message); ok {
+		return msg.IsBroadcast()
+	}
 	return false
 }
 
 // Update  is the message received and ready for the next round? 
 func (round *round8) Update() (bool, error) {
-	return false, nil
+	for j, msg := range round.temp.signRound8Messages {
+		if round.ok[j] {
+			continue
+		}
+		if msg == nil || !round.CanAccept(msg) {
+			return false, nil
+		}
+		round.ok[j] = true
+	}
+
+	return true, nil
 }
 
 // NextRound enter next round
 func (round *round8) NextRound() smpc.Round {
-	return nil 
+	round.started = false
+	return &round9{round}
 }

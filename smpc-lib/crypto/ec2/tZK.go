@@ -26,7 +26,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
-// TProof T1 proof
+// ZK proof of knowledge of sigma_i, l_i such that T_i = g^sigma_i, h^l_i (GG20)
 type TProof struct {
 	AlphaX *big.Int
 	AlphaY *big.Int
@@ -60,6 +60,7 @@ func TProve(t1X *big.Int, t1Y *big.Int,  Gx *big.Int, Gy *big.Int, sigma1 *big.I
 	sha3256.Write([]byte(hellomulti))
 	eBytes := sha3256.Sum(nil)
 	e := new(big.Int).SetBytes(eBytes)
+	e = new(big.Int).Mod(e, secp256k1.S256().N)
 
 	t := new(big.Int).Add(a, new(big.Int).Mul(e, sigma1))
 	t = new(big.Int).Mod(t, secp256k1.S256().N)
@@ -86,6 +87,7 @@ func TVerify(t1X *big.Int, t1Y *big.Int,  Gx *big.Int, Gy *big.Int, proof *TProo
 	sha3256.Write([]byte(hellomulti))
 	eBytes := sha3256.Sum(nil)
 	e := new(big.Int).SetBytes(eBytes)
+	e = new(big.Int).Mod(e, secp256k1.S256().N)
 
 	tGx,tGy := secp256k1.S256().ScalarBaseMult(proof.T.Bytes())
 	uGx,uGy := secp256k1.S256().ScalarMult(Gx,Gy,proof.U.Bytes())

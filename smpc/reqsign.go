@@ -1091,7 +1091,7 @@ func GetMsgToEnode(keytype string, groupid string) map[string]string {
 // PreSignEC3 execute the action of generating the pre-sign data.
 // msgprex = hash
 //  the return value is the generated pre-sign data.
-func PreSignEC3(msgprex string, save string, sku1 *big.Int, cointype string, ch chan interface{}, id int) *PreSignData {
+func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *big.Int,cointype string, ch chan interface{}, id int) *PreSignData {
 	if id < 0 || id >= len(workers) {
 		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("no find worker")}
 		ch <- res
@@ -1113,6 +1113,8 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, cointype string, ch 
 
 	sd := &keygen.LocalDNodeSaveData{}
 	sd.SkU1 = sku1
+	sd.Pkx = pkx
+	sd.Pky = pky
 
 	smpcpks, _ := hex.DecodeString(w.SmpcFrom)
 	exsit, da := GetPubKeyData(smpcpks[:])

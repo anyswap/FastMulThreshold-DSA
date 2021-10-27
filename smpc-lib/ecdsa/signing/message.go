@@ -405,7 +405,9 @@ func (srm *SignRound7Message) OutMap() map[string]string {
 // SignRound8Message  Round 8 sending message 
 type SignRound8Message struct {
 	*SignRoundMessage
-	Us1 *big.Int
+	S1X *big.Int
+	S1Y *big.Int
+	STpf *ec2.STProof
 }
 
 // GetFromID get the ID of sending nodes in the group
@@ -436,8 +438,52 @@ func (srm *SignRound8Message) OutMap() map[string]string {
 	m["ToID"] = ""
 	m["Type"] = "SignRound8Message"
 
-	m["Us1"] = fmt.Sprintf("%v", srm.Us1)
+	m["S1X"] = fmt.Sprintf("%v", srm.S1X)
+	m["S1Y"] = fmt.Sprintf("%v", srm.S1Y)
 
+	proof, err := srm.STpf.MarshalJSON()
+	if err == nil {
+		m["STpf"] = string(proof)
+	}
+
+	return m
+}
+
+// SignRound9Message  Round 9 sending message 
+type SignRound9Message struct {
+	*SignRoundMessage
+	Us1 *big.Int
+}
+
+// GetFromID get the ID of sending nodes in the group
+func (srm *SignRound9Message) GetFromID() string {
+	return srm.FromID
+}
+
+// GetFromIndex get the Serial number of sending nodes in the group 
+func (srm *SignRound9Message) GetFromIndex() int {
+	return srm.FromIndex
+}
+
+// GetToID get the ID of the node that broacasting message to
+func (srm *SignRound9Message) GetToID() []string {
+	return srm.ToID
+}
+
+// IsBroadcast weather broacast the message
+func (srm *SignRound9Message) IsBroadcast() bool {
+	return true
+}
+
+// OutMap transfer *SignRound9Message to map
+func (srm *SignRound9Message) OutMap() map[string]string {
+	m := make(map[string]string)
+	m["FromID"] = srm.FromID
+	m["FromIndex"] = strconv.Itoa(srm.FromIndex)
+	m["ToID"] = ""
+	m["Type"] = "SignRound9Message"
+
+	m["Us1"] = fmt.Sprintf("%v", srm.Us1)
 	return m
 }
 
