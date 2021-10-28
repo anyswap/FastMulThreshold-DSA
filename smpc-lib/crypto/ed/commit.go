@@ -24,15 +24,19 @@ import (
 	"crypto/sha512"
 	"fmt"
 	"io"
+	"errors"
 )
 
 // Commit get commitment by secret
-func Commit(secret [32]byte) ([32]byte, [64]byte) {
+func Commit(secret [32]byte) ([32]byte, [64]byte, error) {
 	// Generate the random num
 	rand := cryptorand.Reader
 	var rndNum [32]byte
 	if _, err := io.ReadFull(rand, rndNum[:]); err != nil {
 		fmt.Println("Error: io.ReadFull(rand, rndNum[:])")
+		var c [32]byte
+		var d [64]byte
+		return c,d,errors.New("generate the random number fail")
 	}
 
 	var D [64]byte
@@ -55,7 +59,7 @@ func Commit(secret [32]byte) ([32]byte, [64]byte) {
 	h.Write(rsDigest512[:])
 	h.Sum(C[:0])
 
-	return C, D
+	return C, D,nil
 }
 
 // Verify Verify commitment data

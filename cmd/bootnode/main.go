@@ -61,9 +61,13 @@ func main() {
 		nodeKey, err = crypto.GenerateKey()
 		if err != nil {
 			//utils.Fatalf("could not generate key: %v", err)
+			fmt.Errorf("could not generate key: %v", err)
+			return
 		}
 		if err = crypto.SaveECDSA(*genKey, nodeKey); err != nil {
 			//utils.Fatalf("%v", err)
+			fmt.Errorf("%v", err)
+			return
 		}
 		return
 	case *nodeKeyFile != "" && *nodeKeyHex != "":
@@ -77,6 +81,8 @@ func main() {
 	case *nodeKeyHex != "":
 		if nodeKey, err = crypto.HexToECDSA(*nodeKeyHex); err != nil {
 			//utils.Fatalf("-nodekeyhex: %v", err)
+			fmt.Errorf("-nodekeyhex: %v", err)
+			return
 		}
 	}
 
@@ -90,16 +96,22 @@ func main() {
 		restrictList, err = netutil.ParseNetlist(*netrestrict)
 		if err != nil {
 			//utils.Fatalf("-netrestrict: %v", err)
+			fmt.Errorf("-netrestrict: %v", err)
+			return
 		}
 	}
 
 	addr, err := net.ResolveUDPAddr("udp", *listenAddr)
 	if err != nil {
 		//utils.Fatalf("-ResolveUDPAddr: %v", err)
+		fmt.Errorf("-ResolveUDPAddr: %v", err)
+		return
 	}
 	conn, err := net.ListenUDP("udp", addr)
 	if err != nil {
 		//utils.Fatalf("-ListenUDP: %v", err)
+		fmt.Errorf("-ListenUDP: %v", err)
+		return
 	}
 
 	realaddr := conn.LocalAddr().(*net.UDPAddr)
@@ -120,6 +132,8 @@ func main() {
 	}
 	if _, err := discover.ListenUDP(conn, cfg); err != nil {
 		//utils.Fatalf("%v", err)
+		fmt.Errorf("%v", err)
+		return
 	}
 
 	discover.InitGroup()

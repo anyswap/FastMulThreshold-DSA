@@ -241,9 +241,11 @@ func startP2pNode() error {
 		nodeKey, err := crypto.GenerateKey()
 		if err != nil {
 			fmt.Printf("could not generate key: %v\n", err)
+			os.Exit(1)
 		}
 		if err = crypto.SaveECDSA(genKey, nodeKey); err != nil {
 			fmt.Printf("could not save key: %v\n", err)
+			os.Exit(1)
 		}
 		os.Exit(1)
 	}

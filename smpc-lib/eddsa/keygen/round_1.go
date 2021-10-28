@@ -86,7 +86,11 @@ func (round *round1) Start() error {
 	copy(sk[32:], pk[:])*/
 	/////////////////solana
 
-	CPk, DPk := ed.Commit(pk)
+	CPk, DPk, err := ed.Commit(pk)
+	if err != nil {
+	    return err
+	}
+
 	zkPk := ed.Prove2(temSk,pk)
 
 	round.temp.sk = sk

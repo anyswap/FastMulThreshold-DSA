@@ -111,10 +111,16 @@ func (round *round1) Start() error {
 
 	// 2. commit(R)
 	R.ToBytes(&RBytes)
-	CR, DR := ed.Commit(RBytes)
+	CR, DR,err := ed.Commit(RBytes)
+	if err != nil {
+	    return err
+	}
 
 	// 3. zkSchnorr(rU1)
-	zkR := ed.Prove(r)
+	zkR,err := ed.Prove(r)
+	if err != nil {
+	    return err
+	}
 
 	round.temp.DR = DR
 	round.temp.zkR = zkR

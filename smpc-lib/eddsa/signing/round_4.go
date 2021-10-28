@@ -148,7 +148,11 @@ func (round *round4) Start() error {
 	sB.ToBytes(&sBBytes)
 
 	// 2.10 commit(sBBytes)
-	CSB, DSB := ed.Commit(sBBytes)
+	CSB, DSB,err := ed.Commit(sBBytes)
+	if err != nil {
+	    return err
+	}
+
 	round.temp.DSB = DSB
 	round.temp.sBBytes = sBBytes
 	round.temp.s = s

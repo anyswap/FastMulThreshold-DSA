@@ -26,7 +26,7 @@ import (
 )
 
 // Vss  Calculate secret sharing value 
-func Vss(secret [32]byte, ids [][32]byte, t int, n int) ([][32]byte, [][32]byte, [][32]byte) {
+func Vss(secret [32]byte, ids [][32]byte, t int, n int) ([][32]byte, [][32]byte, [][32]byte,error) {
 
 	var cfs, cfsBBytes, shares [][32]byte
 
@@ -47,6 +47,7 @@ func Vss(secret [32]byte, ids [][32]byte, t int, n int) ([][32]byte, [][32]byte,
 		var rndNum [32]byte
 		if _, err := io.ReadFull(rand, rndNum[:]); err != nil {
 			fmt.Println("Error: io.ReadFull(rand, rndNum[:])")
+			return shares,shares,shares,fmt.Errorf("generate the random number fail")
 		}
 		ScMulAdd(&rndNum, &rndNum, &one, &zero)
 
@@ -60,17 +61,17 @@ func Vss(secret [32]byte, ids [][32]byte, t int, n int) ([][32]byte, [][32]byte,
 	for i := 0; i < n; i++ {
 		share,err := calculatePolynomial(cfs, ids[i])
 		if err != nil {
-		    return nil,nil,nil
+		    return nil,nil,nil,err
 		}
 
 		shares = append(shares, share)
 	}
 
-	return cfs, cfsBBytes, shares
+	return cfs, cfsBBytes, shares,nil
 }
 
 // Vss2  Calculate secret sharing value 
-func Vss2(secret [32]byte, t int, n int, uids map[string][32]byte) ([][32]byte, [][32]byte, map[string][32]byte) {
+func Vss2(secret [32]byte, t int, n int, uids map[string][32]byte) ([][32]byte, [][32]byte, map[string][32]byte,error) {
 
 	var cfs, cfsBBytes [][32]byte
 	var shares = make(map[string][32]byte)
@@ -92,6 +93,8 @@ func Vss2(secret [32]byte, t int, n int, uids map[string][32]byte) ([][32]byte, 
 		var rndNum [32]byte
 		if _, err := io.ReadFull(rand, rndNum[:]); err != nil {
 			fmt.Println("Error: io.ReadFull(rand, rndNum[:])")
+			var ret [][32]byte
+			return ret,ret,shares,err
 		}
 		ScMulAdd(&rndNum, &rndNum, &one, &zero)
 
@@ -105,13 +108,13 @@ func Vss2(secret [32]byte, t int, n int, uids map[string][32]byte) ([][32]byte, 
 	for k, v := range uids {
 		share,err := calculatePolynomial(cfs, v)
 		if err != nil {
-		    return nil,nil,nil
+		    return nil,nil,nil,err
 		}
 
 		shares[k] = share
 	}
 
-	return cfs, cfsBBytes, shares
+	return cfs, cfsBBytes, shares,nil
 }
 
 // VerifyVss verify secret sharing value
