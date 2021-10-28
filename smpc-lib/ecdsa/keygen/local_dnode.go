@@ -219,9 +219,21 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		pf1 := m.NtildeProof1
 		pf2 := m.NtildeProof2
 		//fmt.Printf("=========================keygen StoreMessage, message 4, curindex = %v, h1 = %v, h2 = %v, ntilde = %v, pf1 = %v, pf2 = %v ===========================\n", index, H1, H2, Ntilde, pf1, pf2)
-		if H1.Cmp(H2) == 0 {
-			return false, errors.New("h1 and h2 were equal for this mpc node")
+		zero,_ := new(big.Int).SetString("0",10)
+		one,_ := new(big.Int).SetString("1",10)
+		h1modn := new(big.Int).Mod(H1,Ntilde)
+		h2modn := new(big.Int).Mod(H2,Ntilde)
+		if h1modn.Cmp(zero) == 0 || h2modn.Cmp(zero) == 0 {
+		    return false,errors.New("h1 or h2 is equal 0 mod Ntilde")
 		}
+		if h1modn.Cmp(one) == 0 || h2modn.Cmp(one) == 0 {
+		    return false,errors.New("h1 or h2 is equal 1 mod Ntilde")
+		}
+
+		if h1modn.Cmp(h2modn) == 0 {
+			return false, errors.New("h1 and h2 were equal mod Ntilde")
+		}
+		
 		if !pf1.Verify(H1, H2, Ntilde) || !pf2.Verify(H2, H1, Ntilde) {
 			return false, errors.New("ntilde zk proof check fail")
 		}
