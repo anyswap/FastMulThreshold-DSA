@@ -112,7 +112,7 @@ func MtAZK2Provenhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, publicKey *
 
 // MtAZK2Verifynhh  Verify zero knowledge proof data mtazk2proof_ nhh 
 func (mtAZK2Proof *MtAZK2Proofnhh) MtAZK2Verifynhh(c1 *big.Int, c2 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
-	if mtAZK2Proof.S1.Cmp(s256.S256().N3()) >= 0 { //MtAZK2 question 1
+	if mtAZK2Proof.S1.Cmp(s256.S256().N3()) > 0 {
 		return false
 	}
 
