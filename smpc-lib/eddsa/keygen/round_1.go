@@ -87,7 +87,7 @@ func (round *round1) Start() error {
 	/////////////////solana
 
 	CPk, DPk := ed.Commit(pk)
-	zkPk := ed.Prove(temSk)
+	zkPk := ed.Prove2(temSk,pk)
 
 	round.temp.sk = sk
 	round.temp.pk = pk

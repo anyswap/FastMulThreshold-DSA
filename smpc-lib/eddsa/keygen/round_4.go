@@ -44,6 +44,7 @@ func (round *round4) Start() error {
 		return errors.New("round.start get ids fail")
 	}
 
+	fmt.Printf("==================round 4 start===============\n")
 	var PkSet []byte
 
 	for k, id := range ids {
@@ -70,7 +71,7 @@ func (round *round4) Start() error {
 
 		var t [32]byte
 		copy(t[:], msg3.DPk[32:])
-		zkPkFlag := ed.VerifyZk(msg2.ZkPk, t)
+		zkPkFlag := ed.VerifyZk2(msg2.ZkPk, t)
 		if !zkPkFlag {
 			fmt.Printf("Error: ZeroKnowledge Proof (Pk) Not Pass at User: %v \n", id)
 			return errors.New("smpc back-end internal error:zeroknowledge check fail")
@@ -78,6 +79,8 @@ func (round *round4) Start() error {
 
 		PkSet = append(PkSet[:], (msg3.DPk[32:])...)
 	}
+
+	fmt.Printf("================round 4, ZeroKnowledge Proof Pass================\n")
 
 	// 2.5 calculate a = SHA256(PkU1, {PkU2, PkU3})
 	var a [32]byte
@@ -148,7 +151,7 @@ func (round *round4) Start() error {
 		}
 	}
 
-	//fmt.Printf("========= round4 start success ==========\n")
+	fmt.Printf("========= round4 start success ==========\n")
 	return nil
 }
 
