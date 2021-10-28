@@ -124,6 +124,8 @@ func TestVerify_vss(t *testing.T) {
     }
 
     _, cfsBBytes, shares := ed.Vss(ask, uids, threshold, nodes)
+    assert.NotZero(t, cfsBBytes)
+    assert.NotZero(t, shares)
     succ := ed.Verify_vss(shares[0],uids[0],cfsBBytes)
     assert.True(t, succ, "success")
 }

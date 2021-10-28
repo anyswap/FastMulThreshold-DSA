@@ -18,6 +18,7 @@ package ec2
 
 import (
 	"math/big"
+	"errors"
 
 	s256 "github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
@@ -77,7 +78,11 @@ func (polyStruct *PolyStruct2) Vss2(ids []*big.Int) ([]*ShareStruct2, error) {
 	shares := make([]*ShareStruct2, 0)
 
 	for i := 0; i < len(ids); i++ {
-		shareVal := calculatePolynomial2(polyStruct.Poly, ids[i])
+		shareVal,err := calculatePolynomial2(polyStruct.Poly, ids[i])
+		if err != nil {
+		    return nil,errors.New("calc share error")
+		}
+
 		shareStruct := &ShareStruct2{ID: ids[i], Share: shareVal}
 		shares = append(shares, shareStruct)
 	}
@@ -144,7 +149,12 @@ func Combine2(shares []*ShareStruct2) (*big.Int, error) {
 	return secret, nil
 }
 
-func calculatePolynomial2(poly []*big.Int, id *big.Int) *big.Int {
+func calculatePolynomial2(poly []*big.Int, id *big.Int) (*big.Int,error) {
+    idnum := new(big.Int).Mod(id,s256.S256().N)
+    if idnum.Cmp(zero) == 0 || id.Cmp(zero) == 0 {
+	return nil,errors.New("id can not be equal to 0 or 0 modulo the order of the curve")
+    }
+
 	lastIndex := len(poly) - 1
 	result := poly[lastIndex]
 
@@ -154,5 +164,5 @@ func calculatePolynomial2(poly []*big.Int, id *big.Int) *big.Int {
 		result = new(big.Int).Mod(result, s256.S256().N)
 	}
 
-	return result
+	return result,nil
 }

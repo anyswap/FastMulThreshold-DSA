@@ -129,6 +129,10 @@ func (round *round4) Start() error {
 	round.temp.uids = uids
 
 	_, cfsBBytes, shares := ed.Vss(ask, uids, round.threshold, round.dnodecount)
+	if cfsBBytes == nil || shares == nil {
+	    return errors.New("calc shares error")
+	}
+
 	round.temp.cfsBBytes = cfsBBytes
 
 	for k, id := range ids {
