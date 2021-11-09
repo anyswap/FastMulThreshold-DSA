@@ -51,7 +51,7 @@ func (round *round4) Start() error {
 
 	// zk of paillier key
 	NtildeLength := 2048
-	u1NtildeH1H2, alpha, beta, p, q := ec2.GenerateNtildeH1H2(NtildeLength)
+	u1NtildeH1H2, alpha, beta, p, q,_,_ := ec2.GenerateNtildeH1H2(NtildeLength)
 	if u1NtildeH1H2 == nil {
 		return errors.New("gen ntilde h1 h2 fail")
 	}

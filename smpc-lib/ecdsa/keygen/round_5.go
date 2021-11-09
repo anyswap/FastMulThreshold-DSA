@@ -18,6 +18,7 @@ package keygen
 
 import (
 	"errors"
+	"fmt"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
@@ -58,6 +59,30 @@ func (round *round5) Start() error {
 	}
 	//
 
+	for k,id := range round.Save.IDs {
+	    msg4, ok := round.temp.kgRound4Messages[k].(*KGRound4Message)
+	    if !ok {
+		return errors.New("round.Start get round4 msg fail")
+	    }
+
+	    roh := ec2.GetRandomValuesFromJN(msg4.U1NtildeH1H2.Ntilde)
+	    round.temp.roh[k] = roh
+
+	    kg := &KGRound5Message1{
+		    KGRoundMessage: new(KGRoundMessage),
+		    Roh:    roh,
+	    }
+	    kg.SetFromID(round.dnodeid)
+	    kg.SetFromIndex(curIndex)
+
+	    if k == curIndex {
+		round.temp.kgRound5Messages1[k] = kg
+	    } else {
+		kg.AppendToID(fmt.Sprintf("%v", id)) //id-->dnodeid
+		round.out <- kg
+	    }
+	}
+
 	u1zkUProof := ec2.ZkUProve(round.temp.u1)
 	if u1zkUProof == nil {
 		return errors.New("zku prove fail")
@@ -82,20 +107,30 @@ func (round *round5) CanAccept(msg smpc.Message) bool {
 	if _, ok := msg.(*KGRound5Message); ok {
 		return msg.IsBroadcast()
 	}
+	
+	if _, ok := msg.(*KGRound5Message1); ok {
+		return !msg.IsBroadcast()
+	}
+	
 	return false
 }
 
 // Update  is the message received and ready for the next round? 
 func (round *round5) Update() (bool, error) {
-	for j, msg := range round.temp.kgRound5Messages {
+	for j, msg := range round.temp.kgRound5Messages1 {
 		if round.ok[j] {
 			continue
 		}
 		if msg == nil || !round.CanAccept(msg) {
 			return false, nil
 		}
+		msg5 := round.temp.kgRound5Messages[j]
+		if msg5 == nil || !round.CanAccept(msg5) {
+			return false, nil
+		}
 		round.ok[j] = true
 	}
+	
 	return true, nil
 }
 

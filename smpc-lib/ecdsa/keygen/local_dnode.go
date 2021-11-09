@@ -45,7 +45,9 @@ type localTempData struct {
 	kgRound3Messages,
 	kgRound4Messages,
 	kgRound5Messages,
+	kgRound5Messages1,
 	kgRound6Messages,
+	kgRound6Messages1,
 	kgRound7Messages []smpc.Message
 
 	// temp data (thrown away after keygen)
@@ -66,8 +68,11 @@ type localTempData struct {
 	//round 3
 
 	//round 4
+	p1 *big.Int
+	p2 *big.Int
 
 	//round 5
+	roh [][]*big.Int
 
 	//round 6
 
@@ -100,6 +105,8 @@ func NewLocalDNode(
 	p.ThresHold = threshold
 	p.PaillierKeyLength = paillierkeylength
 
+	p.temp.roh = make([][]*big.Int,DNodeCountInGroup)
+
 	p.temp.kgRound0Messages = make([]smpc.Message, 0)
 	p.temp.kgRound1Messages = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound2Messages = make([]smpc.Message, DNodeCountInGroup)
@@ -107,7 +114,9 @@ func NewLocalDNode(
 	p.temp.kgRound3Messages = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound4Messages = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound5Messages = make([]smpc.Message, DNodeCountInGroup)
+	p.temp.kgRound5Messages1 = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound6Messages = make([]smpc.Message, DNodeCountInGroup)
+	p.temp.kgRound6Messages1 = make([]smpc.Message, DNodeCountInGroup)
 	return p
 }
 
@@ -254,11 +263,25 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			//time.Sleep(time.Duration(20) * time.Second) //tmp code
 			return true, nil
 		}
+	case *KGRound5Message1:
+		index := msg.GetFromIndex()
+		p.temp.kgRound5Messages1[index] = msg
+		if len(p.temp.kgRound5Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages1) {
+			//time.Sleep(time.Duration(20) * time.Second) //tmp code
+			return true, nil
+		}
 	case *KGRound6Message:
 		index := msg.GetFromIndex()
 		p.temp.kgRound6Messages[index] = msg
 		if len(p.temp.kgRound6Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound6Messages) {
 			//fmt.Printf("================ StoreMessage,get all 6 messages ==============\n")
+			//time.Sleep(time.Duration(20) * time.Second) //tmp code
+			return true, nil
+		}
+	case *KGRound6Message1:
+		index := msg.GetFromIndex()
+		p.temp.kgRound6Messages1[index] = msg
+		if len(p.temp.kgRound6Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound6Messages1) {
 			//time.Sleep(time.Duration(20) * time.Second) //tmp code
 			return true, nil
 		}
@@ -269,3 +292,5 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 
 	return false, nil
 }
+
+

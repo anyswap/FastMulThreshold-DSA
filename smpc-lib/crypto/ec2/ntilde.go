@@ -30,13 +30,13 @@ type NtildeH1H2 struct {
 }
 
 // GenerateNtildeH1H2 create ntilde data
-func GenerateNtildeH1H2(length int) (*NtildeH1H2, *big.Int, *big.Int, *big.Int, *big.Int) {
+func GenerateNtildeH1H2(length int) (*NtildeH1H2, *big.Int, *big.Int, *big.Int, *big.Int,*big.Int,*big.Int) {
 
 	sp1 := <-SafePrimeCh
 	sp2 := <-SafePrimeCh
 
 	if sp1.p == nil || sp2.p == nil {
-		return nil, nil, nil, nil, nil
+		return nil, nil, nil, nil, nil,nil,nil
 	}
 
 	SafePrimeCh <- sp1
@@ -55,7 +55,7 @@ func GenerateNtildeH1H2(length int) (*NtildeH1H2, *big.Int, *big.Int, *big.Int, 
 
 	ntildeH1H2 := &NtildeH1H2{Ntilde: NTildei, H1: h1i, H2: h2i}
 
-	return ntildeH1H2, alpha, beta, sp1.Q(), sp2.Q()
+	return ntildeH1H2, alpha, beta, sp1.Q(), sp2.Q(),sp1.P(),sp2.P()
 }
 
 //--------------------------------------------------------------------------

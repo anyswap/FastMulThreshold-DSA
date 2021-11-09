@@ -220,6 +220,25 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 		}
 	}
 
+	//5-1 message
+	if msg["Type"] == "KGRound5Message1" {
+	    tmp := strings.Split(msg["Roh"],":")
+	    roh := make([]*big.Int,len(tmp))
+	    for k,v := range tmp {
+		r,_ := new(big.Int).SetString(v,10)
+		roh[k] = r
+	    }
+
+	    kg := &keygen.KGRound5Message1{
+		    KGRoundMessage: new(keygen.KGRoundMessage),
+		    Roh:             roh,
+	    }
+	    kg.SetFromID(from)
+	    kg.SetFromIndex(index)
+	    kg.ToID = to
+	    return kg
+	}
+
 	//6 message
 	if msg["Type"] == "KGRound6Message" {
 		b := false
@@ -235,6 +254,26 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 		kg.SetFromIndex(index)
 		kg.ToID = to
 		return kg
+	}
+
+	//6-1 message
+	if msg["Type"] == "KGRound6Message1" {
+	    tmp := strings.Split(msg["Qua"],":")
+	    qua := make([]*big.Int,len(tmp))
+	    for k,v := range tmp {
+		r,_ := new(big.Int).SetString(v,10)
+		//fmt.Printf("================GetRealMessage, k = %v, xstr = %v, x = %v=======================\n",k,v,r)
+		qua[k] = r
+	    }
+
+	    kg := &keygen.KGRound6Message1{
+		    KGRoundMessage: new(keygen.KGRoundMessage),
+		    Qua:             qua,
+	    }
+	    kg.SetFromID(from)
+	    kg.SetFromIndex(index)
+	    kg.ToID = to
+	    return kg
 	}
 
 	kg := &keygen.KGRound0Message{

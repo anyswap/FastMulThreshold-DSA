@@ -19,6 +19,7 @@ package keygen
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
@@ -67,6 +68,58 @@ func (round *round6) Start() error {
 		}
 	}
 
+	//////get quadratic residue
+	zero,_ := new(big.Int).SetString("0",10)
+	ntilde := round.temp.kgRound4Messages[curIndex].(*KGRound4Message).U1NtildeH1H2.Ntilde
+
+	for k,id := range ids {
+	    msg51, ok := round.temp.kgRound5Messages1[k].(*KGRound5Message1)
+	    if !ok {
+		return errors.New("round.Start get round 5-1 msg fail")
+	    }
+
+	    qua := make([]*big.Int,len(msg51.Roh))
+	    for kk,vv := range msg51.Roh {
+		var x *big.Int
+		if round.temp.p1.Cmp(round.temp.p2) >= 0 {
+		    x,_,_,_ = ec2.GetTheQuadraticResidueInt(vv,ntilde,round.temp.p1,round.temp.p2)
+		} else {
+		    x,_,_,_ = ec2.GetTheQuadraticResidueInt(vv,ntilde,round.temp.p2,round.temp.p1)
+		}
+
+		if x != nil {
+		    x2 := new(big.Int).Mul(x,x)
+		    x2 = new(big.Int).Mod(x2,ntilde)
+		    if x2.Cmp(vv) == 0 {
+			qua[kk] = new(big.Int).Abs(x)
+			continue
+		    }
+		}
+
+		qua[kk] = zero
+
+		//fmt.Printf("===========================round 6, k = %v,kk = %v, roh = %v,x = %v, N = %v===========================\n",k,kk,vv,qua[kk],ntilde)
+	    }
+	    
+	    kg := &KGRound6Message1{
+		    KGRoundMessage: new(KGRoundMessage),
+		    Qua:    qua,
+	    }
+	    kg.SetFromID(round.dnodeid)
+	    kg.SetFromIndex(curIndex)
+
+	    if k == curIndex {
+		round.temp.kgRound6Messages1[k] = kg
+	    } else {
+		kg.AppendToID(fmt.Sprintf("%v", id)) //id-->dnodeid
+		round.out <- kg
+	    }
+	}
+	///////////
+
+	round.temp.p1 = nil
+	round.temp.p2 = nil 
+
 	kg := &KGRound6Message{
 		KGRoundMessage:      new(KGRoundMessage),
 		CheckPubkeyStatus: true,
@@ -86,20 +139,30 @@ func (round *round6) CanAccept(msg smpc.Message) bool {
 	if _, ok := msg.(*KGRound6Message); ok {
 		return msg.IsBroadcast()
 	}
+	
+	if _, ok := msg.(*KGRound6Message1); ok {
+		return !msg.IsBroadcast()
+	}
+	
 	return false
 }
 
 // Update  is the message received and ready for the next round? 
 func (round *round6) Update() (bool, error) {
-	for j, msg := range round.temp.kgRound6Messages {
+	for j, msg := range round.temp.kgRound6Messages1 {
 		if round.ok[j] {
 			continue
 		}
 		if msg == nil || !round.CanAccept(msg) {
 			return false, nil
 		}
+		msg6 := round.temp.kgRound6Messages[j]
+		if msg6 == nil || !round.CanAccept(msg6) {
+			return false, nil
+		}
 		round.ok[j] = true
 	}
+	
 	return true, nil
 }
 

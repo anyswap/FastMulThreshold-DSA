@@ -18,7 +18,10 @@ package keygen
 
 import (
 	"errors"
+	"fmt"
+	"math/big"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 )
 
 // Start return save data 
@@ -29,6 +32,57 @@ func (round *round7) Start() error {
 	round.number = 7
 	round.started = true
 	round.resetOK()
+	
+	///check quadratic residue 
+	for k := range round.Save.IDs {
+	    msg4, ok := round.temp.kgRound4Messages[k].(*KGRound4Message)
+	    if !ok {
+		return errors.New("round.Start get round4 msg fail")
+	    }
+
+	    msg61, ok := round.temp.kgRound6Messages1[k].(*KGRound6Message1)
+	    if !ok {
+		return errors.New("round.Start get round 6-1 msg fail")
+	    }
+
+	    if !ec2.CheckPrime(msg4.U1NtildeH1H2.Ntilde) {
+		fmt.Printf("=============keygen,round 7,check prime fail, N = %v=================================\n",msg4.U1NtildeH1H2.Ntilde)
+		return errors.New("check ntilde fail")
+	    }
+
+	    zero,_ := new(big.Int).SetString("0",10)
+	    one,_ := new(big.Int).SetString("1",10)
+	    count := zero
+	    for kk,vv := range msg61.Qua {
+		if vv.Sign() == 0 {
+		    //fmt.Printf("==================keygen,round 7,x = %v,kk = %v======================\n",vv,kk)
+		    continue
+		}
+
+		count.Add(count,one)
+
+		roh := round.temp.roh[k]
+		t := new(big.Int).Mul(vv,vv)
+		t = new(big.Int).Mod(t,msg4.U1NtildeH1H2.Ntilde)
+		if t.Cmp(roh[kk]) != 0 {
+		    fmt.Printf("=============keygen,round 7,check quadratic residue fail, kk = %v,x = %v,roh = %v,N = %v=================================\n",kk,vv,roh[kk],msg4.U1NtildeH1H2.Ntilde)
+		    return errors.New("check quadratic residue fail")
+		}
+	    }
+	    
+	    m := ec2.GetHoeffdingBound(128)
+	    three,_ := new(big.Int).SetString("3",10)
+	    eight,_ := new(big.Int).SetString("8",10)
+	    // t = 3*m/8
+	    t := new(big.Int).Mul(three,m)
+	    t = new(big.Int).Div(t,eight)
+	    if count.Cmp(t) < 0 {
+		fmt.Printf("=============keygen,round 7,check the number of nonzero responses fail,must at least 3m/8, count = %v, 3*m/8 = %v=================================\n",count,t)
+		return errors.New("check the number of nonzero responses fail,must at least 3m/8")
+	    }
+	    
+	}
+	///
 
 	round.end <- *round.Save
 

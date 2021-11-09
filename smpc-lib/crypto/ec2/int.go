@@ -13,6 +13,10 @@ import (
 	"github.com/pkg/errors"
 	"crypto"
 	"encoding/binary"
+	"math"
+	"sync"
+	"strings"
+	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 )
 
 const (
@@ -73,6 +77,42 @@ func (mi *modInt) i() *big.Int {
 	return (*big.Int)(mi)
 }
 
+//----------------------------------------------------------
+
+// Sha512_256i get a hash value with input  
+func Sha512_256i(in ...*big.Int) *big.Int {
+	var data []byte
+	state := crypto.SHA512_256.New()
+	inLen := len(in)
+	if inLen == 0 {
+		return nil
+	}
+	bzSize := 0
+	// prevent hash collisions with this prefix containing the block count
+	inLenBz := make([]byte, 64/8)
+	// converting between int and uint64 doesn't change the sign bit, but it may be interpreted as a larger value.
+	// this prefix is never read/interpreted, so that doesn't matter.
+	binary.LittleEndian.PutUint64(inLenBz, uint64(inLen))
+	ptrs := make([][]byte, inLen)
+	for i, n := range in {
+		ptrs[i] = n.Bytes()
+		bzSize += len(ptrs[i])
+	}
+	data = make([]byte, 0, len(inLenBz)+bzSize+inLen)
+	data = append(data, inLenBz...)
+	for i := range in {
+		data = append(data, ptrs[i]...)
+		data = append(data, hashInputDelimiter) // safety delimiter
+	}
+	// n < len(data) or an error will never happen.
+	// see: https://golang.org/pkg/hash/#Hash and https://github.com/golang/go/wiki/Hashing#the-hashhash-interface
+	if _, err := state.Write(data); err != nil {
+		fmt.Errorf("SHA512_256i Write() failed: %v", err)
+		return nil
+	}
+	return new(big.Int).SetBytes(state.Sum(nil))
+}
+
 //------------------------------------------------------
 
 // GetRandomPositiveRelativelyPrimeInt Generate a random element in the group of all the elements in Z/nZ that
@@ -112,6 +152,7 @@ func MustGetRandomInt(bits int) *big.Int {
 
 //-------------------------------------------------------
 
+// IsNumberInMultiplicativeGroup judge weather gcd(n,v) = 1
 func IsNumberInMultiplicativeGroup(n, v *big.Int) bool {
 	if n == nil || v == nil || zero.Cmp(n) != -1 {
 		return false
@@ -123,6 +164,7 @@ func IsNumberInMultiplicativeGroup(n, v *big.Int) bool {
 
 //--------------------------------------------------------
 
+// GetRandomPositiveInt get a random number in (0,upper)
 func GetRandomPositiveInt(upper *big.Int) *big.Int {
 	if upper == nil || zero.Cmp(upper) != -1 {
 		return nil
@@ -137,42 +179,182 @@ func GetRandomPositiveInt(upper *big.Int) *big.Int {
 	return try
 }
 
-//---------------------------------------------------------
+//---------------------------------------------------------------
+// Ntilde = p*q, p and q are odd prime.
+// Z = {0,1,2,.....,Ntilde - 1}
+// Z* = {x| the element in Z that such as gcd(x,Ntilde) = 1}
+// JN = {a1,a2,a3,.....,ak,....}, the element in Z* that such as Jacobi-Symbol (ai/Ntilde) = 1   (i = 1,2,3...)
+// QRn = {b1,b2,...,bk....}, the element in JN that such as x^2 = bi (mod Ntilde) has solution,this is equivalent to Legendre-Symbol (bi/p) = 1 and (bi/q) = 1      (i = 1,2,3...)
 
-func Sha512_256i(in ...*big.Int) *big.Int {
-	var data []byte
-	state := crypto.SHA512_256.New()
-	inLen := len(in)
-	if inLen == 0 {
-		return nil
-	}
-	bzSize := 0
-	// prevent hash collisions with this prefix containing the block count
-	inLenBz := make([]byte, 64/8)
-	// converting between int and uint64 doesn't change the sign bit, but it may be interpreted as a larger value.
-	// this prefix is never read/interpreted, so that doesn't matter.
-	binary.LittleEndian.PutUint64(inLenBz, uint64(inLen))
-	ptrs := make([][]byte, inLen)
-	for i, n := range in {
-		ptrs[i] = n.Bytes()
-		bzSize += len(ptrs[i])
-	}
-	data = make([]byte, 0, len(inLenBz)+bzSize+inLen)
-	data = append(data, inLenBz...)
-	for i := range in {
-		data = append(data, ptrs[i]...)
-		data = append(data, hashInputDelimiter) // safety delimiter
-	}
-	// n < len(data) or an error will never happen.
-	// see: https://golang.org/pkg/hash/#Hash and https://github.com/golang/go/wiki/Hashing#the-hashhash-interface
-	if _, err := state.Write(data); err != nil {
-		fmt.Errorf("SHA512_256i Write() failed: %v", err)
-		return nil
-	}
-	return new(big.Int).SetBytes(state.Sum(nil))
+// GetTheQuadraticResidueInt get the roots of x^2 = roh (mod N)
+// N = p*q , p and q are odd prime, p >= q 
+// gcd(roh,N) = 1, 1 <= roh < N
+// return 4 roots: (x,-x,y,-y)
+func GetTheQuadraticResidueInt(roh *big.Int,N *big.Int,p *big.Int,q *big.Int) (*big.Int,*big.Int,*big.Int,*big.Int) {
+    if roh == nil || N == nil || p == nil || q == nil || p.Cmp(q) < 0 {
+	return nil,nil,nil,nil
+    }
+
+    one,_ := new(big.Int).SetString("1",10)
+    MinusOne := big.NewInt(-1)
+    r := new(big.Int).ModSqrt(roh,p)
+    if r == nil {
+	return nil,nil,nil,nil
+    }
+
+    s := new(big.Int).ModSqrt(roh,q)
+    if s == nil {
+	return nil,nil,nil,nil
+    }
+
+    g,c,d := EuclideanAlgorithm(p,q)
+    if g.Cmp(one) != 0 {
+	return nil,nil,nil,nil
+    }
+
+    tmp1 := new(big.Int).Mul(q,d)
+    tmp1 = new(big.Int).Mul(tmp1,r)
+
+    tmp2 := new(big.Int).Mul(p,c)
+    tmp2 = new(big.Int).Mul(tmp2,s)
+
+    x := new(big.Int).Add(tmp1,tmp2)
+    x = new(big.Int).Mod(x,N)
+
+    negx := new(big.Int).Mul(x,MinusOne)
+    negx = new(big.Int).Mod(negx,N)
+
+    y := new(big.Int).Sub(tmp1,tmp2)
+    y = new(big.Int).Mod(y,N)
+
+    negy := new(big.Int).Mul(y,MinusOne)
+    negy = new(big.Int).Mod(negy,N)
+
+    return x,negx,y,negy
 }
 
+//--------------------------------------------------------------
 
+// EuclideanAlgorithm get (d,x,y) such as: d = gcd(a,b) and ax + by = d
+// a >= b, x and y are integer
+func EuclideanAlgorithm(a *big.Int,b *big.Int) (*big.Int,*big.Int,*big.Int) {
+    if a == nil || b == nil || a.Cmp(b) < 0 {
+	return nil,nil,nil
+    }
 
+    zero,_ := new(big.Int).SetString("0",10)
+    one,_ := new(big.Int).SetString("1",10)
+    
+    if b.Cmp(zero) == 0 {
+	return a,one,zero
+    }
+
+    x2 := one
+    x1 := zero
+    y2 := zero
+    y1 := one
+    for {
+	if b.Cmp(zero) <= 0 {
+	    break
+	}
+
+	q := new(big.Int).Div(a,b)
+	qb := new(big.Int).Mul(q,b)
+	r := new(big.Int).Sub(a,qb)
+	qx1 := new(big.Int).Mul(q,x1)
+	x := new(big.Int).Sub(x2,qx1)
+	qy1 := new(big.Int).Mul(q,y1)
+	y := new(big.Int).Sub(y2,qy1)
+	a = b
+	b = r
+	x2 = x1
+	x1 = x
+	y2 = y1
+	y1 = y
+    }
+
+    return a,x2,y2
+}
+
+//---------------------------------------------------------------
+
+// GetHoeffdingBound get hoeffding bound
+func GetHoeffdingBound(k float64) *big.Int {
+    m := k*32*math.Log(2)
+    m = math.Ceil(m)
+    mInt,_ := new(big.Int).SetString(fmt.Sprintf("%v",m),10)
+    return mInt
+}
+
+// GetRandomValuesFromJN get m random values from JN
+func GetRandomValuesFromJN(N *big.Int) []*big.Int {
+    m := GetHoeffdingBound(128)
+    mint := int(m.Int64())
+    
+    data := make(chan *big.Int,mint)
+    
+    tmp := common.NewSafeMap(10)
+    var wg sync.WaitGroup
+    for i:=0;i<mint;i++ {
+	wg.Add(1)
+	go func() {
+	    defer wg.Done()
+	    
+	    for {
+		roh := GetRandomPositiveRelativelyPrimeInt(N)
+		if roh == nil {
+		    continue
+		}
+
+		sym := big.Jacobi(roh,N)
+		if sym != 1 {
+		    continue
+		}
+
+		_,exsit := tmp.ReadMap(strings.ToLower(fmt.Sprintf("%v",roh)))
+		if exsit {
+		    continue
+		}
+
+		tmp.WriteMap(strings.ToLower(fmt.Sprintf("%v",roh)),"ok")
+		data <-roh
+		break
+	    }
+	}()
+    }
+
+    wg.Wait()
+    
+    var ret []*big.Int = make([]*big.Int,0)
+    l := len(data)
+    for i := 0; i < l; i++ {
+	    roh := <-data
+	    fmt.Printf("==========================GetRandomValuesFromJN,i = %v,l = %v,roh = %v,N = %v=========================\n",i,l,roh,N)
+	    ret = append(ret, roh)
+    }
+
+    return ret
+}
+
+//------------------------------------------------------
+
+func CheckPrime(Ntilde *big.Int) bool {
+    if Ntilde == nil {
+	return false
+    }
+
+    zero,_ := new(big.Int).SetString("0",10)
+    if Ntilde.Cmp(zero) <= 0 {
+	return false
+    }
+
+    two,_ := new(big.Int).SetString("2",10)
+    t := new(big.Int).Mod(Ntilde,two)
+    if t.Cmp(zero) == 0 {
+	return false
+    }
+
+    return !Ntilde.ProbablyPrime(PrimeTestTimes)
+}
 
 
