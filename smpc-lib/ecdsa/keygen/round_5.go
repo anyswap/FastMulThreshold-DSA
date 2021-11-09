@@ -59,6 +59,9 @@ func (round *round5) Start() error {
 	}
 	//
 
+	// add HVZK Proof for a Product of Two Primes
+	// for Ntilde = p*q
+	// pick m random values send to prover first
 	for k,id := range round.Save.IDs {
 	    msg4, ok := round.temp.kgRound4Messages[k].(*KGRound4Message)
 	    if !ok {

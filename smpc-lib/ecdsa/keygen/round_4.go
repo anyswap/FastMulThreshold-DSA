@@ -25,14 +25,13 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"math/big"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
+	//"github.com/anyswap/Anyswap-MPCNode/internal/common"
 	//"crypto/rand"
 	//"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
 var (
 	mutex    sync.Mutex
-	HoeffdingBound *big.Int // m = k*32*ln2
 )
 
 // Start verify vss and commitment data,calc pubkey and SKi,create Ntilde
@@ -158,7 +157,6 @@ func (round *round4) Start() error {
 	round.Save.Pky = pky
 	round.Save.C = c
 
-	common.Info("===================keygen round4,gen ntilde start================")
 	// zk of paillier key
 	NtildeLength := 2048
 	u1NtildeH1H2, alpha, beta, p, q,p1,p2 := ec2.GenerateNtildeH1H2(NtildeLength)
@@ -169,32 +167,6 @@ func (round *round4) Start() error {
 	round.temp.p1 = p1
 	round.temp.p2 = p2
 
-	////////////test
-	/*fmt.Printf("===============keygen,round 4,ntilde len = %v,ntilde = %v=================\n",u1NtildeH1H2.Ntilde.BitLen(),u1NtildeH1H2.Ntilde)
-
-	for {
-	    roh := GetRandomPositiveRelativelyPrimeInt(u1NtildeH1H2.Ntilde)
-	    var x *big.Int
-	    if p1.Cmp(p2) >= 0 {
-		x,_,_,_ = GetTheQuadraticResidueInt(roh,u1NtildeH1H2.Ntilde,p1,p2)
-	    } else {
-		x,_,_,_ = GetTheQuadraticResidueInt(roh,u1NtildeH1H2.Ntilde,p2,p1)
-	    }
-
-	    if x != nil {
-		x2 := new(big.Int).Mul(x,x)
-		x2 = new(big.Int).Mod(x2,u1NtildeH1H2.Ntilde)
-		if x2.Cmp(roh) == 0 {
-		    common.Info("===================keygen round4,gen ntilde end================","x",x,"roh",roh)
-		    break
-		}
-	    }
-	    
-	    time.Sleep(time.Duration(1000))
-	}*/
-	
-	/////////////////test
-	
 	ntildeProof1 := ec2.NewNtildeProof(u1NtildeH1H2.H1, u1NtildeH1H2.H2, alpha, p, q, u1NtildeH1H2.Ntilde)
 	ntildeProof2 := ec2.NewNtildeProof(u1NtildeH1H2.H2, u1NtildeH1H2.H1, beta, p, q, u1NtildeH1H2.Ntilde)
 

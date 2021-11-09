@@ -33,7 +33,13 @@ func (round *round7) Start() error {
 	round.started = true
 	round.resetOK()
 	
-	///check quadratic residue 
+	// add HVZK Proof for a Product of Two Primes
+	// for Ntilde = p*q
+	// verifier check:
+	// 1. Ntildei > 0
+	// 2. Ntildei is not a prime
+	// 3. the count of xij != 0 >= 3*m/8
+	// 4. xij^2 = rohij (mod Ntildei) for every xij != 0  (j = 1,2,...m)
 	for k := range round.Save.IDs {
 	    msg4, ok := round.temp.kgRound4Messages[k].(*KGRound4Message)
 	    if !ok {
@@ -70,9 +76,9 @@ func (round *round7) Start() error {
 		}
 	    }
 	    
-	    m := ec2.GetHoeffdingBound(128)
 	    three,_ := new(big.Int).SetString("3",10)
 	    eight,_ := new(big.Int).SetString("8",10)
+	    m := ec2.GetHoeffdingBound(ec2.HoeffdingBoundParam)
 	    // t = 3*m/8
 	    t := new(big.Int).Mul(three,m)
 	    t = new(big.Int).Div(t,eight)

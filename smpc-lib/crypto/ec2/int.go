@@ -22,6 +22,7 @@ import (
 const (
 	mustGetRandomIntMaxBits = 5000
 	hashInputDelimiter = byte('$')
+	HoeffdingBoundParam = 128
 )
 
 // modInt is a *big.Int that performs all of its arithmetic with modular reduction.
@@ -186,10 +187,17 @@ func GetRandomPositiveInt(upper *big.Int) *big.Int {
 // JN = {a1,a2,a3,.....,ak,....}, the element in Z* that such as Jacobi-Symbol (ai/Ntilde) = 1   (i = 1,2,3...)
 // QRn = {b1,b2,...,bk....}, the element in JN that such as x^2 = bi (mod Ntilde) has solution,this is equivalent to Legendre-Symbol (bi/p) = 1 and (bi/q) = 1      (i = 1,2,3...)
 
+
 // GetTheQuadraticResidueInt get the roots of x^2 = roh (mod N)
 // N = p*q , p and q are odd prime, p >= q 
 // gcd(roh,N) = 1, 1 <= roh < N
 // return 4 roots: (x,-x,y,-y)
+// x^2 = roh (mod p) ------------->  r
+// x^2 = roh (mod q) ------------->  s
+// get g,c,d by Euclidean Algorithm,such as: g = gcd(p,q),pc + qd = g
+// so:
+// x = r*d*q + s*c*p
+// y = r*d*q − s*c*p
 func GetTheQuadraticResidueInt(roh *big.Int,N *big.Int,p *big.Int,q *big.Int) (*big.Int,*big.Int,*big.Int,*big.Int) {
     if roh == nil || N == nil || p == nil || q == nil || p.Cmp(q) < 0 {
 	return nil,nil,nil,nil
@@ -197,16 +205,21 @@ func GetTheQuadraticResidueInt(roh *big.Int,N *big.Int,p *big.Int,q *big.Int) (*
 
     one,_ := new(big.Int).SetString("1",10)
     MinusOne := big.NewInt(-1)
+
+    // x^2 = roh (mod p)
     r := new(big.Int).ModSqrt(roh,p)
     if r == nil {
 	return nil,nil,nil,nil
     }
 
+    // x^2 = roh (mod q)
     s := new(big.Int).ModSqrt(roh,q)
     if s == nil {
 	return nil,nil,nil,nil
     }
 
+    // g = gcd(p,q) and pc + qd = g
+    // p >= q, c,d are integer
     g,c,d := EuclideanAlgorithm(p,q)
     if g.Cmp(one) != 0 {
 	return nil,nil,nil,nil
@@ -218,15 +231,19 @@ func GetTheQuadraticResidueInt(roh *big.Int,N *big.Int,p *big.Int,q *big.Int) (*
     tmp2 := new(big.Int).Mul(p,c)
     tmp2 = new(big.Int).Mul(tmp2,s)
 
+    // x = r*d*q + s*c*p
     x := new(big.Int).Add(tmp1,tmp2)
     x = new(big.Int).Mod(x,N)
 
+    // negx = -x
     negx := new(big.Int).Mul(x,MinusOne)
     negx = new(big.Int).Mod(negx,N)
 
+    // y = r*d*q − s*c*p
     y := new(big.Int).Sub(tmp1,tmp2)
     y = new(big.Int).Mod(y,N)
 
+    // negy = -y
     negy := new(big.Int).Mul(y,MinusOne)
     negy = new(big.Int).Mod(negy,N)
 
@@ -279,6 +296,7 @@ func EuclideanAlgorithm(a *big.Int,b *big.Int) (*big.Int,*big.Int,*big.Int) {
 //---------------------------------------------------------------
 
 // GetHoeffdingBound get hoeffding bound
+// k default set 128
 func GetHoeffdingBound(k float64) *big.Int {
     m := k*32*math.Log(2)
     m = math.Ceil(m)
@@ -288,7 +306,7 @@ func GetHoeffdingBound(k float64) *big.Int {
 
 // GetRandomValuesFromJN get m random values from JN
 func GetRandomValuesFromJN(N *big.Int) []*big.Int {
-    m := GetHoeffdingBound(128)
+    m := GetHoeffdingBound(HoeffdingBoundParam)
     mint := int(m.Int64())
     
     data := make(chan *big.Int,mint)
@@ -301,11 +319,13 @@ func GetRandomValuesFromJN(N *big.Int) []*big.Int {
 	    defer wg.Done()
 	    
 	    for {
+		// roh in Z*
 		roh := GetRandomPositiveRelativelyPrimeInt(N)
 		if roh == nil {
 		    continue
 		}
 
+		// Jacobi-symbol (roh,N) = 1,so roh in JN
 		sym := big.Jacobi(roh,N)
 		if sym != 1 {
 		    continue
@@ -328,9 +348,9 @@ func GetRandomValuesFromJN(N *big.Int) []*big.Int {
     var ret []*big.Int = make([]*big.Int,0)
     l := len(data)
     for i := 0; i < l; i++ {
-	    roh := <-data
-	    fmt.Printf("==========================GetRandomValuesFromJN,i = %v,l = %v,roh = %v,N = %v=========================\n",i,l,roh,N)
-	    ret = append(ret, roh)
+	roh := <-data
+	//fmt.Printf("==========================GetRandomValuesFromJN,i = %v,l = %v,roh = %v,N = %v=========================\n",i,l,roh,N)
+	ret = append(ret, roh)
     }
 
     return ret
@@ -338,6 +358,10 @@ func GetRandomValuesFromJN(N *big.Int) []*big.Int {
 
 //------------------------------------------------------
 
+// Check Ntilde:
+// 1. Ntilde > 0
+// 2. Ntilde is odd
+// 3. Ntilde is not a prime
 func CheckPrime(Ntilde *big.Int) bool {
     if Ntilde == nil {
 	return false

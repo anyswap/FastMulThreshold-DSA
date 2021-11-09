@@ -68,7 +68,9 @@ func (round *round6) Start() error {
 		}
 	}
 
-	//////get quadratic residue
+	// add HVZK Proof for a Product of Two Primes
+	// for Ntilde = p*q
+	// get quadratic residue x for roh1,roh2,roh3 ..... rohm that receiving from the verifier
 	zero,_ := new(big.Int).SetString("0",10)
 	ntilde := round.temp.kgRound4Messages[curIndex].(*KGRound4Message).U1NtildeH1H2.Ntilde
 
@@ -91,7 +93,7 @@ func (round *round6) Start() error {
 		    x2 := new(big.Int).Mul(x,x)
 		    x2 = new(big.Int).Mod(x2,ntilde)
 		    if x2.Cmp(vv) == 0 {
-			qua[kk] = new(big.Int).Abs(x)
+			qua[kk] = new(big.Int).Abs(x) // Select the x value greater than or equal to 0 
 			continue
 		    }
 		}
