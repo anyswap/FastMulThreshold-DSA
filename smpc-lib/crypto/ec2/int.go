@@ -358,27 +358,101 @@ func GetRandomValuesFromJN(N *big.Int) []*big.Int {
 
 //------------------------------------------------------
 
-// Check Ntilde:
+// CheckPrime Check Ntilde:
 // 1. Ntilde > 0
 // 2. Ntilde is odd
 // 3. Ntilde is not a prime
+// 4. Ntilde is not a prime perfect power
 func CheckPrime(Ntilde *big.Int) bool {
     if Ntilde == nil {
 	return false
     }
 
+    // Ntilde > 0 ??
     zero,_ := new(big.Int).SetString("0",10)
     if Ntilde.Cmp(zero) <= 0 {
 	return false
     }
 
+    // Ntilde % 2 != 0 ??
     two,_ := new(big.Int).SetString("2",10)
     t := new(big.Int).Mod(Ntilde,two)
     if t.Cmp(zero) == 0 {
 	return false
     }
 
-    return !Ntilde.ProbablyPrime(PrimeTestTimes)
+    // Ntilde is not a prime ??
+    if Ntilde.ProbablyPrime(PrimeTestTimes) {
+	return false
+    }
+
+    // Ntilde is not a prime perfect power ??
+    return !IsPerfectPowerOfPrime(Ntilde)
 }
+
+//-------------------------------------------------------
+
+// IsPerfectPower find two integers a and b,such as: Ntilde = a ^ b,and return a  ( 2 =< b <= logNtilde )
+// if not found a,return nil
+func IsPerfectPower(Ntilde *big.Int) *big.Int {
+    if Ntilde == nil {
+	return nil
+    }
+
+    log2n := big.NewInt(int64(Ntilde.BitLen()))
+
+    for b:= big.NewInt(2);b.Cmp(log2n) <= 0;b.Add(b,big.NewInt(1)) {
+	low := big.NewInt(1) 
+	high := new(big.Int).Div(log2n,b)
+	
+	for {
+	    ho := new(big.Int).Sub(high,big.NewInt(1))
+	    if low.Cmp(ho) >= 0 {
+		break
+	    }
+
+	    sum := new(big.Int).Add(low,high)
+	    mid := new(big.Int).Div(sum,big.NewInt(2))
+	    ab := new(big.Int).Exp(big.NewInt(2),mid,nil)
+	    ab = new(big.Int).Exp(ab,b,nil)
+	    if ab.Cmp(Ntilde) > 0 {
+		high = mid
+	    } else if ab.Cmp(Ntilde) < 0 {
+		low = mid
+	    } else {
+		// check Ntilde = (2 ^ mid) ^ b
+		a := new(big.Int).Exp(big.NewInt(2),mid,nil)
+		T := new(big.Int).Exp(a,b,nil)
+		if T.Cmp(Ntilde) == 0 {
+		    fmt.Printf("===============IsPerfectPower,check success,a = %v,b = %v,Ntilde = %v=====================",a,b,Ntilde)
+		    return a
+		}
+		
+		break
+	    }
+	}
+    }
+
+    return nil
+}
+
+// Ntilde == p ^ k ?? 
+// p is prime
+// 2 <= k <= logNtilde
+func IsPerfectPowerOfPrime(Ntilde *big.Int) bool {
+    a := IsPerfectPower(Ntilde)
+    if a == nil {
+	return false
+    }
+
+    if a.ProbablyPrime(PrimeTestTimes) {
+	return true
+    }
+    
+     return IsPerfectPowerOfPrime(a)
+}
+
+
+
 
 
