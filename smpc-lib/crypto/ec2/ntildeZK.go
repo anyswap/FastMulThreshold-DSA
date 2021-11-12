@@ -60,6 +60,25 @@ func (p *NtildeProof) Verify(h1, h2, N *big.Int) bool {
 	if p == nil {
 		return false
 	}
+
+	// check
+	zero := big.NewInt(0)
+	one := big.NewInt(1)
+	h1modn := new(big.Int).Mod(h1,N)
+	h2modn := new(big.Int).Mod(h2,N)
+	if h1modn.Cmp(zero) == 0 || h2modn.Cmp(zero) == 0 {
+	    return false
+	}
+
+	if h1modn.Cmp(one) == 0 || h2modn.Cmp(one) == 0 {
+	    return false
+	}
+
+	if h1modn.Cmp(h2modn) == 0 {
+		return false
+	}
+	//
+
 	modN := ModInt(N)
 	msg := append([]*big.Int{h1, h2, N}, p.Alpha[:]...)
 	c := Sha512_256i(msg...)
