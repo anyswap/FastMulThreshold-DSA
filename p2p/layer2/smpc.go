@@ -397,6 +397,13 @@ func CheckAddPeer(threshold string, enodes []string, subGroup bool) (bool, error
 		msg := fmt.Sprintf("args threshold(%v) and enodes(%v) not match", threshold, enodes)
 		return thshall, errors.New(msg)
 	}
+
+	// check  1 < threshold <= n ??
+	if nodeNum0 <= 1 || nodeNum0 > nodeNum1 {
+	    return false,errors.New("threshold must > 1 and <= n")
+	}
+	//
+
 	if nodeNum0 == nodeNum1 {
 		thshall = true
 	}
