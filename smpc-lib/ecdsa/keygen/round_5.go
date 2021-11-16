@@ -53,7 +53,7 @@ func (round *round5) Start() error {
 			return errors.New("error kg round4 message")
 		}
 
-		if ntilde.Ntilde.BitLen() < ntildeBitsLen {
+		if ntilde.Ntilde.BitLen() != ntildeBitsLen {
 			return errors.New("got ntilde with not enough bits")
 		}
 	}

@@ -56,7 +56,7 @@ func (round *round2) Start() error {
 			return errors.New("error kg round1 message")
 		}
 
-		if paiPk.N.BitLen() < paillierBitsLen {
+		if paiPk.N.BitLen() != paillierBitsLen {
 			return errors.New("got paillier N with not enough bits")
 		}
 	}
