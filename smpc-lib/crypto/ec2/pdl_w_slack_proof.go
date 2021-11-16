@@ -19,6 +19,7 @@ package ec2
 import (
 	"encoding/json"
 	"fmt"
+	"errors"
 	"math/big"
 
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
@@ -215,6 +216,11 @@ func (p *PDLwSlackProof) UnmarshalJSON(raw []byte) error {
 	p.S1, _ = new(big.Int).SetString(zk.S1, 10)
 	p.S2, _ = new(big.Int).SetString(zk.S2, 10)
 	p.S3, _ = new(big.Int).SetString(zk.S3, 10)
+
+	if p.Z == nil || p.U1X == nil || p.U1Y == nil || p.U2 == nil || p.U3 == nil || p.S1 == nil || p.S2 == nil || p.S3 == nil {
+	    return errors.New("unmarshal json error")
+	}
+
 	return nil
 }
 

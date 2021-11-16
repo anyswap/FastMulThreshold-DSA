@@ -80,6 +80,10 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *
 // EdSignGetRealMessage get the message data struct by map. (p2p msg ---> map)
 func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 	from := msg["FromID"]
+	if from == "" {
+	    return nil
+	}
+
 	var to []string
 	v, ok := msg["ToID"]
 	if ok && v != "" {
@@ -93,7 +97,15 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//1 message
 	if msg["Type"] == "SignRound1Message" {
+	    if msg["CR"] == "" {
+		return nil
+	    }
+
 		cr, _ := hex.DecodeString(msg["CR"])
+		if cr == nil {
+		    return nil
+		}
+
 		var CR [32]byte
 		copy(CR[:], cr[:])
 
@@ -110,7 +122,15 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//2 message
 	if msg["Type"] == "SignRound2Message" {
+	    if msg["ZkR"] == "" {
+		return nil
+	    }
+
 		zkr, _ := hex.DecodeString(msg["ZkR"])
+		if zkr == nil {
+		    return nil
+		}
+
 		var ZkR [64]byte
 		copy(ZkR[:], zkr[:])
 
@@ -127,7 +147,15 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//3 message
 	if msg["Type"] == "SignRound3Message" {
+	    if msg["DR"] == "" {
+		return nil
+	    }
+
 		dr, _ := hex.DecodeString(msg["DR"])
+		if dr == nil {
+		    return nil
+		}
+
 		var DR [64]byte
 		copy(DR[:], dr[:])
 
@@ -144,7 +172,15 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//4 message
 	if msg["Type"] == "SignRound4Message" {
+	    if msg["CSB"] == "" {
+		return nil
+	    }
+
 		csb, _ := hex.DecodeString(msg["CSB"])
+		if csb == nil {
+		    return nil
+		}
+
 		var CSB [32]byte
 		copy(CSB[:], csb[:])
 
@@ -161,7 +197,15 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//5 message
 	if msg["Type"] == "SignRound5Message" {
+	    if msg["DSB"] == "" {
+		return nil
+	    }
+
 		dsb, _ := hex.DecodeString(msg["DSB"])
+		if dsb == nil {
+		    return nil
+		}
+
 		var DSB [64]byte
 		copy(DSB[:], dsb[:])
 
@@ -178,7 +222,15 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//6 message
 	if msg["Type"] == "SignRound6Message" {
+	    if msg["S"] == "" {
+		return nil
+	    }
+
 		s, _ := hex.DecodeString(msg["S"])
+		if s == nil {
+		    return nil
+		}
+
 		var S [32]byte
 		copy(S[:], s[:])
 

@@ -80,6 +80,10 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 // SignGetRealMessage get the message data struct by map. (p2p msg ---> map)
 func SignGetRealMessage(msg map[string]string) smpclib.Message {
 	from := msg["FromID"]
+	if from == "" {
+	    return nil
+	}
+
 	var to []string
 	v, ok := msg["ToID"]
 	if ok && v != "" {
@@ -93,7 +97,15 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//1 message
 	if msg["Type"] == "SignRound1Message" {
+	    if msg["C11"] == "" {
+		return nil
+	    }
+
 		c11, _ := new(big.Int).SetString(msg["C11"], 10)
+		if c11 == nil {
+		    return nil
+		}
+
 		srm := &signing.SignRound1Message{
 			SignRoundMessage: new(signing.SignRoundMessage),
 			C11:              c11,
@@ -106,6 +118,10 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//2 message
 	if msg["Type"] == "SignRound2Message" {
+	    if msg["U1u1MtAZK1Proof"] == "" {
+		return nil
+	    }
+
 		proof := &ec2.MtAZK1Proofnhh{}
 		if err := proof.UnmarshalJSON([]byte(msg["U1u1MtAZK1Proof"])); err == nil {
 
@@ -125,8 +141,15 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//3 message
 	if msg["Type"] == "SignRound3Message" {
+	    if msg["Kc"] == "" {
+		return nil
+	    }
 
 		kc, _ := new(big.Int).SetString(msg["Kc"], 10)
+		if kc == nil {
+		    return nil
+		}
+
 		srm := &signing.SignRound3Message{
 			SignRoundMessage: new(signing.SignRoundMessage),
 			Kc:               kc,
@@ -139,9 +162,21 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//4 message
 	if msg["Type"] == "SignRound4Message" {
+	    if msg["U1u1MtAZK2Proof"] == "" {
+		return nil
+	    }
+
 		proof := &ec2.MtAZK2Proofnhh{}
 		if err := proof.UnmarshalJSON([]byte(msg["U1u1MtAZK2Proof"])); err == nil {
+		    if msg["U1KGamma1Cipher"] == "" {
+			return nil
+		    }
+
 			cipher, _ := new(big.Int).SetString(msg["U1KGamma1Cipher"], 10)
+			if cipher == nil {
+			    return nil
+			}
+
 			srm := &signing.SignRound4Message{
 				SignRoundMessage: new(signing.SignRoundMessage),
 				U1KGamma1Cipher:  cipher,
@@ -158,9 +193,21 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//4-1 message
 	if msg["Type"] == "SignRound4Message1" {
+	    if msg["U1u1MtAZK3Proof"] == "" {
+		return nil
+	    }
+
 		proof := &ec2.MtAZK3Proofnhh{}
 		if err := proof.UnmarshalJSON([]byte(msg["U1u1MtAZK3Proof"])); err == nil {
+		    if msg["U1Kw1Cipher"] == "" {
+			return nil
+		    }
+
 			cipher, _ := new(big.Int).SetString(msg["U1Kw1Cipher"], 10)
+			if cipher == nil {
+			    return nil
+			}
+
 			srm := &signing.SignRound4Message1{
 				SignRoundMessage: new(signing.SignRoundMessage),
 				U1Kw1Cipher:      cipher,
@@ -177,11 +224,24 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//5 message
 	if msg["Type"] == "SignRound5Message" {
+	    if msg["Tpf"] == "" {
+		return nil
+	    }
+
 		proof := &ec2.TProof{}
 		if err := proof.UnmarshalJSON([]byte(msg["Tpf"])); err == nil {
+		    if msg["Delta1"] == "" || msg["T1X"] == "" || msg["T1Y"] == "" {
+			return nil
+		    }
+
 		    delta, _ := new(big.Int).SetString(msg["Delta1"], 10)
 		    t1x, _ := new(big.Int).SetString(msg["T1X"], 10)
 		    t1y, _ := new(big.Int).SetString(msg["T1Y"], 10)
+
+		    if delta == nil || t1x == nil || t1y == nil {
+			return nil
+		    }
+
 		    srm := &signing.SignRound5Message{
 			    SignRoundMessage: new(signing.SignRoundMessage),
 			    Delta1:           delta,
@@ -200,12 +260,23 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//6 message
 	if msg["Type"] == "SignRound6Message" {
+	    if msg["U1GammaZKProof"] == "" {
+		return nil
+	    }
+
 		proof := &ec2.ZkUProof{}
 		if err := proof.UnmarshalJSON([]byte(msg["U1GammaZKProof"])); err == nil {
+		    if msg["CommU1D"] == "" {
+			return nil
+		    }
+
 			tmp := strings.Split(msg["CommU1D"], ":")
 			dtmp := make([]*big.Int, len(tmp))
 			for k, v := range tmp {
 				dtmp[k], _ = new(big.Int).SetString(v, 10)
+				if dtmp[k] == nil {
+				    return nil
+				}
 			}
 
 			srm := &signing.SignRound6Message{
@@ -224,10 +295,22 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//7 message
 	if msg["Type"] == "SignRound7Message" {
+	    if msg["PdlwSlackPf"] == "" {
+		return nil
+	    }
+
 		proof := &ec2.PDLwSlackProof{}
 		if err := proof.UnmarshalJSON([]byte(msg["PdlwSlackPf"])); err == nil {
+		    if msg["K1RX"] == "" || msg["K1RY"] == "" {
+			return nil
+		    }
+
 			k1rx, _ := new(big.Int).SetString(msg["K1RX"], 10)
 			k1ry, _ := new(big.Int).SetString(msg["K1RY"], 10)
+			if k1rx == nil || k1ry == nil {
+			    return nil
+			}
+
 			srm := &signing.SignRound7Message{
 				SignRoundMessage: new(signing.SignRoundMessage),
 				K1RX:          k1rx,
@@ -245,10 +328,22 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 
 	// 8 message
 	if msg["Type"] == "SignRound8Message" {
+	    if msg["STpf"] == "" {
+		return nil
+	    }
+
 		proof := &ec2.STProof{}
 		if err := proof.UnmarshalJSON([]byte(msg["STpf"])); err == nil {
+		    if msg["S1X"] == "" || msg["S1Y"] == "" {
+			return nil
+		    }
+
 			s1x, _ := new(big.Int).SetString(msg["S1X"], 10)
 			s1y, _ := new(big.Int).SetString(msg["S1Y"], 10)
+			if s1x == nil || s1y == nil {
+			    return nil
+			}
+
 			srm := &signing.SignRound8Message{
 				SignRoundMessage: new(signing.SignRoundMessage),
 				S1X:          s1x,
@@ -266,8 +361,15 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 	
 	// 9 message
 	if msg["Type"] == "SignRound9Message" {
+	    if msg["Us1"] == "" {
+		return nil
+	    }
 
 		us1, _ := new(big.Int).SetString(msg["Us1"], 10)
+		if us1 == nil {
+		    return nil
+		}
+
 		srm := &signing.SignRound9Message{
 			SignRoundMessage: new(signing.SignRoundMessage),
 			Us1:               us1,

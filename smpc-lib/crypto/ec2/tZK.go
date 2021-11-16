@@ -19,6 +19,7 @@ package ec2
 import (
 	"encoding/json"
 	"fmt"
+	"errors"
 	"math/big"
 
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
@@ -136,6 +137,11 @@ func (tpf *TProof) UnmarshalJSON(raw []byte) error {
 	tpf.AlphaY, _ = new(big.Int).SetString(zk.AlphaY, 10)
 	tpf.T, _ = new(big.Int).SetString(zk.T, 10)
 	tpf.U, _ = new(big.Int).SetString(zk.U, 10)
+
+	if tpf.AlphaX == nil || tpf.AlphaY == nil || tpf.T == nil || tpf.U == nil {
+	    return errors.New("unmarshal json error")
+	}
+
 	return nil
 }
 

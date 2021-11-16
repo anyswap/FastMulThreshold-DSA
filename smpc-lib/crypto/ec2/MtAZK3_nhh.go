@@ -19,6 +19,7 @@ package ec2
 import (
 	"encoding/json"
 	"fmt"
+	"errors"
 	"math/big"
 
 	s256 "github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
@@ -294,5 +295,10 @@ func (mtAZK3Proof *MtAZK3Proofnhh) UnmarshalJSON(raw []byte) error {
 	mtAZK3Proof.S2, _ = new(big.Int).SetString(proof.S2, 10)
 	mtAZK3Proof.T1, _ = new(big.Int).SetString(proof.T1, 10)
 	mtAZK3Proof.T2, _ = new(big.Int).SetString(proof.T2, 10)
+	
+	if mtAZK3Proof.Ux == nil || mtAZK3Proof.Uy == nil || mtAZK3Proof.Z == nil || mtAZK3Proof.ZBar == nil || mtAZK3Proof.T == nil || mtAZK3Proof.V == nil || mtAZK3Proof.W == nil || mtAZK3Proof.S == nil || mtAZK3Proof.S1 == nil || mtAZK3Proof.S2 == nil || mtAZK3Proof.T1 == nil || mtAZK3Proof.T2 == nil {
+	    return errors.New("unmarshal json error")
+	}
+
 	return nil
 }

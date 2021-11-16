@@ -19,6 +19,7 @@ package ec2
 import (
 	"encoding/json"
 	"fmt"
+	"errors"
 	"math/big"
 
 	s256 "github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
@@ -212,5 +213,10 @@ func (zku *ZkUProof) UnmarshalJSON(raw []byte) error {
 
 	zku.E, _ = new(big.Int).SetString(zk.E, 10)
 	zku.S, _ = new(big.Int).SetString(zk.S, 10)
+
+	if zku.E == nil || zku.S == nil {
+	    return errors.New("unmarshal json error")
+	}
+
 	return nil
 }

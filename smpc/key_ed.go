@@ -84,6 +84,10 @@ func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, wg *s
 // GetRealMessageEDDSA get the message data struct by map. (p2p msg ---> map)
 func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 	from := msg["FromID"]
+	if from == "" {
+	    return nil
+	}
+
 	var to []string
 	v, ok := msg["ToID"]
 	if ok && v != "" {
@@ -97,7 +101,15 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 
 	//1 message
 	if msg["Type"] == "KGRound1Message" {
+	    if msg["CPk"] == "" {
+		return nil
+	    }
+
 		cpks, _ := hex.DecodeString(msg["CPk"])
+		if cpks == nil {
+		    return nil
+		}
+
 		var temCpk [32]byte
 		copy(temCpk[:], cpks[:])
 		kg := &edkeygen.KGRound1Message{
@@ -112,7 +124,15 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 
 	//2 message
 	if msg["Type"] == "KGRound2Message" {
+	    if msg["ZkPk"] == "" {
+		return nil
+	    }
+
 		zkpks, _ := hex.DecodeString(msg["ZkPk"])
+		if zkpks == nil {
+		    return nil
+		}
+
 		var temzkpk [64]byte
 		copy(temzkpk[:], zkpks[:])
 		kg := &edkeygen.KGRound2Message{
@@ -127,7 +147,15 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 
 	//3 message
 	if msg["Type"] == "KGRound3Message" {
+	    if msg["DPk"] == "" {
+		return nil
+	    }
+
 		dpks, _ := hex.DecodeString(msg["DPk"])
+		if dpks == nil {
+		    return nil
+		}
+
 		var temdpk [64]byte
 		copy(temdpk[:], dpks[:])
 		kg := &edkeygen.KGRound3Message{
@@ -142,7 +170,15 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 
 	//4 message
 	if msg["Type"] == "KGRound4Message" {
+	    if msg["Share"] == "" {
+		return nil
+	    }
+
 		shares, _ := hex.DecodeString(msg["Share"])
+		if shares == nil {
+		    return nil
+		}
+
 		var temsh [32]byte
 		copy(temsh[:], shares[:])
 		kg := &edkeygen.KGRound4Message{
@@ -157,10 +193,18 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 
 	//5 message
 	if msg["Type"] == "KGRound5Message" {
+	    if msg["CfsBBytes"] == "" {
+		return nil
+	    }
+
 		tmp := strings.Split(msg["CfsBBytes"], ":")
 		tmp2 := make([][32]byte, len(tmp))
 		for k, v := range tmp {
 			vv, _ := hex.DecodeString(v)
+			if vv == nil {
+			    return nil
+			}
+
 			var tem [32]byte
 			copy(tem[:], vv[:])
 			tmp2[k] = tem

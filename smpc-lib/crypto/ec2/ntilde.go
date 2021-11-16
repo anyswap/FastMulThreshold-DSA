@@ -19,6 +19,7 @@ package ec2
 import (
 	"encoding/json"
 	"fmt"
+	"errors"
 	"math/big"
 )
 
@@ -87,6 +88,11 @@ func (ntilde *NtildeH1H2) UnmarshalJSON(raw []byte) error {
 	ntilde.Ntilde, _ = new(big.Int).SetString(nti.Ntilde, 10)
 	ntilde.H1, _ = new(big.Int).SetString(nti.H1, 10)
 	ntilde.H2, _ = new(big.Int).SetString(nti.H2, 10)
+
+	if ntilde.Ntilde == nil || ntilde.H1 == nil || ntilde.H2 == nil {
+	    return errors.New("unmarshal json error")
+	}
+
 	return nil
 }
 

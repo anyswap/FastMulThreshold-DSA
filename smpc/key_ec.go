@@ -86,6 +86,10 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 // GetRealMessage get the message data struct by map. (p2p msg ---> map)
 func GetRealMessage(msg map[string]string) smpclib.Message {
 	from := msg["FromID"]
+	if from == "" {
+	    return nil
+	}
+
 	var to []string
 	v, ok := msg["ToID"]
 	if ok && v != "" {
@@ -100,10 +104,18 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 	//1 message
 	if msg["Type"] == "KGRound1Message" {
 		pub := &ec2.PublicKey{}
+		if msg["U1PaillierPk"] == "" {
+		    return nil
+		}
+
 		err := pub.UnmarshalJSON([]byte(msg["U1PaillierPk"]))
 		if err == nil {
 			comc, _ := new(big.Int).SetString(msg["ComC"], 10)
 			ComCBip32, _ := new(big.Int).SetString(msg["ComC_bip32"], 10)
+			if comc == nil || ComCBip32 == nil {
+			    return nil
+			}
+
 			kg := &keygen.KGRound1Message{
 				KGRoundMessage: new(keygen.KGRoundMessage),
 				ComC:           comc,
@@ -121,6 +133,10 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 	if msg["Type"] == "KGRound2Message" {
 		id, _ := new(big.Int).SetString(msg["ID"], 10)
 		sh, _ := new(big.Int).SetString(msg["Share"], 10)
+		if id == nil || sh == nil {
+		    return nil
+		}
+
 		kg := &keygen.KGRound2Message{
 			KGRoundMessage: new(keygen.KGRoundMessage),
 			ID:             id,
@@ -135,6 +151,10 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 	//2-1 message
 	if msg["Type"] == "KGRound2Message1" {
 		c1, _ := new(big.Int).SetString(msg["C1"], 10)
+		if c1 == nil {
+		    return nil
+		}
+
 		kg := &keygen.KGRound2Message1{
 			KGRoundMessage: new(keygen.KGRoundMessage),
 			C1:             c1,
@@ -147,16 +167,26 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 
 	//3 message
 	if msg["Type"] == "KGRound3Message" {
+	    if msg["ComU1GD"] == "" || msg["ComC1GD"] == "" || msg["U1PolyGG"] == "" {
+		return nil
+	    }
+
 		ugd := strings.Split(msg["ComU1GD"], ":")
 		u1gd := make([]*big.Int, len(ugd))
 		for k, v := range ugd {
 			u1gd[k], _ = new(big.Int).SetString(v, 10)
+			if u1gd[k] == nil {
+			    return nil
+			}
 		}
 
 		ucd := strings.Split(msg["ComC1GD"], ":")
 		u1cd := make([]*big.Int, len(ucd))
 		for k, v := range ucd {
 			u1cd[k], _ = new(big.Int).SetString(v, 10)
+			if u1cd[k] == nil {
+			    return nil
+			}
 		}
 
 		uggtmp := strings.Split(msg["U1PolyGG"], "|")
@@ -166,6 +196,9 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 			tmp := make([]*big.Int, len(uggtmp2))
 			for kk, vv := range uggtmp2 {
 				tmp[kk], _ = new(big.Int).SetString(vv, 10)
+				if tmp[kk] == nil {
+				    return nil
+				}
 			}
 			ugg[k] = tmp
 		}
@@ -176,6 +209,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 			ComC1GD:        u1cd,
 			U1PolyGG:       ugg,
 		}
+
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
 		kg.ToID = to
@@ -185,10 +219,22 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 	//4 message
 	if msg["Type"] == "KGRound4Message" {
 		nti := &ec2.NtildeH1H2{}
+		if msg["U1NtildeH1H2"] == "" {
+		    return nil
+		}
+
 		if err := nti.UnmarshalJSON([]byte(msg["U1NtildeH1H2"])); err == nil {
 			pf1 := &ec2.NtildeProof{}
+			if msg["NtildeProof1"] == "" {
+			    return nil
+			}
+
 			if err := pf1.UnmarshalJSON([]byte(msg["NtildeProof1"])); err == nil {
 				pf2 := &ec2.NtildeProof{}
+				if msg["NtildeProof2"] == "" {
+				    return nil
+				}
+
 				if err := pf2.UnmarshalJSON([]byte(msg["NtildeProof2"])); err == nil {
 					kg := &keygen.KGRound4Message{
 						KGRoundMessage: new(keygen.KGRoundMessage),
@@ -207,6 +253,9 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 
 	//5 message
 	if msg["Type"] == "KGRound5Message" {
+	    if msg["U1zkUProof"] == "" {
+		return nil
+	    }
 		zk := &ec2.ZkUProof{}
 		if err := zk.UnmarshalJSON([]byte(msg["U1zkUProof"])); err == nil {
 			kg := &keygen.KGRound5Message{
@@ -222,10 +271,18 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 
 	//5-1 message
 	if msg["Type"] == "KGRound5Message1" {
+	    if msg["Roh"] == "" {
+		return nil
+	    }
+
 	    tmp := strings.Split(msg["Roh"],":")
 	    roh := make([]*big.Int,len(tmp))
 	    for k,v := range tmp {
 		r,_ := new(big.Int).SetString(v,10)
+		if r == nil {
+		    return nil
+		}
+
 		roh[k] = r
 	    }
 
@@ -258,11 +315,18 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 
 	//6-1 message
 	if msg["Type"] == "KGRound6Message1" {
+	    if msg["Qua"] == "" {
+		return nil
+	    }
+
 	    tmp := strings.Split(msg["Qua"],":")
 	    qua := make([]*big.Int,len(tmp))
 	    for k,v := range tmp {
 		r,_ := new(big.Int).SetString(v,10)
-		//fmt.Printf("================GetRealMessage, k = %v, xstr = %v, x = %v=======================\n",k,v,r)
+		if r == nil {
+		    return nil
+		}
+
 		qua[k] = r
 	    }
 

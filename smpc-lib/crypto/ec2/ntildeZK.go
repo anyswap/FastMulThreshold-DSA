@@ -52,6 +52,7 @@ func NewNtildeProof(h1, h2, x, p, q, N *big.Int) *NtildeProof {
 		cIBI = cIBI.SetInt64(int64(cI))
 		t[i] = modPQ.Add(a[i], modPQ.Mul(cIBI, x))
 	}
+	
 	return &NtildeProof{alpha, t}
 }
 
@@ -148,6 +149,9 @@ func (p *NtildeProof) UnmarshalJSON(raw []byte) error {
 	var alpha [Iterations]*big.Int
 	for k, v := range al {
 		alpha[k], _ = new(big.Int).SetString(v, 10)
+		if alpha[k] == nil {
+		    return errors.New("unmarshal alpha error")
+		}
 	}
 
 	tt := strings.Split(pf.T, "|")
@@ -158,6 +162,9 @@ func (p *NtildeProof) UnmarshalJSON(raw []byte) error {
 	var t [Iterations]*big.Int
 	for k, v := range tt {
 		t[k], _ = new(big.Int).SetString(v, 10)
+		if t[k] == nil {
+		    return errors.New("unmarshal t error")
+		}
 	}
 
 	p.Alpha = alpha

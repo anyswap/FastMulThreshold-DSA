@@ -97,6 +97,10 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, wg 
 // ReshareGetRealMessage get the message data struct by map. (p2p msg ---> map)
 func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 	from := msg["FromID"]
+	if from == "" {
+	    return nil
+	}
+
 	var to []string
 	v, ok := msg["ToID"]
 	if ok && v != "" {
@@ -110,7 +114,15 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//1 message
 	if msg["Type"] == "ReRound1Message" {
+	    if msg["ComC"] == "" {
+		return nil
+	    }
+
 		comc, _ := new(big.Int).SetString(msg["ComC"], 10)
+		if comc == nil {
+		    return nil
+		}
+
 		re := &reshare.ReRound1Message{
 			ReRoundMessage: new(reshare.ReRoundMessage),
 			ComC:                comc,
@@ -123,6 +135,10 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//2 message
 	if msg["Type"] == "ReRound2Message" {
+	    if msg["ID"] == "" || msg["Share"] == "" {
+		return nil
+	    }
+
 		id, _ := new(big.Int).SetString(msg["ID"], 10)
 		sh, _ := new(big.Int).SetString(msg["Share"], 10)
 		re := &reshare.ReRound2Message{
@@ -139,19 +155,37 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//2-1 message
 	if msg["Type"] == "ReRound2Message1" {
+	    if msg["ComD"] == "" || msg["SkP1PolyG"] == "" {
+		return nil
+	    }
+
 		ugd := strings.Split(msg["ComD"], ":")
 		u1gd := make([]*big.Int, len(ugd))
 		for k, v := range ugd {
 			u1gd[k], _ = new(big.Int).SetString(v, 10)
+			if u1gd[k] == nil {
+			    return nil
+			}
 		}
 
 		uggtmp := strings.Split(msg["SkP1PolyG"], "|")
 		ugg := make([][]*big.Int, len(uggtmp))
 		for k, v := range uggtmp {
+		    if v == "" {
+			return nil
+		    }
+
 			uggtmp2 := strings.Split(v, ":")
 			tmp := make([]*big.Int, len(uggtmp2))
 			for kk, vv := range uggtmp2 {
+			    if vv == "" {
+				return nil
+			    }
+
 				tmp[kk], _ = new(big.Int).SetString(vv, 10)
+				if tmp[kk] == nil {
+				    return nil
+				}
 			}
 			ugg[k] = tmp
 		}
@@ -169,10 +203,14 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//3 message
 	if msg["Type"] == "ReRound3Message" {
+	    if msg["U1PaillierPk"] == "" {
+		return nil
+	    }
+
 		pub := &ec2.PublicKey{}
 		err := pub.UnmarshalJSON([]byte(msg["U1PaillierPk"]))
 		if err == nil {
-			fmt.Printf("============ ReshareGetRealMessage, get real message 3 success, msg map = %v ===========\n", msg)
+			//fmt.Printf("============ ReshareGetRealMessage, get real message 3 success, msg map = %v ===========\n", msg)
 			re := &reshare.ReRound3Message{
 				ReRoundMessage: new(reshare.ReRoundMessage),
 				U1PaillierPk:        pub,
@@ -186,25 +224,17 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//4 message
 	if msg["Type"] == "ReRound4Message" {
-		/*nti := &ec2.NtildeH1H2{}
-		if err := nti.UnmarshalJSON([]byte(msg["U1NtildeH1H2"]));err == nil {
-		    fmt.Printf("============ ReshareGetRealMessage, get real message 4 success, msg map = %v ===========\n",msg)
-		    re := &reshare.ReRound4Message{
-			ReRoundMessage:new(reshare.ReRoundMessage),
-			U1NtildeH1H2:nti,
-		    }
-		    re.SetFromID(from)
-		    re.SetFromIndex(index)
-		    re.ToID = to
-		    return re
-		}*/
+	    if msg["U1NtildeH1H2"] == "" || msg["NtildeProof1"] == "" || msg["NtildeProof2"] == "" {
+		return nil
+	    }
+
 		nti := &ec2.NtildeH1H2{}
 		if err := nti.UnmarshalJSON([]byte(msg["U1NtildeH1H2"])); err == nil {
 			pf1 := &ec2.NtildeProof{}
 			if err := pf1.UnmarshalJSON([]byte(msg["NtildeProof1"])); err == nil {
 				pf2 := &ec2.NtildeProof{}
 				if err := pf2.UnmarshalJSON([]byte(msg["NtildeProof2"])); err == nil {
-					fmt.Printf("============ ReshareGetRealMessage, get real message 4 success, msg map = %v ===========\n", msg)
+					//fmt.Printf("============ ReshareGetRealMessage, get real message 4 success, msg map = %v ===========\n", msg)
 					re := &reshare.ReRound4Message{
 						ReRoundMessage: new(reshare.ReRoundMessage),
 						U1NtildeH1H2:        nti,
@@ -222,7 +252,11 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 
 	//5 message
 	if msg["Type"] == "ReRound5Message" {
-		fmt.Printf("============ ReshareGetRealMessage, get real message 5 success, msg map = %v ===========\n", msg)
+		//fmt.Printf("============ ReshareGetRealMessage, get real message 5 success, msg map = %v ===========\n", msg)
+		if msg["NewSkOk"] == "" {
+		    return nil
+		}
+
 		re := &reshare.ReRound5Message{
 			ReRoundMessage: new(reshare.ReRoundMessage),
 			NewSkOk:             msg["NewSkOk"],
@@ -233,7 +267,7 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 		return re
 	}
 
-	fmt.Printf("============ ReshareGetRealMessage, get real message 0 success, msg map = %v ===========\n", msg)
+	//fmt.Printf("============ ReshareGetRealMessage, get real message 0 success, msg map = %v ===========\n", msg)
 	re := &reshare.ReRound0Message{
 		ReRoundMessage: new(reshare.ReRoundMessage),
 	}

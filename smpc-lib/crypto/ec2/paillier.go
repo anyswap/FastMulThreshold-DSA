@@ -228,6 +228,20 @@ func (publicKey *PublicKey) UnmarshalJSON(raw []byte) error {
 	publicKey.N, _ = new(big.Int).SetString(pub.N, 10)
 	publicKey.G, _ = new(big.Int).SetString(pub.G, 10)
 	publicKey.N2, _ = new(big.Int).SetString(pub.N2, 10)
+
+	l,err := strconv.Atoi(publicKey.Length)
+	if err != nil {
+	    return err
+	}
+
+	if l <= 0 {
+	    return errors.New("unmarshal length error")
+	}
+
+	if publicKey.N == nil || publicKey.G == nil || publicKey.N2 == nil {
+	    return errors.New("unmarshal json error")
+	}
+
 	return nil
 }
 
@@ -266,8 +280,17 @@ func (privateKey *PrivateKey) UnmarshalJSON(raw []byte) error {
 	}
 
 	privateKey.Length = pri.Length
+	l,err := strconv.Atoi(privateKey.Length)
+	if err != nil {
+	    return err
+	}
+
+	if l <= 0 {
+	    return errors.New("unmarshal length error")
+	}
+
 	pub := &PublicKey{}
-	err := pub.UnmarshalJSON([]byte(pri.PublicKey))
+	err = pub.UnmarshalJSON([]byte(pri.PublicKey))
 	if err != nil {
 		return err
 	}
@@ -275,6 +298,10 @@ func (privateKey *PrivateKey) UnmarshalJSON(raw []byte) error {
 	privateKey.PublicKey = *pub
 	privateKey.L, _ = new(big.Int).SetString(pri.L, 10)
 	privateKey.U, _ = new(big.Int).SetString(pri.U, 10)
+	if privateKey.L == nil || privateKey.U == nil {
+	    return errors.New("unmarshal json error")
+	}
+
 	return nil
 }
 
@@ -306,3 +333,4 @@ func CreatPair(length int) (*PublicKey, *PrivateKey) {
 
 	return publicKey, privateKey
 }
+
