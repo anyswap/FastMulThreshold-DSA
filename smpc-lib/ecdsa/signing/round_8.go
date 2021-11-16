@@ -102,7 +102,7 @@ func (round *round8) Start() error {
 	one,_ := new(big.Int).SetString("1",10)
 	Gx,Gy := secp256k1.S256().ScalarBaseMult(one.Bytes())
 
-	stProof := ec2.NewSTProof(round.temp.t1X,round.temp.t1Y,round.temp.deltaGammaGx,round.temp.deltaGammaGy,Gx,Gy,round.temp.sigma1,round.temp.l1)
+	stProof := ec2.NewSTProof(round.temp.t1X,round.temp.t1Y,S1X,S1Y,round.temp.deltaGammaGx,round.temp.deltaGammaGy,Gx,Gy,round.temp.sigma1,round.temp.l1)
 	if stProof == nil {
 	    return fmt.Errorf("new stproof fail")
 	}

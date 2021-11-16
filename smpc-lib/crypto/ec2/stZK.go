@@ -39,8 +39,8 @@ type STProof struct {
 //------------------------------------------------------------------------------------
 
 // NewSTProof new STProof
-func NewSTProof(T1X *big.Int,T1Y *big.Int,Rx *big.Int,Ry *big.Int,hGx *big.Int,hGy *big.Int,sigma1 *big.Int,l1 *big.Int) *STProof {
-    if T1X == nil || T1Y == nil || Rx == nil || Ry == nil || hGx == nil || hGy == nil || sigma1 == nil || l1 == nil {
+func NewSTProof(T1X *big.Int,T1Y *big.Int,S1X *big.Int,S1Y *big.Int,Rx *big.Int,Ry *big.Int,hGx *big.Int,hGy *big.Int,sigma1 *big.Int,l1 *big.Int) *STProof {
+    if T1X == nil || T1Y == nil || S1X == nil || S1Y == nil || Rx == nil || Ry == nil || hGx == nil || hGy == nil || sigma1 == nil || l1 == nil {
 	return nil
     }
     
@@ -52,7 +52,7 @@ func NewSTProof(T1X *big.Int,T1Y *big.Int,Rx *big.Int,Ry *big.Int,hGx *big.Int,h
     bHGx,bHGy := secp256k1.S256().ScalarMult(hGx,hGy,b.Bytes())
     betaX,betaY := secp256k1.S256().Add(aGx,aGy,bHGx,bHGy)
     
-    e := Sha512_256i(T1X, T1Y, hGx, hGy, Gx, Gy, alphax, alphay, betaX, betaY)
+    e := Sha512_256i(T1X, T1Y, S1X,S1Y,Rx,Ry,hGx, hGy, Gx, Gy, alphax, alphay, betaX, betaY)
     e = new(big.Int).Mod(e, secp256k1.S256().N)
 
     t, u := calculateTAndU(secp256k1.S256().N, a, e, sigma1, b, l1)
@@ -66,7 +66,7 @@ func STVerify(S1X *big.Int,S1Y *big.Int,T1X *big.Int,T1Y *big.Int,Rx *big.Int,Ry
     }
     
     Gx,Gy := secp256k1.S256().ScalarBaseMult(one.Bytes())
-    e := Sha512_256i(T1X, T1Y, hGx, hGy, Gx, Gy, stpf.AlphaX, stpf.AlphaY, stpf.BetaX, stpf.BetaY)
+    e := Sha512_256i(T1X, T1Y, S1X,S1Y,Rx,Ry,hGx, hGy, Gx, Gy, stpf.AlphaX, stpf.AlphaY, stpf.BetaX, stpf.BetaY)
     e = new(big.Int).Mod(e, secp256k1.S256().N)
     
     tRx,tRy := secp256k1.S256().ScalarMult(Rx,Ry,stpf.T.Bytes())
