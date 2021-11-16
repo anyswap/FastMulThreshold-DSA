@@ -45,7 +45,8 @@ func (commitment *Commitment) Commit(secrets ...*big.Int) *Commitment {
 	sha3256.Write(rnd.Bytes())
 
 	for _, secret := range secrets {
-		sha3256.Write(secret.Bytes())
+	    sha3256.Write([]byte("hello multichain"))
+	    sha3256.Write(secret.Bytes())
 	}
 
 	digestKeccak256 := sha3256.Sum(nil)
@@ -71,9 +72,16 @@ func (commitment *Commitment) Verify() bool {
 	C := commitment.C
 	D := commitment.D
 
+	if len(D) < 1 { // at least rnd number
+	    return false
+	}
+
 	sha3256 := sha3.New256()
-	for _, secret := range D {
-		sha3256.Write(secret.Bytes())
+	sha3256.Write(D[0].Bytes())
+	
+	for _, secret := range D[1:] {
+	    sha3256.Write([]byte("hello multichain"))
+	    sha3256.Write(secret.Bytes())
 	}
 	digestKeccak256 := sha3256.Sum(nil)
 	sha3256.Write(digestKeccak256)

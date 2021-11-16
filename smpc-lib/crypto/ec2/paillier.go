@@ -161,6 +161,7 @@ func (privateKey *PrivateKey) ZkFactProve() *ZkFactProof {
 	sha3256 := sha3.New256()
 	sha3256.Write(h1R.Bytes())
 	sha3256.Write(h2R.Bytes())
+	sha3256.Write([]byte("hello multichain"))
 	eBytes := sha3256.Sum(nil)
 	e := new(big.Int).SetBytes(eBytes)
 
@@ -183,6 +184,7 @@ func (publicKey *PublicKey) ZkFactVerify(zkFactProof *ZkFactProof) bool {
 	sha3256 := sha3.New256()
 	sha3256.Write(h1R.Bytes())
 	sha3256.Write(h2R.Bytes())
+	sha3256.Write([]byte("hello multichain"))
 	eBytes := sha3256.Sum(nil)
 	e := new(big.Int).SetBytes(eBytes)
 

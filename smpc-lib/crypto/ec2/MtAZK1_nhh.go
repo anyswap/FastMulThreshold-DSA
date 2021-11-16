@@ -64,6 +64,8 @@ func MtAZK1Provenhh(m *big.Int, r *big.Int, publicKey *PublicKey, ntildeH1H2 *Nt
 	sha3256.Write(u.Bytes())
 	sha3256.Write(w.Bytes())
 
+	sha3256.Write([]byte("hello multichain"))
+
 	sha3256.Write(publicKey.N.Bytes()) //MtAZK1 question 2
 
 	eBytes := sha3256.Sum(nil)
@@ -96,6 +98,7 @@ func (mtAZKProof *MtAZK1Proofnhh) MtAZK1Verifynhh(c *big.Int, publicKey *PublicK
 	sha3256.Write(mtAZKProof.U.Bytes())
 	sha3256.Write(mtAZKProof.W.Bytes())
 
+	sha3256.Write([]byte("hello multichain"))
 	sha3256.Write(publicKey.N.Bytes()) //MtAZK1 question 2
 
 	eBytes := sha3256.Sum(nil)
