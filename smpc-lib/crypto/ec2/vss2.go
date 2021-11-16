@@ -134,6 +134,9 @@ func Combine2(shares []*ShareStruct2) (*big.Int, error) {
 			if j != i {
 				sub := new(big.Int).Sub(xSet[j], share.ID)
 				subInverse := new(big.Int).ModInverse(sub, s256.S256().N)
+				if subInverse == nil {
+				    return nil,errors.New("calc times fail")
+				}
 				div := new(big.Int).Mul(xSet[j], subInverse)
 				times = new(big.Int).Mul(times, div)
 				times = new(big.Int).Mod(times, s256.S256().N)

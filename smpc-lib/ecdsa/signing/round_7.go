@@ -74,6 +74,10 @@ func (round *round7) Start() error {
 	}
 	
 	deltaSumInverse := new(big.Int).ModInverse(round.temp.deltaSum, secp256k1.S256().N)
+	if deltaSumInverse == nil {
+	    return errors.New("calc deltaSum Inverse fail")
+	}
+
 	deltaGammaGx, deltaGammaGy := secp256k1.S256().ScalarMult(GammaGSumx, GammaGSumy, deltaSumInverse.Bytes())
 
 	// 4. get r = deltaGammaGx

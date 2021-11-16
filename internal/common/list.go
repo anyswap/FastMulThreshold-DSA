@@ -71,5 +71,10 @@ func (q *Queue) Len() int {
 func (q *Queue) InsertBefore(v interface{}, e *list.Element) {
 	q.m.Lock()
 	defer q.m.Unlock()
+	if e == nil {
+	    return
+	}
+
 	q.l.InsertBefore(v, e)
 }
+
