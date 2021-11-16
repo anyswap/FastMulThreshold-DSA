@@ -172,6 +172,15 @@ func Combine(shares [][32]byte, ids [][32]byte) [32]byte {
 				var time [32]byte
 				ScSub(&time, &ids[i], &ids[j])
 				time = ScModInverse(time, order)
+				count := 0
+				for index:=0;index<32;index++ {
+				    if time[index] == byte('0') {
+					count++
+				    }
+				}
+				if count == 32 {
+				    return time
+				}
 
 				ScMul(&time, &time, &ids[i])
 

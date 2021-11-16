@@ -129,6 +129,16 @@ func (round *round4) Start() error {
 		tt := curByte  //round.temp.uids[cur_oldindex]
 		ed.ScSub(&time, &t, &tt)
 		time = ed.ScModInverse(time, order)
+		count := 0
+		for index:=0;index<32;index++ {
+		    if time[index] == byte('0') {
+			count++
+		    }
+		}
+		if count == 32 {
+		    return errors.New("calc time mod inverse fail")
+		}
+
 		ed.ScMul(&time, &time, &t)
 		ed.ScMul(&lambda, &lambda, &time)
 	}
