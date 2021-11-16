@@ -166,6 +166,11 @@ func (mtAZK2Proof *MtAZK2Proofnhh) MtAZK2Verifynhh(c1 *big.Int, c2 *big.Int, pub
 	    return false
 	}
 
+	//paillier pubkey.G
+	G := new(big.Int).Add(publicKey.N,big.NewInt(1))
+	//paillier pubkey.N2
+	N2 := new(big.Int).Mul(publicKey.N,publicKey.N)
+
 	sha3256 := sha3.New256()
 	sha3256.Write(mtAZK2Proof.Z.Bytes())
 	sha3256.Write(mtAZK2Proof.ZBar.Bytes())
@@ -205,15 +210,15 @@ func (mtAZK2Proof *MtAZK2Proofnhh) MtAZK2Verifynhh(c1 *big.Int, c2 *big.Int, pub
 		return false
 	}
 
-	cs := new(big.Int).Exp(publicKey.G, mtAZK2Proof.T1, publicKey.N2)
-	cs = new(big.Int).Mul(cs, new(big.Int).Exp(mtAZK2Proof.S, publicKey.N, publicKey.N2))
-	cs = new(big.Int).Mod(cs, publicKey.N2)
-	cs = new(big.Int).Mul(cs, new(big.Int).Exp(c1, mtAZK2Proof.S1, publicKey.N2))
-	cs = new(big.Int).Mod(cs, publicKey.N2)
+	cs := new(big.Int).Exp(G, mtAZK2Proof.T1, N2)
+	cs = new(big.Int).Mul(cs, new(big.Int).Exp(mtAZK2Proof.S, publicKey.N, N2))
+	cs = new(big.Int).Mod(cs, N2)
+	cs = new(big.Int).Mul(cs, new(big.Int).Exp(c1, mtAZK2Proof.S1, N2))
+	cs = new(big.Int).Mod(cs, N2)
 
-	cv := new(big.Int).Exp(c2, e, publicKey.N2)
+	cv := new(big.Int).Exp(c2, e, N2)
 	cv = new(big.Int).Mul(cv, mtAZK2Proof.V)
-	cv = new(big.Int).Mod(cv, publicKey.N2)
+	cv = new(big.Int).Mod(cv, N2)
 
 	if cs.Cmp(cv) != 0 {
 		return false
