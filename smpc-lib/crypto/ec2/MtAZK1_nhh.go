@@ -71,7 +71,7 @@ func MtAZK1Provenhh(m *big.Int, r *big.Int, publicKey *PublicKey, ntildeH1H2 *Nt
 	eBytes := sha3256.Sum(nil)
 	e := new(big.Int).SetBytes(eBytes)
 
-	e = new(big.Int).Mod(e, publicKey.N)
+	e = new(big.Int).Mod(e, s256.S256().N)
 
 	s := new(big.Int).Exp(r, e, publicKey.N)
 	s = new(big.Int).Mul(s, beta)
@@ -104,7 +104,7 @@ func (mtAZKProof *MtAZK1Proofnhh) MtAZK1Verifynhh(c *big.Int, publicKey *PublicK
 	eBytes := sha3256.Sum(nil)
 	e := new(big.Int).SetBytes(eBytes)
 
-	e = new(big.Int).Mod(e, publicKey.N)
+	e = new(big.Int).Mod(e, s256.S256().N)
 
 	u2 := new(big.Int).Exp(publicKey.G, mtAZKProof.S1, publicKey.N2)
 	u2 = new(big.Int).Mul(u2, new(big.Int).Exp(mtAZKProof.S, publicKey.N, publicKey.N2))
