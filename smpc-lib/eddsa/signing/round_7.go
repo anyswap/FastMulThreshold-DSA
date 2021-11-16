@@ -51,6 +51,9 @@ func (round *round7) Start() error {
 
 	var pass = EdVerify(inputVerify)
 	fmt.Printf("===========ed verify, pass = %v============\n", pass)
+	if !pass {
+	    return errors.New("ed verify (r,s) fail")
+	}
 
 	//r
 	rx := hex.EncodeToString(round.temp.FinalRBytes[:])
@@ -62,9 +65,11 @@ func (round *round7) Start() error {
 	copy(signature[:], round.temp.FinalRBytes[:])
 	copy(signature[32:], FinalS[:])
 
-	fmt.Printf("================= ed sign 25519,sig = %v, pk = %v, msg = %v, sig str = %v, pk str = %v, msg str = %v =======================\n", signature, round.temp.pkfinal, round.temp.message, hex.EncodeToString(signature[:]), hex.EncodeToString(round.temp.pkfinal[:]), hex.EncodeToString(round.temp.message[:]))
 	suss := ed25519.Verify(&round.temp.pkfinal, []byte(round.temp.message), signature)
 	fmt.Printf("===========ed verify, success = %v============\n", suss)
+	if !suss {
+	    return errors.New("ed verify (r,s) fail")
+	}
 
 	/////////solana
 	/*suss = edlib.Verify(round.temp.pkfinal[:],round.temp.message,signature[:])
