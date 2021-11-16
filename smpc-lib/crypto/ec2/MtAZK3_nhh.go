@@ -125,6 +125,54 @@ func (mtAZK3Proof *MtAZK3Proofnhh) MtAZK3Verifynhh(c1 *big.Int, c2 *big.Int, pub
 		return false
 	}
 
+	if mtAZK3Proof.Z.Cmp(ntildeH1H2.Ntilde) >= 0 {
+	    return false
+	}
+
+	if mtAZK3Proof.ZBar.Cmp(ntildeH1H2.Ntilde) >= 0 {
+	    return false
+	}
+
+	if mtAZK3Proof.T.Cmp(ntildeH1H2.Ntilde) >= 0 {
+	    return false
+	}
+
+	if mtAZK3Proof.W.Cmp(ntildeH1H2.Ntilde) >= 0 {
+	    return false
+	}
+
+	if mtAZK3Proof.V.Cmp(publicKey.N2) >= 0 {
+	    return false
+	}
+
+	if c1.Cmp(publicKey.N2) >= 0 {
+	    return false
+	}
+
+	if c2.Cmp(publicKey.N2) >= 0 {
+	    return false
+	}
+
+	if mtAZK3Proof.S.Cmp(publicKey.N) >= 0 {
+	    return false
+	}
+
+	c1m := new(big.Int).Mod(c1,publicKey.N2)
+	c2m := new(big.Int).Mod(c2,publicKey.N2)
+	zm := new(big.Int).Mod(mtAZK3Proof.Z,ntildeH1H2.Ntilde)
+	zbarm := new(big.Int).Mod(mtAZK3Proof.ZBar,ntildeH1H2.Ntilde)
+	tm := new(big.Int).Mod(mtAZK3Proof.T,ntildeH1H2.Ntilde)
+	vm := new(big.Int).Mod(mtAZK3Proof.V,publicKey.N2)
+	wm := new(big.Int).Mod(mtAZK3Proof.W,ntildeH1H2.Ntilde)
+	sm := new(big.Int).Mod(mtAZK3Proof.S,publicKey.N)
+	if c1m.Cmp(zero) == 0 || c1m.Cmp(one) == 0 || c2m.Cmp(zero) == 0 || c2m.Cmp(one) == 0 || zm.Cmp(zero) == 0 || zm.Cmp(one) == 0 || zbarm.Cmp(zero) == 0 || zbarm.Cmp(one) == 0 || tm.Cmp(zero) == 0 || tm.Cmp(one) == 0 || vm.Cmp(zero) == 0 || vm.Cmp(one) == 0 || wm.Cmp(zero) == 0 || wm.Cmp(one) == 0 || sm.Cmp(zero) == 0 || sm.Cmp(one) == 0 {
+	    return false
+	}
+
+	if mtAZK3Proof.S1.Cmp(zero) == 0 || mtAZK3Proof.S1.Cmp(one) == 0 || mtAZK3Proof.S2.Cmp(zero) == 0 || mtAZK3Proof.S2.Cmp(one) == 0 || mtAZK3Proof.T1.Cmp(zero) == 0 || mtAZK3Proof.T1.Cmp(one) == 0 || mtAZK3Proof.T2.Cmp(zero) == 0 || mtAZK3Proof.T2.Cmp(one) == 0 {
+	    return false
+	}
+
 	sha3256 := sha3.New256()
 	sha3256.Write(mtAZK3Proof.Ux.Bytes())
 	sha3256.Write(mtAZK3Proof.Uy.Bytes())

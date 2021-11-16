@@ -93,6 +93,43 @@ func (mtAZKProof *MtAZK1Proofnhh) MtAZK1Verifynhh(c *big.Int, publicKey *PublicK
 		return false
 	}
 
+	if mtAZKProof.Z.Cmp(ntildeH1H2.Ntilde) >= 0 {
+	    return false
+	}
+
+	if mtAZKProof.W.Cmp(ntildeH1H2.Ntilde) >= 0 {
+	    return false
+	}
+
+	if mtAZKProof.U.Cmp(publicKey.N2) >= 0 {
+	    return false
+	}
+
+	if c.Cmp(publicKey.N2) >= 0 {
+	    return false
+	}
+
+	if mtAZKProof.S.Cmp(publicKey.N) >= 0 {
+	    return false
+	}
+
+	zm := new(big.Int).Mod(mtAZKProof.Z,ntildeH1H2.Ntilde)
+	wm := new(big.Int).Mod(mtAZKProof.W,ntildeH1H2.Ntilde)
+	um := new(big.Int).Mod(mtAZKProof.U,publicKey.N2)
+	cm := new(big.Int).Mod(c,publicKey.N2)
+	sm := new(big.Int).Mod(mtAZKProof.S,publicKey.N)
+	if zm.Cmp(zero) == 0 || zm.Cmp(one) == 0 || wm.Cmp(zero) == 0 || wm.Cmp(one) == 0 || um.Cmp(zero) == 0 || um.Cmp(one) == 0 || cm.Cmp(zero) == 0 || cm.Cmp(one) == 0 || sm.Cmp(zero) == 0 || sm.Cmp(one) == 0 {
+	    return false
+	}
+
+	if mtAZKProof.S1.Cmp(zero) == 0 || mtAZKProof.S1.Cmp(one) == 0 {
+	    return false
+	}
+
+	if mtAZKProof.S2.Cmp(zero) == 0 || mtAZKProof.S2.Cmp(one) == 0 {
+	    return false
+	}
+
 	sha3256 := sha3.New256()
 	sha3256.Write(mtAZKProof.Z.Bytes())
 	sha3256.Write(mtAZKProof.U.Bytes())
