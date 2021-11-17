@@ -157,6 +157,19 @@ func (round *round4) Start() error {
 	round.Save.Pky = pky
 	round.Save.C = c
 
+	// add commitment for sku1
+	xiGx, xiGy := secp256k1.S256().ScalarBaseMult(skU1.Bytes())
+	u1Secrets := make([]*big.Int, 0)
+	u1Secrets = append(u1Secrets, xiGx)
+	u1Secrets = append(u1Secrets, xiGy)
+	commitXiG := new(ec2.Commitment).Commit(u1Secrets...)
+	if commitXiG == nil {
+	    return errors.New("error generating commitment for sku1")
+	}
+
+	round.temp.commitXiG = commitXiG
+	//
+
 	// zk of paillier key
 	NtildeLength := 2048
 	u1NtildeH1H2, alpha, beta, p, q,p1,p2 := ec2.GenerateNtildeH1H2(NtildeLength)
@@ -175,6 +188,7 @@ func (round *round4) Start() error {
 		U1NtildeH1H2:   u1NtildeH1H2,
 		NtildeProof1:   ntildeProof1,
 		NtildeProof2:   ntildeProof2,
+		ComXiC:		commitXiG.C,
 	}
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(curIndex)

@@ -24,7 +24,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
 
-// Start verify commitment and zku proof data
+// Start verify commitment ...
 func (round *round6) Start() error {
 	if round.started {
 		return errors.New("round already started")
@@ -44,27 +44,20 @@ func (round *round6) Start() error {
 	}
 
 	for k := range ids {
-		msg3, ok := round.temp.kgRound3Messages[k].(*KGRound3Message)
-		if !ok {
-			return errors.New("round.Start get round3 msg fail")
-		}
-
-		//verify commitment
-		msg1, ok := round.temp.kgRound1Messages[k].(*KGRound1Message)
-		if !ok {
-			return errors.New("round.Start get round1 msg fail")
-		}
-
-		deCommit := &ec2.Commitment{C: msg1.ComC, D: msg3.ComU1GD}
-		_, u1G := deCommit.DeCommit()
 		msg5, ok := round.temp.kgRound5Messages[k].(*KGRound5Message)
 		if !ok {
 			return errors.New("round.Start get round5 msg fail")
 		}
 
-		if !ec2.ZkUVerify(u1G, msg5.U1zkUProof) {
-			fmt.Printf("========= round6 verify zku fail, k = %v ==========\n", k)
-			return errors.New("verify zku fail")
+		msg4, ok := round.temp.kgRound4Messages[k].(*KGRound4Message)
+		if !ok {
+			return errors.New("round.Start get round4 msg fail")
+		}
+
+		deCommit := &ec2.Commitment{C: msg4.ComXiC, D: msg5.ComXiGD}
+		if !deCommit.Verify() {
+			fmt.Printf("========= round6 verify commitment fail, k = %v ==========\n", k)
+			return errors.New("verify commitment fail")
 		}
 	}
 
@@ -102,7 +95,7 @@ func (round *round6) Start() error {
 
 		//fmt.Printf("===========================round 6, k = %v,kk = %v, roh = %v,x = %v, N = %v===========================\n",k,kk,vv,qua[kk],ntilde)
 	    }
-	    
+	
 	    kg := &KGRound6Message1{
 		    KGRoundMessage: new(KGRoundMessage),
 		    Qua:    qua,
@@ -122,8 +115,15 @@ func (round *round6) Start() error {
 	round.temp.p1 = nil
 	round.temp.p2 = nil 
 
+	// add prove for xi 
+	u1zkXiProof := ec2.ZkXiProve(round.Save.SkU1)
+	if u1zkXiProof == nil {
+		return errors.New("zkx prove fail")
+	}
+
 	kg := &KGRound6Message{
 		KGRoundMessage:      new(KGRoundMessage),
+		U1zkXiProof:     u1zkXiProof,
 		CheckPubkeyStatus: true,
 	}
 	kg.SetFromID(round.dnodeid)

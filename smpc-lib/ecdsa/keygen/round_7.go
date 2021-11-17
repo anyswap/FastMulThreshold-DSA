@@ -33,6 +33,36 @@ func (round *round7) Start() error {
 	round.started = true
 	round.resetOK()
 	
+	ids, err := round.GetIDs()
+	if err != nil {
+		return errors.New("round.Start get ids fail")
+	}
+
+	for k := range ids {
+		msg5, ok := round.temp.kgRound5Messages[k].(*KGRound5Message)
+		if !ok {
+			return errors.New("round.Start get round5 msg fail")
+		}
+
+		msg4, ok := round.temp.kgRound4Messages[k].(*KGRound4Message)
+		if !ok {
+			return errors.New("round.Start get round4 msg fail")
+		}
+
+		deCommit := &ec2.Commitment{C: msg4.ComXiC, D: msg5.ComXiGD}
+		_, xiG := deCommit.DeCommit()
+
+		msg6, ok := round.temp.kgRound6Messages[k].(*KGRound6Message)
+		if !ok {
+			return errors.New("round.Start get round6 msg fail")
+		}
+
+		if !ec2.ZkXiVerify(xiG, msg6.U1zkXiProof) {
+			fmt.Printf("========= round7 verify zkx fail, k = %v ==========\n", k)
+			return errors.New("verify zkx fail")
+		}
+	}
+
 	// add HVZK Proof for a Product of Two Primes
 	// for Ntilde = p*q
 	// verifier check:

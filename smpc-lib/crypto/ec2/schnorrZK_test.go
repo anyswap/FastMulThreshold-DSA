@@ -51,29 +51,26 @@ func TestZkUProveVerify(t *testing.T) {
 	assert.True(t, ret)
 }
 
-func TestZkABProveVerify(t *testing.T) {
-	R, _ := new(big.Int).SetString("35468357718756002954848554035419648178117006496146773150503256230137374067079", 10)
-	Ry, _ := new(big.Int).SetString("39760012708593904645408329800877740105757428181833470179812638710757067153451", 10)
-	us1, _ := new(big.Int).SetString("81707785328668160358118153656797582185187660511375257112006130025606702292686", 10)
+func TestZkXiProveVerify(t *testing.T) {
+	sk := random.GetRandomIntFromZn(secp256k1.S256().N)
+	u1zkXiProof := ec2.ZkXiProve(sk)
+	assert.NotZero(t, u1zkXiProof)
+	xGx, xGy := secp256k1.S256().ScalarBaseMult(sk.Bytes())
+	u1Secrets := make([]*big.Int, 0)
+	u1Secrets = append(u1Secrets, xGx)
+	u1Secrets = append(u1Secrets, xGy)
 
-	l1 := random.GetRandomIntFromZn(secp256k1.S256().N)
-	rho1 := random.GetRandomIntFromZn(secp256k1.S256().N)
-	bigV1x, bigV1y := secp256k1.S256().ScalarMult(R, Ry, us1.Bytes())
-	l1Gx, l1Gy := secp256k1.S256().ScalarBaseMult(l1.Bytes())
-	bigV1x, bigV1y = secp256k1.S256().Add(bigV1x, bigV1y, l1Gx, l1Gy)
+	_, u1PolyG, err := ec2.Vss2Init(sk, 3)
+	assert.NoError(t, err)
 
-	bigA1x, bigA1y := secp256k1.S256().ScalarBaseMult(rho1.Bytes())
-
-	l1rho1 := new(big.Int).Mul(l1, rho1)
-	l1rho1 = new(big.Int).Mod(l1rho1, secp256k1.S256().N)
-	bigB1x, bigB1y := secp256k1.S256().ScalarBaseMult(l1rho1.Bytes())
-
-	commitBigVAB1 := new(ec2.Commitment).Commit(bigV1x, bigV1y, bigA1x, bigA1y, bigB1x, bigB1y)
-	ret, BigVAB1 := commitBigVAB1.DeCommit()
+	for i := 1; i < len(u1PolyG.PolyG); i++ {
+		u1Secrets = append(u1Secrets, u1PolyG.PolyG[i][0])
+		u1Secrets = append(u1Secrets, u1PolyG.PolyG[i][1])
+	}
+	commitXiG := new(ec2.Commitment).Commit(u1Secrets...)
+	ret, xiG := commitXiG.DeCommit()
 	assert.True(t, ret)
-
-	u1zkABProof := ec2.ZkABProve(rho1, l1, us1, []*big.Int{R, Ry})
-	assert.NotZero(t, u1zkABProof)
-	ret = ec2.ZkABVerify([]*big.Int{BigVAB1[2], BigVAB1[3]}, []*big.Int{BigVAB1[4], BigVAB1[5]}, []*big.Int{BigVAB1[0], BigVAB1[1]}, []*big.Int{R, Ry}, u1zkABProof)
+	ret = ec2.ZkXiVerify(xiG, u1zkXiProof)
 	assert.True(t, ret)
 }
+

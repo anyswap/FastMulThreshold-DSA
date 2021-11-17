@@ -27,7 +27,7 @@ const (
 	ntildeBitsLen = 2048
 )
 
-// Start broacast zku proof data
+// Start check ntilde bitlen/add HVZK Proof for a Product of Two Primes ...
 func (round *round5) Start() error {
 	if round.started {
 		return errors.New("round already started")
@@ -86,15 +86,11 @@ func (round *round5) Start() error {
 	    }
 	}
 
-	u1zkUProof := ec2.ZkUProve(round.temp.u1)
-	if u1zkUProof == nil {
-		return errors.New("zku prove fail")
-	}
-
 	kg := &KGRound5Message{
 		KGRoundMessage: new(KGRoundMessage),
-		U1zkUProof:     u1zkUProof,
+		ComXiGD:	round.temp.commitXiG.D,
 	}
+	
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(curIndex)
 

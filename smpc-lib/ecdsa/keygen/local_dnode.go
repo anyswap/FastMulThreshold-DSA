@@ -70,6 +70,7 @@ type localTempData struct {
 	//round 4
 	p1 *big.Int
 	p2 *big.Int
+	commitXiG  *ec2.Commitment
 
 	//round 5
 	roh [][]*big.Int

@@ -236,11 +236,18 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 				}
 
 				if err := pf2.UnmarshalJSON([]byte(msg["NtildeProof2"])); err == nil {
+				    if msg["ComXiC"] == "" {
+					return nil
+				    }
+
+				    comxic,_ := new(big.Int).SetString(msg["ComXiC"],10)
+				    
 					kg := &keygen.KGRound4Message{
 						KGRoundMessage: new(keygen.KGRoundMessage),
 						U1NtildeH1H2:   nti,
 						NtildeProof1:   pf1,
 						NtildeProof2:   pf2,
+						ComXiC:		comxic,
 					}
 					kg.SetFromID(from)
 					kg.SetFromIndex(index)
@@ -253,20 +260,27 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 
 	//5 message
 	if msg["Type"] == "KGRound5Message" {
-	    if msg["U1zkUProof"] == "" {
+	    if msg["ComXiGD"] == "" {
 		return nil
 	    }
-		zk := &ec2.ZkUProof{}
-		if err := zk.UnmarshalJSON([]byte(msg["U1zkUProof"])); err == nil {
-			kg := &keygen.KGRound5Message{
-				KGRoundMessage: new(keygen.KGRoundMessage),
-				U1zkUProof:     zk,
-			}
-			kg.SetFromID(from)
-			kg.SetFromIndex(index)
-			kg.ToID = to
-			return kg
+
+	    xgd := strings.Split(msg["ComXiGD"], ":")
+	    xigd := make([]*big.Int, len(xgd))
+	    for k, v := range xgd {
+		xigd[k], _ = new(big.Int).SetString(v, 10)
+		if xigd[k] == nil {
+		    return nil
 		}
+	    }
+
+	    kg := &keygen.KGRound5Message{
+		    KGRoundMessage: new(keygen.KGRoundMessage),
+		    ComXiGD:		xigd,
+	    }
+	    kg.SetFromID(from)
+	    kg.SetFromIndex(index)
+	    kg.ToID = to
+	    return kg
 	}
 
 	//5-1 message
@@ -298,19 +312,27 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 
 	//6 message
 	if msg["Type"] == "KGRound6Message" {
-		b := false
-		if msg["CheckPubkeyStatus"] == "true" {
-			b = true
-		}
+	    b := false
+	    if msg["CheckPubkeyStatus"] == "true" {
+		    b = true
+	    }
 
+	    if msg["U1zkXiProof"] == "" {
+		return nil
+	    }
+	    
+	    zk := &ec2.ZkXiProof{}
+	    if err := zk.UnmarshalJSON([]byte(msg["U1zkXiProof"])); err == nil {
 		kg := &keygen.KGRound6Message{
 			KGRoundMessage:      new(keygen.KGRoundMessage),
+			U1zkXiProof:     zk,
 			CheckPubkeyStatus: b,
 		}
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
 		kg.ToID = to
 		return kg
+	    }
 	}
 
 	//6-1 message

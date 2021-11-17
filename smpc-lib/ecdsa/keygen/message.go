@@ -281,6 +281,9 @@ type KGRound4Message struct {
 	//add for ntilde zk
 	NtildeProof1 *ec2.NtildeProof
 	NtildeProof2 *ec2.NtildeProof
+
+	// add for xi commitment
+	ComXiC *big.Int
 }
 
 // GetFromID get the ID of sending nodes in the group
@@ -325,6 +328,7 @@ func (kg *KGRound4Message) OutMap() map[string]string {
 		m["NtildeProof2"] = string(pf2)
 	}
 
+	m["ComXiC"] = fmt.Sprintf("%v",kg.ComXiC)
 	m["Type"] = "KGRound4Message"
 	return m
 }
@@ -332,7 +336,7 @@ func (kg *KGRound4Message) OutMap() map[string]string {
 // KGRound5Message  Round 5 sending message 
 type KGRound5Message struct {
 	*KGRoundMessage
-	U1zkUProof *ec2.ZkUProof
+	ComXiGD  []*big.Int
 }
 
 // GetFromID get the ID of sending nodes in the group
@@ -362,10 +366,11 @@ func (kg *KGRound5Message) OutMap() map[string]string {
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = ""
 
-	zk, err := kg.U1zkUProof.MarshalJSON()
-	if err == nil {
-		m["U1zkUProof"] = string(zk)
+	tmp := make([]string, len(kg.ComXiGD))
+	for k, v := range kg.ComXiGD {
+		tmp[k] = fmt.Sprintf("%v", v)
 	}
+	m["ComXiGD"] = strings.Join(tmp, ":")
 
 	m["Type"] = "KGRound5Message"
 	return m
@@ -417,6 +422,7 @@ func (kg *KGRound5Message1) OutMap() map[string]string {
 // KGRound6Message  Round 6 sending message 
 type KGRound6Message struct {
 	*KGRoundMessage
+	U1zkXiProof *ec2.ZkXiProof
 	CheckPubkeyStatus bool
 }
 
@@ -446,6 +452,11 @@ func (kg *KGRound6Message) OutMap() map[string]string {
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = ""
+
+	zk, err := kg.U1zkXiProof.MarshalJSON()
+	if err == nil {
+		m["U1zkXiProof"] = string(zk)
+	}
 
 	if kg.CheckPubkeyStatus {
 		m["CheckPubkeyStatus"] = "true"
