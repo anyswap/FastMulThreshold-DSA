@@ -165,6 +165,27 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 		return kg
 	}
 
+	//2-2 message
+	if msg["Type"] == "KGRound2Message2" {
+	    if msg["X"] == "" {
+		return nil
+	    }
+
+		x, _ := new(big.Int).SetString(msg["X"], 10)
+		if x == nil {
+		    return nil
+		}
+
+		kg := &keygen.KGRound2Message2{
+		    KGRoundMessage: new(keygen.KGRoundMessage),
+		    X:             x,
+		}
+		kg.SetFromID(from)
+		kg.SetFromIndex(index)
+		kg.ToID = to
+		return kg
+	}
+
 	//3 message
 	if msg["Type"] == "KGRound3Message" {
 	    if msg["ComU1GD"] == "" || msg["ComC1GD"] == "" || msg["U1PolyGG"] == "" {
@@ -210,6 +231,27 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 			U1PolyGG:       ugg,
 		}
 
+		kg.SetFromID(from)
+		kg.SetFromIndex(index)
+		kg.ToID = to
+		return kg
+	}
+
+	//3-1 message
+	if msg["Type"] == "KGRound3Message1" {
+	    if msg["Y"] == "" {
+		return nil
+	    }
+
+		y, _ := new(big.Int).SetString(msg["Y"], 10)
+		if y == nil {
+		    return nil
+		}
+
+		kg := &keygen.KGRound3Message1{
+		    KGRoundMessage: new(keygen.KGRoundMessage),
+		    Y:             y,
+		}
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
 		kg.ToID = to

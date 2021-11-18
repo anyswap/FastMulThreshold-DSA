@@ -63,7 +63,7 @@ func (round *round1) Start() error {
 	commitC1G := new(ec2.Commitment).Commit(c1Secrets...)
 
 	// 3. generate their own paillier public key and private key
-	u1PaillierPk, u1PaillierSk := ec2.GenerateKeyPair(round.paillierkeylength)
+	u1PaillierPk, u1PaillierSk,p,q := ec2.GenerateKeyPair(round.paillierkeylength)
 
 	if u1PaillierPk == nil || u1PaillierSk == nil {
 		return errors.New(" Error generating Paillier pubkey/private data ")
@@ -81,6 +81,8 @@ func (round *round1) Start() error {
 	round.temp.commitC1G = commitC1G
 	round.temp.u1PaillierPk = u1PaillierPk
 	round.temp.u1PaillierSk = u1PaillierSk
+	round.temp.p = p
+	round.temp.q = q
 
 	index, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {

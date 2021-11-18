@@ -23,7 +23,6 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
@@ -47,7 +46,7 @@ type PrivateKey struct {
 }
 
 // GenerateKeyPair create paillier pubkey and private key
-func GenerateKeyPair(length int) (*PublicKey, *PrivateKey) {
+func GenerateKeyPair(length int) (*PublicKey, *PrivateKey,*big.Int,*big.Int) {
 	one := big.NewInt(1)
 
 	sp1 := <-SafePrimeCh
@@ -56,7 +55,7 @@ func GenerateKeyPair(length int) (*PublicKey, *PrivateKey) {
 	q := sp2.p
 
 	if p == nil || q == nil {
-		return nil, nil
+		return nil, nil,nil,nil
 	}
 
 	SafePrimeCh <- sp1
@@ -75,7 +74,7 @@ func GenerateKeyPair(length int) (*PublicKey, *PrivateKey) {
 	publicKey := &PublicKey{Length: strconv.Itoa(length), N: n, G: g, N2: n2}
 	privateKey := &PrivateKey{Length: strconv.Itoa(length), PublicKey: *publicKey, L: l, U: u}
 
-	return publicKey, privateKey
+	return publicKey, privateKey,p,q
 }
 
 // Encrypt paillier encrypt by public key
@@ -139,63 +138,6 @@ func (publicKey *PublicKey) HomoMul(cipher, k *big.Int) *big.Int {
 }
 
 //------------------------------------------------------------------------------
-
-// ZkFactProof zkpact proof
-type ZkFactProof struct {
-	H1 *big.Int
-	H2 *big.Int
-	Y  *big.Int // r+(n-\phi(n))*e
-	E  *big.Int
-	N  *big.Int
-}
-
-// ZkFactProve Generate zero knowledge proof data zkfactproof 
-func (privateKey *PrivateKey) ZkFactProve() *ZkFactProof {
-	h1 := random.GetRandomIntFromZnStar(privateKey.N)
-	h2 := random.GetRandomIntFromZnStar(privateKey.N)
-	r := random.GetRandomIntFromZn(privateKey.N)
-
-	h1R := new(big.Int).Exp(h1, r, privateKey.N)
-	h2R := new(big.Int).Exp(h2, r, privateKey.N)
-
-	sha3256 := sha3.New256()
-	sha3256.Write(h1R.Bytes())
-	sha3256.Write(h2R.Bytes())
-	sha3256.Write([]byte("hello multichain"))
-	eBytes := sha3256.Sum(nil)
-	e := new(big.Int).SetBytes(eBytes)
-
-	y := new(big.Int).Add(privateKey.N, privateKey.L)
-	y = new(big.Int).Mul(y, e)
-	y = new(big.Int).Add(y, r)
-
-	zkFactProof := &ZkFactProof{H1: h1, H2: h2, Y: y, E: e, N: privateKey.N}
-	return zkFactProof
-}
-
-// ZkFactVerify verify zero knowledge proof data zkfactproof
-func (publicKey *PublicKey) ZkFactVerify(zkFactProof *ZkFactProof) bool {
-	ySubNE := new(big.Int).Mul(publicKey.N, zkFactProof.E)
-	ySubNE = new(big.Int).Sub(zkFactProof.Y, ySubNE)
-
-	h1R := new(big.Int).Exp(zkFactProof.H1, ySubNE, publicKey.N)
-	h2R := new(big.Int).Exp(zkFactProof.H2, ySubNE, publicKey.N)
-
-	sha3256 := sha3.New256()
-	sha3256.Write(h1R.Bytes())
-	sha3256.Write(h2R.Bytes())
-	sha3256.Write([]byte("hello multichain"))
-	eBytes := sha3256.Sum(nil)
-	e := new(big.Int).SetBytes(eBytes)
-
-	if e.Cmp(zkFactProof.E) == 0 {
-		return true
-	} 
-	
-	return false
-}
-
-//---------------------------------------------------------------------------
 
 // MarshalJSON marshal PublicKey to json bytes
 func (publicKey *PublicKey) MarshalJSON() ([]byte, error) {

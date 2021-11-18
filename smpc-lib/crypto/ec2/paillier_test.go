@@ -86,11 +86,3 @@ func TestHomoMul(t *testing.T) {
 	assert.Equal(t, 0, multiple.Cmp(big.NewInt(exp)))
 }
 
-func TestProofVerify(t *testing.T) {
-	publicKey, privateKey := ec2.CreatPair(testPaillierKeyLength)
-	assert.NotZero(t, publicKey)
-	assert.NotZero(t, privateKey)
-	zkproof := privateKey.ZkFactProve()
-	res := publicKey.ZkFactVerify(zkproof)
-	assert.True(t, res, "zk fact proof verify result must be true")
-}

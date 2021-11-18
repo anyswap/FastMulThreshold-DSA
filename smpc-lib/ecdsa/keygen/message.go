@@ -169,6 +169,8 @@ func (kg *KGRound2Message) OutMap() map[string]string {
 	return m
 }
 
+//-------------------------------------------------------
+
 // KGRound2Message1  Round 2 sending message 
 type KGRound2Message1 struct {
 	*KGRoundMessage
@@ -206,6 +208,47 @@ func (kg *KGRound2Message1) OutMap() map[string]string {
 	m["Type"] = "KGRound2Message1"
 	return m
 }
+
+//-----------------------------------------------------------
+
+// KGRound2Message2  Round 2 sending message2 
+type KGRound2Message2 struct {
+	*KGRoundMessage
+	X *big.Int
+}
+
+// GetFromID get the ID of sending nodes in the group
+func (kg *KGRound2Message2) GetFromID() string {
+	return kg.FromID
+}
+
+// GetFromIndex get the Serial number of sending nodes in the group 
+func (kg *KGRound2Message2) GetFromIndex() int {
+	return kg.FromIndex
+}
+
+// GetToID get the ID of the node that broacasting message to
+func (kg *KGRound2Message2) GetToID() []string {
+	return kg.ToID
+}
+
+// IsBroadcast weather broacast the message
+func (kg *KGRound2Message2) IsBroadcast() bool {
+	return false 
+}
+
+// OutMap transfer *KGRound2Message1 to map
+func (kg *KGRound2Message2) OutMap() map[string]string {
+	m := make(map[string]string)
+	m["FromID"] = kg.FromID
+	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
+	m["ToID"] = ""
+	m["X"] = fmt.Sprintf("%v", kg.X)
+	m["Type"] = "KGRound2Message2"
+	return m
+}
+
+//------------------------------------------------------------
 
 // KGRound3Message  Round 3 sending message 
 type KGRound3Message struct {
@@ -272,6 +315,47 @@ func (kg *KGRound3Message) OutMap() map[string]string {
 	m["Type"] = "KGRound3Message"
 	return m
 }
+
+//--------------------------------------------------------------
+
+// KGRound3Message1  Round 3 sending message1 
+type KGRound3Message1 struct {
+	*KGRoundMessage
+	Y *big.Int
+}
+
+// GetFromID get the ID of sending nodes in the group
+func (kg *KGRound3Message1) GetFromID() string {
+	return kg.FromID
+}
+
+// GetFromIndex get the Serial number of sending nodes in the group 
+func (kg *KGRound3Message1) GetFromIndex() int {
+	return kg.FromIndex
+}
+
+// GetToID get the ID of the node that broacasting message to
+func (kg *KGRound3Message1) GetToID() []string {
+	return kg.ToID
+}
+
+// IsBroadcast weather broacast the message
+func (kg *KGRound3Message1) IsBroadcast() bool {
+	return false
+}
+
+// OutMap transfer *KGRound3Message1 to map
+func (kg *KGRound3Message1) OutMap() map[string]string {
+	m := make(map[string]string)
+	m["FromID"] = kg.FromID
+	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
+	m["ToID"] = ""
+	m["Y"] = fmt.Sprintf("%v", kg.Y)
+	m["Type"] = "KGRound3Message1"
+	return m
+}
+
+//----------------------------------------------------------------
 
 // KGRound4Message  Round 4 sending message 
 type KGRound4Message struct {

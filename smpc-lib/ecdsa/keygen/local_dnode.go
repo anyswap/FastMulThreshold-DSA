@@ -42,7 +42,9 @@ type localTempData struct {
 	kgRound1Messages,
 	kgRound2Messages,
 	kgRound2Messages1,
+	kgRound2Messages2,
 	kgRound3Messages,
+	kgRound3Messages1,
 	kgRound4Messages,
 	kgRound5Messages,
 	kgRound5Messages1,
@@ -61,13 +63,18 @@ type localTempData struct {
 	commitC1G    *ec2.Commitment
 	u1PaillierPk *ec2.PublicKey
 	u1PaillierSk *ec2.PrivateKey
+	// paillier.N = p*q
+	p *big.Int 
+	q *big.Int
 
 	//round 2
 	u1Shares []*ec2.ShareStruct2
+	x	[]*big.Int
 
 	//round 3
 
 	//round 4
+	// Ntilde = p1*p2
 	p1 *big.Int
 	p2 *big.Int
 	commitXiG  *ec2.Commitment
@@ -107,12 +114,15 @@ func NewLocalDNode(
 	p.PaillierKeyLength = paillierkeylength
 
 	p.temp.roh = make([][]*big.Int,DNodeCountInGroup)
+	p.temp.x = make([]*big.Int,DNodeCountInGroup)
 
 	p.temp.kgRound0Messages = make([]smpc.Message, 0)
 	p.temp.kgRound1Messages = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound2Messages = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound2Messages1 = make([]smpc.Message, DNodeCountInGroup)
+	p.temp.kgRound2Messages2 = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound3Messages = make([]smpc.Message, DNodeCountInGroup)
+	p.temp.kgRound3Messages1 = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound4Messages = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound5Messages = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound5Messages1 = make([]smpc.Message, DNodeCountInGroup)
@@ -210,10 +220,26 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			//time.Sleep(time.Duration(20) * time.Second) //tmp code
 			return true, nil
 		}
+	case *KGRound2Message2:
+		index := msg.GetFromIndex()
+		p.temp.kgRound2Messages2[index] = msg
+		if len(p.temp.kgRound2Messages2) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound2Messages2) {
+			//fmt.Printf("================ StoreMessage,get all 2-1 messages ==============\n")
+			//time.Sleep(time.Duration(20) * time.Second) //tmp code
+			return true, nil
+		}
 	case *KGRound3Message:
 		index := msg.GetFromIndex()
 		p.temp.kgRound3Messages[index] = msg
 		if len(p.temp.kgRound3Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound3Messages) {
+			//fmt.Printf("================ StoreMessage,get all 3 messages ==============\n")
+			//time.Sleep(time.Duration(20) * time.Second) //tmp code
+			return true, nil
+		}
+	case *KGRound3Message1:
+		index := msg.GetFromIndex()
+		p.temp.kgRound3Messages1[index] = msg
+		if len(p.temp.kgRound3Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound3Messages1) {
 			//fmt.Printf("================ StoreMessage,get all 3 messages ==============\n")
 			//time.Sleep(time.Duration(20) * time.Second) //tmp code
 			return true, nil

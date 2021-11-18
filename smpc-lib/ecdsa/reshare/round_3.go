@@ -129,7 +129,7 @@ func (round *round3) Start() error {
 		return errors.New("get cur index fail")
 	}
 
-	u1PaillierPk, u1PaillierSk := ec2.GenerateKeyPair(round.paillierkeylength)
+	u1PaillierPk, u1PaillierSk,_,_ := ec2.GenerateKeyPair(round.paillierkeylength)
 
 	//round.Save.U1PaillierSk = u1PaillierSk
 	//round.Save.U1PaillierPk[curIndex] = u1PaillierPk

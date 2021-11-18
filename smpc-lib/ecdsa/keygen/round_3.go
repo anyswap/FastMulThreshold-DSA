@@ -18,6 +18,8 @@ package keygen
 
 import (
 	"errors"
+	"fmt"
+	"math/big"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
 
@@ -35,6 +37,34 @@ func (round *round3) Start() error {
 		return err
 	}
 
+	// add for GG20: keygen phase 3. Each player Pi proves in ZK that Ni is square-free using the proof of Gennaro, Micciancio, and Rabin [30]
+	// An Efficient Non-Interactive Statistical Zero-Knowledge Proof System for Quasi-Safe Prime Products, section 3.1
+	// compute M = N^-1 mod OuLa(N) and output y = x^M mod N 
+	for k,id := range round.Save.IDs {
+		msg22, ok := round.temp.kgRound2Messages2[k].(*KGRound2Message2)
+		if !ok {
+		    return errors.New("round.Start get round2 msg 2 fail")
+		}
+
+		M := new(big.Int).ModInverse(round.Save.U1PaillierSk.N, round.Save.U1PaillierSk.L)
+		y := new(big.Int).Exp(msg22.X,M,round.Save.U1PaillierSk.N)
+
+		kg := &KGRound3Message1{
+			KGRoundMessage: new(KGRoundMessage),
+			Y:    y,
+		}
+		kg.SetFromID(round.dnodeid)
+		kg.SetFromIndex(curIndex)
+
+		if k == curIndex {
+		    round.temp.kgRound3Messages1[k] = kg
+		} else {
+		    kg.AppendToID(fmt.Sprintf("%v", id)) //id-->dnodeid
+		    round.out <- kg
+		}
+	}
+	//
+	
 	kg := &KGRound3Message{
 		KGRoundMessage: new(KGRoundMessage),
 		ComU1GD:        round.temp.commitU1G.D,
@@ -55,6 +85,9 @@ func (round *round3) CanAccept(msg smpc.Message) bool {
 	if _, ok := msg.(*KGRound3Message); ok {
 		return msg.IsBroadcast()
 	}
+	if _, ok := msg.(*KGRound3Message1); ok {
+		return !msg.IsBroadcast()
+	}
 	return false
 }
 
@@ -65,6 +98,10 @@ func (round *round3) Update() (bool, error) {
 			continue
 		}
 		if msg == nil || !round.CanAccept(msg) {
+			return false, nil
+		}
+		msg31 := round.temp.kgRound3Messages1[j]
+		if msg31 == nil || !round.CanAccept(msg31) {
 			return false, nil
 		}
 		round.ok[j] = true
