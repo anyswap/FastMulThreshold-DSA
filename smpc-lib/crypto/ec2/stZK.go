@@ -24,6 +24,7 @@ import (
 
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
 
 // ZK proof for knowledge of sigma_i, l_i such that S_i = R^sigma_i, T_i = g^sigma_i h^l_i (GG20)
@@ -65,6 +66,16 @@ func STVerify(S1X *big.Int,S1Y *big.Int,T1X *big.Int,T1Y *big.Int,Rx *big.Int,Ry
 	return false
     }
     
+    if smpc.IsInfinityPoint(S1X,S1Y) || smpc.IsInfinityPoint(T1X,T1Y) || smpc.IsInfinityPoint(Rx,Ry) || smpc.IsInfinityPoint(hGx,hGy) || smpc.IsInfinityPoint(stpf.AlphaX,stpf.AlphaY) || smpc.IsInfinityPoint(stpf.BetaX, stpf.BetaY) {
+	return false
+    }
+
+    mt := new(big.Int).Mod(stpf.T,secp256k1.S256().N)
+    mu := new(big.Int).Mod(stpf.U,secp256k1.S256().N)
+    if mt.Cmp(big.NewInt(0)) == 0 || mt.Cmp(big.NewInt(1)) == 0 || mu.Cmp(big.NewInt(0)) == 0 || mu.Cmp(big.NewInt(1)) == 0 {
+	return false
+    }
+
     Gx,Gy := secp256k1.S256().ScalarBaseMult(one.Bytes())
     e := Sha512_256i(T1X, T1Y, S1X,S1Y,Rx,Ry,hGx, hGy, Gx, Gy, stpf.AlphaX, stpf.AlphaY, stpf.BetaX, stpf.BetaY)
     e = new(big.Int).Mod(e, secp256k1.S256().N)

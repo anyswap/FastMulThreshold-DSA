@@ -121,3 +121,4 @@ func CreateNt(length int) (*NtildeH1H2, *big.Int, *big.Int, *big.Int, *big.Int) 
 	ntildeH1H2 := &NtildeH1H2{Ntilde: NTildei, H1: h1i, H2: h2i}
 	return ntildeH1H2, alpha, beta, p, q
 }
+

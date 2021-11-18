@@ -25,6 +25,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
 
 // ZK proof of knowledge of sigma_i, l_i such that T_i = g^sigma_i, h^l_i (GG20)
@@ -76,6 +77,16 @@ func TVerify(t1X *big.Int, t1Y *big.Int,  Gx *big.Int, Gy *big.Int, proof *TProo
 	if t1X == nil || t1Y == nil || Gx == nil || Gy == nil || proof == nil {
 	    return false 
 	}
+
+    if smpc.IsInfinityPoint(proof.AlphaX,proof.AlphaY) || smpc.IsInfinityPoint(t1X,t1Y) || smpc.IsInfinityPoint(Gx,Gy) {
+	return false
+    }
+
+    mt := new(big.Int).Mod(proof.T,secp256k1.S256().N)
+    mu := new(big.Int).Mod(proof.U,secp256k1.S256().N)
+    if mt.Cmp(big.NewInt(0)) == 0 || mt.Cmp(big.NewInt(1)) == 0 || mu.Cmp(big.NewInt(0)) == 0 || mu.Cmp(big.NewInt(1)) == 0 {
+	return false
+    }
 
 	hellomulti := "hello multichain"
 	sha3256 := sha3.New256()

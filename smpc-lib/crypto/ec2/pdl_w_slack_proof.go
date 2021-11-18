@@ -25,6 +25,7 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
+	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
 
 type (
@@ -139,6 +140,42 @@ func Hash256Sum(in ...*big.Int) *big.Int {
 // PDLwSlackVerify verify PDLwSlackProof
 func PDLwSlackVerify(st *PDLwSlackStatement,p *PDLwSlackProof) bool {
     if st == nil || p == nil {
+	return false
+    }
+
+    if smpc.IsInfinityPoint(st.Rx,st.Ry) || smpc.IsInfinityPoint(st.K1RX,st.K1RY) || smpc.IsInfinityPoint(p.U1X,p.U1Y) {
+	return false
+    }
+
+    N2 := new(big.Int).Mul(st.PK.N,st.PK.N)
+    mCipherText := new(big.Int).Mod(st.CipherText,N2)
+    if mCipherText.Cmp(big.NewInt(0)) == 0 || mCipherText.Cmp(big.NewInt(1)) == 0 {
+	return false
+    }
+
+    mH1 := new(big.Int).Mod(st.H1,st.NTilde)
+    mH2 := new(big.Int).Mod(st.H2,st.NTilde)
+    if mH1.Cmp(big.NewInt(0)) == 0 || mH1.Cmp(big.NewInt(1)) == 0 || mH2.Cmp(big.NewInt(0)) == 0 || mH2.Cmp(big.NewInt(1)) == 0 {
+	return false
+    }
+
+    mz := new(big.Int).Mod(p.Z,st.NTilde)
+    if mz.Cmp(big.NewInt(0)) == 0 || mz.Cmp(big.NewInt(1)) == 0 {
+	return false
+    }
+
+    mu2 := new(big.Int).Mod(p.U2,N2)
+    if mu2.Cmp(big.NewInt(0)) == 0 || mu2.Cmp(big.NewInt(1)) == 0 {
+	return false
+    }
+
+    mu3 := new(big.Int).Mod(p.U3,st.NTilde)
+    if mu3.Cmp(big.NewInt(0)) == 0 || mu3.Cmp(big.NewInt(1)) == 0 {
+	return false
+    }
+
+    ms2 := new(big.Int).Mod(p.S2,st.PK.N)
+    if ms2.Cmp(big.NewInt(0)) == 0 || ms2.Cmp(big.NewInt(1)) == 0 {
 	return false
     }
 
