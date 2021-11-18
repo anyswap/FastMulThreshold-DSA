@@ -117,13 +117,17 @@ func (round *round5) Start() error {
 
 	// gg20: calculate T_i = g^sigma_i * h^l_i = sigma_i*G + l_i*h*G
 	l1 := random.GetRandomIntFromZn(secp256k1.S256().N)
-	one,_ := new(big.Int).SetString("1",10)
-	Gx,Gy := secp256k1.S256().ScalarBaseMult(one.Bytes())
-	l1Gx,l1Gy := secp256k1.S256().ScalarMult(Gx,Gy,l1.Bytes())
+	hx,hy,err := ec2.CalcHPoint()
+	if err != nil {
+	    fmt.Printf("calc h point fail, err = %v",err)
+	    return err
+	}
+
+	l1Gx,l1Gy := secp256k1.S256().ScalarMult(hx,hy,l1.Bytes())
 	sigmaGx,sigmaGy := secp256k1.S256().ScalarBaseMult(sigma1.Bytes())
 	t1X,t1Y := secp256k1.S256().Add(sigmaGx,sigmaGy,l1Gx,l1Gy)
 	// gg20: generate the ZK proof of T_i
-	tProof := ec2.TProve(t1X,t1Y,Gx,Gy,sigma1,l1)
+	tProof := ec2.TProve(t1X,t1Y,hx,hy,sigma1,l1)
 	if tProof == nil {
 	    return errors.New("prove Ti proof fail")
 	}

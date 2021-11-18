@@ -99,10 +99,13 @@ func (round *round8) Start() error {
 	}
 
 	S1X,S1Y := secp256k1.S256().ScalarMult(round.temp.deltaGammaGx,round.temp.deltaGammaGy,round.temp.sigma1.Bytes())
-	one,_ := new(big.Int).SetString("1",10)
-	Gx,Gy := secp256k1.S256().ScalarBaseMult(one.Bytes())
+	hx,hy,err := ec2.CalcHPoint()
+	if err != nil {
+	    fmt.Printf("calc h point fail, err = %v",err)
+	    return err 
+	}
 
-	stProof := ec2.NewSTProof(round.temp.t1X,round.temp.t1Y,S1X,S1Y,round.temp.deltaGammaGx,round.temp.deltaGammaGy,Gx,Gy,round.temp.sigma1,round.temp.l1)
+	stProof := ec2.NewSTProof(round.temp.t1X,round.temp.t1Y,S1X,S1Y,round.temp.deltaGammaGx,round.temp.deltaGammaGy,hx,hy,round.temp.sigma1,round.temp.l1)
 	if stProof == nil {
 	    return fmt.Errorf("new stproof fail")
 	}

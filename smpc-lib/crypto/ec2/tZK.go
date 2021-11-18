@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"errors"
 	"math/big"
-
+	"crypto/sha256"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
@@ -37,6 +37,52 @@ type TProof struct {
 }
 
 //------------------------------------------------------------------------------------
+
+// CalcHPoint returns a shared point of unknown discrete logarithm for the curve
+// Mimics the KZen-networks/curv impl: https://git.io/JfwSa
+// Not so efficient due to 3x sha256 but it's only used once during a signing round.
+func CalcHPoint() (*big.Int,*big.Int,error) {
+    minRounds := 3 // minimum to generate a curve point for secp256k1
+    bz := secp256k1.S256().Marshal(secp256k1.S256().Gx,secp256k1.S256().Gy)
+
+    var hx *big.Int
+    var hy *big.Int
+    for i := 0; i < minRounds || (hx == nil && hy == nil); i++ {
+	    if i >= 10 {
+		return nil,nil,errors.New("too many rounds (max: 10)")
+	    }
+	    sum := sha256.Sum256(bz)
+	    bz = sum[:]
+	    if i >= minRounds-1 {
+		    hx,hy, _ = decompressPoint(new(big.Int).SetBytes(bz), 0x2)
+	    }
+    }
+
+    return hx,hy,nil
+}
+
+func decompressPoint(x *big.Int, sign byte) (*big.Int,*big.Int, error) {
+	params := secp256k1.S256().Params()
+
+	// secp256k1: y^2 = x^3 + 7
+	x3 := new(big.Int).Mul(x, x)
+	x3.Mul(x3, x)
+
+	y2 := x3.Add(x3, big.NewInt(7))
+
+	// find the sq root mod P
+	y := new(big.Int).ModSqrt(y2,params.P)
+	if y == nil {
+	    return nil,nil,errors.New("invalid point")
+	}
+	if y.Bit(0) != uint(sign)&1 {
+	    i := new(big.Int)
+	    i.Neg(y)
+	    y = new(big.Int).Mod(i,params.P)
+	}
+
+	return x,y,nil
+}
 
 // TProve create T1 Prove
 func TProve(t1X *big.Int, t1Y *big.Int,  Gx *big.Int, Gy *big.Int, sigma1 *big.Int,l1 *big.Int) *TProof {

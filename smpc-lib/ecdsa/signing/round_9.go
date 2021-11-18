@@ -36,8 +36,11 @@ func (round *round9) Start() error {
 	round.started = true
 	round.resetOK()
 	
-	one,_ := new(big.Int).SetString("1",10)
-	Gx,Gy := secp256k1.S256().ScalarBaseMult(one.Bytes())
+	hx,hy,err := ec2.CalcHPoint()
+	if err != nil {
+	    fmt.Printf("calc h point fail, err = %v",err)
+	    return err 
+	}
 
 	var s1x *big.Int
 	var s1y *big.Int
@@ -45,7 +48,7 @@ func (round *round9) Start() error {
 	for k := range round.idsign {
 	    msg8, _ := round.temp.signRound8Messages[k].(*SignRound8Message)
 	    msg5, _ := round.temp.signRound5Messages[k].(*SignRound5Message)
-	    if ok := ec2.STVerify(msg8.S1X,msg8.S1Y,msg5.T1X,msg5.T1Y,round.temp.deltaGammaGx,round.temp.deltaGammaGy,Gx,Gy,msg8.STpf); !ok {
+	    if ok := ec2.STVerify(msg8.S1X,msg8.S1Y,msg5.T1X,msg5.T1Y,round.temp.deltaGammaGx,round.temp.deltaGammaGy,hx,hy,msg8.STpf); !ok {
 		return fmt.Errorf("STProof verify fail")
 	    }
 
