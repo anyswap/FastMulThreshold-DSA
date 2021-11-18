@@ -94,6 +94,14 @@ func (round *round1) Start() error {
 		return errors.New(" Error generating commitment data in signing round 1")
 	}
 
+	// add for GG18 A.2 Respondent ZK Proof for MtAwc
+	wiGx, wiGy := secp256k1.S256().ScalarBaseMult(round.temp.w1.Bytes())
+	commitwiG := new(ec2.Commitment).Commit(wiGx, wiGy)
+	if commitwiG == nil {
+	    return errors.New(" Error generating commitment data for wi")
+	}
+	round.temp.commitwiG = commitwiG
+
 	round.temp.u1K = u1K
 	round.temp.u1Gamma = u1Gamma
 	round.temp.commitU1GammaG = commitU1GammaG
@@ -101,6 +109,7 @@ func (round *round1) Start() error {
 	srm := &SignRound1Message{
 		SignRoundMessage: new(SignRoundMessage),
 		C11:              commitU1GammaG.C,
+		ComWiC:		commitwiG.C, // add for GG18 A.2 Respondent ZK Proof for MtAwc
 	}
 	srm.SetFromID(round.kgid)
 	srm.SetFromIndex(curIndex)

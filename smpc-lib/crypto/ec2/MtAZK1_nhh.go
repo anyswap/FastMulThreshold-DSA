@@ -38,8 +38,10 @@ type MtAZK1Proofnhh struct {
 	S2 *big.Int
 }
 
-// MtAZK1Provenhh  Generate zero knowledge proof data mtazk1proof_ nhh 
-func MtAZK1Provenhh(m *big.Int, r *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtAZK1Proofnhh {
+// MtAZK1Provenhh GG18 A.1 Range Proof
+// This proof is run by Alice (the initiator) in both MtA and MtAwc protocols.
+// At the end of the protocol the Verifier is convinced that m ∈ [−q^3 , q^3]
+func MtAZK1Provenhh(c *big.Int,m *big.Int, r *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtAZK1Proofnhh {
 	N3Ntilde := new(big.Int).Mul(s256.S256().N3(), ntildeH1H2.Ntilde)
 	NNtilde := new(big.Int).Mul(s256.S256().N, ntildeH1H2.Ntilde)
 
@@ -64,14 +66,14 @@ func MtAZK1Provenhh(m *big.Int, r *big.Int, publicKey *PublicKey, ntildeH1H2 *Nt
 	sha3256.Write(z.Bytes())
 	sha3256.Write(u.Bytes())
 	sha3256.Write(w.Bytes())
-
+	
+	sha3256.Write(c.Bytes())
 	sha3256.Write([]byte("hello multichain"))
 
 	sha3256.Write(publicKey.N.Bytes()) //MtAZK1 question 2
 
 	eBytes := sha3256.Sum(nil)
 	e := new(big.Int).SetBytes(eBytes)
-
 	e = new(big.Int).Mod(e, s256.S256().N)
 
 	s := new(big.Int).Exp(r, e, publicKey.N)
@@ -140,6 +142,7 @@ func (mtAZKProof *MtAZK1Proofnhh) MtAZK1Verifynhh(c *big.Int, publicKey *PublicK
 	sha3256.Write(mtAZKProof.Z.Bytes())
 	sha3256.Write(mtAZKProof.U.Bytes())
 	sha3256.Write(mtAZKProof.W.Bytes())
+	sha3256.Write(c.Bytes())
 
 	sha3256.Write([]byte("hello multichain"))
 	sha3256.Write(publicKey.N.Bytes()) //MtAZK1 question 2
@@ -175,6 +178,8 @@ func (mtAZKProof *MtAZK1Proofnhh) MtAZK1Verifynhh(c *big.Int, publicKey *PublicK
 
 	return true
 }
+
+//--------------------------------------------------------------------------------
 
 // MarshalJSON marshal MtAZK1Proofnhh to json bytes
 func (mtAZKProof *MtAZK1Proofnhh) MarshalJSON() ([]byte, error) {

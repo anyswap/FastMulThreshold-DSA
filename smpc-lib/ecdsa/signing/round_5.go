@@ -69,8 +69,14 @@ func (round *round5) Start() error {
 			return errors.New("verify mkg fail")
 		}
 
+		// add for GG18 A.2 Respondent ZK Proof for MtAwc
+		msg1, _ := round.temp.signRound1Messages[k].(*SignRound1Message)
+		msg3, _ := round.temp.signRound3Messages[k].(*SignRound3Message)
+		deCommit := &ec2.Commitment{C: msg1.ComWiC, D: msg3.ComWiD}
+		_,xG := deCommit.DeCommit()
+
 		msg41, _ := round.temp.signRound4Messages1[k].(*SignRound4Message1)
-		rlt112 := msg41.U1u1MtAZK3Proof.MtAZK3Verifynhh(round.temp.ukc, msg41.U1Kw1Cipher, u1PaillierPk, u1nt)
+		rlt112 := msg41.U1u1MtAZK3Proof.MtAZK3Verifynhh(xG,round.temp.ukc, msg41.U1Kw1Cipher, u1PaillierPk, u1nt)
 		if !rlt112 {
 			return errors.New("verify mkw fail")
 		}

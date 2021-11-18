@@ -41,8 +41,10 @@ type MtAZK2Proofnhh struct {
 	T2   *big.Int
 }
 
-// MtAZK2Provenhh  Generate zero knowledge proof data mtazk2proof_ nhh 
-func MtAZK2Provenhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtAZK2Proofnhh {
+// MtAZK2Provenhh GG18 A.3 Respondent ZK Proof for MtA 
+// This proof is run by Bob (the responder) in the MtA protocol where Bob only proves that x is small (without proving that it is the discrete log of any public value).
+// At the end of the protocol the Verifier is convinced of the above and that x ∈ [−q^3 , q^3].
+func MtAZK2Provenhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *big.Int,publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtAZK2Proofnhh {
 	q3Ntilde := new(big.Int).Mul(s256.S256().N3(), ntildeH1H2.Ntilde)
 	qNtilde := new(big.Int).Mul(s256.S256().N, ntildeH1H2.Ntilde)
 
@@ -82,6 +84,8 @@ func MtAZK2Provenhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, publicKey *
 	sha3256.Write(t.Bytes())
 	sha3256.Write(v.Bytes())
 	sha3256.Write(w.Bytes())
+	sha3256.Write(c1.Bytes())
+	sha3256.Write(c2.Bytes())
 
 	sha3256.Write([]byte("hello multichain"))
 	sha3256.Write(publicKey.N.Bytes()) //MtAZK2 question 2
@@ -177,6 +181,8 @@ func (mtAZK2Proof *MtAZK2Proofnhh) MtAZK2Verifynhh(c1 *big.Int, c2 *big.Int, pub
 	sha3256.Write(mtAZK2Proof.T.Bytes())
 	sha3256.Write(mtAZK2Proof.V.Bytes())
 	sha3256.Write(mtAZK2Proof.W.Bytes())
+	sha3256.Write(c1.Bytes())
+	sha3256.Write(c2.Bytes())
 
 	sha3256.Write([]byte("hello multichain"))
 	sha3256.Write(publicKey.N.Bytes()) //MtAZK2 question 2

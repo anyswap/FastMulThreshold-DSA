@@ -106,10 +106,21 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 		    return nil
 		}
 
+		if msg["ComWiC"] == "" {
+		    return nil
+		}
+
+		wic, _ := new(big.Int).SetString(msg["ComWiC"], 10)
+		if wic == nil {
+		    return nil
+		}
+
 		srm := &signing.SignRound1Message{
 			SignRoundMessage: new(signing.SignRoundMessage),
 			C11:              c11,
+			ComWiC:           wic,
 		}
+		
 		srm.SetFromID(from)
 		srm.SetFromIndex(index)
 		srm.ToID = to
@@ -145,19 +156,33 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 		return nil
 	    }
 
-		kc, _ := new(big.Int).SetString(msg["Kc"], 10)
-		if kc == nil {
-		    return nil
+	    kc, _ := new(big.Int).SetString(msg["Kc"], 10)
+	    if kc == nil {
+		return nil
+	    }
+
+	    if msg["ComWiD"] == "" {
+		return nil
+	    }
+
+		tmp := strings.Split(msg["ComWiD"], ":")
+		dtmp := make([]*big.Int, len(tmp))
+		for k, v := range tmp {
+			dtmp[k], _ = new(big.Int).SetString(v, 10)
+			if dtmp[k] == nil {
+			    return nil
+			}
 		}
 
-		srm := &signing.SignRound3Message{
-			SignRoundMessage: new(signing.SignRoundMessage),
-			Kc:               kc,
-		}
-		srm.SetFromID(from)
-		srm.SetFromIndex(index)
-		srm.ToID = to
-		return srm
+	    srm := &signing.SignRound3Message{
+		    SignRoundMessage: new(signing.SignRoundMessage),
+		    Kc:               kc,
+		    ComWiD:dtmp,
+	    }
+	    srm.SetFromID(from)
+	    srm.SetFromIndex(index)
+	    srm.ToID = to
+	    return srm
 	}
 
 	//4 message

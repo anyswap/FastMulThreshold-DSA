@@ -60,6 +60,7 @@ type localTempData struct {
 	u1K            *big.Int
 	u1Gamma        *big.Int
 	commitU1GammaG *ec2.Commitment
+	commitwiG *ec2.Commitment
 
 	//round 2
 	ukc  *big.Int

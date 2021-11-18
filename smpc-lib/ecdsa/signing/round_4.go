@@ -77,7 +77,14 @@ func (round *round4) Start() error {
 				fmt.Printf("============round4.start,verify mtazk1 proof fail.==============\n")
 				return errors.New("verify mtazk1 proof fail")
 			}
+		}
 
+		// add for GG18 A.2 Respondent ZK Proof for MtAwc
+		// check commitment
+		msg1, _ := round.temp.signRound1Messages[k].(*SignRound1Message)
+		deCommit := &ec2.Commitment{C: msg1.ComWiC, D: msg3.ComWiD}
+		if !deCommit.Verify() {
+		    return errors.New("verify commit for wi fail")
 		}
 	}
 
@@ -126,7 +133,7 @@ func (round *round4) Start() error {
 			beta1U1StarCipher, u1BetaR1, _ := u1PaillierPk.Encrypt(betaU1Star[k])
 			u1KGamma1Cipher = u1PaillierPk.HomoAdd(u1KGamma1Cipher, beta1U1StarCipher)
 			//u1nt := round.save.U1NtildeH1H2[index]
-			u1u1MtAZK2Proof := ec2.MtAZK2Provenhh(round.temp.u1Gamma, betaU1Star[k], u1BetaR1, round.temp.ukc, round.save.U1PaillierPk[oldindex], round.save.U1NtildeH1H2[oldindex])
+			u1u1MtAZK2Proof := ec2.MtAZK2Provenhh(round.temp.u1Gamma, betaU1Star[k], u1BetaR1, round.temp.ukc, u1KGamma1Cipher,round.save.U1PaillierPk[oldindex], round.save.U1NtildeH1H2[oldindex])
 
 			srm := &SignRound4Message{
 				SignRoundMessage: new(SignRoundMessage),
@@ -144,7 +151,7 @@ func (round *round4) Start() error {
 			beta1U1StarCipher, u1BetaR1, _ := u1PaillierPk.Encrypt(betaU1Star[k])
 			u1KGamma1Cipher = u1PaillierPk.HomoAdd(u1KGamma1Cipher, beta1U1StarCipher)
 			//u1nt := round.save.U1NtildeH1H2[index]
-			u1u1MtAZK2Proof := ec2.MtAZK2Provenhh(round.temp.u1Gamma, betaU1Star[k], u1BetaR1, msg3.Kc, u1PaillierPk, round.save.U1NtildeH1H2[oldindex])
+			u1u1MtAZK2Proof := ec2.MtAZK2Provenhh(round.temp.u1Gamma, betaU1Star[k], u1BetaR1, msg3.Kc, u1KGamma1Cipher,u1PaillierPk, round.save.U1NtildeH1H2[oldindex])
 
 			srm := &SignRound4Message{
 				SignRoundMessage: new(SignRoundMessage),
@@ -175,7 +182,7 @@ func (round *round4) Start() error {
 			u1Kw1Cipher := u1PaillierPk.HomoMul(msg3.Kc, round.temp.w1)
 			v1U1StarCipher, u1VR1, _ := u1PaillierPk.Encrypt(vU1Star[k])
 			u1Kw1Cipher = u1PaillierPk.HomoAdd(u1Kw1Cipher, v1U1StarCipher) // send to u1
-			u1u1MtAZK3Proof := ec2.MtAZK3Provenhh(round.temp.w1, vU1Star[k], u1VR1, round.temp.ukc, round.save.U1PaillierPk[oldindex], round.save.U1NtildeH1H2[oldindex])
+			u1u1MtAZK3Proof := ec2.MtAZK3Provenhh(round.temp.w1, vU1Star[k], u1VR1, round.temp.ukc,u1Kw1Cipher,round.save.U1PaillierPk[oldindex], round.save.U1NtildeH1H2[oldindex])
 
 			srm := &SignRound4Message1{
 				SignRoundMessage: new(SignRoundMessage),
@@ -192,7 +199,7 @@ func (round *round4) Start() error {
 			u1Kw1Cipher := u1PaillierPk.HomoMul(msg3.Kc, round.temp.w1)
 			v1U1StarCipher, u1VR1, _ := u1PaillierPk.Encrypt(vU1Star[k])
 			u1Kw1Cipher = u1PaillierPk.HomoAdd(u1Kw1Cipher, v1U1StarCipher) // send to u1
-			u1u1MtAZK3Proof := ec2.MtAZK3Provenhh(round.temp.w1, vU1Star[k], u1VR1, msg3.Kc, u1PaillierPk, round.save.U1NtildeH1H2[oldindex])
+			u1u1MtAZK3Proof := ec2.MtAZK3Provenhh(round.temp.w1, vU1Star[k], u1VR1, msg3.Kc, u1Kw1Cipher,u1PaillierPk, round.save.U1NtildeH1H2[oldindex])
 
 			srm := &SignRound4Message1{
 				SignRoundMessage: new(SignRoundMessage),

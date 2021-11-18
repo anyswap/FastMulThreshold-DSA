@@ -46,11 +46,14 @@ func (srm *SignRoundMessage) AppendToID(toid string) {
 	srm.ToID = append(srm.ToID, toid)
 }
 
+//-----------------------------------------------------------------------
+
 // SignRound1Message  Round 1 sending message 
 type SignRound1Message struct {
 	*SignRoundMessage
 
 	C11 *big.Int
+	ComWiC *big.Int
 }
 
 // GetFromID get the ID of sending nodes in the group
@@ -81,6 +84,7 @@ func (srm *SignRound1Message) OutMap() map[string]string {
 	m["ToID"] = ""
 	m["Type"] = "SignRound1Message"
 	m["C11"] = fmt.Sprintf("%v", srm.C11)
+	m["ComWiC"] = fmt.Sprintf("%v", srm.ComWiC)
 
 	return m
 }
@@ -132,6 +136,7 @@ func (srm *SignRound2Message) OutMap() map[string]string {
 type SignRound3Message struct {
 	*SignRoundMessage
 	Kc *big.Int
+	ComWiD   []*big.Int
 }
 
 // GetFromID get the ID of sending nodes in the group
@@ -162,6 +167,13 @@ func (srm *SignRound3Message) OutMap() map[string]string {
 	m["ToID"] = ""
 	m["Type"] = "SignRound3Message"
 	m["Kc"] = fmt.Sprintf("%v", srm.Kc)
+
+	dtmp := make([]string, len(srm.ComWiD))
+	for k, v := range srm.ComWiD {
+		dtmp[k] = fmt.Sprintf("%v", v)
+	}
+
+	m["ComWiD"] = strings.Join(dtmp, ":")
 
 	return m
 }

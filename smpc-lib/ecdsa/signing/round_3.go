@@ -40,6 +40,7 @@ func (round *round3) Start() error {
 	srm := &SignRound3Message{
 		SignRoundMessage: new(SignRoundMessage),
 		Kc:               round.temp.ukc,
+		ComWiD:		round.temp.commitwiG.D, // add for GG18 A.2 Respondent ZK Proof for MtAwc
 	}
 	srm.SetFromID(round.kgid)
 	srm.SetFromIndex(curIndex)
