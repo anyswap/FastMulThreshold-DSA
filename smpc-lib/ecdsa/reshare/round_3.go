@@ -112,6 +112,15 @@ func (round *round3) Start() error {
 	round.temp.pky = pky
 	round.temp.newskU1 = newskU1
 
+	///////////////////
+	//  In order to keep completely consistent with the Reshare protocol, the code that needs to be processed outside the protocol is removed here 
+	round.Save.SkU1 = round.temp.newskU1
+	round.Save.Pkx = round.temp.pkx
+	round.Save.Pky = round.temp.pky
+	round.end <- *round.Save
+	return nil
+	///////////////////
+
 	idtmp, ok := new(big.Int).SetString(round.dnodeid, 10)
 	if !ok {
 		return errors.New("get id big number fail")
