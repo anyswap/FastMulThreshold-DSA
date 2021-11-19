@@ -234,7 +234,7 @@ func (kg *KGRound4Message) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
-	m["ToID"] = ""
+	m["ToID"] = strings.Join(kg.ToID, ":")
 
 	shares := hex.EncodeToString(kg.Share[:])
 	m["Share"] = shares

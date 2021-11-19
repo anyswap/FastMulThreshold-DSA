@@ -29,6 +29,7 @@ type KGRoundMessage struct {
 	FromID    string   `json:"FromID"` //DNodeID
 	FromIndex int      `json:"FromIndex"`
 	ToID      []string `json:"ToID"`
+	//Sig []byte `json:"Sig"`
 }
 
 // SetFromID set sending nodes's ID
@@ -242,7 +243,7 @@ func (kg *KGRound2Message2) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
-	m["ToID"] = ""
+	m["ToID"] = strings.Join(kg.ToID, ":")
 	m["X"] = fmt.Sprintf("%v", kg.X)
 	m["Type"] = "KGRound2Message2"
 	return m
@@ -349,7 +350,7 @@ func (kg *KGRound3Message1) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
-	m["ToID"] = ""
+	m["ToID"] = strings.Join(kg.ToID, ":")
 	m["Y"] = fmt.Sprintf("%v", kg.Y)
 	m["Type"] = "KGRound3Message1"
 	return m
