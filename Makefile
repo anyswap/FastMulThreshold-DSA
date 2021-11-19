@@ -30,3 +30,6 @@ fmt:
 
 gsmpc-test:
 	./build.sh gsmpc-test
+
+gsmpc-test-short:
+	./build.sh gsmpc-test-short
