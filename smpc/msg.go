@@ -37,6 +37,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	smpclib "github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"errors"
 )
 
 var (
@@ -1469,3 +1471,104 @@ func testEq(a, b []string) bool {
 
 	return true
 }
+
+//----------------------------------------------------------------
+
+// for p2p msg sig
+
+func getNodePrivate(keyfile string) (*ecdsa.PrivateKey,error) {
+    if keyfile == "" {
+	return nil,errors.New("key file is invalid")
+    }
+
+    nodeKey, err := crypto.LoadECDSA(keyfile)
+    if err != nil {
+	fmt.Printf("====================getNodePrivate,err = %v=======================\n",err)
+	return nil,err
+    }
+    
+    //enodeID := discover.PubkeyID(&nodeKey.PublicKey).String()
+    //fmt.Printf("======================getNodePrivate,enodeID = %v,cur_enode = %v===================\n",enodeID,curEnode)
+
+    return nodeKey,nil
+}
+
+func getUnSignMsgByte(msg smpclib.Message) ([]byte,error) {
+    if msg == nil {
+	return nil,errors.New("msg error")
+    }
+    
+    s, err := json.Marshal(msg)
+    if err != nil {
+	fmt.Printf("====================getUnSignMsgByte,err = %v=======================\n",err)
+	    return nil,err
+    }
+
+    hash := crypto.Keccak256(s)
+    return hash,nil
+}
+
+func sigP2pMsg(msg smpclib.Message,enodeID string) ([]byte,error) {
+    if msg == nil || enodeID == "" {
+	return nil,errors.New("param error")
+    }
+
+    priv,err := getNodePrivate(KeyFile)
+    if err != nil {
+	return nil,errors.New("get private fail")
+    }
+
+    hash,err := getUnSignMsgByte(msg)
+    if err != nil {
+	return nil,err
+    }
+
+    if len(hash) != 32 {
+	return nil,errors.New("hash len != 32")
+    }
+
+    sig,err := crypto.Sign(hash,priv)
+    if err != nil {
+	fmt.Printf("====================sigP2pMsg,err = %v=======================\n",err)
+	return nil,err
+    }
+
+    if !checkP2pSig(sig,msg,enodeID) {
+	return nil,errors.New("check sig error")
+    }
+
+    return sig,nil
+}
+
+func checkP2pSig(sig []byte,msg smpclib.Message,enodeID string) bool {
+    if sig == nil || msg == nil || enodeID == "" {
+	return false
+    }
+    
+    hash,err := getUnSignMsgByte(msg)
+    if err != nil {
+	return false 
+    }
+
+    public,err := crypto.SigToPub(hash,sig)
+    if err != nil {
+	fmt.Printf("====================checkP2pSig,err = %v=======================\n",err)
+	return false
+    }
+
+    pub := secp256k1.S256().Marshal(public.X,public.Y) 
+    pub2 := hex.EncodeToString(pub) // 04.....
+    s := []rune(pub2) // 04.....
+    ss := string(s[2:])
+    // pub2: 04730c8fc7142d15669e8329138953d9484fd4cce0c690e35e105a9714deb741f10b52be1c5d49eeeb6f00aab8f3d2dec4e3352d0bf56bdbc2d86cb5f89c8e90d0
+    // ss: 730c8fc7142d15669e8329138953d9484fd4cce0c690e35e105a9714deb741f10b52be1c5d49eeeb6f00aab8f3d2dec4e3352d0bf56bdbc2d86cb5f89c8e90d0
+    // enodeID: 730c8fc7142d15669e8329138953d9484fd4cce0c690e35e105a9714deb741f10b52be1c5d49eeeb6f00aab8f3d2dec4e3352d0bf56bdbc2d86cb5f89c8e90d0
+    if ss == enodeID {
+	return true
+    }
+
+    //fmt.Printf("====================checkP2pSig, check fail,recover pubkey = %v,enodeID = %v=======================\n",ss,enodeID)
+    return false
+}
+
+

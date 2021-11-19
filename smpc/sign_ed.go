@@ -27,6 +27,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"github.com/anyswap/Anyswap-MPCNode/internal/common"
 )
 
 //--------------------------------------------------------EDDSA start-------------------------------------------------------
@@ -65,6 +66,48 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *
 				ch <- res
 				return
 			}
+
+			//check sig
+			if msgmap["Sig"] == "" {
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail")}
+				ch <- res
+				return
+			}
+
+			if msgmap["ENode"] == "" {
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail")}
+				ch <- res
+				return
+			}
+
+			sig, _ := hex.DecodeString(msgmap["Sig"])
+			
+			common.Debug("===============sign ed,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
+			if !checkP2pSig(sig,mm,msgmap["ENode"]) {
+			    common.Error("===============sign ed,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
+			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
+			    ch <- res
+			    return
+			}
+			
+			succ := false
+			_, nodes := GetGroup(w.groupid)
+			others := strings.Split(nodes, common.Sep2)
+			for _, v := range others {
+			    node2 := ParseNode(v) //bug??
+			    if strings.EqualFold(node2,msgmap["ENode"]) {
+				succ = true
+				break
+			    }
+			}
+
+			if !succ {
+				common.Error("===============sign ed,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
+				ch <- res
+				return
+			}
+			////
 
 			_, err = w.DNode.Update(mm)
 			if err != nil {
