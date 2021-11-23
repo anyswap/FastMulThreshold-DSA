@@ -183,7 +183,7 @@ func main() {
 			fmt.Printf("pubkey = %v, get smpc addr failed. %v\n", pubkey, err)
 		}
 	default:
-		fmt.Printf("\nCMD('%v') not support\nSupport cmd: EnodeSig|SetGroup|REQDCRMADDR|ACCEPTREQADDR|LOCKOUT|ACCEPTLOCKOUT|SIGN|PRESIGNDATA|DELPRESIGNDATA|GETPRESIGNDATA|ACCEPTSIGN|RESHARE|ACCEPTRESHARE|CREATECONTRACT|GETDCRMADDR\n", *cmd)
+		fmt.Printf("\nCMD('%v') not support\nSupport cmd: EnodeSig|SetGroup|REQSMPCADDR|ACCEPTREQADDR|ACCEPTLOCKOUT|SIGN|PRESIGNDATA|DELPRESIGNDATA|GETPRESIGNDATA|ACCEPTSIGN|RESHARE|ACCEPTRESHARE|CREATECONTRACT|GETSMPCADDR\n", *cmd)
 	}
 }
 
@@ -196,7 +196,7 @@ func init() {
 	passwd = flag.String("passwd", "111111", "Password")
 	passwdfile = flag.String("passwdfile", "", "Password file")
 	url = flag.String("url", "http://127.0.0.1:9011", "Set node RPC URL")
-	cmd = flag.String("cmd", "", "EnodeSig|SetGroup|REQDCRMADDR|ACCEPTREQADDR|LOCKOUT|ACCEPTLOCKOUT|SIGN|PRESIGNDATA|DELPRESIGNDATA|GETPRESIGNDATA|ACCEPTSIGN|RESHARE|ACCEPTRESHARE|CREATECONTRACT|GETDCRMADDR")
+	cmd = flag.String("cmd", "", "EnodeSig|SetGroup|REQSMPCADDR|ACCEPTREQADDR|ACCEPTLOCKOUT|SIGN|PRESIGNDATA|DELPRESIGNDATA|GETPRESIGNDATA|ACCEPTSIGN|RESHARE|ACCEPTRESHARE|CREATECONTRACT|GETSMPCADDR")
 	gid = flag.String("gid", "", "groupID")
 	ts = flag.String("ts", "2/3", "Threshold")
 	mode = flag.String("mode", "1", "Mode:private=1/managed=0")
@@ -670,11 +670,11 @@ func DefaultDataDir(datadir string) string {
 	home := homeDir()
 	if home != "" {
 		if runtime.GOOS == "darwin" {
-			return filepath.Join(home, "Library", "dcrm-walletservice")
+			return filepath.Join(home, "Library", "smpc-walletservice")
 		} else if runtime.GOOS == "windows" {
-			return filepath.Join(home, "AppData", "Roaming", "dcrm-walletservice")
+			return filepath.Join(home, "AppData", "Roaming", "smpc-walletservice")
 		} else {
-			return filepath.Join(home, ".dcrm-walletservice")
+			return filepath.Join(home, ".smpc-walletservice")
 		}
 	}
 	// As we cannot guess a stable location, return empty and handle later
@@ -695,7 +695,7 @@ func homeDir() string {
 // GetPreDbDir Obtain the database path to store the relevant data required by the distributed sign 
 func GetPreDbDir(eid string, datadir string) string {
 	dir := DefaultDataDir(datadir)
-	dir += "/dcrmdata/dcrmpredb" + eid
+	dir += "/smpcdata/smpcpredb" + eid
 
 	return dir
 }
@@ -768,7 +768,7 @@ func Keccak256Hash(data ...[]byte) (h MPCHash) {
 
 // delPreSignData Delete the relevant data required by the distributed sign through pubkey and group ID  
 func delPreSignData() {
-	enodeRep, err := client.Call("dcrm_getEnode")
+	enodeRep, err := client.Call("smpc_getEnode")
 	if err != nil {
 		panic(err)
 	}
@@ -831,7 +831,7 @@ func delPreSignData() {
 
 // getPreSignData get the relevant data required by the distributed sign through pubkey and group ID  
 func getPreSignData() {
-	enodeRep, err := client.Call("dcrm_getEnode")
+	enodeRep, err := client.Call("smpc_getEnode")
 	if err != nil {
 		panic(err)
 	}
