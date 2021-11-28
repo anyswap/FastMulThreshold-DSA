@@ -23,7 +23,6 @@ import (
 	"math/big"
 
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
@@ -73,10 +72,12 @@ func NewPDLwSlackProof(wit *PDLwSlackWitness, st *PDLwSlackStatement) *PDLwSlack
     alpha := random.GetRandomIntFromZn(q3)
     alpha = new(big.Int).Mod(alpha,secp256k1.S256().N)
 
-    nSubOne := new(big.Int).Add(st.PK.N, one)
-    tmp := random.GetRandomIntFromZn(nSubOne)
+    nAddOne := new(big.Int).Add(st.PK.N, one)
+    tmp := random.GetRandomIntFromZn(nAddOne)
     tmp = new(big.Int).Mod(tmp,secp256k1.S256().N)
     beta := new(big.Int).Add(one,tmp)
+    
+    N2 := new(big.Int).Mul(st.PK.N,st.PK.N)
     
     rho := random.GetRandomIntFromZn(qNTilde)
     rho = new(big.Int).Mod(rho,secp256k1.S256().N)
@@ -86,11 +87,10 @@ func NewPDLwSlackProof(wit *PDLwSlackWitness, st *PDLwSlackStatement) *PDLwSlack
 
     z := commitmentUnknownOrder(st.H1, st.H2, st.NTilde, wit.K1, rho)
     u1Gx,u1Gy := secp256k1.S256().ScalarMult(st.Rx,st.Ry,alpha.Bytes())
-    nOne := new(big.Int).Add(st.PK.N, one)
-    u2 := commitmentUnknownOrder(nOne, beta, st.PK.N2, alpha, st.PK.N)
+    u2 := commitmentUnknownOrder(nAddOne, beta, N2, alpha, st.PK.N)
     u3 := commitmentUnknownOrder(st.H1, st.H2, st.NTilde, alpha, gamma)
 
-    e := Sha512_256i(st.Rx, st.Ry, st.K1RX, st.K1RY, st.CipherText, z, u1Gx, u1Gy, u2, u3)
+    e := Sha512_256i(st.Rx, st.Ry, st.K1RX, st.K1RY, st.CipherText, z, u1Gx, u1Gy, u2, u3,st.PK.N,nAddOne,N2,st.H1,st.H2,st.NTilde)
     e = new(big.Int).Mod(e, secp256k1.S256().N)
     if e == nil {
 	return nil
@@ -113,26 +113,6 @@ func commitmentUnknownOrder(h1, h2, NTilde, x, r *big.Int) (com *big.Int) {
 	h2R := modNTilde.Exp(h2, r)
 	com = modNTilde.Mul(h1X, h2R)
 	return
-}
-
-// Hash256Sum make a 256 hash
-func Hash256Sum(in ...*big.Int) *big.Int {
-
-    	if len(in) == 0 {
-	    return nil
-	}
-
-	hellomulti := "hello multichain"
-	sha3256 := sha3.New256()
-	for _,n := range in {
-	    sha3256.Write(n.Bytes())
-	}
-	sha3256.Write([]byte(hellomulti))
-	eBytes := sha3256.Sum(nil)
-	e := new(big.Int).SetBytes(eBytes)
-	e = new(big.Int).Mod(e, secp256k1.S256().N)
-
-	return e
 }
 
 //----------------------------------------------------------------------------------
@@ -179,9 +159,12 @@ func PDLwSlackVerify(st *PDLwSlackStatement,p *PDLwSlackProof) bool {
 	return false
     }
 
-    e := Sha512_256i(st.Rx, st.Ry, st.K1RX, st.K1RY, st.CipherText, p.Z, p.U1X, p.U1Y, p.U2, p.U3)
+    nOne := new(big.Int).Add(st.PK.N, one)
+
+    e := Sha512_256i(st.Rx, st.Ry, st.K1RX, st.K1RY, st.CipherText, p.Z, p.U1X, p.U1Y, p.U2, p.U3,st.PK.N,nOne,N2,st.H1,st.H2,st.NTilde)
     e = new(big.Int).Mod(e, secp256k1.S256().N)
     
+    eNeg := new(big.Int).Neg(e)
     tmp := new(big.Int).Mod(p.S1,secp256k1.S256().N)
     gS1X,gS1Y := secp256k1.S256().ScalarMult(st.Rx, st.Ry,tmp.Bytes())
     eFeNeg := new(big.Int).Sub(secp256k1.S256().N, e)
@@ -191,9 +174,8 @@ func PDLwSlackVerify(st *PDLwSlackStatement,p *PDLwSlackProof) bool {
 	return false
     }
 
-    nOne, eNeg := new(big.Int).Add(st.PK.N, one), new(big.Int).Neg(e)
-    u2TestTmp := commitmentUnknownOrder(nOne, p.S2, st.PK.N2, p.S1, st.PK.N)
-    u2Test := commitmentUnknownOrder(u2TestTmp, st.CipherText, st.PK.N2, one, eNeg)
+    u2TestTmp := commitmentUnknownOrder(nOne, p.S2, N2, p.S1, st.PK.N)
+    u2Test := commitmentUnknownOrder(u2TestTmp, st.CipherText, N2, one, eNeg)
     u3TestTmp := commitmentUnknownOrder(st.H1, st.H2, st.NTilde, p.S1, p.S3)
     u3Test := commitmentUnknownOrder(u3TestTmp, p.Z, st.NTilde, one, eNeg)
 

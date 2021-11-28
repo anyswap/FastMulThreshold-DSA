@@ -23,7 +23,6 @@ import (
 	"math/big"
 	"crypto/sha256"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
@@ -84,9 +83,11 @@ func decompressPoint(x *big.Int, sign byte) (*big.Int,*big.Int, error) {
 	return x,y,nil
 }
 
+//---------------------------------------------------------------------------------
+
 // TProve create T1 Prove
-func TProve(t1X *big.Int, t1Y *big.Int,  Gx *big.Int, Gy *big.Int, sigma1 *big.Int,l1 *big.Int) *TProof {
-	if t1X == nil || t1Y == nil || Gx == nil || Gy == nil || sigma1 == nil || l1 == nil {
+func TProve(t1X *big.Int, t1Y *big.Int,  hx *big.Int, hy *big.Int, sigma1 *big.Int,l1 *big.Int) *TProof {
+	if t1X == nil || t1Y == nil || hx == nil || hy == nil || sigma1 == nil || l1 == nil {
 	    return nil
 	}
 
@@ -94,20 +95,11 @@ func TProve(t1X *big.Int, t1Y *big.Int,  Gx *big.Int, Gy *big.Int, sigma1 *big.I
 	b := random.GetRandomIntFromZn(secp256k1.S256().N)
 
 	aGx,aGy := secp256k1.S256().ScalarBaseMult(a.Bytes())
-	bGx,bGy := secp256k1.S256().ScalarMult(Gx,Gy,b.Bytes())
-	alphaX,alphaY := secp256k1.S256().Add(aGx,aGy,bGx,bGy)
+	bHx,bHy := secp256k1.S256().ScalarMult(hx,hy,b.Bytes())
+	alphaX,alphaY := secp256k1.S256().Add(aGx,aGy,bHx,bHy)
 
-	hellomulti := "hello multichain"
-	sha3256 := sha3.New256()
-	sha3256.Write(t1X.Bytes())
-	sha3256.Write(t1Y.Bytes())
-	sha3256.Write(Gx.Bytes())
-	sha3256.Write(Gy.Bytes())
-	sha3256.Write(alphaX.Bytes())
-	sha3256.Write(alphaY.Bytes())
-	sha3256.Write([]byte(hellomulti))
-	eBytes := sha3256.Sum(nil)
-	e := new(big.Int).SetBytes(eBytes)
+	Gx,Gy := secp256k1.S256().ScalarBaseMult(one.Bytes())
+	e := Sha512_256i(t1X,t1Y,hx,hy,Gx,Gy,alphaX,alphaY)
 	e = new(big.Int).Mod(e, secp256k1.S256().N)
 
 	t := new(big.Int).Add(a, new(big.Int).Mul(e, sigma1))
@@ -118,13 +110,13 @@ func TProve(t1X *big.Int, t1Y *big.Int,  Gx *big.Int, Gy *big.Int, sigma1 *big.I
 }
 
 // TVerify verify TProof
-func TVerify(t1X *big.Int, t1Y *big.Int,  Gx *big.Int, Gy *big.Int, proof *TProof) bool {
+func TVerify(t1X *big.Int, t1Y *big.Int,  hx *big.Int, hy *big.Int, proof *TProof) bool {
 
-	if t1X == nil || t1Y == nil || Gx == nil || Gy == nil || proof == nil {
+	if t1X == nil || t1Y == nil || hx == nil || hy == nil || proof == nil {
 	    return false 
 	}
 
-    if smpc.IsInfinityPoint(proof.AlphaX,proof.AlphaY) || smpc.IsInfinityPoint(t1X,t1Y) || smpc.IsInfinityPoint(Gx,Gy) {
+    if smpc.IsInfinityPoint(proof.AlphaX,proof.AlphaY) || smpc.IsInfinityPoint(t1X,t1Y) || smpc.IsInfinityPoint(hx,hy) {
 	return false
     }
 
@@ -134,22 +126,13 @@ func TVerify(t1X *big.Int, t1Y *big.Int,  Gx *big.Int, Gy *big.Int, proof *TProo
 	return false
     }
 
-	hellomulti := "hello multichain"
-	sha3256 := sha3.New256()
-	sha3256.Write(t1X.Bytes())
-	sha3256.Write(t1Y.Bytes())
-	sha3256.Write(Gx.Bytes())
-	sha3256.Write(Gy.Bytes())
-	sha3256.Write(proof.AlphaX.Bytes())
-	sha3256.Write(proof.AlphaY.Bytes())
-	sha3256.Write([]byte(hellomulti))
-	eBytes := sha3256.Sum(nil)
-	e := new(big.Int).SetBytes(eBytes)
+	Gx,Gy := secp256k1.S256().ScalarBaseMult(one.Bytes())
+	e := Sha512_256i(t1X,t1Y,hx,hy,Gx,Gy,proof.AlphaX,proof.AlphaY)
 	e = new(big.Int).Mod(e, secp256k1.S256().N)
 
 	tGx,tGy := secp256k1.S256().ScalarBaseMult(proof.T.Bytes())
-	uGx,uGy := secp256k1.S256().ScalarMult(Gx,Gy,proof.U.Bytes())
-	tGuX,tGuY := secp256k1.S256().Add(tGx,tGy,uGx,uGy)
+	uHx,uHy := secp256k1.S256().ScalarMult(hx,hy,proof.U.Bytes())
+	tGuX,tGuY := secp256k1.S256().Add(tGx,tGy,uHx,uHy)
 
 	et1X,et1Y := secp256k1.S256().ScalarMult(t1X,t1Y,e.Bytes())
 	ateX,ateY := secp256k1.S256().Add(proof.AlphaX,proof.AlphaY,et1X,et1Y)

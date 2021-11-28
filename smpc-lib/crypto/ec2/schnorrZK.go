@@ -23,7 +23,6 @@ import (
 	"math/big"
 
 	s256 "github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
@@ -41,16 +40,7 @@ func ZkUProve(u *big.Int) *ZkUProof {
 	rGx, rGy := s256.S256().ScalarBaseMult(r.Bytes())
 	uGx, uGy := s256.S256().ScalarBaseMult(u.Bytes())
 
-	hellomulti := "hello multichain"
-	sha3256 := sha3.New256()
-	sha3256.Write(rGx.Bytes())
-	sha3256.Write(rGy.Bytes())
-	sha3256.Write(uGx.Bytes())
-	sha3256.Write(uGy.Bytes())
-	sha3256.Write([]byte(hellomulti))
-	eBytes := sha3256.Sum(nil)
-
-	e := new(big.Int).SetBytes(eBytes)
+	e := Sha512_256i(rGx,rGy,uGx,uGy)
 
 	s := new(big.Int).Mul(e, u)
 	s = new(big.Int).Add(r, s)
@@ -70,17 +60,7 @@ func ZkUVerify(uG []*big.Int, zkUProof *ZkUProof) bool {
 	eUx, eUy := s256.S256().ScalarMult(uG[0], uG[1], minusE.Bytes())
 	rGx, rGy := s256.S256().Add(sGx, sGy, eUx, eUy)
 
-	hellomulti := "hello multichain"
-	sha3256 := sha3.New256()
-	sha3256.Write(rGx.Bytes())
-	sha3256.Write(rGy.Bytes())
-	sha3256.Write(uG[0].Bytes())
-	sha3256.Write(uG[1].Bytes())
-	sha3256.Write([]byte(hellomulti))
-	eBytes := sha3256.Sum(nil)
-
-	e := new(big.Int).SetBytes(eBytes)
-
+	e := Sha512_256i(rGx,rGy,uG[0],uG[1])
 	if e.Cmp(zkUProof.E) == 0 {
 		return true
 	}
@@ -133,16 +113,7 @@ func ZkXiProve(sku1 *big.Int) *ZkXiProof {
 	rGx, rGy := s256.S256().ScalarBaseMult(r.Bytes())
 	xGx, xGy := s256.S256().ScalarBaseMult(sku1.Bytes())
 
-	hellomulti := "hello multichain"
-	sha3256 := sha3.New256()
-	sha3256.Write(rGx.Bytes())
-	sha3256.Write(rGy.Bytes())
-	sha3256.Write(xGx.Bytes())
-	sha3256.Write(xGy.Bytes())
-	sha3256.Write([]byte(hellomulti))
-	eBytes := sha3256.Sum(nil)
-
-	e := new(big.Int).SetBytes(eBytes)
+	e := Sha512_256i(rGx,rGy,xGx,xGy)
 
 	s := new(big.Int).Mul(e, sku1)
 	s = new(big.Int).Add(r, s)
@@ -155,7 +126,6 @@ func ZkXiProve(sku1 *big.Int) *ZkXiProof {
 // ZkXiVerify verify ZkXiProof
 func ZkXiVerify(xiG []*big.Int, zkUProof *ZkXiProof) bool {
 	sGx, sGy := s256.S256().ScalarBaseMult(zkUProof.S.Bytes())
-	//xGx, xGy := s256.S256().ScalarBaseMult(sku1.Bytes())
 
 	minusE := new(big.Int).Mul(big.NewInt(-1), zkUProof.E)
 	minusE = new(big.Int).Mod(minusE, s256.S256().N)
@@ -163,16 +133,7 @@ func ZkXiVerify(xiG []*big.Int, zkUProof *ZkXiProof) bool {
 	eUx, eUy := s256.S256().ScalarMult(xiG[0],xiG[1], minusE.Bytes())
 	rGx, rGy := s256.S256().Add(sGx, sGy, eUx, eUy)
 
-	hellomulti := "hello multichain"
-	sha3256 := sha3.New256()
-	sha3256.Write(rGx.Bytes())
-	sha3256.Write(rGy.Bytes())
-	sha3256.Write(xiG[0].Bytes())
-	sha3256.Write(xiG[1].Bytes())
-	sha3256.Write([]byte(hellomulti))
-	eBytes := sha3256.Sum(nil)
-
-	e := new(big.Int).SetBytes(eBytes)
+	e := Sha512_256i(rGx,rGy,xiG[0],xiG[1])
 
 	if e.Cmp(zkUProof.E) == 0 {
 		return true

@@ -23,7 +23,6 @@ import (
 	"math/big"
 
 	s256 "github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
@@ -78,21 +77,7 @@ func MtAZK2Provenhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *big.Int
 	w = new(big.Int).Mul(w, new(big.Int).Exp(ntildeH1H2.H2, delta, ntildeH1H2.Ntilde))
 	w = new(big.Int).Mod(w, ntildeH1H2.Ntilde)
 
-	sha3256 := sha3.New256()
-	sha3256.Write(z.Bytes())
-	sha3256.Write(zBar.Bytes())
-	sha3256.Write(t.Bytes())
-	sha3256.Write(v.Bytes())
-	sha3256.Write(w.Bytes())
-	sha3256.Write(c1.Bytes())
-	sha3256.Write(c2.Bytes())
-
-	sha3256.Write([]byte("hello multichain"))
-	sha3256.Write(publicKey.N.Bytes()) //MtAZK2 question 2
-
-	eBytes := sha3256.Sum(nil)
-	e := new(big.Int).SetBytes(eBytes)
-
+	e := Sha512_256i(z,zBar,t,v,w,c1,c2,publicKey.N)
 	e = new(big.Int).Mod(e, s256.S256().N)
 
 	s := new(big.Int).Exp(r, e, publicKey.N)
@@ -175,21 +160,7 @@ func (mtAZK2Proof *MtAZK2Proofnhh) MtAZK2Verifynhh(c1 *big.Int, c2 *big.Int, pub
 	//paillier pubkey.N2
 	N2 := new(big.Int).Mul(publicKey.N,publicKey.N)
 
-	sha3256 := sha3.New256()
-	sha3256.Write(mtAZK2Proof.Z.Bytes())
-	sha3256.Write(mtAZK2Proof.ZBar.Bytes())
-	sha3256.Write(mtAZK2Proof.T.Bytes())
-	sha3256.Write(mtAZK2Proof.V.Bytes())
-	sha3256.Write(mtAZK2Proof.W.Bytes())
-	sha3256.Write(c1.Bytes())
-	sha3256.Write(c2.Bytes())
-
-	sha3256.Write([]byte("hello multichain"))
-	sha3256.Write(publicKey.N.Bytes()) //MtAZK2 question 2
-
-	eBytes := sha3256.Sum(nil)
-	e := new(big.Int).SetBytes(eBytes)
-
+	e := Sha512_256i(mtAZK2Proof.Z,mtAZK2Proof.ZBar,mtAZK2Proof.T,mtAZK2Proof.V,mtAZK2Proof.W,c1,c2,publicKey.N)
 	e = new(big.Int).Mod(e, s256.S256().N)
 
 	s12 := new(big.Int).Exp(ntildeH1H2.H1, mtAZK2Proof.S1, ntildeH1H2.Ntilde)

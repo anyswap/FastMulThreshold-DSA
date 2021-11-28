@@ -23,7 +23,6 @@ import (
 	"math/big"
 
 	s256 "github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
@@ -88,26 +87,8 @@ func MtAZK3Provenhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *big.Int
 	w = new(big.Int).Mul(w, new(big.Int).Exp(ntildeH1H2.H2, delta, ntildeH1H2.Ntilde))
 	w = new(big.Int).Mod(w, ntildeH1H2.Ntilde)
 
-	sha3256 := sha3.New256()
-	sha3256.Write(ux.Bytes())
-	sha3256.Write(uy.Bytes())
-	sha3256.Write(Xx.Bytes())
-	sha3256.Write(Xy.Bytes())
-	sha3256.Write(z.Bytes())
-	sha3256.Write(zBar.Bytes())
-	sha3256.Write(t.Bytes())
-	sha3256.Write(v.Bytes())
-	sha3256.Write(w.Bytes())
-	sha3256.Write(c1.Bytes())
-	sha3256.Write(c2.Bytes())
-
-	sha3256.Write([]byte("hello multichain"))
-	sha3256.Write(publicKey.N.Bytes()) //MtAZK3 question 2
-
-	eBytes := sha3256.Sum(nil)
-	e := new(big.Int).SetBytes(eBytes)
-
-	e = new(big.Int).Mod(e, s256.S256().N) //MtAZK3 question 3
+	e := Sha512_256i(ux,uy,Xx,Xy,z,zBar,t,v,w,c1,c2,publicKey.N)
+	e = new(big.Int).Mod(e, s256.S256().N)
 
 	s := new(big.Int).Exp(r, e, publicKey.N)
 	s = new(big.Int).Mul(s, beta)
@@ -197,38 +178,18 @@ func (mtAZK3Proof *MtAZK3Proofnhh) MtAZK3Verifynhh(xG []*big.Int,c1 *big.Int, c2
 	//paillier pubkey.N2
 	N2 := new(big.Int).Mul(publicKey.N,publicKey.N)
 
-	sha3256 := sha3.New256()
-	sha3256.Write(mtAZK3Proof.Ux.Bytes())
-	sha3256.Write(mtAZK3Proof.Uy.Bytes())
-	sha3256.Write(xG[0].Bytes())
-	sha3256.Write(xG[1].Bytes())
-	sha3256.Write(mtAZK3Proof.Z.Bytes())
-	sha3256.Write(mtAZK3Proof.ZBar.Bytes())
-	sha3256.Write(mtAZK3Proof.T.Bytes())
-	sha3256.Write(mtAZK3Proof.V.Bytes())
-	sha3256.Write(mtAZK3Proof.W.Bytes())
-	sha3256.Write(c1.Bytes())
-	sha3256.Write(c2.Bytes())
-
-	sha3256.Write([]byte("hello multichain"))
-	sha3256.Write(publicKey.N.Bytes()) //MtAZK3 question 2
-
-	eBytes := sha3256.Sum(nil)
-	e := new(big.Int).SetBytes(eBytes)
+	e := Sha512_256i(mtAZK3Proof.Ux,mtAZK3Proof.Uy,xG[0],xG[1],mtAZK3Proof.Z,mtAZK3Proof.ZBar,mtAZK3Proof.T,mtAZK3Proof.V,mtAZK3Proof.W,c1,c2,publicKey.N)
 	e = new(big.Int).Mod(e, s256.S256().N)
 
 	// check g^s1 == (X^e)u and on curve
-	//MinusOne := big.NewInt(-1)
 	tmp := new(big.Int).Mod(mtAZK3Proof.S1,s256.S256().N)
 	if tmp.Cmp(big.NewInt(0)) < 0 {
 	    tmp = new(big.Int).Add(s256.S256().N,tmp)
 	}
 	s1Gx, s1Gy := s256.S256().ScalarBaseMult(tmp.Bytes())
-	//ms1Gx, ms1Gy := s256.S256().ScalarMult(s1Gx,s1Gy,MinusOne.Bytes())
 
 	exGx, exGy := s256.S256().ScalarMult(xG[0],xG[1],e.Bytes())
 	uexGx, uexGy := s256.S256().Add(exGx,exGy,mtAZK3Proof.Ux,mtAZK3Proof.Uy)
-	//fmt.Printf("=============================mtAZK3Proof, s1Gx = %v,s1Gy = %v,ms1Gx = %v,ms1Gy = %v,uexGx = %v,uexGy = %v ============================\n",s1Gx,s1Gy,ms1Gx,ms1Gy,uexGx,uexGy)
 	if !s256.S256().IsOnCurve(s1Gx,s1Gy) || !s256.S256().IsOnCurve(uexGx,uexGy) || s1Gx.Cmp(uexGx) != 0 || s1Gy.Cmp(uexGy) != 0 {
 	    return false
 	}
