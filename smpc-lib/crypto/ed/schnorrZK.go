@@ -110,15 +110,20 @@ func VerifyZk(signature [64]byte, pk [32]byte) bool {
 	return false
 }
 
-//---------------------------------------------------
+//-----------------------------------------------------------------
+// Weak Fiat-Shamir transformation in Schnorr’s ZKP
+// This transformation is known to be insecure if the calculation of the hash does not include the public value g^sk.
 
-// Prove  Generate SK zero knowledge proof data 
-func Prove2(sk [32]byte,pk [32]byte) [64]byte {
+// Prove2  Generate SK zero knowledge proof data,include pk 
+func Prove2(sk [32]byte,pk [32]byte) ([64]byte,error) {
 	rand := cryptorand.Reader
 	var rndNum [32]byte
 	if _, err := io.ReadFull(rand, rndNum[:]); err != nil {
 		fmt.Println("Error: io.ReadFull(rand, rndNum[:])")
+		var ret [64]byte
+		return ret,err 
 	}
+
 	var one, zero [32]byte
 	one[0] = 1
 
@@ -154,11 +159,11 @@ func Prove2(sk [32]byte,pk [32]byte) [64]byte {
 	copy(signature[:32], e[:])
 	copy(signature[32:], s[:])
 
-	return signature
+	return signature,nil
 }
 
-// VerifyZk verify SK zero knowledge proof data
-func VerifyZk2(signature [64]byte, pk [32]byte) bool {
+// VerifyZk2 verify SK zero knowledge proof data,include pk
+func VerifyZk2(signature [64]byte, pk [32]byte,finalpk [32]byte) bool {
 
 	var sG, X, eX, RCal ExtendedGroupElement
 
@@ -190,7 +195,7 @@ func VerifyZk2(signature [64]byte, pk [32]byte) bool {
 
 	// Weak Fiat-Shamir transformation in Schnorr’s ZKP
 	// This transformation is known to be insecure if the calculation of the hash does not include the public value g^sk.
-	h.Write(pk[:])
+	h.Write(finalpk[:])
 
 	h.Sum(eCalDigest[:0])
 

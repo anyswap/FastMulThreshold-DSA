@@ -91,7 +91,10 @@ func (round *round1) Start() error {
 	    return err
 	}
 
-	zkPk := ed.Prove2(temSk,pk)
+	zkPk,err := ed.Prove2(temSk,pk)
+	if err != nil {
+	    return err
+	}
 
 	round.temp.sk = sk
 	round.temp.pk = pk
