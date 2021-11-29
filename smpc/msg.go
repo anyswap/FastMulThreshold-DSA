@@ -414,53 +414,54 @@ func Call(msg interface{}, enode string) {
 
 	msgmap := make(map[string]string)
 	err = json.Unmarshal([]byte(s), &msgmap)
-	if err == nil {
-		val, ok := msgmap["Key"]
-		if ok {
-			w, err := FindWorker(val)
-			if err == nil {
-				if w.DNode != nil && w.DNode.Round() != nil {
-					common.Debug("====================Call, get smpc msg,worker found.===================", "key", val, "msg", msg, "sender node", enode)
-					w.SmpcMsg <- s
-				} else {
-					from := msgmap["FromID"]
-					msgtype := msgmap["Type"]
-					key := strings.ToLower(val + "-" + from + "-" + msgtype)
-					C1Data.WriteMap(key, s)
-					fmt.Printf("===============================Call, pre-save p2p msg, worker found, key = %v,fromID = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
-				}
+	if err != nil {
+	    SetUpMsgList(s, enode)
+	    return
+	}
+
+	val, ok := msgmap["Key"]
+	if ok {
+		w, err := FindWorker(val)
+		if err == nil {
+			if w.DNode != nil && w.DNode.Round() != nil {
+				common.Debug("====================Call, get smpc msg,worker found.===================", "key", val, "msg", msg, "sender node", enode)
+				w.SmpcMsg <- s
 			} else {
 				from := msgmap["FromID"]
 				msgtype := msgmap["Type"]
 				key := strings.ToLower(val + "-" + from + "-" + msgtype)
 				C1Data.WriteMap(key, s)
-				fmt.Printf("===============================Call, pre-save p2p msg, worker not found, key = %v,fromID = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
+				fmt.Printf("===============================Call, pre-save p2p msg, worker found, key = %v,fromID = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
 			}
-
-			return
+		} else {
+			from := msgmap["FromID"]
+			msgtype := msgmap["Type"]
+			key := strings.ToLower(val + "-" + from + "-" + msgtype)
+			C1Data.WriteMap(key, s)
+			fmt.Printf("===============================Call, pre-save p2p msg, worker not found, key = %v,fromID = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
 		}
 
-		if msgmap["Type"] == "SyncPreSign" {
-			sps := &SyncPreSign{}
-			if err = sps.UnmarshalJSON([]byte(msgmap["SyncPreSign"])); err == nil {
-				w, err := FindWorker(sps.MsgPrex)
-				if err == nil {
-					if w.msgsyncpresign.Len() < w.ThresHold {
-						if !Find(w.msgsyncpresign, s) {
-							w.msgsyncpresign.PushBack(s)
-							if w.msgsyncpresign.Len() == w.ThresHold {
-								w.bsyncpresign <- true
-							}
+		return
+	}
+
+	if msgmap["Type"] == "SyncPreSign" {
+		sps := &SyncPreSign{}
+		if err = sps.UnmarshalJSON([]byte(msgmap["SyncPreSign"])); err == nil {
+			w, err := FindWorker(sps.MsgPrex)
+			if err == nil {
+				if w.msgsyncpresign.Len() < w.ThresHold {
+					if !Find(w.msgsyncpresign, s) {
+						w.msgsyncpresign.PushBack(s)
+						if w.msgsyncpresign.Len() == w.ThresHold {
+							w.bsyncpresign <- true
 						}
 					}
 				}
 			}
-
-			return
 		}
-	}
 
-	SetUpMsgList(s, enode)
+		return
+	}
 }
 
 // SetUpMsgList set RecvMsg data to RPCReqQueue

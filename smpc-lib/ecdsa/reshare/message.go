@@ -254,10 +254,11 @@ func (re *ReRound3Message) OutMap() map[string]string {
 	m["ToID"] = ""
 
 	pk, err := re.U1PaillierPk.MarshalJSON()
-	if err == nil {
-		m["U1PaillierPk"] = string(pk)
+	if err != nil {
+	    return nil
 	}
-
+	
+	m["U1PaillierPk"] = string(pk)
 	m["Type"] = "ReRound3Message"
 	return m
 }
@@ -300,19 +301,22 @@ func (re *ReRound4Message) OutMap() map[string]string {
 	m["ToID"] = ""
 
 	nt, err := re.U1NtildeH1H2.MarshalJSON()
-	if err == nil {
-		m["U1NtildeH1H2"] = string(nt)
+	if err != nil {
+	    return nil
 	}
+	m["U1NtildeH1H2"] = string(nt)
 
 	pf1, err := re.NtildeProof1.MarshalJSON()
-	if err == nil {
-		m["NtildeProof1"] = string(pf1)
+	if err != nil {
+	    return nil
 	}
+	m["NtildeProof1"] = string(pf1)
 
 	pf2, err := re.NtildeProof2.MarshalJSON()
-	if err == nil {
-		m["NtildeProof2"] = string(pf2)
+	if err != nil {
+	    return nil
 	}
+	m["NtildeProof2"] = string(pf2)
 
 	m["Type"] = "ReRound4Message"
 	return m

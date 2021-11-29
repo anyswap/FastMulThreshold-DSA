@@ -32,7 +32,7 @@ func (round *round2) Start() error {
 
 	ids, err := round.GetIDs()
 	if err != nil {
-		return errors.New("ed,round.Start get ids fail")
+		return err
 	}
 	round.Save.IDs = ids
 

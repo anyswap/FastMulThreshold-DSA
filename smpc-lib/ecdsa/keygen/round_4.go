@@ -50,7 +50,7 @@ func (round *round4) Start() error {
 
 	ids, err := round.GetIDs()
 	if err != nil {
-		return errors.New("round.Start get ids fail")
+		return err
 	}
 
 	// add for GG20: keygen phase 3. Each player Pi proves in ZK that Ni is square-free using the proof of Gennaro, Micciancio, and Rabin [30]

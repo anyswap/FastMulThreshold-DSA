@@ -24,7 +24,6 @@ import (
 	"crypto/sha512"
 	"fmt"
 	"io"
-	"errors"
 )
 
 // Commit get commitment by secret
@@ -36,7 +35,7 @@ func Commit(secret [32]byte) ([32]byte, [64]byte, error) {
 		fmt.Println("Error: io.ReadFull(rand, rndNum[:])")
 		var c [32]byte
 		var d [64]byte
-		return c,d,errors.New("generate the random number fail")
+		return c,d,err
 	}
 
 	var D [64]byte

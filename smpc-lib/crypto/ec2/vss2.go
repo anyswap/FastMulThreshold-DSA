@@ -80,7 +80,7 @@ func (polyStruct *PolyStruct2) Vss2(ids []*big.Int) ([]*ShareStruct2, error) {
 	for i := 0; i < len(ids); i++ {
 		shareVal,err := calculatePolynomial2(polyStruct.Poly, ids[i])
 		if err != nil {
-		    return nil,errors.New("calc share error")
+		    return nil,err
 		}
 
 		shareStruct := &ShareStruct2{ID: ids[i], Share: shareVal}

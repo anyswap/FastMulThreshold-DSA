@@ -138,6 +138,7 @@ func GetRandomPositiveRelativelyPrimeInt(n *big.Int) *big.Int {
 func MustGetRandomInt(bits int) *big.Int {
 	if bits <= 0 || mustGetRandomIntMaxBits < bits {
 		panic(fmt.Errorf("MustGetRandomInt: bits should be positive, non-zero and less than %d", mustGetRandomIntMaxBits))
+		return nil
 	}
 	// Max random value e.g. 2^256 - 1
 	max := new(big.Int)
@@ -147,6 +148,7 @@ func MustGetRandomInt(bits int) *big.Int {
 	n, err := rand.Int(rand.Reader, max)
 	if err != nil {
 		panic(errors.Wrap(err, "rand.Int failure in MustGetRandomInt!"))
+		return nil
 	}
 	return n
 }

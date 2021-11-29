@@ -92,17 +92,17 @@ func (round *round4) Start() error {
 	h := sha512.New()
 	_, err = h.Write(FinalRBytes[:])
 	if err != nil {
-		return errors.New("smpc back-end internal error:write final r fail in caling k")
+		return err
 	}
 
 	_, err = h.Write(round.temp.pkfinal[:])
 	if err != nil {
-		return errors.New("smpc back-end internal error:write pk fail in caling k")
+		return err
 	}
 
 	_, err = h.Write(([]byte(round.temp.message))[:])
 	if err != nil {
-		return errors.New("smpc back-end internal error:write message fail in caling k")
+		return err
 	}
 
 	h.Sum(kDigest[:0])

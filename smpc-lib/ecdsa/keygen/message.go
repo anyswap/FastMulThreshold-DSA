@@ -122,10 +122,11 @@ func (kg *KGRound1Message) OutMap() map[string]string {
 	m["ComC_bip32"] = fmt.Sprintf("%v", kg.ComCBip32)
 
 	pk, err := kg.U1PaillierPk.MarshalJSON()
-	if err == nil {
-		m["U1PaillierPk"] = string(pk)
+	if err != nil {
+	    return nil 
 	}
 
+	m["U1PaillierPk"] = string(pk)
 	m["Type"] = "KGRound1Message"
 	return m
 }
@@ -399,19 +400,22 @@ func (kg *KGRound4Message) OutMap() map[string]string {
 	m["ToID"] = ""
 
 	nt, err := kg.U1NtildeH1H2.MarshalJSON()
-	if err == nil {
-		m["U1NtildeH1H2"] = string(nt)
+	if err != nil {
+	    return nil 
 	}
+	m["U1NtildeH1H2"] = string(nt)
 
 	pf1, err := kg.NtildeProof1.MarshalJSON()
-	if err == nil {
-		m["NtildeProof1"] = string(pf1)
+	if err != nil {
+	    return nil 
 	}
+	m["NtildeProof1"] = string(pf1)
 
 	pf2, err := kg.NtildeProof2.MarshalJSON()
-	if err == nil {
-		m["NtildeProof2"] = string(pf2)
+	if err != nil {
+	    return nil 
 	}
+	m["NtildeProof2"] = string(pf2)
 
 	m["ComXiC"] = fmt.Sprintf("%v",kg.ComXiC)
 	m["Type"] = "KGRound4Message"
@@ -539,9 +543,10 @@ func (kg *KGRound6Message) OutMap() map[string]string {
 	m["ToID"] = ""
 
 	zk, err := kg.U1zkXiProof.MarshalJSON()
-	if err == nil {
-		m["U1zkXiProof"] = string(zk)
+	if err != nil {
+	    return nil 
 	}
+	m["U1zkXiProof"] = string(zk)
 
 	if kg.CheckPubkeyStatus {
 		m["CheckPubkeyStatus"] = "true"

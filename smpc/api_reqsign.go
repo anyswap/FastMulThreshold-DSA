@@ -264,9 +264,11 @@ func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 	sps := &SyncPreSign{MsgPrex: msgprex, EnodeID: curEnode, Msg: msg}
 	m := make(map[string]string)
 	spsjson, err := sps.MarshalJSON()
-	if err == nil {
-		m["SyncPreSign"] = string(spsjson)
+	if err != nil {
+		return false
 	}
+	
+	m["SyncPreSign"] = string(spsjson)
 	m["Type"] = "SyncPreSign"
 	val, err := json.Marshal(m)
 	if err != nil {
@@ -353,308 +355,331 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 	if err == nil {
 		if msgmap["Type"] == "SignData" {
 			sd := &SignData{}
-			if err = sd.UnmarshalJSON([]byte(msgmap["SignData"])); err == nil {
-				common.Debug("===============ReqSmpcSign.DoReq,raw is signdata type===================", "msgprex", sd.MsgPrex, "key", sd.Key, "pkx", sd.Pkx, "pky", sd.Pky)
+			if err = sd.UnmarshalJSON([]byte(msgmap["SignData"])); err != nil {
+			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+			    ch <- res
+			    return false
+			}
+			common.Debug("===============ReqSmpcSign.DoReq,raw is signdata type===================", "msgprex", sd.MsgPrex, "key", sd.Key, "pkx", sd.Pkx, "pky", sd.Pky)
 
-				ys := secp256k1.S256().Marshal(sd.Pkx, sd.Pky)
-				pubkeyhex := hex.EncodeToString(ys)
+			ys := secp256k1.S256().Marshal(sd.Pkx, sd.Pky)
+			pubkeyhex := hex.EncodeToString(ys)
 
-				w := workers[workid]
-				w.sid = sd.Key
-				w.groupid = sd.GroupID
+			w := workers[workid]
+			w.sid = sd.Key
+			w.groupid = sd.GroupID
 
-				w.NodeCnt = sd.NodeCnt
-				w.ThresHold = sd.ThresHold
+			w.NodeCnt = sd.NodeCnt
+			w.ThresHold = sd.ThresHold
 
-				w.SmpcFrom = sd.SmpcFrom
+			w.SmpcFrom = sd.SmpcFrom
 
-				smpcpks, _ := hex.DecodeString(pubkeyhex)
-				exsit, da := GetPubKeyData(smpcpks[:])
-				if exsit {
-					pd, ok := da.(*PubKeyData)
-					if ok {
-						exsit, da2 := GetPubKeyData([]byte(pd.Key))
-						if exsit {
-							ac, ok := da2.(*AcceptReqAddrData)
-							if ok {
-								HandleC1Data(ac, sd.Key)
-							}
+			smpcpks, _ := hex.DecodeString(pubkeyhex)
+			exsit, da := GetPubKeyData(smpcpks[:])
+			if exsit {
+				pd, ok := da.(*PubKeyData)
+				if ok {
+					exsit, da2 := GetPubKeyData([]byte(pd.Key))
+					if exsit {
+						ac, ok := da2.(*AcceptReqAddrData)
+						if ok {
+							HandleC1Data(ac, sd.Key)
 						}
-
 					}
+
 				}
+			}
 
-				childPKx := sd.Pkx
-				childPKy := sd.Pky
-				if sd.InputCodeT != "" {
-					da3 := getBip32cFromLocalDb(smpcpks[:])
-					if da3 == nil {
-						res := RPCSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
-						ch <- res
-						return false
-					}
-					bip32c := new(big.Int).SetBytes(da3)
-					if bip32c == nil {
-						res := RPCSmpcRes{Ret: "", Tip: "presign get bip32 error", Err: fmt.Errorf("presign get bip32 error")}
-						ch <- res
-						return false
-					}
-
-					indexs := strings.Split(sd.InputCodeT, "/")
-					TRb := bip32c.Bytes()
-					childSKU1 := sd.Sku1
-					for idxi := 1; idxi < len(indexs); idxi++ {
-						h := hmac.New(sha512.New, TRb)
-						h.Write(childPKx.Bytes())
-						h.Write(childPKy.Bytes())
-						h.Write([]byte(indexs[idxi]))
-						T := h.Sum(nil)
-						TRb = T[32:]
-						TL := new(big.Int).SetBytes(T[:32])
-
-						childSKU1 = new(big.Int).Add(TL, childSKU1)
-						childSKU1 = new(big.Int).Mod(childSKU1, secp256k1.S256().N)
-
-						TLGx, TLGy := secp256k1.S256().ScalarBaseMult(TL.Bytes())
-						childPKx, childPKy = secp256k1.S256().Add(TLGx, TLGy, childPKx, childPKy)
-					}
+			childPKx := sd.Pkx
+			childPKy := sd.Pky
+			if sd.InputCodeT != "" {
+				da3 := getBip32cFromLocalDb(smpcpks[:])
+				if da3 == nil {
+					res := RPCSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
+					ch <- res
+					return false
 				}
-
-				childpub := secp256k1.S256().Marshal(childPKx, childPKy)
-				childpubkeyhex := hex.EncodeToString(childpub)
-				_, _, err = GetSmpcAddr(childpubkeyhex)
-				if err != nil {
-					res := RPCSmpcRes{Ret: "", Tip: "get pubkey error", Err: fmt.Errorf("get pubkey error")}
+				bip32c := new(big.Int).SetBytes(da3)
+				if bip32c == nil {
+					res := RPCSmpcRes{Ret: "", Tip: "presign get bip32 error", Err: fmt.Errorf("presign get bip32 error")}
 					ch <- res
 					return false
 				}
 
-				var ch1 = make(chan interface{}, 1)
-				for i := 0; i < recalcTimes; i++ {
-					common.Debug("===============ReqSmpcSign.DoReq,sign recalc===================", "i", i, "msgprex", sd.MsgPrex, "key", sd.Key)
-					if len(ch1) != 0 {
-						<-ch1
-					}
+				indexs := strings.Split(sd.InputCodeT, "/")
+				TRb := bip32c.Bytes()
+				childSKU1 := sd.Sku1
+				for idxi := 1; idxi < len(indexs); idxi++ {
+					h := hmac.New(sha512.New, TRb)
+					h.Write(childPKx.Bytes())
+					h.Write(childPKy.Bytes())
+					h.Write([]byte(indexs[idxi]))
+					T := h.Sum(nil)
+					TRb = T[32:]
+					TL := new(big.Int).SetBytes(T[:32])
 
-					//w.Clear2()
-					//Sign_ec2(sd.Key, sd.Save, sd.Sku1, sd.Txhash, sd.Keytype, sd.Pkx, sd.Pky, ch1, workid)
-					SignEC3(sd.Key, sd.Txhash, sd.Keytype, sd.Save, childPKx, childPKy, ch1, workid, sd.Pre)
-					ret, _, cherr := GetChannelValue(WaitMsgTimeGG20+10, ch1)
-					if ret != "" && cherr == nil {
+					childSKU1 = new(big.Int).Add(TL, childSKU1)
+					childSKU1 = new(big.Int).Mod(childSKU1, secp256k1.S256().N)
 
-						ww, err2 := FindWorker(sd.MsgPrex)
-						if err2 != nil || ww == nil {
-							res2 := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker", Err: fmt.Errorf("no find worker")}
-							ch <- res2
-							return false
-						}
-
-						ww.rsv.PushBack(ret)
-						res2 := RPCSmpcRes{Ret: ret, Tip: "", Err: nil}
-						ch <- res2
-						return true
-					}
-
+					TLGx, TLGy := secp256k1.S256().ScalarBaseMult(TL.Bytes())
+					childPKx, childPKy = secp256k1.S256().Add(TLGx, TLGy, childPKx, childPKy)
 				}
+			}
 
-				res2 := RPCSmpcRes{Ret: "", Tip: "sign fail", Err: fmt.Errorf("sign fail")}
-				ch <- res2
+			childpub := secp256k1.S256().Marshal(childPKx, childPKy)
+			childpubkeyhex := hex.EncodeToString(childpub)
+			_, _, err = GetSmpcAddr(childpubkeyhex)
+			if err != nil {
+				res := RPCSmpcRes{Ret: "", Tip: "get pubkey error", Err: fmt.Errorf("get pubkey error")}
+				ch <- res
 				return false
 			}
+
+			var ch1 = make(chan interface{}, 1)
+			for i := 0; i < recalcTimes; i++ {
+				common.Debug("===============ReqSmpcSign.DoReq,sign recalc===================", "i", i, "msgprex", sd.MsgPrex, "key", sd.Key)
+				if len(ch1) != 0 {
+					<-ch1
+				}
+
+				//w.Clear2()
+				//Sign_ec2(sd.Key, sd.Save, sd.Sku1, sd.Txhash, sd.Keytype, sd.Pkx, sd.Pky, ch1, workid)
+				SignEC3(sd.Key, sd.Txhash, sd.Keytype, sd.Save, childPKx, childPKy, ch1, workid, sd.Pre)
+				ret, _, cherr := GetChannelValue(WaitMsgTimeGG20+10, ch1)
+				if ret != "" && cherr == nil {
+
+					ww, err2 := FindWorker(sd.MsgPrex)
+					if err2 != nil || ww == nil {
+						res2 := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker", Err: fmt.Errorf("no find worker")}
+						ch <- res2
+						return false
+					}
+
+					ww.rsv.PushBack(ret)
+					res2 := RPCSmpcRes{Ret: ret, Tip: "", Err: nil}
+					ch <- res2
+					return true
+				}
+
+			}
+
+			res2 := RPCSmpcRes{Ret: "", Tip: "sign fail", Err: fmt.Errorf("sign fail")}
+			ch <- res2
+			return false
 		}
 
 		if msgmap["Type"] == "PreSign" {
 			ps := &PreSign{}
-			if err = ps.UnmarshalJSON([]byte(msgmap["PreSign"])); err == nil {
-				w := workers[workid]
-				w.sid = ps.Nonce
-				w.groupid = ps.Gid
-				w.SmpcFrom = ps.Pub
-				gcnt, _ := GetGroup(w.groupid)
-				w.NodeCnt = gcnt
-				w.ThresHold = gcnt
+			if err = ps.UnmarshalJSON([]byte(msgmap["PreSign"])); err != nil {
+			    res2 := RPCSmpcRes{Ret: "", Tip: "unmarshal presign data fail", Err: fmt.Errorf("unmarshal presign data fail")}
+			    ch <- res2
+			    return false
+			}
+			
+			w := workers[workid]
+			w.sid = ps.Nonce
+			w.groupid = ps.Gid
+			w.SmpcFrom = ps.Pub
+			gcnt, _ := GetGroup(w.groupid)
+			w.NodeCnt = gcnt
+			w.ThresHold = gcnt
 
-				smpcpks, _ := hex.DecodeString(ps.Pub)
-				exsit, da := GetPubKeyData(smpcpks[:])
-				if !exsit {
-					common.Debug("============================PreSign at ReqSmpcSign.DoReq,not exist presign data===========================", "pubkey", ps.Pub)
-					res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get presign data from db fail", Err: fmt.Errorf("get presign data from db fail")}
+			smpcpks, _ := hex.DecodeString(ps.Pub)
+			exsit, da := GetPubKeyData(smpcpks[:])
+			if !exsit {
+				common.Debug("============================PreSign at ReqSmpcSign.DoReq,not exist presign data===========================", "pubkey", ps.Pub)
+				res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get presign data from db fail", Err: fmt.Errorf("get presign data from db fail")}
+				ch <- res
+				return false
+			}
+
+			pd, ok := da.(*PubKeyData)
+			if !ok {
+				common.Debug("============================PreSign at ReqSmpcSign.DoReq,presign data error==========================", "pubkey", ps.Pub)
+				res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get presign data from db fail", Err: fmt.Errorf("get presign data from db fail")}
+				ch <- res
+				return false
+			}
+
+			nodecount, _ := GetGroup(pd.GroupID)
+			w.NodeCnt = nodecount
+
+			save := pd.Save
+			common.Debug("============================ReqSmpcSign.DoReq==========================", "w.SmpcFrom", w.SmpcFrom, "w.groupid", w.groupid, "w.NodeCnt", w.NodeCnt, "pd.GroupID", pd.GroupID)
+			///sku1
+			da2 := getSkU1FromLocalDb(smpcpks[:])
+			if da2 == nil {
+				res := RPCSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
+				ch <- res
+				return false
+			}
+			sku1 := new(big.Int).SetBytes(da2)
+			if sku1 == nil {
+				res := RPCSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
+				ch <- res
+				return false
+			}
+
+			childSKU1 := sku1
+			smpcpub := (da.(*PubKeyData)).Pub
+			smpcpkx, smpcpky := secp256k1.S256().Unmarshal(([]byte(smpcpub))[:])
+			childPKx := smpcpkx
+			childPKy := smpcpky
+			if ps.InputCode != "" {
+				da4 := getBip32cFromLocalDb(smpcpks[:])
+				if da4 == nil {
+					res := RPCSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
+					ch <- res
+					return false
+				}
+				bip32c := new(big.Int).SetBytes(da4)
+				if bip32c == nil {
+					res := RPCSmpcRes{Ret: "", Tip: "presign get bip32 error", Err: fmt.Errorf("presign get bip32 error")}
 					ch <- res
 					return false
 				}
 
-				pd, ok := da.(*PubKeyData)
-				if !ok {
-					common.Debug("============================PreSign at ReqSmpcSign.DoReq,presign data error==========================", "pubkey", ps.Pub)
-					res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get presign data from db fail", Err: fmt.Errorf("get presign data from db fail")}
-					ch <- res
-					return false
+				indexs := strings.Split(ps.InputCode, "/")
+				TRb := bip32c.Bytes()
+				for idxi := 1; idxi < len(indexs); idxi++ {
+					h := hmac.New(sha512.New, TRb)
+					h.Write(childPKx.Bytes())
+					h.Write(childPKy.Bytes())
+					h.Write([]byte(indexs[idxi]))
+					T := h.Sum(nil)
+					TRb = T[32:]
+					TL := new(big.Int).SetBytes(T[:32])
+
+					childSKU1 = new(big.Int).Add(TL, childSKU1)
+					childSKU1 = new(big.Int).Mod(childSKU1, secp256k1.S256().N)
+
+					TLGx, TLGy := secp256k1.S256().ScalarBaseMult(TL.Bytes())
+					childPKx, childPKy = secp256k1.S256().Add(TLGx, TLGy, childPKx, childPKy)
 				}
+			}
 
-				nodecount, _ := GetGroup(pd.GroupID)
-				w.NodeCnt = nodecount
+			exsit, da3 := GetPubKeyData([]byte(pd.Key))
+			ac, ok := da3.(*AcceptReqAddrData)
+			if ok {
+				HandleC1Data(ac, w.sid)
+			}
 
-				save := pd.Save
-				common.Debug("============================ReqSmpcSign.DoReq==========================", "w.SmpcFrom", w.SmpcFrom, "w.groupid", w.groupid, "w.NodeCnt", w.NodeCnt, "pd.GroupID", pd.GroupID)
-				///sku1
-				da2 := getSkU1FromLocalDb(smpcpks[:])
-				if da2 == nil {
-					res := RPCSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
-					ch <- res
-					return false
-				}
-				sku1 := new(big.Int).SetBytes(da2)
-				if sku1 == nil {
-					res := RPCSmpcRes{Ret: "", Tip: "presign get sku1 fail", Err: fmt.Errorf("presign get sku1 fail")}
-					ch <- res
-					return false
-				}
-
-				childSKU1 := sku1
-				smpcpub := (da.(*PubKeyData)).Pub
-				smpcpkx, smpcpky := secp256k1.S256().Unmarshal(([]byte(smpcpub))[:])
-				childPKx := smpcpkx
-				childPKy := smpcpky
-				if ps.InputCode != "" {
-					da4 := getBip32cFromLocalDb(smpcpks[:])
-					if da4 == nil {
-						res := RPCSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
-						ch <- res
-						return false
-					}
-					bip32c := new(big.Int).SetBytes(da4)
-					if bip32c == nil {
-						res := RPCSmpcRes{Ret: "", Tip: "presign get bip32 error", Err: fmt.Errorf("presign get bip32 error")}
-						ch <- res
-						return false
-					}
-
-					indexs := strings.Split(ps.InputCode, "/")
-					TRb := bip32c.Bytes()
-					for idxi := 1; idxi < len(indexs); idxi++ {
-						h := hmac.New(sha512.New, TRb)
-						h.Write(childPKx.Bytes())
-						h.Write(childPKy.Bytes())
-						h.Write([]byte(indexs[idxi]))
-						T := h.Sum(nil)
-						TRb = T[32:]
-						TL := new(big.Int).SetBytes(T[:32])
-
-						childSKU1 = new(big.Int).Add(TL, childSKU1)
-						childSKU1 = new(big.Int).Mod(childSKU1, secp256k1.S256().N)
-
-						TLGx, TLGy := secp256k1.S256().ScalarBaseMult(TL.Bytes())
-						childPKx, childPKy = secp256k1.S256().Add(TLGx, TLGy, childPKx, childPKy)
-					}
-				}
-
-				exsit, da3 := GetPubKeyData([]byte(pd.Key))
-				ac, ok := da3.(*AcceptReqAddrData)
-				if ok {
-					HandleC1Data(ac, w.sid)
-				}
-
-				var ch1 = make(chan interface{}, 1)
-				//pre := PreSignEC3(w.sid,save,sku1,"ECDSA",ch1,workid)
-				pre := PreSignEC3(w.sid, save, childSKU1, childPKx,childPKy,"EC256K1", ch1, workid)
-				if pre == nil {
-					common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid, "err", "return result is nil")
-					if syncpresign && !SynchronizePreSignData(w.sid, w.id, false) {
-						res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
-						ch <- res
-						return false
-					}
-
+			var ch1 = make(chan interface{}, 1)
+			//pre := PreSignEC3(w.sid,save,sku1,"ECDSA",ch1,workid)
+			pre := PreSignEC3(w.sid, save, childSKU1, childPKx,childPKy,"EC256K1", ch1, workid)
+			if pre == nil {
+				common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid, "err", "return result is nil")
+				if syncpresign && !SynchronizePreSignData(w.sid, w.id, false) {
 					res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
 					ch <- res
 					return false
 				}
 
-				pre.Key = w.sid
-				pre.Gid = w.groupid
-				pre.Used = false
-				pre.Index = ps.Index
+				res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+				ch <- res
+				return false
+			}
 
-				err = PutPreSignData(ps.Pub, ps.InputCode, ps.Gid, ps.Index, pre, true)
-				if err != nil {
-					common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time,put pre-sign data to local db fail. ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid, "err", err)
-					if syncpresign && !SynchronizePreSignData(w.sid, w.id, false) {
-						common.Info("================================PreSign at RecvMsg.Run, put pre-sign data to local db fail=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index, "err", err)
-						res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
-						ch <- res
-						return false
-					}
+			pre.Key = w.sid
+			pre.Gid = w.groupid
+			pre.Used = false
+			pre.Index = ps.Index
 
+			err = PutPreSignData(ps.Pub, ps.InputCode, ps.Gid, ps.Index, pre, true)
+			if err != nil {
+				common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time,put pre-sign data to local db fail. ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid, "err", err)
+				if syncpresign && !SynchronizePreSignData(w.sid, w.id, false) {
 					common.Info("================================PreSign at RecvMsg.Run, put pre-sign data to local db fail=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index, "err", err)
 					res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
 					ch <- res
 					return false
 				}
 
-				if syncpresign && !SynchronizePreSignData(w.sid, w.id, true) {
-					err = DeletePreSignData(ps.Pub, ps.InputCode, ps.Gid, pre.Key)
-					if err == nil {
-						common.Debug("================================PreSign at RecvMsg.Run, delete pre-sign data from local db success=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index)
-					} else {
-						//.........
-						common.Info("================================PreSign at RecvMsg.Run, delete pre-sign data from local db fail=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index, "err", err)
-					}
+				common.Info("================================PreSign at RecvMsg.Run, put pre-sign data to local db fail=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index, "err", err)
+				res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+				ch <- res
+				return false
+			}
 
-					res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
-					ch <- res
-					return false
+			if syncpresign && !SynchronizePreSignData(w.sid, w.id, true) {
+				err = DeletePreSignData(ps.Pub, ps.InputCode, ps.Gid, pre.Key)
+				if err == nil {
+					common.Debug("================================PreSign at RecvMsg.Run, delete pre-sign data from local db success=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index)
+				} else {
+					//.........
+					common.Info("================================PreSign at RecvMsg.Run, delete pre-sign data from local db fail=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index, "err", err)
 				}
 
-				common.Info("============================PreSign at RecvMsg.Run, pre-generated sign data succeeded.==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid)
-				res := RPCSmpcRes{Ret: "success", Tip: "", Err: nil}
+				res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
 				ch <- res
-				return true
+				return false
 			}
+
+			common.Info("============================PreSign at RecvMsg.Run, pre-generated sign data succeeded.==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid)
+			res := RPCSmpcRes{Ret: "success", Tip: "", Err: nil}
+			ch <- res
+			return true
 		}
 
 		if msgmap["Type"] == "ComSignBrocastData" {
 			signbrocast, err := UnCompressSignBrocastData(msgmap["ComSignBrocastData"])
-			if err == nil {
-				_, _, _, txdata, err := CheckRaw(signbrocast.Raw)
-				if err == nil {
-					sig, ok := txdata.(*TxDataSign)
-					if ok {
-						pickdata := make([]*PickHashData, 0)
-						for _, vv := range signbrocast.PickHash {
-							pre := GetPreSignData(sig.PubKey, sig.InputCode, sig.GroupID, vv.PickKey)
-							if pre == nil {
-								res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get pre-sign data fail", Err: fmt.Errorf("get pre-sign data fail")}
-								ch <- res
-								return false
-							}
-
-							pd := &PickHashData{Hash: vv.Hash, Pre: pre}
-							pickdata = append(pickdata, pd)
-							DeletePreSignData(sig.PubKey, sig.InputCode, sig.GroupID, vv.PickKey)
-						}
-
-						signpick := &SignPickData{Raw: signbrocast.Raw, PickData: pickdata}
-						errtmp := DoSign(signpick, workid, sender, ch)
-						if errtmp == nil {
-							return true
-						}
-
-						return false
-					}
-				}
+			if err != nil {
+			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+			    ch <- res
+			    return false
 			}
+			
+			_, _, _, txdata, err := CheckRaw(signbrocast.Raw)
+			if err != nil {
+			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+			    ch <- res
+			    return false
+			}
+			
+			sig, ok := txdata.(*TxDataSign)
+			if !ok {
+			    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign data error")}
+			    ch <- res
+			    return false
+			}
+			
+			pickdata := make([]*PickHashData, 0)
+			for _, vv := range signbrocast.PickHash {
+				pre := GetPreSignData(sig.PubKey, sig.InputCode, sig.GroupID, vv.PickKey)
+				if pre == nil {
+					res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get pre-sign data fail", Err: fmt.Errorf("get pre-sign data fail")}
+					ch <- res
+					return false
+				}
+
+				pd := &PickHashData{Hash: vv.Hash, Pre: pre}
+				pickdata = append(pickdata, pd)
+				DeletePreSignData(sig.PubKey, sig.InputCode, sig.GroupID, vv.PickKey)
+			}
+
+			signpick := &SignPickData{Raw: signbrocast.Raw, PickData: pickdata}
+			errtmp := DoSign(signpick, workid, sender, ch)
+			if errtmp == nil {
+				return true
+			}
+
+			return false
 		}
 
 		if msgmap["Type"] == "ComSignData" {
 			signpick, err := UnCompressSignData(msgmap["ComSignData"])
-			if err == nil {
-				errtmp := DoSign(signpick, workid, sender, ch)
-				if errtmp == nil {
-					return true
-				}
-
-				return false
+			if err != nil {
+			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+			    ch <- res
+			    return false
 			}
+			
+			errtmp := DoSign(signpick, workid, sender, ch)
+			if errtmp == nil {
+				return true
+			}
+
+			return false
 		}
 	}
 

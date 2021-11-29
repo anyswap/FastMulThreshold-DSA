@@ -61,7 +61,7 @@ require (
 	github.com/onrik/ethrpc v1.0.0
 	github.com/pborman/uuid v1.2.0 // indirect
 	github.com/pelletier/go-toml v1.8.0 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.3.0 // indirect
 	github.com/prometheus/common v0.8.0 // indirect
 	github.com/rakyll/statik v0.1.6 // indirect
@@ -70,7 +70,6 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
-	github.com/stretchr/testify v1.6.1 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
 	github.com/whyrusleeping/go-logging v0.0.1
 	github.com/whyrusleeping/go-smux-multiplex v3.0.16+incompatible // indirect

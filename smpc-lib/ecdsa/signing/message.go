@@ -125,9 +125,11 @@ func (srm *SignRound2Message) OutMap() map[string]string {
 	m["Type"] = "SignRound2Message"
 
 	proof, err := srm.U1u1MtAZK1Proof.MarshalJSON()
-	if err == nil {
-		m["U1u1MtAZK1Proof"] = string(proof)
+	if err != nil {
+	    return nil
 	}
+
+	m["U1u1MtAZK1Proof"] = string(proof)
 
 	return m
 }
@@ -214,10 +216,11 @@ func (srm *SignRound4Message) OutMap() map[string]string {
 	m["Type"] = "SignRound4Message"
 
 	proof, err := srm.U1u1MtAZK2Proof.MarshalJSON()
-	if err == nil {
-		m["U1u1MtAZK2Proof"] = string(proof)
+	if err != nil {
+	    return nil
 	}
 
+	m["U1u1MtAZK2Proof"] = string(proof)
 	m["U1KGamma1Cipher"] = fmt.Sprintf("%v", srm.U1KGamma1Cipher)
 
 	return m
@@ -259,10 +262,11 @@ func (srm *SignRound4Message1) OutMap() map[string]string {
 	m["Type"] = "SignRound4Message1"
 
 	proof, err := srm.U1u1MtAZK3Proof.MarshalJSON()
-	if err == nil {
-		m["U1u1MtAZK3Proof"] = string(proof)
+	if err != nil {
+	    return nil
 	}
 
+	m["U1u1MtAZK3Proof"] = string(proof)
 	m["U1Kw1Cipher"] = fmt.Sprintf("%v", srm.U1Kw1Cipher)
 
 	return m
@@ -310,10 +314,11 @@ func (srm *SignRound5Message) OutMap() map[string]string {
 	m["T1Y"] = fmt.Sprintf("%v", srm.T1Y)
 
 	proof, err := srm.Tpf.MarshalJSON()
-	if err == nil {
-	    m["Tpf"] = string(proof) 
+	if err != nil {
+	    return nil
 	}
 
+	m["Tpf"] = string(proof) 
 	return m
 }
 
@@ -353,9 +358,10 @@ func (srm *SignRound6Message) OutMap() map[string]string {
 	m["Type"] = "SignRound6Message"
 
 	proof, err := srm.U1GammaZKProof.MarshalJSON()
-	if err == nil {
-		m["U1GammaZKProof"] = string(proof)
+	if err != nil {
+	    return nil
 	}
+	m["U1GammaZKProof"] = string(proof)
 
 	dtmp := make([]string, len(srm.CommU1D))
 	for k, v := range srm.CommU1D {
@@ -407,9 +413,10 @@ func (srm *SignRound7Message) OutMap() map[string]string {
 	m["K1RY"] = fmt.Sprintf("%v", srm.K1RY)
 
 	proof, err := srm.PdlwSlackPf.MarshalJSON()
-	if err == nil {
-		m["PdlwSlackPf"] = string(proof)
+	if err != nil {
+	    return nil
 	}
+	m["PdlwSlackPf"] = string(proof)
 
 	return m
 }
@@ -454,9 +461,10 @@ func (srm *SignRound8Message) OutMap() map[string]string {
 	m["S1Y"] = fmt.Sprintf("%v", srm.S1Y)
 
 	proof, err := srm.STpf.MarshalJSON()
-	if err == nil {
-		m["STpf"] = string(proof)
+	if err != nil {
+	    return nil
 	}
+	m["STpf"] = string(proof)
 
 	return m
 }

@@ -41,7 +41,7 @@ func (round *round4) Start() error {
 
 	ids, err := round.GetIDs()
 	if err != nil {
-		return errors.New("round.start get ids fail")
+		return err
 	}
 
 	fmt.Printf("==================round 4 start===============\n")
@@ -94,12 +94,12 @@ func (round *round4) Start() error {
 	h := sha512.New()
 	_, err = h.Write(msg3.DPk[32:])
 	if err != nil {
-		return errors.New("smpc back-end internal error:write dpk fail in calcing SHA256(PkU1, {PkU2, PkU3}")
+		return err
 	}
 
 	_, err = h.Write(PkSet)
 	if err != nil {
-		return errors.New("smpc back-end internal error:write pkset fail in calcing SHA256(PkU1, {PkU2, PkU3}")
+		return err
 	}
 
 	h.Sum(aDigest[:0])
@@ -130,6 +130,10 @@ func (round *round4) Start() error {
 
 	_, cfsBBytes, shares,err := ed.Vss(ask, uids, round.threshold, round.dnodecount)
 	if cfsBBytes == nil || shares == nil || err != nil {
+	    if err != nil {
+		return err
+	    }
+
 	    return errors.New("calc shares error")
 	}
 

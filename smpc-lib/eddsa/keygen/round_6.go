@@ -41,7 +41,7 @@ func (round *round6) Start() error {
 
 	ids, err := round.GetIDs()
 	if err != nil {
-		return errors.New("round.start get ids fail")
+		return err
 	}
 
 	var PkSet2 []byte

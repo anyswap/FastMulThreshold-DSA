@@ -40,7 +40,7 @@ func (round *round6) Start() error {
 
 	ids, err := round.GetIDs()
 	if err != nil {
-		return errors.New("round.Start get ids fail")
+		return err
 	}
 
 	for k := range ids {

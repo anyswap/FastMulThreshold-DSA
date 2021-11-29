@@ -32,7 +32,7 @@ func Prove(sk [32]byte) ([64]byte,error) {
 		fmt.Println("Error: io.ReadFull(rand, rndNum[:])")
 
 		var ret [64]byte
-		return ret,fmt.Errorf("generate sk zk proof fail")
+		return ret,err
 	}
 	var one, zero [32]byte
 	one[0] = 1

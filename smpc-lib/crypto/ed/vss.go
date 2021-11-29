@@ -51,7 +51,7 @@ func Vss(secret [32]byte, ids [][32]byte, t int, n int) ([][32]byte, [][32]byte,
 	    var rndNum [32]byte
 	    if _, err := io.ReadFull(rand, rndNum[:]); err != nil {
 		    fmt.Println("Error: io.ReadFull(rand, rndNum[:])")
-		    return shares,shares,shares,fmt.Errorf("generate the random number fail")
+		    return shares,shares,shares,err
 	    }
 	    ScMulAdd(&rndNum, &rndNum, &one, &zero)
 

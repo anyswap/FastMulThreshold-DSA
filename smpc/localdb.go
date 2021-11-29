@@ -52,6 +52,7 @@ func makeDatabaseHandles() int {
 	if limit < 2048 {
 		if err := fdlimit.Raise(2048); err != nil {
 			common.Info("Failed to raise file descriptor allowance: " + err.Error())
+			return 0
 		}
 	}
 	if limit > 2048 { // cap database file descriptors even if more is available
@@ -992,3 +993,4 @@ func DeleteAccountDataFromDb(key []byte) error {
 	common.Error("===============DeleteAccountDataFromDb, delete account data from db fail.=================", "key", string(key), "err", err)
 	return err
 }
+

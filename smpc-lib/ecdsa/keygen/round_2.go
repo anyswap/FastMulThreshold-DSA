@@ -44,7 +44,7 @@ func (round *round2) Start() error {
 
 	ids, err := round.GetIDs()
 	if err != nil {
-		return errors.New("round.Start get ids fail")
+		return err
 	}
 	round.Save.IDs = ids
 	round.Save.CurDNodeID, _ = new(big.Int).SetString(round.dnodeid, 10)

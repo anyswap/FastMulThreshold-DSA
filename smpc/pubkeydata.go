@@ -90,7 +90,7 @@ func GetPubKeyData2(key string, account string, cointype string) (string, string
 
 		ctaddr, err := h.PublicKeyToAddress(pubkey)
 		if err != nil {
-			return "", "smpc back-end internal error:get smpc addr fail from pubkey:" + pubkey, fmt.Errorf("req addr fail")
+			return "", "smpc back-end internal error:get smpc addr fail from pubkey:" + pubkey,err 
 		}
 
 		m = &AddrRes{Account: account, PubKey: pubkey, SmpcAddr: ctaddr, Cointype: cointype}
@@ -143,6 +143,7 @@ func GetAccountsBalance(pubkey string, geteracc string) (interface{}, string, er
 			go func(cointype, subaddr string) {
 				defer wg.Done()
 				balance, _, err := GetBalance(pubkey, cointype, subaddr)
+				// if get balance fail,and set 0,and go on.
 				if err != nil {
 					balance = "0"
 				}
@@ -189,6 +190,7 @@ func GetBalance(account string, cointype string, smpcaddr string) (string, strin
 	}
 
 	ba, err := h.GetAddressBalance(smpcaddr, "")
+	// get smpc addr balance fail,and return 0,not return err
 	if err != nil {
 		return "0", "smpc back-end internal error:get smpc addr balance fail,but return 0", nil
 	}
@@ -225,7 +227,7 @@ func GetAddr(pubkey string, cointype string) (string, string, error) {
 
 	ctaddr, err := h.PublicKeyToAddress(pubkey)
 	if err != nil {
-		return "", "smpc back-end internal error:get smpc addr fail from pubkey:" + pubkey, fmt.Errorf("get smpc  addr fail")
+		return "", "smpc back-end internal error:get smpc addr fail from pubkey:" + pubkey,err 
 	}
 
 	return ctaddr, "", nil
@@ -467,7 +469,7 @@ func GetBip32ChildKey(rootpubkey string, inputcode string) (string, string, erro
 
 	addr, _, err := GetSmpcAddr(pubkeyhex)
 	if err != nil {
-		return "", "get bip32 pubkey error", fmt.Errorf("get bip32 pubkey error")
+		return "", "get bip32 pubkey error",err 
 	}
 	fmt.Printf("===================GetBip32ChildKey, get bip32 pubkey success, rootpubkey = %v, inputcode = %v, child pubkey = %v, addr = %v ===================\n", rootpubkey, inputcode, pubkeyhex, addr)
 
