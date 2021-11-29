@@ -52,6 +52,15 @@ func ZkUProve(u *big.Int) *ZkUProof {
 
 // ZkUVerify verify ZkUProof
 func ZkUVerify(uG []*big.Int, zkUProof *ZkUProof) bool {
+	// Check whether the point is on the curve
+	if !checkPointOnCurve(uG) {
+		return false
+	}
+
+	if zkUProof == nil || zkUProof.E == nil || zkUProof.S == nil {
+	    return false
+	}
+
 	sGx, sGy := s256.S256().ScalarBaseMult(zkUProof.S.Bytes())
 
 	minusE := new(big.Int).Mul(big.NewInt(-1), zkUProof.E)
@@ -124,10 +133,19 @@ func ZkXiProve(sku1 *big.Int) *ZkXiProof {
 }
 
 // ZkXiVerify verify ZkXiProof
-func ZkXiVerify(xiG []*big.Int, zkUProof *ZkXiProof) bool {
-	sGx, sGy := s256.S256().ScalarBaseMult(zkUProof.S.Bytes())
+func ZkXiVerify(xiG []*big.Int, zkXiProof *ZkXiProof) bool {
+	// Check whether the point is on the curve
+	if !checkPointOnCurve(xiG) {
+		return false
+	}
 
-	minusE := new(big.Int).Mul(big.NewInt(-1), zkUProof.E)
+	if zkXiProof.E == nil || zkXiProof.S == nil {
+	    return false
+	}
+
+	sGx, sGy := s256.S256().ScalarBaseMult(zkXiProof.S.Bytes())
+
+	minusE := new(big.Int).Mul(big.NewInt(-1), zkXiProof.E)
 	minusE = new(big.Int).Mod(minusE, s256.S256().N)
 
 	eUx, eUy := s256.S256().ScalarMult(xiG[0],xiG[1], minusE.Bytes())
@@ -135,7 +153,7 @@ func ZkXiVerify(xiG []*big.Int, zkUProof *ZkXiProof) bool {
 
 	e := Sha512_256i(rGx,rGy,xiG[0],xiG[1])
 
-	if e.Cmp(zkUProof.E) == 0 {
+	if e.Cmp(zkXiProof.E) == 0 {
 		return true
 	}
 	

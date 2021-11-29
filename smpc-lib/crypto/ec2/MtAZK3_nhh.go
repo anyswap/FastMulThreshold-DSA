@@ -169,7 +169,7 @@ func (mtAZK3Proof *MtAZK3Proofnhh) MtAZK3Verifynhh(xG []*big.Int,c1 *big.Int, c2
 	if len(xG) != 2 || xG[0] == nil || xG[1] == nil {
 	    return false
 	}
-	if !checkCommitmentGammaGOnCurve(xG) {
+	if !checkPointOnCurve(xG) {
 	    return false
 	}
 

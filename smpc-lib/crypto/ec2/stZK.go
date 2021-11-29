@@ -66,6 +66,12 @@ func STVerify(S1X *big.Int,S1Y *big.Int,T1X *big.Int,T1Y *big.Int,Rx *big.Int,Ry
 	return false
     }
     
+    // Check whether the point is on the curve
+    var tmp = []*big.Int{S1X,S1Y,T1X,T1Y,Rx,Ry,hGx,hGy,stpf.AlphaX,stpf.AlphaY,stpf.BetaX,stpf.BetaY}
+    if !checkPointOnCurve(tmp) {
+	    return false
+    }
+
     if smpc.IsInfinityPoint(S1X,S1Y) || smpc.IsInfinityPoint(T1X,T1Y) || smpc.IsInfinityPoint(Rx,Ry) || smpc.IsInfinityPoint(hGx,hGy) || smpc.IsInfinityPoint(stpf.AlphaX,stpf.AlphaY) || smpc.IsInfinityPoint(stpf.BetaX, stpf.BetaY) {
 	return false
     }

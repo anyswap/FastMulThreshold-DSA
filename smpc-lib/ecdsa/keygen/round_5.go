@@ -59,9 +59,11 @@ func (round *round5) Start() error {
 	}
 	//
 
-	// add HVZK Proof for a Product of Two Primes
+	// see Paper:   Attacking Threshold Wallets*   JP Aumasson and Omer Shlomovits   Taurus Group, Switzerland   ZenGo X, Israel   section 5  The Golden Shoe Attack
+	// Mitigation: The fix is simple: Ntilde,h1,h2 must be validated on the receiving end.For Ntilde,the sender must attach a proof that Ntilde is a valid RSA modulus from two safe primes.For h1,h2, there is a nice trick in [FO97]: pick h1 at random and h2 = h1^alpha and prove to the receiver the knowledge of alpha with respect to h1, h2.
+	// see Paper : Efficient Noninteractive Certification of RSA Moduli and Beyond   Sharon Goldberg*, Leonid Reyzin*, Omar Sagga*, and Foteini Baldimtsi      Boston University, Boston, MA, USA  George Mason University, Fairfax, VA, USA foteini@gmu.edu   October 3, 2019     section 3.4  HVZK Proof for a Product of Two Primes
 	// for Ntilde = p*q
-	// pick m random values send to prover first
+	// pick m random values send to prover first, rohi belong to JN.   i = 1,2,3,....m
 	for k,id := range round.Save.IDs {
 	    msg4, ok := round.temp.kgRound4Messages[k].(*KGRound4Message)
 	    if !ok {

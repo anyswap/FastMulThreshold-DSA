@@ -86,6 +86,11 @@ func (round *round2) Start() error {
 		if x == nil {
 			return errors.New("get x from Z* fail")
 		}
+		// let x != 1,otherwise prover output y = 1 can pass the verify.
+		one := big.NewInt(1)
+		if x.Cmp(one) == 0 {
+			return errors.New("x equal to 1")
+		}
 		
 		round.temp.x[k] = x
 		kg := &KGRound2Message2{

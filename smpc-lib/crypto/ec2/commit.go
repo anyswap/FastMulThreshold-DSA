@@ -94,7 +94,7 @@ func (commitment *Commitment) Verify() bool {
 	}
 
 	// Check whether the point is on the curve
-	if !checkCommitmentGammaGOnCurve(D[1:]) {
+	if !checkPointOnCurve(D[1:]) {
 		return false
 	}
 
@@ -114,7 +114,7 @@ func (commitment *Commitment) DeCommit() (bool, []*big.Int) {
 //-----------------------------------------------------------
 
 // checkCommitmentGammaGOnCurve Check whether the point is on the curve
-func checkCommitmentGammaGOnCurve(secrets []*big.Int) bool {
+func checkPointOnCurve(secrets []*big.Int) bool {
 	if len(secrets) == 0 || (len(secrets)%2) != 0 {
 		return false
 	}

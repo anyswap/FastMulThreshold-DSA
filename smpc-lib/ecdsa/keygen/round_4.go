@@ -72,6 +72,25 @@ func (round *round4) Start() error {
 		return errors.New("round.Start get round3-1 msg fail")
 	    }
 
+	    // check y
+	    // y != nil
+	    // y mod N != 0
+	    // y mod N != 1
+	    // gcd(y,N) = 1
+	    if msg31.Y == nil {
+		return errors.New("get msg3-1 msg fail,y is nil")
+	    }
+
+	    one := big.NewInt(1)
+	    ymn := new(big.Int).Mod(msg31.Y,paiPk.N)
+	    if ymn.Cmp(zero) == 0 || ymn.Cmp(one) == 0 {
+		return errors.New("y mod N == 0 or 1")
+	    }
+	    gcd := big.NewInt(0)
+	    if gcd.GCD(nil,nil,msg31.Y,paiPk.N).Cmp(one) != 0 {
+		return errors.New("gcd(y,N) != 1")
+	    }
+
 	    yn := new(big.Int).Exp(msg31.Y,paiPk.N,paiPk.N)
 	    xn := new(big.Int).Mod(round.temp.x[k],paiPk.N)
 	    if yn.Cmp(xn) != 0 {

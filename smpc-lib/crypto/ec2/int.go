@@ -129,6 +129,7 @@ func GetRandomPositiveRelativelyPrimeInt(n *big.Int) *big.Int {
 			break
 		}
 	}
+	
 	return try
 }
 

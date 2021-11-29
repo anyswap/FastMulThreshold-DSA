@@ -46,6 +46,24 @@ func (round *round3) Start() error {
 		    return errors.New("round.Start get round2 msg 2 fail")
 		}
 
+		// check x
+		// x != nil 
+		// x mod N != 0
+		// x mod N != 1
+		// gcd(x,N) = 1
+		if msg22.X == nil {
+		    return errors.New("get msg2-2 fail,x is nil")
+		}
+		one := big.NewInt(1)
+		xmn := new(big.Int).Mod(msg22.X,round.Save.U1PaillierSk.N)
+		if xmn.Cmp(zero) == 0 || xmn.Cmp(one) == 0 {
+		    return errors.New("x mod N == 0 or 1")
+		}
+		gcd := big.NewInt(0)
+		if gcd.GCD(nil,nil,msg22.X,round.Save.U1PaillierSk.N).Cmp(one) != 0 {
+		    return errors.New("gcd(x,N) != 1")
+		}
+
 		M := new(big.Int).ModInverse(round.Save.U1PaillierSk.N, round.Save.U1PaillierSk.L)
 		y := new(big.Int).Exp(msg22.X,M,round.Save.U1PaillierSk.N)
 

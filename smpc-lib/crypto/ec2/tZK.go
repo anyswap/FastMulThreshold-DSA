@@ -116,6 +116,12 @@ func TVerify(t1X *big.Int, t1Y *big.Int,  hx *big.Int, hy *big.Int, proof *TProo
 	    return false 
 	}
 
+    // Check whether the point is on the curve
+    var tmp = []*big.Int{proof.AlphaX,proof.AlphaY,t1X,t1Y,hx,hy}
+    if !checkPointOnCurve(tmp) {
+	    return false
+    }
+
     if smpc.IsInfinityPoint(proof.AlphaX,proof.AlphaY) || smpc.IsInfinityPoint(t1X,t1Y) || smpc.IsInfinityPoint(hx,hy) {
 	return false
     }
