@@ -47,16 +47,16 @@ func Commit(secret [32]byte) ([32]byte, [64]byte, error) {
 
 	// hash by sha512
 	h := sha512.New()
+	message := []byte("hello thresholdeddsa")
 
 	h.Write(rndNum[:])
+	h.Write(message[:])
 	h.Write(secret[:])
-	message := []byte("hello thresholdeddsa")
 	h.Write(message[:])
 	h.Sum(rsDigest512[:0])
 
 	// hash by sha256
 	h = sha256.New()
-
 	h.Write(rsDigest512[:])
 	h.Sum(C[:0])
 
@@ -70,16 +70,16 @@ func Verify(C [32]byte, D [64]byte) bool {
 
 	// hash by sha512
 	h := sha512.New()
+	message := []byte("hello thresholdeddsa")
 
 	h.Write(D[:32])
-	message := []byte("hello thresholdeddsa")
 	h.Write(message[:])
 	h.Write(D[32:])
+	h.Write(message[:])
 	h.Sum(rsDigest512[:0])
 
 	// hash by sha256
 	h = sha256.New()
-
 	h.Write(rsDigest512[:])
 	h.Sum(rsDigest256[:0])
 
@@ -89,3 +89,4 @@ func Verify(C [32]byte, D [64]byte) bool {
 	
 	return false
 }
+

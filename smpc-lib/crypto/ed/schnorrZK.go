@@ -53,9 +53,7 @@ func Prove(sk [32]byte) ([64]byte,error) {
 	h := sha512.New()
 	h.Write(RBytes[:])
 	h.Write(message[:])
-	
 	h.Sum(eDigest[:0])
-
 	ScReduce(&e, &eDigest)
 
 	var s [32]byte
@@ -111,7 +109,7 @@ func VerifyZk(signature [64]byte, pk [32]byte) bool {
 }
 
 //-----------------------------------------------------------------
-// Weak Fiat-Shamir transformation in Schnorr’s ZKP
+// fixed: Weak Fiat-Shamir transformation in Schnorr’s ZKP
 // This transformation is known to be insecure if the calculation of the hash does not include the public value g^sk.
 
 // Prove2  Generate SK zero knowledge proof data,include pk 
@@ -143,13 +141,12 @@ func Prove2(sk [32]byte,pk [32]byte) ([64]byte,error) {
 	h := sha512.New()
 	h.Write(RBytes[:])
 	h.Write(message[:])
-	
-	// Weak Fiat-Shamir transformation in Schnorr’s ZKP
+
+	// fixed: Weak Fiat-Shamir transformation in Schnorr’s ZKP
 	// This transformation is known to be insecure if the calculation of the hash does not include the public value g^sk.
 	h.Write(pk[:])
-	
+	h.Write(message[:])
 	h.Sum(eDigest[:0])
-
 	ScReduce(&e, &eDigest)
 
 	var s [32]byte
@@ -193,12 +190,11 @@ func VerifyZk2(signature [64]byte, pk [32]byte,finalpk [32]byte) bool {
 	h.Write(RCalBytes[:])
 	h.Write(message[:])
 
-	// Weak Fiat-Shamir transformation in Schnorr’s ZKP
+	// fixed: Weak Fiat-Shamir transformation in Schnorr’s ZKP
 	// This transformation is known to be insecure if the calculation of the hash does not include the public value g^sk.
 	h.Write(finalpk[:])
-
+	h.Write(message[:])
 	h.Sum(eCalDigest[:0])
-
 	ScReduce(&eCal, &eCalDigest)
 
 	if bytes.Equal(eCal[:], eTem[:]) {
