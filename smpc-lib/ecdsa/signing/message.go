@@ -93,7 +93,7 @@ func (srm *SignRound1Message) OutMap() map[string]string {
 type SignRound2Message struct {
 	*SignRoundMessage
 
-	U1u1MtAZK1Proof *ec2.MtAZK1Proofnhh
+	U1u1MtAZK1Proof *ec2.MtARangeProof
 }
 
 // GetFromID get the ID of sending nodes in the group
@@ -184,7 +184,7 @@ func (srm *SignRound3Message) OutMap() map[string]string {
 type SignRound4Message struct {
 	*SignRoundMessage
 	U1KGamma1Cipher *big.Int
-	U1u1MtAZK2Proof *ec2.MtAZK2Proofnhh
+	U1u1MtAZK2Proof *ec2.MtARespZKProof
 }
 
 // GetFromID get the ID of sending nodes in the group
@@ -230,7 +230,7 @@ func (srm *SignRound4Message) OutMap() map[string]string {
 type SignRound4Message1 struct {
 	*SignRoundMessage
 	U1Kw1Cipher     *big.Int
-	U1u1MtAZK3Proof *ec2.MtAZK3Proofnhh
+	U1u1MtAZK3Proof *ec2.MtAwcRespZKProof
 }
 
 // GetFromID get the ID of sending nodes in the group

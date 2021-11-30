@@ -99,7 +99,7 @@ func TProve(t1X *big.Int, t1Y *big.Int,  hx *big.Int, hy *big.Int, sigma1 *big.I
 	alphaX,alphaY := secp256k1.S256().Add(aGx,aGy,bHx,bHy)
 
 	Gx,Gy := secp256k1.S256().ScalarBaseMult(one.Bytes())
-	e := Sha512_256i(t1X,t1Y,hx,hy,Gx,Gy,alphaX,alphaY)
+	e := Sha512_256(t1X,t1Y,hx,hy,Gx,Gy,alphaX,alphaY)
 	e = new(big.Int).Mod(e, secp256k1.S256().N)
 
 	t := new(big.Int).Add(a, new(big.Int).Mul(e, sigma1))
@@ -133,7 +133,7 @@ func TVerify(t1X *big.Int, t1Y *big.Int,  hx *big.Int, hy *big.Int, proof *TProo
     }
 
 	Gx,Gy := secp256k1.S256().ScalarBaseMult(one.Bytes())
-	e := Sha512_256i(t1X,t1Y,hx,hy,Gx,Gy,proof.AlphaX,proof.AlphaY)
+	e := Sha512_256(t1X,t1Y,hx,hy,Gx,Gy,proof.AlphaX,proof.AlphaY)
 	e = new(big.Int).Mod(e, secp256k1.S256().N)
 
 	tGx,tGy := secp256k1.S256().ScalarBaseMult(proof.T.Bytes())

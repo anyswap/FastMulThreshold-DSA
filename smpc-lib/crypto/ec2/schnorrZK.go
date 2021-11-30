@@ -40,7 +40,7 @@ func ZkUProve(u *big.Int) *ZkUProof {
 	rGx, rGy := s256.S256().ScalarBaseMult(r.Bytes())
 	uGx, uGy := s256.S256().ScalarBaseMult(u.Bytes())
 
-	e := Sha512_256i(rGx,rGy,uGx,uGy)
+	e := Sha512_256(rGx,rGy,uGx,uGy)
 
 	s := new(big.Int).Mul(e, u)
 	s = new(big.Int).Add(r, s)
@@ -69,7 +69,7 @@ func ZkUVerify(uG []*big.Int, zkUProof *ZkUProof) bool {
 	eUx, eUy := s256.S256().ScalarMult(uG[0], uG[1], minusE.Bytes())
 	rGx, rGy := s256.S256().Add(sGx, sGy, eUx, eUy)
 
-	e := Sha512_256i(rGx,rGy,uG[0],uG[1])
+	e := Sha512_256(rGx,rGy,uG[0],uG[1])
 	if e.Cmp(zkUProof.E) == 0 {
 		return true
 	}
@@ -122,7 +122,7 @@ func ZkXiProve(sku1 *big.Int) *ZkXiProof {
 	rGx, rGy := s256.S256().ScalarBaseMult(r.Bytes())
 	xGx, xGy := s256.S256().ScalarBaseMult(sku1.Bytes())
 
-	e := Sha512_256i(rGx,rGy,xGx,xGy)
+	e := Sha512_256(rGx,rGy,xGx,xGy)
 
 	s := new(big.Int).Mul(e, sku1)
 	s = new(big.Int).Add(r, s)
@@ -151,7 +151,7 @@ func ZkXiVerify(xiG []*big.Int, zkXiProof *ZkXiProof) bool {
 	eUx, eUy := s256.S256().ScalarMult(xiG[0],xiG[1], minusE.Bytes())
 	rGx, rGy := s256.S256().Add(sGx, sGy, eUx, eUy)
 
-	e := Sha512_256i(rGx,rGy,xiG[0],xiG[1])
+	e := Sha512_256(rGx,rGy,xiG[0],xiG[1])
 
 	if e.Cmp(zkXiProof.E) == 0 {
 		return true

@@ -80,8 +80,8 @@ func (mi *modInt) i() *big.Int {
 
 //----------------------------------------------------------
 
-// Sha512_256i get a hash value with input  
-func Sha512_256i(in ...*big.Int) *big.Int {
+// Sha512_256 get a hash value with input and add the custom domain separator to hash computations.
+func Sha512_256(in ...*big.Int) *big.Int {
 	var data []byte
 	state := crypto.SHA512_256.New()
 	inLen := len(in)
@@ -108,7 +108,7 @@ func Sha512_256i(in ...*big.Int) *big.Int {
 	// n < len(data) or an error will never happen.
 	// see: https://golang.org/pkg/hash/#Hash and https://github.com/golang/go/wiki/Hashing#the-hashhash-interface
 	if _, err := state.Write(data); err != nil {
-		fmt.Errorf("SHA512_256i Write() failed: %v", err)
+		fmt.Errorf("SHA512_256 Write() failed: %v", err)
 		return nil
 	}
 	return new(big.Int).SetBytes(state.Sum(nil))

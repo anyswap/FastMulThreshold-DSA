@@ -26,8 +26,8 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
-// MtAZK2Proofnhh mtazk zk proof
-type MtAZK2Proofnhh struct {
+// MtARespZKProof GG18 A.3 Respondent ZK Proof for MtA
+type MtARespZKProof struct {
 	Z    *big.Int
 	ZBar *big.Int
 	T    *big.Int
@@ -40,10 +40,12 @@ type MtAZK2Proofnhh struct {
 	T2   *big.Int
 }
 
-// MtAZK2Provenhh GG18 A.3 Respondent ZK Proof for MtA 
+// MtARespZKProofProve GG18 A.3 Respondent ZK Proof for MtA 
 // This proof is run by Bob (the responder) in the MtA protocol where Bob only proves that x is small (without proving that it is the discrete log of any public value).
+// The input for this proof is a Paillier public key (N,G) and two values c1 , c2 ∈ ZN2.
+// The Prover knows x ∈ Zq , y ∈ ZN and r ∈ Z*,such that c2 = c1^x*G^y*r^N mod N^2, where q is the order of the DSA group.
 // At the end of the protocol the Verifier is convinced of the above and that x ∈ [−q^3 , q^3].
-func MtAZK2Provenhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *big.Int,publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtAZK2Proofnhh {
+func MtARespZKProofProve(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *big.Int,publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtARespZKProof {
 	q3Ntilde := new(big.Int).Mul(s256.S256().N3(), ntildeH1H2.Ntilde)
 	qNtilde := new(big.Int).Mul(s256.S256().N, ntildeH1H2.Ntilde)
 
@@ -77,7 +79,7 @@ func MtAZK2Provenhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *big.Int
 	w = new(big.Int).Mul(w, new(big.Int).Exp(ntildeH1H2.H2, delta, ntildeH1H2.Ntilde))
 	w = new(big.Int).Mod(w, ntildeH1H2.Ntilde)
 
-	e := Sha512_256i(z,zBar,t,v,w,c1,c2,publicKey.N)
+	e := Sha512_256(z,zBar,t,v,w,c1,c2,publicKey.N)
 	e = new(big.Int).Mod(e, s256.S256().N)
 
 	s := new(big.Int).Exp(r, e, publicKey.N)
@@ -96,13 +98,18 @@ func MtAZK2Provenhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *big.Int
 	t2 := new(big.Int).Mul(e, sigma)
 	t2 = new(big.Int).Add(t2, delta)
 
-	mtAZK2Proof := &MtAZK2Proofnhh{Z: z, ZBar: zBar, T: t, V: v, W: w, S: s, S1: s1, S2: s2, T1: t1, T2: t2}
+	mtAZK2Proof := &MtARespZKProof{Z: z, ZBar: zBar, T: t, V: v, W: w, S: s, S1: s1, S2: s2, T1: t1, T2: t2}
 
 	return mtAZK2Proof
 }
 
-// MtAZK2Verifynhh  Verify zero knowledge proof data mtazk2proof_ nhh 
-func (mtAZK2Proof *MtAZK2Proofnhh) MtAZK2Verifynhh(c1 *big.Int, c2 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
+// MtARespZKProofVerify GG18 A.3 Respondent ZK Proof for MtA 
+// This proof is run by Bob (the responder) in the MtA protocol where Bob only proves that x is small (without proving that it is the discrete log of any public value).
+// The input for this proof is a Paillier public key (N,G) and two values c1 , c2 ∈ ZN2.
+// The Prover knows x ∈ Zq , y ∈ ZN and r ∈ Z*,such that c2 = c1^x*G^y*r^N mod N^2, where q is the order of the DSA group.
+// At the end of the protocol the Verifier is convinced of the above and that x ∈ [−q^3 , q^3].
+// The Verifier checks that s1 ≤ q^3, h1^s1*h2^s2 = z^e*zBar mod Ntilde, h1^t1*h2^t2 = t^e*w mode Ntilde, c1^s1*s^N*G^t1 = c2^e*v mod N^2 
+func (mtAZK2Proof *MtARespZKProof) MtARespZKProofVerify(c1 *big.Int, c2 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
 	if mtAZK2Proof.S1.Cmp(s256.S256().N3()) > 0 {
 		return false
 	}
@@ -160,7 +167,7 @@ func (mtAZK2Proof *MtAZK2Proofnhh) MtAZK2Verifynhh(c1 *big.Int, c2 *big.Int, pub
 	//paillier pubkey.N2
 	N2 := new(big.Int).Mul(publicKey.N,publicKey.N)
 
-	e := Sha512_256i(mtAZK2Proof.Z,mtAZK2Proof.ZBar,mtAZK2Proof.T,mtAZK2Proof.V,mtAZK2Proof.W,c1,c2,publicKey.N)
+	e := Sha512_256(mtAZK2Proof.Z,mtAZK2Proof.ZBar,mtAZK2Proof.T,mtAZK2Proof.V,mtAZK2Proof.W,c1,c2,publicKey.N)
 	e = new(big.Int).Mod(e, s256.S256().N)
 
 	s12 := new(big.Int).Exp(ntildeH1H2.H1, mtAZK2Proof.S1, ntildeH1H2.Ntilde)
@@ -204,8 +211,8 @@ func (mtAZK2Proof *MtAZK2Proofnhh) MtAZK2Verifynhh(c1 *big.Int, c2 *big.Int, pub
 	return true
 }
 
-// MarshalJSON marshal MtAZK2Proofnhh to json bytes
-func (mtAZK2Proof *MtAZK2Proofnhh) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshal MtARespZKProof to json bytes
+func (mtAZK2Proof *MtARespZKProof) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Z    string `json:"Z"`
 		ZBar string `json:"ZBar"`
@@ -231,8 +238,8 @@ func (mtAZK2Proof *MtAZK2Proofnhh) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// UnmarshalJSON unmarshal raw to MtAZK2Proofnhh
-func (mtAZK2Proof *MtAZK2Proofnhh) UnmarshalJSON(raw []byte) error {
+// UnmarshalJSON unmarshal raw to MtARespZKProof
+func (mtAZK2Proof *MtARespZKProof) UnmarshalJSON(raw []byte) error {
 	var proof struct {
 		Z    string `json:"Z"`
 		ZBar string `json:"ZBar"`

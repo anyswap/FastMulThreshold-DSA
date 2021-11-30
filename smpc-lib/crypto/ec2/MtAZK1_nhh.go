@@ -27,8 +27,8 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
-// MtAZK1Proofnhh mtazk1 zk proof 
-type MtAZK1Proofnhh struct {
+// MtARangeProof GG18 A.1 Range Proof in MtA protocol
+type MtARangeProof struct {
 	Z  *big.Int
 	U  *big.Int
 	W  *big.Int
@@ -37,10 +37,11 @@ type MtAZK1Proofnhh struct {
 	S2 *big.Int
 }
 
-// MtAZK1Provenhh GG18 A.1 Range Proof
+// MtARangeProofProve GG18 A.1 Range Proof in MtA protocol
 // This proof is run by Alice (the initiator) in both MtA and MtAwc protocols.
+// The input for this proof is a Paillier public key (N,G) and a value c ∈ ZN^2.The prover knows m ∈ Zq and r ∈ Z* such that c = G^m*r^N mod N^2,where q is the order of the DSA group.
 // At the end of the protocol the Verifier is convinced that m ∈ [−q^3 , q^3]
-func MtAZK1Provenhh(c *big.Int,m *big.Int, r *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtAZK1Proofnhh {
+func MtARangeProofProve(c *big.Int,m *big.Int, r *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtARangeProof {
 	N3Ntilde := new(big.Int).Mul(s256.S256().N3(), ntildeH1H2.Ntilde)
 	NNtilde := new(big.Int).Mul(s256.S256().N, ntildeH1H2.Ntilde)
 
@@ -61,7 +62,7 @@ func MtAZK1Provenhh(c *big.Int,m *big.Int, r *big.Int, publicKey *PublicKey, nti
 	w = new(big.Int).Mul(w, new(big.Int).Exp(ntildeH1H2.H2, gamma, ntildeH1H2.Ntilde))
 	w = new(big.Int).Mod(w, ntildeH1H2.Ntilde)
 
-	e := Sha512_256i(z,u,w,c,publicKey.N)
+	e := Sha512_256(z,u,w,c,publicKey.N)
 	e = new(big.Int).Mod(e, s256.S256().N)
 
 	s := new(big.Int).Exp(r, e, publicKey.N)
@@ -74,12 +75,16 @@ func MtAZK1Provenhh(c *big.Int,m *big.Int, r *big.Int, publicKey *PublicKey, nti
 	s2 := new(big.Int).Mul(e, rho)
 	s2 = new(big.Int).Add(s2, gamma)
 
-	mtAZKProof := &MtAZK1Proofnhh{Z: z, U: u, W: w, S: s, S1: s1, S2: s2}
+	mtAZKProof := &MtARangeProof{Z: z, U: u, W: w, S: s, S1: s1, S2: s2}
 	return mtAZKProof
 }
 
-// MtAZK1Verifynhh  Verify zero knowledge proof data mtazk1proof_ nhh 
-func (mtAZKProof *MtAZK1Proofnhh) MtAZK1Verifynhh(c *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
+// MtARangeProofVerify GG18 A.1 Range Proof in MtA protocol
+// This proof is run by Alice (the initiator) in both MtA and MtAwc protocols.
+// The input for this proof is a Paillier public key (N,G) and a value c ∈ ZN^2.The prover knows m ∈ Zq and r ∈ Z* such that c = G^m*r^N mod N^2,where q is the order of the DSA group.
+// At the end of the protocol the Verifier is convinced that m ∈ [−q^3 , q^3]
+// The Verifier checks that s1 ≤ q^3, u = G^s1*s^N*c^-e mod N^2, h1^s1*h2^s2*z^-e = w mod Ntilde
+func (mtAZKProof *MtARangeProof) MtARangeProofVerify(c *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
 	if mtAZKProof.S1.Cmp(s256.S256().N3()) > 0 {
 		return false
 	}
@@ -126,7 +131,7 @@ func (mtAZKProof *MtAZK1Proofnhh) MtAZK1Verifynhh(c *big.Int, publicKey *PublicK
 	//paillier pubkey.N2
 	N2 := new(big.Int).Mul(publicKey.N,publicKey.N)
 
-	e := Sha512_256i(mtAZKProof.Z,mtAZKProof.U,mtAZKProof.W,c,publicKey.N)
+	e := Sha512_256(mtAZKProof.Z,mtAZKProof.U,mtAZKProof.W,c,publicKey.N)
 	e = new(big.Int).Mod(e, s256.S256().N)
 
 	u2 := new(big.Int).Exp(G, mtAZKProof.S1, N2)
@@ -158,8 +163,8 @@ func (mtAZKProof *MtAZK1Proofnhh) MtAZK1Verifynhh(c *big.Int, publicKey *PublicK
 
 //--------------------------------------------------------------------------------
 
-// MarshalJSON marshal MtAZK1Proofnhh to json bytes
-func (mtAZKProof *MtAZK1Proofnhh) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshal MtARangeProof to json bytes
+func (mtAZKProof *MtARangeProof) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Z  string `json:"Z"`
 		U  string `json:"U"`
@@ -177,8 +182,8 @@ func (mtAZKProof *MtAZK1Proofnhh) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// UnmarshalJSON unmarshal raw to MtAZK1Proofnhh
-func (mtAZKProof *MtAZK1Proofnhh) UnmarshalJSON(raw []byte) error {
+// UnmarshalJSON unmarshal raw to MtARangeProof
+func (mtAZKProof *MtARangeProof) UnmarshalJSON(raw []byte) error {
 	var proof struct {
 		Z  string `json:"Z"`
 		U  string `json:"U"`
@@ -204,4 +209,5 @@ func (mtAZKProof *MtAZK1Proofnhh) UnmarshalJSON(raw []byte) error {
 
 	return nil
 }
+
 

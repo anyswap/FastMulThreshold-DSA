@@ -176,7 +176,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 		return nil
 	    }
 
-		proof := &ec2.MtAZK1Proofnhh{}
+		proof := &ec2.MtARangeProof{}
 		if err := proof.UnmarshalJSON([]byte(msg["U1u1MtAZK1Proof"])); err == nil {
 
 			srm := &signing.SignRound2Message{
@@ -234,7 +234,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 		return nil
 	    }
 
-		proof := &ec2.MtAZK2Proofnhh{}
+		proof := &ec2.MtARespZKProof{}
 		if err := proof.UnmarshalJSON([]byte(msg["U1u1MtAZK2Proof"])); err == nil {
 		    if msg["U1KGamma1Cipher"] == "" {
 			return nil
@@ -265,7 +265,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 		return nil
 	    }
 
-		proof := &ec2.MtAZK3Proofnhh{}
+		proof := &ec2.MtAwcRespZKProof{}
 		if err := proof.UnmarshalJSON([]byte(msg["U1u1MtAZK3Proof"])); err == nil {
 		    if msg["U1Kw1Cipher"] == "" {
 			return nil

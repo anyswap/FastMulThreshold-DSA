@@ -64,7 +64,7 @@ func (round *round5) Start() error {
 		u1PaillierPk := round.save.U1PaillierPk[oldindex]
 		u1nt := round.save.U1NtildeH1H2[index]
 		msg4, _ := round.temp.signRound4Messages[k].(*SignRound4Message)
-		rlt111 := msg4.U1u1MtAZK2Proof.MtAZK2Verifynhh(round.temp.ukc, msg4.U1KGamma1Cipher, u1PaillierPk, u1nt)
+		rlt111 := msg4.U1u1MtAZK2Proof.MtARespZKProofVerify(round.temp.ukc, msg4.U1KGamma1Cipher, u1PaillierPk, u1nt)
 		if !rlt111 {
 			return errors.New("verify mkg fail")
 		}
@@ -76,7 +76,7 @@ func (round *round5) Start() error {
 		_,xG := deCommit.DeCommit()
 
 		msg41, _ := round.temp.signRound4Messages1[k].(*SignRound4Message1)
-		rlt112 := msg41.U1u1MtAZK3Proof.MtAZK3Verifynhh(xG,round.temp.ukc, msg41.U1Kw1Cipher, u1PaillierPk, u1nt)
+		rlt112 := msg41.U1u1MtAZK3Proof.MtAwcRespZKProofVefify(xG,round.temp.ukc, msg41.U1Kw1Cipher, u1PaillierPk, u1nt)
 		if !rlt112 {
 			return errors.New("verify mkw fail")
 		}

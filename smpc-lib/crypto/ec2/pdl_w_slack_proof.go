@@ -90,7 +90,7 @@ func NewPDLwSlackProof(wit *PDLwSlackWitness, st *PDLwSlackStatement) *PDLwSlack
     u2 := commitmentUnknownOrder(nAddOne, beta, N2, alpha, st.PK.N)
     u3 := commitmentUnknownOrder(st.H1, st.H2, st.NTilde, alpha, gamma)
 
-    e := Sha512_256i(st.Rx, st.Ry, st.K1RX, st.K1RY, st.CipherText, z, u1Gx, u1Gy, u2, u3,st.PK.N,nAddOne,N2,st.H1,st.H2,st.NTilde)
+    e := Sha512_256(st.Rx, st.Ry, st.K1RX, st.K1RY, st.CipherText, z, u1Gx, u1Gy, u2, u3,st.PK.N,nAddOne,N2,st.H1,st.H2,st.NTilde)
     e = new(big.Int).Mod(e, secp256k1.S256().N)
     if e == nil {
 	return nil
@@ -161,9 +161,9 @@ func PDLwSlackVerify(st *PDLwSlackStatement,p *PDLwSlackProof) bool {
 
     nOne := new(big.Int).Add(st.PK.N, one)
 
-    e := Sha512_256i(st.Rx, st.Ry, st.K1RX, st.K1RY, st.CipherText, p.Z, p.U1X, p.U1Y, p.U2, p.U3,st.PK.N,nOne,N2,st.H1,st.H2,st.NTilde)
+    e := Sha512_256(st.Rx, st.Ry, st.K1RX, st.K1RY, st.CipherText, p.Z, p.U1X, p.U1Y, p.U2, p.U3,st.PK.N,nOne,N2,st.H1,st.H2,st.NTilde)
     e = new(big.Int).Mod(e, secp256k1.S256().N)
-    
+
     eNeg := new(big.Int).Neg(e)
     tmp := new(big.Int).Mod(p.S1,secp256k1.S256().N)
     gS1X,gS1Y := secp256k1.S256().ScalarMult(st.Rx, st.Ry,tmp.Bytes())

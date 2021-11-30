@@ -53,7 +53,7 @@ func NewSTProof(T1X *big.Int,T1Y *big.Int,S1X *big.Int,S1Y *big.Int,Rx *big.Int,
     bHGx,bHGy := secp256k1.S256().ScalarMult(hGx,hGy,b.Bytes())
     betaX,betaY := secp256k1.S256().Add(aGx,aGy,bHGx,bHGy)
     
-    e := Sha512_256i(T1X, T1Y, S1X,S1Y,Rx,Ry,hGx, hGy, Gx, Gy, alphax, alphay, betaX, betaY)
+    e := Sha512_256(T1X, T1Y, S1X,S1Y,Rx,Ry,hGx, hGy, Gx, Gy, alphax, alphay, betaX, betaY)
     e = new(big.Int).Mod(e, secp256k1.S256().N)
 
     t, u := calculateTAndU(secp256k1.S256().N, a, e, sigma1, b, l1)
@@ -83,7 +83,7 @@ func STVerify(S1X *big.Int,S1Y *big.Int,T1X *big.Int,T1Y *big.Int,Rx *big.Int,Ry
     }
 
     Gx,Gy := secp256k1.S256().ScalarBaseMult(one.Bytes())
-    e := Sha512_256i(T1X, T1Y, S1X,S1Y,Rx,Ry,hGx, hGy, Gx, Gy, stpf.AlphaX, stpf.AlphaY, stpf.BetaX, stpf.BetaY)
+    e := Sha512_256(T1X, T1Y, S1X,S1Y,Rx,Ry,hGx, hGy, Gx, Gy, stpf.AlphaX, stpf.AlphaY, stpf.BetaX, stpf.BetaY)
     e = new(big.Int).Mod(e, secp256k1.S256().N)
     
     tRx,tRy := secp256k1.S256().ScalarMult(Rx,Ry,stpf.T.Bytes())

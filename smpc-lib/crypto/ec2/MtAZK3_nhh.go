@@ -26,8 +26,8 @@ import (
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 )
 
-// MtAZK3Proofnhh mtazk3 zk proof
-type MtAZK3Proofnhh struct {
+// MtAwcRespZKProof GG18 A.2 Respondent ZK Proof for MtAwc
+type MtAwcRespZKProof struct {
 	Ux   *big.Int
 	Uy   *big.Int
 	Z    *big.Int
@@ -42,10 +42,12 @@ type MtAZK3Proofnhh struct {
 	T2   *big.Int
 }
 
-// MtAZK3Provenhh GG18 A.2 Respondent ZK Proof for MtAwc 
+// MtAwcRespZKProofProve GG18 A.2 Respondent ZK Proof for MtAwc 
 // This proof is run by Bob (the responder) in the MtAwc protocol.
+// The input for this proof is a Paillier public key (N,G) and two values c1, c2 ∈ ZN2, together with a value X in curve the DSA group.
+// The Prover knows x ∈ Zq , y ∈ ZN and r ∈ Z* such that c2 = c1^x*G^y*r^N mod N^2, and X = g^x on the curve, where q is the order of the DSA group.
 // At the end of the protocol the Verifier is convinced of the above and that x ∈ [−q^3 , q^3].
-func MtAZK3Provenhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *big.Int,publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtAZK3Proofnhh {
+func MtAwcRespZKProofProve(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *big.Int,publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtAwcRespZKProof {
 	q3Ntilde := new(big.Int).Mul(s256.S256().N3(), ntildeH1H2.Ntilde)
 	qNtilde := new(big.Int).Mul(s256.S256().N, ntildeH1H2.Ntilde)
 
@@ -87,7 +89,7 @@ func MtAZK3Provenhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *big.Int
 	w = new(big.Int).Mul(w, new(big.Int).Exp(ntildeH1H2.H2, delta, ntildeH1H2.Ntilde))
 	w = new(big.Int).Mod(w, ntildeH1H2.Ntilde)
 
-	e := Sha512_256i(ux,uy,Xx,Xy,z,zBar,t,v,w,c1,c2,publicKey.N)
+	e := Sha512_256(ux,uy,Xx,Xy,z,zBar,t,v,w,c1,c2,publicKey.N)
 	e = new(big.Int).Mod(e, s256.S256().N)
 
 	s := new(big.Int).Exp(r, e, publicKey.N)
@@ -106,13 +108,18 @@ func MtAZK3Provenhh(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *big.Int
 	t2 := new(big.Int).Mul(e, sigma)
 	t2 = new(big.Int).Add(t2, delta)
 
-	mtAZK3Proof := &MtAZK3Proofnhh{Ux: ux, Uy: uy, Z: z, ZBar: zBar, T: t, V: v, W: w, S: s, S1: s1, S2: s2, T1: t1, T2: t2}
+	mtAZK3Proof := &MtAwcRespZKProof{Ux: ux, Uy: uy, Z: z, ZBar: zBar, T: t, V: v, W: w, S: s, S1: s1, S2: s2, T1: t1, T2: t2}
 
 	return mtAZK3Proof
 }
 
-// MtAZK3Verifynhh  Verify zero knowledge proof data mtazk3proof_ nhh 
-func (mtAZK3Proof *MtAZK3Proofnhh) MtAZK3Verifynhh(xG []*big.Int,c1 *big.Int, c2 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
+// MtAwcRespZKProofVefify GG18 A.2 Respondent ZK Proof for MtAwc 
+// This proof is run by Bob (the responder) in the MtAwc protocol.
+// The input for this proof is a Paillier public key (N,G) and two values c1, c2 ∈ ZN2, together with a value X in curve the DSA group.
+// The Prover knows x ∈ Zq , y ∈ ZN and r ∈ Z* such that c2 = c1^x*G^y*r^N mod N^2, and X = g^x on the curve, where q is the order of the DSA group.
+// At the end of the protocol the Verifier is convinced of the above and that x ∈ [−q^3 , q^3].
+// The Verifier checks that s1 ≤ q^3, g^s1 = X^e*u on the curve, h1^s1*h2^s2 = z^e*zBar mode Ntilde, h1^t1*h2^t2 = t^e*w mod Ntilde, and c1^s1*s^N*G^t1 = c2^e*v mod N^2.
+func (mtAZK3Proof *MtAwcRespZKProof) MtAwcRespZKProofVefify(xG []*big.Int,c1 *big.Int, c2 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
 	if mtAZK3Proof.S1.Cmp(s256.S256().N3()) > 0 {
 		return false
 	}
@@ -178,7 +185,7 @@ func (mtAZK3Proof *MtAZK3Proofnhh) MtAZK3Verifynhh(xG []*big.Int,c1 *big.Int, c2
 	//paillier pubkey.N2
 	N2 := new(big.Int).Mul(publicKey.N,publicKey.N)
 
-	e := Sha512_256i(mtAZK3Proof.Ux,mtAZK3Proof.Uy,xG[0],xG[1],mtAZK3Proof.Z,mtAZK3Proof.ZBar,mtAZK3Proof.T,mtAZK3Proof.V,mtAZK3Proof.W,c1,c2,publicKey.N)
+	e := Sha512_256(mtAZK3Proof.Ux,mtAZK3Proof.Uy,xG[0],xG[1],mtAZK3Proof.Z,mtAZK3Proof.ZBar,mtAZK3Proof.T,mtAZK3Proof.V,mtAZK3Proof.W,c1,c2,publicKey.N)
 	e = new(big.Int).Mod(e, s256.S256().N)
 
 	// check g^s1 == (X^e)u and on curve
@@ -236,7 +243,7 @@ func (mtAZK3Proof *MtAZK3Proofnhh) MtAZK3Verifynhh(xG []*big.Int,c1 *big.Int, c2
 }
 
 // MarshalJSON marshal MtAZK3Proofnhh to json bytes
-func (mtAZK3Proof *MtAZK3Proofnhh) MarshalJSON() ([]byte, error) {
+func (mtAZK3Proof *MtAwcRespZKProof) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Ux   string `json:"Ux"`
 		Uy   string `json:"Uy"`
@@ -267,7 +274,7 @@ func (mtAZK3Proof *MtAZK3Proofnhh) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON unmarshal raw to MtAZK3Proofnhh
-func (mtAZK3Proof *MtAZK3Proofnhh) UnmarshalJSON(raw []byte) error {
+func (mtAZK3Proof *MtAwcRespZKProof) UnmarshalJSON(raw []byte) error {
 	var proof struct {
 		Ux   string `json:"Ux"`
 		Uy   string `json:"Uy"`
@@ -305,3 +312,4 @@ func (mtAZK3Proof *MtAZK3Proofnhh) UnmarshalJSON(raw []byte) error {
 
 	return nil
 }
+

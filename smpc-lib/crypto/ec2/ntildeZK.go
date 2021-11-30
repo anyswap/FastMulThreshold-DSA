@@ -44,7 +44,7 @@ func NewNtildeProof(h1, h2, x, p, q, N *big.Int) *NtildeProof {
 		alpha[i] = modN.Exp(h1, a[i])
 	}
 	msg := append([]*big.Int{h1, h2, N}, alpha[:]...)
-	c := Sha512_256i(msg...)
+	c := Sha512_256(msg...)
 	t := [Iterations]*big.Int{}
 	cIBI := new(big.Int)
 	for i := range t {
@@ -82,7 +82,7 @@ func (p *NtildeProof) Verify(h1, h2, N *big.Int) bool {
 
 	modN := ModInt(N)
 	msg := append([]*big.Int{h1, h2, N}, p.Alpha[:]...)
-	c := Sha512_256i(msg...)
+	c := Sha512_256(msg...)
 	cIBI := new(big.Int)
 	for i := 0; i < Iterations; i++ {
 		if p.Alpha[i] == nil || p.T[i] == nil {
