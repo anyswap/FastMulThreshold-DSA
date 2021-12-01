@@ -21,12 +21,12 @@ import (
 )
 
 const (
-    	// Iterations iter times
+	// Iterations iter times
 	Iterations              = 128
 )
 
 type (
-    	// NtildeProof ntilde zk proof
+	// NtildeProof ntilde zk proof
 	NtildeProof struct {
 		Alpha,
 		T [Iterations]*big.Int
@@ -58,7 +58,7 @@ func NewNtildeProof(h1, h2, x, p, q, N *big.Int) *NtildeProof {
 
 // Verify Verify ntilde proof
 func (p *NtildeProof) Verify(h1, h2, N *big.Int) bool {
-	if p == nil {
+	if p == nil || h1 == nil || h2 == nil || N == nil {
 		return false
 	}
 

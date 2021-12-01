@@ -301,6 +301,10 @@ func EuclideanAlgorithm(a *big.Int,b *big.Int) (*big.Int,*big.Int,*big.Int) {
 // GetHoeffdingBound get hoeffding bound
 // k default set 128
 func GetHoeffdingBound(k float64) *big.Int {
+    if k <= 0 {
+	return nil
+    }
+
     m := k*32*math.Log(2)
     m = math.Ceil(m)
     mInt,_ := new(big.Int).SetString(fmt.Sprintf("%v",m),10)
@@ -309,6 +313,10 @@ func GetHoeffdingBound(k float64) *big.Int {
 
 // GetRandomValuesFromJN get m random values from JN
 func GetRandomValuesFromJN(N *big.Int) []*big.Int {
+    if N == nil || N.Cmp(big.NewInt(1)) <= 0 {
+	return nil
+    }
+
     m := GetHoeffdingBound(HoeffdingBoundParam)
     mint := int(m.Int64())
     
@@ -455,7 +463,27 @@ func IsPerfectPowerOfPrime(Ntilde *big.Int) bool {
      return IsPerfectPowerOfPrime(a)
 }
 
+//----------------------------------------------------------------------------------
 
+// ContainsDuplicate judge weather contain duplicate element in ids array
+func ContainsDuplicate(ids []*big.Int) (bool,error) {
+    if ids == nil || len(ids) == 0 {
+	return false,errors.New("input param error")
+    }
+    
+    numMap:=make(map[string]int)
+    for _,v := range ids {
+        numMap[strings.ToLower(fmt.Sprintf("%v",v))] = 1
+    }
+
+    if len(numMap) != len(ids) {
+       return true,nil 
+    }
+
+    return false,nil
+}
+
+//------------------------------------------------------------------------------
 
 
 

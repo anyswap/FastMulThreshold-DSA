@@ -106,6 +106,10 @@ func STVerify(S1X *big.Int,S1Y *big.Int,T1X *big.Int,T1Y *big.Int,Rx *big.Int,Ry
 }
 
 func calculateTAndU(q *big.Int, a *big.Int, e *big.Int, sigma1 *big.Int, b *big.Int, l1 *big.Int) (t *big.Int, u *big.Int) {
+    	if q == nil || a == nil || e == nil || sigma1 == nil || b == nil || l1 == nil {
+	    return
+	}
+
 	modQ := ModInt(q)
 	t = modQ.Add(a, new(big.Int).Mul(e, sigma1))
 	u = modQ.Add(b, new(big.Int).Mul(e, l1))

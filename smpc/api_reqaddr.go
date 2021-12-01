@@ -114,7 +114,7 @@ func (req *ReqSmpcAddr) GetReqAddrKeyByKey(key string) string {
 // GetRawReply put the reply to map, select the reply sent at the latest time 
 // reply.From ---> reply
 func (req *ReqSmpcAddr) GetRawReply(ret *common.SafeMap, reply *RawReply) {
-	if reply == nil {
+	if reply == nil || ret == nil {
 		return
 	}
 

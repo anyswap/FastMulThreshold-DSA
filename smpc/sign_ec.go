@@ -37,6 +37,10 @@ import (
 // SignProcessInboundMessages Analyze the obtained P2P messages and enter next round
 func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
 	defer wg.Done()
+	if msgprex == "" {
+	    return
+	}
+
 	fmt.Printf("start sign processing inbound messages\n")
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
@@ -122,6 +126,10 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 
 // SignGetRealMessage get the message data struct by map. (p2p msg ---> map)
 func SignGetRealMessage(msg map[string]string) smpclib.Message {
+    	if msg == nil {
+	    return nil
+	}
+
 	from := msg["FromID"]
 	if from == "" {
 	    return nil
@@ -513,7 +521,7 @@ func processSignFinalize(msgprex string, msgtoenode map[string]string, errChan c
 
 // SignProcessOutCh send message to other node
 func SignProcessOutCh(msgprex string, msgtoenode map[string]string, msg smpclib.Message, gid string) error {
-	if msg == nil {
+	if msg == nil || msgprex == "" || msgtoenode == nil || gid == "" {
 		return fmt.Errorf("smpc info error")
 	}
 

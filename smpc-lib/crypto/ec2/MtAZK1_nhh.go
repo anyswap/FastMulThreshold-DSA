@@ -85,6 +85,10 @@ func MtARangeProofProve(c *big.Int,m *big.Int, r *big.Int, publicKey *PublicKey,
 // At the end of the protocol the Verifier is convinced that m ∈ [−q^3 , q^3]
 // The Verifier checks that s1 ≤ q^3, u = G^s1*s^N*c^-e mod N^2, h1^s1*h2^s2*z^-e = w mod Ntilde
 func (mtAZKProof *MtARangeProof) MtARangeProofVerify(c *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
+	if c == nil || publicKey == nil || ntildeH1H2 == nil || mtAZKProof == nil || mtAZKProof.S1 == nil || mtAZKProof.Z == nil || mtAZKProof.W == nil || mtAZKProof.U == nil || mtAZKProof.S == nil {
+	    return false
+	}
+
 	if mtAZKProof.S1.Cmp(s256.S256().N3()) > 0 {
 		return false
 	}

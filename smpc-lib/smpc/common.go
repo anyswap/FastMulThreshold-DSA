@@ -42,6 +42,10 @@ func (s SortableIDSSlice) Swap(i, j int) {
 
 // GetRandomInt get random int
 func GetRandomInt(length int) *big.Int {
+    	if length <= 0 {
+	    return nil
+	}
+
 	// NewInt allocates and returns a new Int set to x.
 	/*one := big.NewInt(1)
 	// Lsh sets z = x << n and returns z.
@@ -66,6 +70,10 @@ func GetRandomInt(length int) *big.Int {
 
 // DECDSASignCalcv calc v of (r,s,v)
 func DECDSASignCalcv(r, deltaGammaGy, pkx, pky, R, S *big.Int, hashBytes []byte, invert bool) int {
+    	if r == nil || deltaGammaGy == nil || pkx == nil || pky == nil || R == nil || S == nil || hashBytes == nil {
+	    return -1
+	}
+
 	//v
 	recid := secp256k1.Get_ecdsa_sign_v(r, deltaGammaGy)
 	if invert == true {
@@ -135,7 +143,7 @@ func IsInfinityPoint(x *big.Int,y *big.Int) bool {
 func Verify2(r *big.Int, s *big.Int, v int32, message string, pkx *big.Int, pky *big.Int) bool {
     // If the modular inverse of s does not exist, the variable ss becomes nil and a panic() occurs when we try to multiply it with z.
     // This is caused by missing checks in the implementation, specifically not guaranteeing that r, s are in the interval [1, q-1], where q is the curve order. Other sanity checks that should be included are checking that the provided public key is on the correct elliptic curve,as well as checking that it is not the point at infinity.
-    if r == nil || s == nil || pkx == nil || pky == nil {
+    if r == nil || s == nil || pkx == nil || pky == nil || message == "" {
 	return false
     }
 
@@ -196,3 +204,4 @@ func Verify2(r *big.Int, s *big.Int, v int32, message string, pkx *big.Int, pky 
     fmt.Println(errstring)
     return false
 }
+

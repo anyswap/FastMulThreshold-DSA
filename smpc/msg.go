@@ -141,6 +141,10 @@ var parts = common.NewSafeMap(10)
 
 // receiveGroupInfo smpc node receive specific msg (for example:group info) from p2p by Call2
 func receiveGroupInfo(msg interface{}) {
+    	if msg == nil {
+	    return
+	}
+
 	curEnode = p2psmpc.GetSelfID()
 
 	m := strings.Split(msg.(string), "|")
@@ -179,6 +183,10 @@ func receiveGroupInfo(msg interface{}) {
 
 //Init smpc node with the msg receive from group by Call2
 func Init(groupID string) {
+    	if groupID == "" {
+	    return
+	}
+
 	common.Debug("======================Init==========================", "get group id", groupID, "initTimes", strconv.Itoa(initTimes))
 
 	if initTimes >= 1 {
@@ -191,6 +199,10 @@ func Init(groupID string) {
 
 // InitGroupInfo get current node enodeID etc.
 func InitGroupInfo(groupID string) {
+    	if groupID == "" {
+	    return
+	}
+
 	curEnode = discover.GetLocalID().String()
 	// .......
 }
@@ -199,6 +211,10 @@ func InitGroupInfo(groupID string) {
 
 // SendMsgToSmpcGroup brodcast msg to group nodes by group id
 func SendMsgToSmpcGroup(msg string, groupid string) {
+    	if msg == "" || groupid == "" {
+	    return
+	}
+
 	common.Debug("=========SendMsgToSmpcGroup=============", "msg", msg, "groupid", groupid)
 	_, err := BroadcastInGroupOthers(groupid, msg)
 	if err != nil {
@@ -210,6 +226,10 @@ func SendMsgToSmpcGroup(msg string, groupid string) {
 
 // EncryptMsg encrypt msg 
 func EncryptMsg(msg string, enodeID string) (string, error) {
+    	if msg == "" || enodeID == "" {
+	    return "",errors.New("encrypt msg fail")
+	}
+
 	hprv, err1 := hex.DecodeString(enodeID)
 	if err1 != nil {
 		return "", err1
@@ -235,6 +255,10 @@ func EncryptMsg(msg string, enodeID string) (string, error) {
 
 // DecryptMsg decrypt msg
 func DecryptMsg(cm string) (string, error) {
+    	if cm == "" {
+	    return "",errors.New("decrypt msg fail")
+	}
+
 	nodeKey, errkey := crypto.LoadECDSA(KeyFile)
 	if errkey != nil {
 		return "", errkey
@@ -252,6 +276,10 @@ func DecryptMsg(cm string) (string, error) {
 
 // SendMsgToPeer send msg to special peer
 func SendMsgToPeer(enodes string, msg string) {
+    	if enodes == "" || msg == "" {
+	    return
+	}
+
 	en := strings.Split(string(enodes[8:]), "@")
 	cm, err := EncryptMsg(msg, en[0])
 	if err != nil {
@@ -942,13 +970,16 @@ func CheckGroupEnode(gid string) bool {
 //DisMsg msg: key-enode:C1:X1:X2...:Xn
 //msg: key-enode1:NoReciv:enode2:C1
 func DisMsg(msg string) {
-
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Errorf("DisMsg Runtime error: %v\n%v", r, string(debug.Stack()))
 			return
 		}
 	}()
+
+    	if msg == "" {
+	    return
+	}
 
 	mm := strings.Split(msg, common.Sep)
 	if len(mm) < 3 {

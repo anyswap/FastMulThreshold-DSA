@@ -36,6 +36,7 @@ import (
 	"github.com/fsn-dev/cryptoCoins/coins/types"
 	"github.com/fsn-dev/cryptoCoins/tools/rlp"
 	"io"
+	"errors"
 	"sort"
 )
 
@@ -64,6 +65,10 @@ type RPCSmpcRes struct {
 
 // GetChannelValue get channel value within the specified timeout 
 func GetChannelValue(t int, obj interface{}) (string, string, error) {
+    	if t <= 0 || obj == nil {
+	    return "","",errors.New("param error")
+	}
+
 	timeout := make(chan bool, 1)
 	go func() {
 		time.Sleep(time.Duration(t) * time.Second) //1000 == 1s
@@ -124,6 +129,10 @@ func GetChannelValue(t int, obj interface{}) (string, string, error) {
 
 // Encode2 encode obj to string
 func Encode2(obj interface{}) (string, error) {
+    	if obj == nil {
+	    return "",errors.New("param error")
+	}
+
 	switch ch := obj.(type) {
 	case *PubKeyData:
 		var buff bytes.Buffer
@@ -166,6 +175,9 @@ func Encode2(obj interface{}) (string, error) {
 
 // Decode2 decode string to obj by data type
 func Decode2(s string, datatype string) (interface{}, error) {
+    	if s == "" || datatype == "" {
+	    return nil,errors.New("param error")
+	}
 
 	if datatype == "PubKeyData" {
 		var data bytes.Buffer
@@ -285,6 +297,10 @@ func (h ByteHash) Hex() string { return hexutil.Encode(h[:]) }
 // Keccak256Hash calculates and returns the Keccak256 hash of the input data,
 // converting it to an internal Hash data structure.
 func Keccak256Hash(data ...[]byte) (h ByteHash) {
+    	if data == nil {
+	    return h
+	}
+
 	d := sha3.NewKeccak256()
 	for _, b := range data {
 		_, err := d.Write(b)
@@ -300,6 +316,10 @@ func Keccak256Hash(data ...[]byte) (h ByteHash) {
 
 // DoubleHash  The EnodeID is converted into a hash value according to different keytypes 
 func DoubleHash(id string, keytype string) *big.Int {
+    	if id == "" || keytype == "" {
+	    return nil
+	}
+
 	// Generate the random num
 	// First, hash with the keccak256
 	keccak256 := sha3.NewKeccak256()
@@ -350,6 +370,10 @@ func DoubleHash(id string, keytype string) *big.Int {
 
 // GetIDs Convert each ID into a hash value according to different keytypes and put it into an array for sorting 
 func GetIDs(keytype string, groupid string) smpclib.SortableIDSSlice {
+    	if keytype == "" || groupid == "" {
+	    return nil
+	}
+
 	var ids smpclib.SortableIDSSlice
 	_, nodes := GetGroup(groupid)
 	others := strings.Split(nodes, common.Sep2)
@@ -419,7 +443,7 @@ func GetGroupNodeUIDs(keytype string,gid string,subgid string) smpclib.SortableI
     return ids
 }
 
-//------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 // GetTxTypeFromData get special tx data type from command data or accept data
 func GetTxTypeFromData(txdata []byte) string {

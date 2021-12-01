@@ -51,6 +51,9 @@ func GetSharesID(ss *ShareStruct2) *big.Int {
 
 // Vss2Init  Initialize Lagrange polynomial coefficients 
 func Vss2Init(secret *big.Int, t int) (*PolyStruct2, *PolyGStruct2, error) {
+    	if secret == nil || t <= 1 {
+	    return nil,nil,errors.New("param error")
+	}
 
 	poly := make([]*big.Int, 0)
 	polyG := make([][]*big.Int, 0)
@@ -74,6 +77,14 @@ func Vss2Init(secret *big.Int, t int) (*PolyStruct2, *PolyGStruct2, error) {
 
 // Vss2  Calculate Lagrange polynomial value 
 func (polyStruct *PolyStruct2) Vss2(ids []*big.Int) ([]*ShareStruct2, error) {
+	if ids == nil || len(ids) == 0 {
+	    return nil,errors.New("param error")
+	}
+    	
+	dul,err := ContainsDuplicate(ids)
+	if err != nil || dul {
+	    return nil,errors.New("param error")
+	}
 
 	shares := make([]*ShareStruct2, 0)
 
@@ -116,6 +127,9 @@ func (share *ShareStruct2) Verify2(polyG *PolyGStruct2) bool {
 
 // Combine2 Calculating Lagrange interpolation formula 
 func Combine2(shares []*ShareStruct2) (*big.Int, error) {
+    	if shares == nil || len(shares) == 0 {
+	    return nil,errors.New("param error")
+	}
 
 	// build x coordinate set
 	xSet := make([]*big.Int, 0)
@@ -153,6 +167,10 @@ func Combine2(shares []*ShareStruct2) (*big.Int, error) {
 }
 
 func calculatePolynomial2(poly []*big.Int, id *big.Int) (*big.Int,error) {
+    if poly == nil || id == nil {
+	return nil,errors.New("param error")
+    }
+
     idnum := new(big.Int).Mod(id,s256.S256().N)
     if idnum.Cmp(zero) == 0 || id.Cmp(zero) == 0 {
 	return nil,errors.New("id can not be equal to 0 or 0 modulo the order of the curve")
@@ -169,3 +187,4 @@ func calculatePolynomial2(poly []*big.Int, id *big.Int) (*big.Int,error) {
 
 	return result,nil
 }
+

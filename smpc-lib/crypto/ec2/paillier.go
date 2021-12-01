@@ -47,6 +47,10 @@ type PrivateKey struct {
 
 // GenerateKeyPair create paillier pubkey and private key
 func GenerateKeyPair(length int) (*PublicKey, *PrivateKey,*big.Int,*big.Int) {
+    	if length <= 0 {
+	    return nil,nil,nil,nil
+	}
+
 	one := big.NewInt(1)
 
 	sp1 := <-SafePrimeCh
@@ -79,6 +83,10 @@ func GenerateKeyPair(length int) (*PublicKey, *PrivateKey,*big.Int,*big.Int) {
 
 // Encrypt paillier encrypt by public key
 func (publicKey *PublicKey) Encrypt(mBigInt *big.Int) (*big.Int, *big.Int, error) {
+    	if mBigInt == nil {
+	    return nil,nil,errors.New("param error")
+	}
+
 	if mBigInt.Cmp(publicKey.N) > 0 {
 		return nil, nil, ErrMessageTooLong
 	}
@@ -99,6 +107,10 @@ func (publicKey *PublicKey) Encrypt(mBigInt *big.Int) (*big.Int, *big.Int, error
 
 // Decrypt paillier decrypt by private key
 func (privateKey *PrivateKey) Decrypt(cipherBigInt *big.Int) (*big.Int, error) {
+    	if privateKey == nil || cipherBigInt == nil {
+	    return nil,errors.New("param error")
+	}
+
 	one := big.NewInt(1)
 
 	if cipherBigInt.Cmp(privateKey.N2) > 0 {
@@ -121,6 +133,10 @@ func (privateKey *PrivateKey) Decrypt(cipherBigInt *big.Int) (*big.Int, error) {
 
 // HomoAdd  Homomorphic addition 
 func (publicKey *PublicKey) HomoAdd(c1, c2 *big.Int) *big.Int {
+    	if publicKey == nil || c1 == nil || c2 == nil {
+	    return nil
+	}
+
 	// c1 * c2
 	c1c2 := new(big.Int).Mul(c1, c2)
 	// c1 * c2 mod N2
@@ -131,6 +147,10 @@ func (publicKey *PublicKey) HomoAdd(c1, c2 *big.Int) *big.Int {
 
 // HomoMul  Homomorphic multiplication 
 func (publicKey *PublicKey) HomoMul(cipher, k *big.Int) *big.Int {
+    	if publicKey == nil || cipher == nil || k == nil {
+	    return nil
+	}
+
 	// cipher^k mod N2
 	newCipher := new(big.Int).Exp(cipher, k, publicKey.N2)
 
@@ -251,6 +271,10 @@ func (privateKey *PrivateKey) UnmarshalJSON(raw []byte) error {
 
 // CreatPair create paillier pubkey/private key
 func CreatPair(length int) (*PublicKey, *PrivateKey) {
+    	if length <= 0 {
+	    return nil,nil
+	}
+
 	one := big.NewInt(1)
 
 	_, p := GetRandomPrime()

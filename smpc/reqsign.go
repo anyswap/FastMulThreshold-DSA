@@ -76,6 +76,10 @@ func GetSignNonce(account string) (string, string, error) {
 
 // SetSignNonce set sign special tx nonce
 func SetSignNonce(account string, nonce string) (string, error) {
+    	if account == "" || nonce == "" {
+	    return "",errors.New("param error")
+	}
+
 	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + "Sign"))).Hex()
 	err := PutPubKeyData([]byte(key), []byte(nonce))
 	if err != nil {
@@ -293,6 +297,10 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 // RPCAcceptSign Agree to the sign request 
 // raw : accept data, including the key of the sign request
 func RPCAcceptSign(raw string) (string, string, error) {
+    	if raw == "" {
+	    return "","",errors.New("param error")
+	}
+
 	key, from, _, txdata, err := CheckRaw(raw)
 	if err != nil {
 		common.Error("=====================RPCAcceptSign,check raw data error================", "raw", raw, "err", err)
@@ -354,6 +362,10 @@ type TxDataSign struct {
 // Sign execute the sign command
 // raw : sign command data
 func Sign(raw string) (string, string, error) {
+    	if raw == "" {
+	    return "","",errors.New("param error")
+	}
+
 	key, from, _, txdata, err := CheckRaw(raw)
 	if err != nil {
 		common.Error("=====================Sign,check raw data error================", "raw", raw, "err", err)
@@ -468,6 +480,10 @@ func HandleRPCSign() {
 
 // getSignHash To get the key of sign command with the hash value,we must transfer hash array to a string
 func getSignHash(hash []string, keytype string) string {
+    	if hash == nil || keytype  == "" {
+	    return ""
+	}
+
 	var ids smpclib.SortableIDSSlice
 	for _, v := range hash {
 		uid := DoubleHash(v, keytype)
@@ -499,6 +515,10 @@ type SignStatus struct {
 
 // GetSignStatus get the result of the sign request by key
 func GetSignStatus(key string) (string, string, error) {
+    	if key  == "" {
+	    return "","",errors.New("param error")
+	}
+
 	exsit, da := GetPubKeyData([]byte(key))
 	if !exsit || da == nil {
 		common.Debug("=================GetSignStatus,get sign accept data fail from db================", "key", key)
@@ -564,6 +584,10 @@ func GetCurNodeSignInfo(geteracc string) ([]*SignCurNodeInfo, string, error) {
 			return
 		}
 	}()
+
+    	if geteracc  == "" {
+	    return nil,"",errors.New("param error")
+	}
 
 	var ret []*SignCurNodeInfo
 	data := make(chan *SignCurNodeInfo, 1000)
@@ -1511,6 +1535,10 @@ func (rsv *ECDSASignature) SetRecoveryParam(recoveryParam int32) {
 
 // ToolDecimalByteSlice2HexString transfer Decimal byte to hex string
 func ToolDecimalByteSlice2HexString(DecimalSlice []byte) string {
+    	if DecimalSlice == nil {
+	    return ""
+	}
+
 	var sa = make([]string, 0)
 	for _, v := range DecimalSlice {
 		sa = append(sa, fmt.Sprintf("%02X", v))
@@ -1521,6 +1549,10 @@ func ToolDecimalByteSlice2HexString(DecimalSlice []byte) string {
 
 // GetSignString get RSV string
 func GetSignString(r *big.Int, s *big.Int, v int) string {
+    	if r == nil || s == nil {
+	    return "" 
+	}
+
 	rr := r.Bytes()
 	sss := s.Bytes()
 

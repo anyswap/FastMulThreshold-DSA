@@ -35,6 +35,10 @@ import (
 // EdSignProcessInboundMessages Analyze the obtained P2P messages and enter next round
 func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
 	defer wg.Done()
+	if msgprex == "" {
+	    return
+	}
+
 	fmt.Printf("start ed sign processing inbound messages\n")
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
@@ -122,6 +126,10 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *
 
 // EdSignGetRealMessage get the message data struct by map. (p2p msg ---> map)
 func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
+    	if msg == nil {
+	    return nil
+	}
+
 	from := msg["FromID"]
 	if from == "" {
 	    return nil

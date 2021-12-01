@@ -52,13 +52,13 @@ func ZkUProve(u *big.Int) *ZkUProof {
 
 // ZkUVerify verify ZkUProof
 func ZkUVerify(uG []*big.Int, zkUProof *ZkUProof) bool {
+    	if uG == nil || len(uG) == 0 || zkUProof == nil || zkUProof.E == nil || zkUProof.S == nil {
+	    return false
+	}
+
 	// Check whether the point is on the curve
 	if !checkPointOnCurve(uG) {
 		return false
-	}
-
-	if zkUProof == nil || zkUProof.E == nil || zkUProof.S == nil {
-	    return false
 	}
 
 	sGx, sGy := s256.S256().ScalarBaseMult(zkUProof.S.Bytes())
@@ -134,13 +134,13 @@ func ZkXiProve(sku1 *big.Int) *ZkXiProof {
 
 // ZkXiVerify verify ZkXiProof
 func ZkXiVerify(xiG []*big.Int, zkXiProof *ZkXiProof) bool {
+	if xiG == nil || len(xiG) == 0 || zkXiProof == nil || zkXiProof.E == nil || zkXiProof.S == nil {
+	    return false
+	}
+
 	// Check whether the point is on the curve
 	if !checkPointOnCurve(xiG) {
 		return false
-	}
-
-	if zkXiProof.E == nil || zkXiProof.S == nil {
-	    return false
 	}
 
 	sGx, sGy := s256.S256().ScalarBaseMult(zkXiProof.S.Bytes())

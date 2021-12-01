@@ -32,6 +32,10 @@ type Commitment struct {
 
 // Commit  Generate commitment data by secrets
 func (commitment *Commitment) Commit(secrets ...*big.Int) *Commitment {
+	if len(secrets) == 0 {
+	    return nil
+	}
+
 	// Generate the random num
 	rnd := random.GetRandomInt(256)
 	if rnd == nil {
@@ -71,6 +75,10 @@ func (commitment *Commitment) Commit(secrets ...*big.Int) *Commitment {
 func (commitment *Commitment) Verify() bool {
 	C := commitment.C
 	D := commitment.D
+
+	if C == nil {
+	    return false
+	}
 
 	if len(D) < 1 { // at least rnd number
 	    return false
@@ -130,4 +138,5 @@ func checkPointOnCurve(secrets []*big.Int) bool {
 
 	return true
 }
+
 

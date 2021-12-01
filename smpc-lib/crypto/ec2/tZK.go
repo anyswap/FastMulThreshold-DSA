@@ -85,7 +85,7 @@ func decompressPoint(x *big.Int, sign byte) (*big.Int,*big.Int, error) {
 
 //---------------------------------------------------------------------------------
 
-// TProve create T1 Prove
+// TProve add for gg20: calculate T_i = g^sigma_i * h^l_i = sigma_i*G + l_i*h*G
 func TProve(t1X *big.Int, t1Y *big.Int,  hx *big.Int, hy *big.Int, sigma1 *big.Int,l1 *big.Int) *TProof {
 	if t1X == nil || t1Y == nil || hx == nil || hy == nil || sigma1 == nil || l1 == nil {
 	    return nil
@@ -109,7 +109,7 @@ func TProve(t1X *big.Int, t1Y *big.Int,  hx *big.Int, hy *big.Int, sigma1 *big.I
 	return &TProof{AlphaX: alphaX,AlphaY: alphaY,T: t,U: u}
 }
 
-// TVerify verify TProof
+// TVerify add for gg20: calculate T_i = g^sigma_i * h^l_i = sigma_i*G + l_i*h*G
 func TVerify(t1X *big.Int, t1Y *big.Int,  hx *big.Int, hy *big.Int, proof *TProof) bool {
 
 	if t1X == nil || t1Y == nil || hx == nil || hy == nil || proof == nil {

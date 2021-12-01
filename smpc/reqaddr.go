@@ -31,6 +31,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"errors"
 )
 
 var (
@@ -48,6 +49,10 @@ var (
 
 // GetReqAddrNonce get keygen special tx nonce
 func GetReqAddrNonce(account string) (string, string, error) {
+    	if account == "" {
+	    return "","",errors.New("param error")
+	}
+
 	key2 := Keccak256Hash([]byte(strings.ToLower(account))).Hex()
 	var da []byte
 	exsit, datmp := GetPubKeyData([]byte(key2))
@@ -67,6 +72,10 @@ func GetReqAddrNonce(account string) (string, string, error) {
 
 // SetReqAddrNonce set keygen special tx nonce
 func SetReqAddrNonce(account string, nonce string) (string, error) {
+    	if account == "" || nonce == "" {
+	    return "",errors.New("param error")
+	}
+
 	key := Keccak256Hash([]byte(strings.ToLower(account))).Hex()
 	err := PutPubKeyData([]byte(key), []byte(nonce))
 	if err != nil {
@@ -91,6 +100,10 @@ type TxDataReqAddr struct {
 
 // GetSmpcAddr Obtain SMPC addresses in different currencies in pubkey
 func GetSmpcAddr(pubkey string) (string, string, error) {
+    	if pubkey == "" {
+	    return "","",errors.New("pubkey is nil")
+	}
+
 	var m interface{}
 	addrmp := make(map[string]string)
 	for _, ct := range coins.Cointypes {
@@ -120,6 +133,9 @@ func GetSmpcAddr(pubkey string) (string, string, error) {
 // ReqKeyGen Request to generate pubkey 
 // raw : keygen command data
 func ReqKeyGen(raw string) (string, string, error) {
+	if raw == "" {
+	    return "","",errors.New("param error")
+	}
 
 	key, _, _, txdata, err := CheckRaw(raw)
 	if err != nil {
@@ -143,6 +159,10 @@ func ReqKeyGen(raw string) (string, string, error) {
 // RPCAcceptReqAddr Agree to the keygen request 
 // raw : accept data, including the key of the keygen request
 func RPCAcceptReqAddr(raw string) (string, string, error) {
+	if raw == "" {
+	    return "","",errors.New("param error")
+	}
+
 	_, _, _, txdata, err := CheckRaw(raw)
 	if err != nil {
 		common.Error("=====================RPCAcceptReqAddr,check raw data error ================", "raw", raw, "err", err)
@@ -182,6 +202,10 @@ type ReqAddrStatus struct {
 
 // GetReqAddrStatus get the result of the keygen request by key
 func GetReqAddrStatus(key string) (string, string, error) {
+	if key == "" {
+	    return "","",errors.New("param error")
+	}
+
 	exsit, da := GetPubKeyData([]byte(key))
 	///////
 	if !exsit || da == nil {
@@ -263,6 +287,10 @@ func (r *ReqAddrCurNodeInfoSort) Swap(i, j int) {
 
 // GetCurNodeReqAddrInfo  Get current node's keygen command approval list 
 func GetCurNodeReqAddrInfo(geteracc string) ([]*ReqAddrReply, string, error) {
+	if geteracc == "" {
+	    return nil,"",errors.New("param error")
+	}
+
 	var ret []*ReqAddrReply
 	data := make(chan *ReqAddrReply, 1000)
 
@@ -346,6 +374,11 @@ type PubKeyData struct {
 // msgprex = hash
 // cointype = keytype    // EC256K1||ed25519
 func smpcGenPubKey(msgprex string, account string, cointype string, ch chan interface{}, mode string, nonce string) {
+	if msgprex == "" || account == "" || cointype == "" || mode == "" || nonce == "" {
+	    res := RPCSmpcRes{Ret: "", Tip: "param error", Err: errors.New("param error")}
+	    ch <- res
+	    return
+	}
 
 	wk, err := FindWorker(msgprex)
 	if err != nil || wk == nil {

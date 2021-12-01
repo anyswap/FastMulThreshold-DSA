@@ -32,6 +32,9 @@ type NtildeH1H2 struct {
 
 // GenerateNtildeH1H2 create ntilde data
 func GenerateNtildeH1H2(length int) (*NtildeH1H2, *big.Int, *big.Int, *big.Int, *big.Int,*big.Int,*big.Int) {
+    	if length <= 0 {
+		return nil, nil, nil, nil, nil,nil,nil
+	}
 
 	sp1 := <-SafePrimeCh
 	sp2 := <-SafePrimeCh
@@ -100,6 +103,10 @@ func (ntilde *NtildeH1H2) UnmarshalJSON(raw []byte) error {
 
 // CreateNt create data for Nt zk proof
 func CreateNt(length int) (*NtildeH1H2, *big.Int, *big.Int, *big.Int, *big.Int) {
+
+	if length <= 0 {
+		return nil, nil, nil,nil,nil
+	}
 
 	p, P := GetRandomPrime()
 	q, Q := GetRandomPrime()

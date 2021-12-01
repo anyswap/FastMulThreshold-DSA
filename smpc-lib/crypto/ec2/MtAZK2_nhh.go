@@ -110,6 +110,10 @@ func MtARespZKProofProve(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *bi
 // At the end of the protocol the Verifier is convinced of the above and that x ∈ [−q^3 , q^3].
 // The Verifier checks that s1 ≤ q^3, h1^s1*h2^s2 = z^e*zBar mod Ntilde, h1^t1*h2^t2 = t^e*w mode Ntilde, c1^s1*s^N*G^t1 = c2^e*v mod N^2 
 func (mtAZK2Proof *MtARespZKProof) MtARespZKProofVerify(c1 *big.Int, c2 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
+	if c1 == nil || c2 == nil || publicKey == nil || ntildeH1H2 == nil || mtAZK2Proof == nil || mtAZK2Proof.S1 == nil || mtAZK2Proof.Z == nil || mtAZK2Proof.ZBar == nil || mtAZK2Proof.T == nil || mtAZK2Proof.W == nil || mtAZK2Proof.V == nil || mtAZK2Proof.S == nil {
+	    return false
+	}
+
 	if mtAZK2Proof.S1.Cmp(s256.S256().N3()) > 0 {
 		return false
 	}

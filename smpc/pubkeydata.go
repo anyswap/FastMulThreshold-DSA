@@ -19,6 +19,7 @@ package smpc
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -125,6 +126,10 @@ func GetPubKeyData2(key string, account string, cointype string) (string, string
 
 // GetAccountsBalance Obtain SMPC addresses in different currencies in pubkey, and then obtain its balance 
 func GetAccountsBalance(pubkey string, geteracc string) (interface{}, string, error) {
+    	if pubkey == "" || geteracc == "" {
+	    return nil,"",errors.New("param error")
+	}
+
 	keytmp, err2 := hex.DecodeString(pubkey)
 	if err2 != nil {
 		return nil, "decode pubkey fail", err2
@@ -171,6 +176,9 @@ func GetAccountsBalance(pubkey string, geteracc string) (interface{}, string, er
 
 // GetBalance get the balance by smpc address
 func GetBalance(account string, cointype string, smpcaddr string) (string, string, error) {
+    	if account == "" || cointype == "" || smpcaddr == "" {
+	    return "","",errors.New("param error")
+	}
 
 	if strings.EqualFold(cointype, "EVT1") || strings.EqualFold(cointype, "EVT") { ///tmp code
 		return "0", "", nil //TODO

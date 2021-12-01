@@ -33,12 +33,17 @@ import (
 	smpclib "github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"github.com/fsn-dev/cryptoCoins/coins"
 	"sort"
+	"errors"
 )
 
 //----------------------------------------------------------------------------------------
 
 // GetReShareNonce get reshare special tx nonce
 func GetReShareNonce(account string) (string, string, error) {
+    	if account == "" {
+	    return "","",errors.New("param error")
+	}
+
 	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + "RESHARE"))).Hex()
 	exsit, da := GetPubKeyData([]byte(key))
 	if !exsit {
@@ -53,6 +58,10 @@ func GetReShareNonce(account string) (string, string, error) {
 
 // SetReShareNonce set reshare special tx nonce
 func SetReShareNonce(account string, nonce string) (string, error) {
+    	if account == "" || nonce == "" {
+	    return "",errors.New("param error")
+	}
+
 	key2 := Keccak256Hash([]byte(strings.ToLower(account + ":" + "RESHARE"))).Hex()
 	err := PutPubKeyData([]byte(key2), []byte(nonce))
 	if err != nil {
@@ -112,6 +121,10 @@ type TxDataReShare struct {
 // ReShare execute the reshare command
 // raw : reshare command data
 func ReShare(raw string) (string, string, error) {
+    	if raw == "" {
+	    return "","",errors.New("param error")
+	}
+
 	key, _, _, txdata, err := CheckRaw(raw)
 	if err != nil {
 		common.Error("=====================ReShare,check raw data error ================", "raw", raw, "err", err)
@@ -134,6 +147,10 @@ func ReShare(raw string) (string, string, error) {
 // RPCAcceptReShare Agree to the reshare request 
 // raw : accept data, including the key of the reshare request
 func RPCAcceptReShare(raw string) (string, string, error) {
+    	if raw == "" {
+	    return "","",errors.New("param error")
+	}
+
 	_, _, _, txdata, err := CheckRaw(raw)
 	if err != nil {
 		common.Error("=====================RPCAcceptReShare,check raw data error ================", "raw", raw, "err", err)
@@ -173,6 +190,10 @@ type ReShareStatus struct {
 
 // GetReShareStatus get the result of the reshare request by key
 func GetReShareStatus(key string) (string, string, error) {
+    	if key == "" {
+	    return "","",errors.New("param error")
+	}
+
 	exsit, da := GetPubKeyData([]byte(key))
 	if !exsit || da == nil {
 		return "", "smpc back-end internal error:get reshare accept data fail from db when GetReShareStatus", fmt.Errorf("get reshare accept data fail from db")
@@ -545,6 +566,10 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 
 // GetIDReshareByGroupID get uid of node in group by groupid,and sort the uids
 func GetIDReshareByGroupID(msgtoenode map[string]string, groupid string) smpclib.SortableIDSSlice {
+    	if msgtoenode == nil || groupid == "" {
+	    return nil
+	}
+
 	var ids smpclib.SortableIDSSlice
 
 	_, enodes := GetGroup(groupid)

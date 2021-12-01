@@ -40,6 +40,11 @@ import (
 // ReshareProcessInboundMessages Analyze the obtained P2P messages and enter next round
 func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
 	defer wg.Done()
+	
+	if msgprex == "" {
+	    return
+	}
+
 	fmt.Printf("start processing inbound messages\n")
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
@@ -138,6 +143,10 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, wg 
 
 // ReshareGetRealMessage get the message data struct by map. (p2p msg ---> map)
 func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
+	if msg == nil {
+	    return nil
+	}
+
 	from := msg["FromID"]
 	if from == "" {
 	    return nil
@@ -561,7 +570,7 @@ func processReshare(msgprex string, groupid string, pubkey string, account strin
 
 // ReshareProcessOutCh send message to other node
 func ReshareProcessOutCh(msgprex string, groupid string, msg smpclib.Message) error {
-	if msg == nil {
+	if msg == nil || msgprex == "" || groupid == "" {
 		return fmt.Errorf("smpc info error")
 	}
 

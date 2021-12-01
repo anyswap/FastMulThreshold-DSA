@@ -108,7 +108,12 @@ func (round *round2) Start() error {
 		}
 	}
 	//
-	
+
+	dul,err := ec2.ContainsDuplicate(ids)
+	if err != nil || dul || len(ids) > round.dnodecount {
+	    return errors.New("node id error")
+	}
+
 	u1Shares, err := round.temp.u1Poly.Vss2(ids)
 	if err != nil {
 		return err

@@ -38,6 +38,11 @@ func (round *round1) Start() error {
 
 	u1 := random.GetRandomIntFromZn(secp256k1.S256().N)
 	c1 := random.GetRandomIntFromZn(secp256k1.S256().N)
+
+	if u1 == nil || c1 == nil || round.threshold <= 1 || round.threshold > round.dnodecount {
+	    return errors.New("round one fail")
+	}
+
 	u1Poly, u1PolyG, _ := ec2.Vss2Init(u1, round.threshold)
 	_, c1PolyG, _ := ec2.Vss2Init(c1, round.threshold)
 

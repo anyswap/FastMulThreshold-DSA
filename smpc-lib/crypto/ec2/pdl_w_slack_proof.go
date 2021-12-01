@@ -108,11 +108,15 @@ func NewPDLwSlackProof(wit *PDLwSlackWitness, st *PDLwSlackStatement) *PDLwSlack
 
 // commitmentUnknownOrder https://github.com/KZen-networks/multi-party-ecdsa/blob/gg20/src/utilities/zk_pdl_with_slack/mod.rs#L175
 func commitmentUnknownOrder(h1, h2, NTilde, x, r *big.Int) (com *big.Int) {
-    modNTilde := ModInt(NTilde)
-	h1X := modNTilde.Exp(h1, x)
-	h2R := modNTilde.Exp(h2, r)
-	com = modNTilde.Mul(h1X, h2R)
+    if h1 == nil || h2 == nil || x == nil || r == nil {
 	return
+    }
+
+    modNTilde := ModInt(NTilde)
+    h1X := modNTilde.Exp(h1, x)
+    h2R := modNTilde.Exp(h2, r)
+    com = modNTilde.Mul(h1X, h2R)
+    return
 }
 
 //----------------------------------------------------------------------------------

@@ -34,6 +34,10 @@ import (
 
 // ProcessInboundMessagesEDDSA Analyze the obtained P2P messages and enter next round
 func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
+    	if msgprex == "" {
+	    return
+	}
+
 	defer wg.Done()
 	fmt.Printf("start processing inbound messages, key = %v \n", msgprex)
 	w, err := FindWorker(msgprex)
@@ -125,6 +129,10 @@ func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, wg *s
 
 // GetRealMessageEDDSA get the message data struct by map. (p2p msg ---> map)
 func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
+    	if msg == nil {
+	    return nil
+	}
+
 	from := msg["FromID"]
 	if from == "" {
 	    return nil
@@ -274,6 +282,10 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 
 // processKeyGenEDDSA  Obtain the data to be sent in each round and send it to other nodes until the end of the request command 
 func processKeyGenEDDSA(msgprex string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan edkeygen.LocalDNodeSaveData) error {
+    	if msgprex == "" {
+	    return errors.New("param error")
+	}
+
 	for {
 		select {
 		case <-errChan: // when keyGenParty return

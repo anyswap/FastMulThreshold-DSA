@@ -51,6 +51,11 @@ func (round *round2) Start() error {
 	round.Save.IDs = ids
 	round.Save.CurDNodeID, _ = new(big.Int).SetString(round.dnodeid, 10)
 
+	dul,err := ec2.ContainsDuplicate(ids)
+	if err != nil || dul || len(ids) > round.dnodecount {
+	    return errors.New("node id error")
+	}
+
 	skP1Shares, err := round.temp.skP1Poly.Vss2(ids)
 	if err != nil {
 		return err
