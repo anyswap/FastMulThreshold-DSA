@@ -38,7 +38,7 @@ func TestMtAZK3Verify_nhh(t *testing.T) {
 	var idsign smpclib.SortableIDSSlice
 	enodes := []string{"524da89d8bd8f051e9b24660941e772f60e2e7a4ab0c48d1671ecfb9844e9cf1f0a9ef697be8118fe7bc9f2782a5a2bad912856bcb3a4dfda0aafcbdc9c282af", "8908863d56914eaa420afca83f43206f65ff56e42faeecb9e24f77740838819313f789bf7c4941b162e696147df409e47eb95ea351eac016ce8b7bf38fd269b2", "ee10b450a564e9cda30b37b9497a11ede5583e8964ba01ae85bbba7b421e403b1ab710f87d5b93c700ca459661b889412b9d781fbef8094ee282b46f4a90508b"}
 	for i := 0; i < threshold; i++ {
-		uid := smpc.DoubleHash(enodes[i], "EC256K1")
+		uid := big.NewInt(i+1)  // n/n
 		idsign = append(idsign, uid)
 	}
 	sort.Sort(idsign)
@@ -84,3 +84,4 @@ func TestMtAZK3Verify_nhh(t *testing.T) {
 	ret := u1u1MtAZK3Proof.MtAZK3Verify_nhh(u1KCipher, u1Kw1Cipher, publicKey, nt)
 	assert.True(t, ret, "must be true")
 }
+

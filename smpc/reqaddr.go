@@ -704,7 +704,7 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 	errChan := make(chan struct{})
 	keyGenDNode := keygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048)
 	w.DNode = keyGenDNode
-	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", DoubleHash(curEnode, "EC256K1")))
+	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", GetNodeUID(curEnode, "EC256K1",w.groupid)))
 	fmt.Printf("=========== KeyGenerateDECDSA, node uid = %v ===========\n", keyGenDNode.DNodeID())
 
 	uid, _ := new(big.Int).SetString(w.DNode.DNodeID(), 10)
@@ -779,8 +779,7 @@ func KeyGenerateDEDDSA(msgprex string, ch chan interface{}, id int, cointype str
 	errChan := make(chan struct{})
 	keyGenDNode := edkeygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold)
 	w.DNode = keyGenDNode
-	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", DoubleHash(curEnode, "ED25519")))
-
+	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", GetNodeUID(curEnode, "ED25519",w.groupid)))
 	w.MsgToEnode[w.DNode.DNodeID()] = curEnode
 
 	var keyGenWg sync.WaitGroup

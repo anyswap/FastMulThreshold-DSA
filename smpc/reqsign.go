@@ -1003,14 +1003,15 @@ func GetPaillierPkByIndexFromSaveData(save string, index int) *ec2.PublicKey {
 //--------------------------------------------------------------------------------------------------
 
 // GetCurNodeIndex get the serial number of uid of current node in group.
-func GetCurNodeIndex(gid string, keytype string) int {
-	if gid == "" || keytype == "" {
+// gid is the `keygen gid`
+func GetCurNodeIndex(gid string,subgid string,keytype string) int {
+	if gid == "" || subgid == "" || keytype == "" {
 		return -1
 	}
 
-	uid := DoubleHash(curEnode, keytype)
+	uid := GetNodeUID(curEnode, keytype,gid)
+	ids := GetGroupNodeUIDs(keytype, gid,subgid)
 
-	ids := GetIDs(keytype, gid)
 	for k, v := range ids {
 		if v.Cmp(uid) == 0 {
 			return k
@@ -1029,7 +1030,7 @@ func GetCurNodePaillierSkFromSaveData(save string, gid string, keytype string) *
 		return nil
 	}
 
-	curIndex := GetCurNodeIndex(gid, keytype)
+	curIndex := GetCurNodeIndex(gid,gid,keytype)
 	publicKey := GetPaillierPkByIndexFromSaveData(save, curIndex)
 	if publicKey != nil {
 		mm := strings.Split(save, common.SepSave)
@@ -1073,17 +1074,22 @@ func GetNtildeByIndexFromSaveData(save string, index int, NodeCnt int) *ec2.Ntil
 
 // GetMsgToEnode get uid of node in group by groupid,and put it to the map.
 // map: uid ----> enodeID
-func GetMsgToEnode(keytype string, groupid string) map[string]string {
-	msgtoenode := make(map[string]string)
-	_, nodes := GetGroup(groupid)
-	others := strings.Split(nodes, common.Sep2)
-	for _, v := range others {
-		node2 := ParseNode(v)
-		uid := DoubleHash(node2, keytype)
-		msgtoenode[fmt.Sprintf("%v", uid)] = node2
-	}
+// gid is the `keygen gid`
+func GetMsgToEnode(keytype string, gid string,groupid string) map[string]string {
+    if keytype == "" || gid == "" || groupid == "" {
+	return nil
+    }
 
-	return msgtoenode
+    msgtoenode := make(map[string]string)
+    _, nodes := GetGroup(groupid)
+    others := strings.Split(nodes, common.Sep2)
+    for _, v := range others {
+	    node2 := ParseNode(v)
+	    uid := GetNodeUID(node2, keytype,gid)
+	    msgtoenode[fmt.Sprintf("%v", uid)] = node2
+    }
+
+    return msgtoenode
 }
 
 //-----------------------------------------------------------------------------------------------------
@@ -1142,15 +1148,15 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 	sd.U1PaillierPk = U1PaillierPk
 	sd.U1NtildeH1H2 = U1NtildeH1H2
 
-	sd.IDs = GetIDs(cointype, pubs.GroupID)
-	sd.CurDNodeID = DoubleHash(curEnode, cointype)
+	sd.IDs = GetGroupNodeUIDs(cointype,pubs.GroupID,pubs.GroupID)
+	sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
 
-	msgtoenode := GetMsgToEnode(cointype, pubs.GroupID)
+	msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
 	kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
 
 	// [Notes]
 	// 1. assume the nodes who take part in the signature generation as follows
-	idsign := GetIDs(cointype, w.groupid)
+	idsign := GetGroupNodeUIDs(cointype,pubs.GroupID,w.groupid)
 
 	commStopChan := make(chan struct{})
 	outCh := make(chan smpclib.Message, w.ThresHold)
@@ -1278,13 +1284,13 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 	sd.U1PaillierPk = U1PaillierPk
 	sd.U1NtildeH1H2 = U1NtildeH1H2
 
-	sd.IDs = GetIDs(cointype, pubs.GroupID)
-	sd.CurDNodeID = DoubleHash(curEnode, cointype)
+	sd.IDs = GetGroupNodeUIDs(cointype, pubs.GroupID,pubs.GroupID)
+	sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
 
-	msgtoenode := GetMsgToEnode(cointype, pubs.GroupID)
+	msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
 	kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
 
-	idsign := GetIDs(cointype, w.groupid)
+	idsign := GetGroupNodeUIDs(cointype,pubs.GroupID,w.groupid)
 
 	commStopChan := make(chan struct{})
 	outCh := make(chan smpclib.Message, w.ThresHold)
@@ -1294,7 +1300,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 	predata := &signing.PrePubData{K1: pre.K1, R: pre.R, Ry: pre.Ry, Sigma1: pre.Sigma1}
 	signDNode := signing.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, true, predata, mMtA, finalizeendCh)
 	w.DNode = signDNode
-	signDNode.SetDNodeID(fmt.Sprintf("%v", DoubleHash(curEnode, "EC256K1")))
+	signDNode.SetDNodeID(fmt.Sprintf("%v", GetNodeUID(curEnode, "EC256K1",pubs.GroupID)))
 
 	var signWg sync.WaitGroup
 	signWg.Add(2)
@@ -1695,13 +1701,13 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 	sd.Sk = sk
 	sd.TSk = tsk
 	sd.FinalPkBytes = pkfinal
-	sd.IDs = GetIDs(cointype, pubs.GroupID)
-	sd.CurDNodeID = DoubleHash(curEnode, cointype)
+	sd.IDs = GetGroupNodeUIDs(cointype, pubs.GroupID,pubs.GroupID)
+	sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
 
-	msgtoenode := GetMsgToEnode(cointype, pubs.GroupID)
+	msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
 	kgsave := &KGLocalDBSaveDataED{Save: sd, MsgToEnode: msgtoenode}
 
-	idsign := GetIDs(cointype, w.groupid)
+	idsign := GetGroupNodeUIDs(cointype,pubs.GroupID,w.groupid)
 
 	mMtA, _ := new(big.Int).SetString(message, 16)
 	fmt.Printf("==============SignED, w.groupid = %v, message = %v ==============\n", w.groupid, message)
@@ -1713,7 +1719,7 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 	errChan := make(chan struct{})
 	signDNode := edsigning.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, mMtA, finalizeendCh)
 	w.DNode = signDNode
-	signDNode.SetDNodeID(fmt.Sprintf("%v", DoubleHash(curEnode, "ED25519")))
+	signDNode.SetDNodeID(fmt.Sprintf("%v", GetNodeUID(curEnode, "ED25519",pubs.GroupID)))
 
 	var signWg sync.WaitGroup
 	signWg.Add(2)

@@ -439,22 +439,24 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 		sd.U1PaillierPk = U1PaillierPk
 		sd.U1NtildeH1H2 = U1NtildeH1H2
 
-		sd.IDs = GetIDs("EC256K1", (da.(*PubKeyData)).GroupID)
-		sd.CurDNodeID = DoubleHash(curEnode, "EC256K1")
+		sd.IDs = GetGroupNodeUIDs("EC256K1",groupid,groupid) // 1,2,3,4,6
+		sd.CurDNodeID = GetNodeUID(curEnode,"EC256K1",groupid) 
 
-		msgtoenode := GetMsgToEnode("EC256K1", (da.(*PubKeyData)).GroupID)
-		kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
+		//msgtoenode := GetMsgToEnode("EC256K1",(da.(*PubKeyData)).GroupID,(da.(*PubKeyData)).GroupID)
+		//kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
 
 		found := false
-		idreshare := GetIDReshareByGroupID(kgsave.MsgToEnode, w.groupid)
-		for _, v := range idreshare {
-			if v.Cmp(sd.CurDNodeID) == 0 {
-				found = true
-				break
-			}
+		ids := GetGroupNodeUIDs("EC256K1",groupid,w.groupid)
+		uid := GetNodeUID(curEnode,"EC256K1",groupid)
+		for _,v := range ids {
+		    if v.Cmp(uid) == 0 {
+			found = true
+			break
+		    }
 		}
 
 		if !found {
+			fmt.Printf("================= ReShareEC2,not found in old groupid, so current node is not old node. new groupid = %v, new ts groupid = %v =======================\n", groupid, w.groupid)
 			oldnode = false
 		}
 
@@ -466,7 +468,7 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 			errChan := make(chan struct{})
 			reshareDNode := reshare.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048, sd, true)
 			w.DNode = reshareDNode
-			reshareDNode.SetDNodeID(fmt.Sprintf("%v", DoubleHash(curEnode, "EC256K1")))
+			reshareDNode.SetDNodeID(fmt.Sprintf("%v", GetNodeUID(curEnode,"EC256K1",groupid)))
 
 			uid, _ := new(big.Int).SetString(w.DNode.DNodeID(), 10)
 			w.MsgToEnode[fmt.Sprintf("%v", uid)] = curEnode
@@ -507,7 +509,7 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 	errChan := make(chan struct{})
 	reshareDNode := reshare.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048, nil, false)
 	w.DNode = reshareDNode
-	reshareDNode.SetDNodeID(fmt.Sprintf("%v", DoubleHash(curEnode, "EC256K1")))
+	reshareDNode.SetDNodeID(fmt.Sprintf("%v", GetNodeUID(curEnode,"EC256K1",groupid)))
 
 	uid, _ := new(big.Int).SetString(w.DNode.DNodeID(), 10)
 	w.MsgToEnode[fmt.Sprintf("%v", uid)] = curEnode

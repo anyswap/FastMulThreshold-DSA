@@ -298,7 +298,7 @@ func Keccak256Hash(data ...[]byte) (h ByteHash) {
 
 //----------------------------------------------------------------------------------------------
 
-// DoubleHash  The ID is converted into a hash value according to different keytypes 
+// DoubleHash  The EnodeID is converted into a hash value according to different keytypes 
 func DoubleHash(id string, keytype string) *big.Int {
 	// Generate the random num
 	// First, hash with the keccak256
@@ -360,6 +360,63 @@ func GetIDs(keytype string, groupid string) smpclib.SortableIDSSlice {
 	}
 	sort.Sort(ids)
 	return ids
+}
+
+// GetNodeUID get current node uid,gid is the `keygen gid`
+func GetNodeUID(EnodeID string,keytype string,gid string) *big.Int {
+    if EnodeID == "" || keytype == "" || gid == "" {
+	return nil
+    }
+
+    uid := DoubleHash(EnodeID,keytype)
+    if uid == nil {
+	return nil
+    }
+    
+    _, nodes := GetGroup(gid)
+    others := strings.Split(nodes, common.Sep2)
+    
+    ids := GetIDs(keytype,gid)
+    if len(ids) == 0 {
+	return nil
+    }
+
+    for k,v := range ids {
+	if v.Cmp(uid) == 0 {
+	    if (k+1) <= len(others) {
+		return big.NewInt(int64(k+1))
+	    }
+	}
+    }
+
+    return nil
+}
+
+// GetGroupNodeUIDs get the uids of node in group subgid
+// gid is the `keygen gid`
+func GetGroupNodeUIDs(keytype string,gid string,subgid string) smpclib.SortableIDSSlice {
+    if keytype == "" || gid == "" || subgid == "" {
+	return nil
+    }
+
+    allids := GetIDs(keytype,gid)
+
+    var ids smpclib.SortableIDSSlice
+    _, nodes := GetGroup(subgid)
+    others := strings.Split(nodes, common.Sep2)
+    for _, v := range others {
+	    node2 := ParseNode(v) //bug??
+	    id := DoubleHash(node2, keytype)
+	    for kk,vv := range allids {
+		if vv.Cmp(id) == 0 {
+		    ids = append(ids,big.NewInt(int64(kk+1)))
+		    break
+		}
+	    }
+    }
+
+    sort.Sort(ids)
+    return ids
 }
 
 //------------------------------------------------------------------------------
@@ -456,3 +513,4 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 
 	return smpcreq.CheckTxData(tx.Data(), from.Hex(), tx.Nonce())
 }
+

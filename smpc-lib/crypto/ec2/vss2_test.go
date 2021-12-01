@@ -58,7 +58,7 @@ func TestVss2(t *testing.T) {
 	var ids smpclib.SortableIDSSlice
 	enodes := []string{"524da89d8bd8f051e9b24660941e772f60e2e7a4ab0c48d1671ecfb9844e9cf1f0a9ef697be8118fe7bc9f2782a5a2bad912856bcb3a4dfda0aafcbdc9c282af", "8908863d56914eaa420afca83f43206f65ff56e42faeecb9e24f77740838819313f789bf7c4941b162e696147df409e47eb95ea351eac016ce8b7bf38fd269b2", "ee10b450a564e9cda30b37b9497a11ede5583e8964ba01ae85bbba7b421e403b1ab710f87d5b93c700ca459661b889412b9d781fbef8094ee282b46f4a90508b", "785708c037dcb3527075fe85797e5997c33202508daaa8ee45e99f73121047f3bb3dd2662ce5f0bb9b8e83cd2e56b3d99d2156433fef5185f66d2bb21d944e25", "730c8fc7142d15669e8329138953d9484fd4cce0c690e35e105a9714deb741f10b52be1c5d49eeeb6f00aab8f3d2dec4e3352d0bf56bdbc2d86cb5f89c8e90d0"}
 	for i := 0; i < 5; i++ {
-		uid := smpc.DoubleHash(enodes[i], "EC256K1")
+		uid := big.NewInt(i+1) 
 		ids = append(ids, uid)
 	}
 	sort.Sort(ids)
