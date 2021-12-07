@@ -28,7 +28,7 @@ import (
 
 //-------------------------------------------------------------------------------
 
-// ZkUProof zku proof
+// ZkUProof the ZK that he knows u using Schnorr’s protocol
 type ZkUProof struct {
 	E *big.Int
 	S *big.Int
@@ -36,16 +36,22 @@ type ZkUProof struct {
 
 // ZkUProve create ZkUProof
 func ZkUProve(u *big.Int) *ZkUProof {
+    	// R = r*G
 	r := random.GetRandomIntFromZn(s256.S256().N)
 	rGx, rGy := s256.S256().ScalarBaseMult(r.Bytes())
+
+	// U = u*G
 	uGx, uGy := s256.S256().ScalarBaseMult(u.Bytes())
 
+	// e = HASH(R||U)
 	e := Sha512_256(rGx,rGy,uGx,uGy)
 
+	// s = r + e*u mod q
 	s := new(big.Int).Mul(e, u)
 	s = new(big.Int).Add(r, s)
 	s = new(big.Int).Mod(s, s256.S256().N)
 
+	// send (U,e,s) to verifier
 	zkUProof := &ZkUProof{E: e, S: s}
 	return zkUProof
 }
@@ -61,15 +67,21 @@ func ZkUVerify(uG []*big.Int, zkUProof *ZkUProof) bool {
 		return false
 	}
 
+	// s*G
 	sGx, sGy := s256.S256().ScalarBaseMult(zkUProof.S.Bytes())
 
+	// -e*U
 	minusE := new(big.Int).Mul(big.NewInt(-1), zkUProof.E)
 	minusE = new(big.Int).Mod(minusE, s256.S256().N)
-
 	eUx, eUy := s256.S256().ScalarMult(uG[0], uG[1], minusE.Bytes())
+
+	// R = s*G - eU
 	rGx, rGy := s256.S256().Add(sGx, sGy, eUx, eUy)
 
+	// HASH(R||U)
 	e := Sha512_256(rGx,rGy,uG[0],uG[1])
+
+	// check HASH(R||U) == e ??
 	if e.Cmp(zkUProof.E) == 0 {
 		return true
 	}
@@ -118,16 +130,22 @@ type ZkXiProof struct {
 
 // ZkXiProve create ZkXiProof
 func ZkXiProve(sku1 *big.Int) *ZkXiProof {
+    	// R = r*G
 	r := random.GetRandomIntFromZn(s256.S256().N)
 	rGx, rGy := s256.S256().ScalarBaseMult(r.Bytes())
+
+	// X = x*G
 	xGx, xGy := s256.S256().ScalarBaseMult(sku1.Bytes())
 
+	// e = HASH(R||X)
 	e := Sha512_256(rGx,rGy,xGx,xGy)
 
+	// s = r + e*x
 	s := new(big.Int).Mul(e, sku1)
 	s = new(big.Int).Add(r, s)
 	s = new(big.Int).Mod(s, s256.S256().N)
 
+	// send (X,e,s) to verifier
 	zkxiProof := &ZkXiProof{E: e, S: s}
 	return zkxiProof
 }
@@ -143,20 +161,25 @@ func ZkXiVerify(xiG []*big.Int, zkXiProof *ZkXiProof) bool {
 		return false
 	}
 
+	// s*G
 	sGx, sGy := s256.S256().ScalarBaseMult(zkXiProof.S.Bytes())
 
+	// -e*X
 	minusE := new(big.Int).Mul(big.NewInt(-1), zkXiProof.E)
 	minusE = new(big.Int).Mod(minusE, s256.S256().N)
-
 	eUx, eUy := s256.S256().ScalarMult(xiG[0],xiG[1], minusE.Bytes())
+
+	// R = s*G - e*X
 	rGx, rGy := s256.S256().Add(sGx, sGy, eUx, eUy)
 
+	// HASH(R||X)
 	e := Sha512_256(rGx,rGy,xiG[0],xiG[1])
 
+	// check HASH(R||X) == e ??
 	if e.Cmp(zkXiProof.E) == 0 {
 		return true
 	}
-	
+
 	return false
 }
 
