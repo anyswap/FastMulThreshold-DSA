@@ -20,6 +20,7 @@ package reshare
 import (
 	"errors"
 	"fmt"
+	"time"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
@@ -189,28 +190,32 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		}
 
 		if len(p.temp.reshareRound0Messages) == p.DNodeCountInGroup {
-			//fmt.Printf("================ StoreMessage,get all 0 messages ==============\n")
+			fmt.Printf("================ StoreMessage,get all ec reshare 0 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *ReRound1Message:
 		index := msg.GetFromIndex()
 		p.temp.reshareRound1Messages[index] = msg
 		if len(p.temp.reshareRound1Messages) == p.ThresHold && CheckFull(p.temp.reshareRound1Messages) {
-			//fmt.Printf("================ StoreMessage,get all 1 messages ==============\n")
+			fmt.Printf("================ StoreMessage,get all ec reshare 1 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *ReRound2Message:
 		index := msg.GetFromIndex()
 		p.temp.reshareRound2Messages[index] = msg
 		if len(p.temp.reshareRound2Messages) == p.ThresHold && CheckFull(p.temp.reshareRound2Messages) {
-			//fmt.Printf("================ StoreMessage,get all 2 messages ==============\n")
+			fmt.Printf("================ StoreMessage,get all ec reshare 2 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *ReRound2Message1:
 		index := msg.GetFromIndex()
 		p.temp.reshareRound2Messages1[index] = msg
 		if len(p.temp.reshareRound2Messages1) == p.ThresHold && CheckFull(p.temp.reshareRound2Messages1) {
-			//fmt.Printf("================ StoreMessage,get all 2-1 messages ==============\n")
+			fmt.Printf("================ StoreMessage,get all ec reshare 2-1 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *ReRound3Message:
@@ -219,7 +224,8 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		m := msg.(*ReRound3Message)
 		p.data.U1PaillierPk[index] = m.U1PaillierPk
 		if len(p.temp.reshareRound3Messages) == p.DNodeCountInGroup && CheckFull(p.temp.reshareRound3Messages) {
-			//fmt.Printf("================ StoreMessage,get all 3 messages ==============\n")
+			fmt.Printf("================ StoreMessage,get all ec reshare 3 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *ReRound4Message:
@@ -243,14 +249,16 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		p.temp.reshareRound4Messages[index] = msg
 		p.data.U1NtildeH1H2[index] = m.U1NtildeH1H2
 		if len(p.temp.reshareRound4Messages) == p.DNodeCountInGroup && CheckFull(p.temp.reshareRound4Messages) {
-			//fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
+			fmt.Printf("================ StoreMessage,get all ec reshare 4 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *ReRound5Message:
 		index := msg.GetFromIndex()
 		p.temp.reshareRound5Messages[index] = msg
 		if len(p.temp.reshareRound5Messages) == p.DNodeCountInGroup && CheckFull(p.temp.reshareRound5Messages) {
-			//fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
+			fmt.Printf("================ StoreMessage,get all ec reshare 5 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 
 			///check newskok
 			for _, v := range p.temp.reshareRound5Messages {

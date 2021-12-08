@@ -521,7 +521,7 @@ func processSignFinalize(msgprex string, msgtoenode map[string]string, errChan c
 
 // SignProcessOutCh send message to other node
 func SignProcessOutCh(msgprex string, msgtoenode map[string]string, msg smpclib.Message, gid string) error {
-	if msg == nil || msgprex == "" || msgtoenode == nil || gid == "" {
+	if msg == nil || msgprex == "" || msgtoenode == nil {
 		return fmt.Errorf("smpc info error")
 	}
 

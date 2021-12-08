@@ -442,54 +442,53 @@ func Call(msg interface{}, enode string) {
 
 	msgmap := make(map[string]string)
 	err = json.Unmarshal([]byte(s), &msgmap)
-	if err != nil {
-	    SetUpMsgList(s, enode)
-	    return
+	if err == nil {
+	    val, ok := msgmap["Key"]
+	    if ok {
+		    w, err := FindWorker(val)
+		    if err == nil {
+			    if w.DNode != nil && w.DNode.Round() != nil {
+				    common.Debug("====================Call, get smpc msg,worker found.===================", "key", val, "msg", msg, "sender node", enode)
+				    w.SmpcMsg <- s
+			    } else {
+				    from := msgmap["FromID"]
+				    msgtype := msgmap["Type"]
+				    key := strings.ToLower(val + "-" + from + "-" + msgtype)
+				    C1Data.WriteMap(key, s)
+				    fmt.Printf("===============================Call, pre-save p2p msg, worker found, key = %v,fromID = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
+			    }
+		    } else {
+			    from := msgmap["FromID"]
+			    msgtype := msgmap["Type"]
+			    key := strings.ToLower(val + "-" + from + "-" + msgtype)
+			    C1Data.WriteMap(key, s)
+			    fmt.Printf("===============================Call, pre-save p2p msg, worker not found, key = %v,fromID = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
+		    }
+
+		    return
+	    }
+
+	    if msgmap["Type"] == "SyncPreSign" {
+		    sps := &SyncPreSign{}
+		    if err = sps.UnmarshalJSON([]byte(msgmap["SyncPreSign"])); err == nil {
+			    w, err := FindWorker(sps.MsgPrex)
+			    if err == nil {
+				    if w.msgsyncpresign.Len() < w.ThresHold {
+					    if !Find(w.msgsyncpresign, s) {
+						    w.msgsyncpresign.PushBack(s)
+						    if w.msgsyncpresign.Len() == w.ThresHold {
+							    w.bsyncpresign <- true
+						    }
+					    }
+				    }
+			    }
+		    }
+
+		    return
+	    }
 	}
 
-	val, ok := msgmap["Key"]
-	if ok {
-		w, err := FindWorker(val)
-		if err == nil {
-			if w.DNode != nil && w.DNode.Round() != nil {
-				common.Debug("====================Call, get smpc msg,worker found.===================", "key", val, "msg", msg, "sender node", enode)
-				w.SmpcMsg <- s
-			} else {
-				from := msgmap["FromID"]
-				msgtype := msgmap["Type"]
-				key := strings.ToLower(val + "-" + from + "-" + msgtype)
-				C1Data.WriteMap(key, s)
-				fmt.Printf("===============================Call, pre-save p2p msg, worker found, key = %v,fromID = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
-			}
-		} else {
-			from := msgmap["FromID"]
-			msgtype := msgmap["Type"]
-			key := strings.ToLower(val + "-" + from + "-" + msgtype)
-			C1Data.WriteMap(key, s)
-			fmt.Printf("===============================Call, pre-save p2p msg, worker not found, key = %v,fromID = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
-		}
-
-		return
-	}
-
-	if msgmap["Type"] == "SyncPreSign" {
-		sps := &SyncPreSign{}
-		if err = sps.UnmarshalJSON([]byte(msgmap["SyncPreSign"])); err == nil {
-			w, err := FindWorker(sps.MsgPrex)
-			if err == nil {
-				if w.msgsyncpresign.Len() < w.ThresHold {
-					if !Find(w.msgsyncpresign, s) {
-						w.msgsyncpresign.PushBack(s)
-						if w.msgsyncpresign.Len() == w.ThresHold {
-							w.bsyncpresign <- true
-						}
-					}
-				}
-			}
-		}
-
-		return
-	}
+	SetUpMsgList(s, enode)
 }
 
 // SetUpMsgList set RecvMsg data to RPCReqQueue
@@ -600,7 +599,7 @@ func HandleKG(key string, uid *big.Int) {
 func HandleSign(key string, uid *big.Int) {
 	c1data := strings.ToLower(key + "-" + fmt.Sprintf("%v", uid) + "-" + "SignRound1Message")
 	Handle(key, c1data)
-	c1data = strings.ToLower(key + "-" + fmt.Sprintf("%v", uid) + "-" + "SignRound7Message")
+	c1data = strings.ToLower(key + "-" + fmt.Sprintf("%v", uid) + "-" + "SignRound9Message")
 	Handle(key, c1data)
 }
 
@@ -662,10 +661,10 @@ func HandleC1Data(ac *AcceptReqAddrData, key string) {
 
 	for _, node := range nodes {
 		node2 := ParseNode(node)
-		uid := DoubleHash(node2, "EC256K1")
+		uid := GetNodeUID(node2, "EC256K1",ac.GroupID)
 		HandleKG(key, uid)
 		HandleSign(key, uid)
-		uid = DoubleHash(node2, "ED25519")
+		uid = GetNodeUID(node2, "ED25519",ac.GroupID)
 		HandleKG(key, uid)
 		HandleSign(key, uid)
 	}

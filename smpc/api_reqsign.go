@@ -426,14 +426,14 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				}
 			}
 
-			childpub := secp256k1.S256().Marshal(childPKx, childPKy)
+			/*childpub := secp256k1.S256().Marshal(childPKx, childPKy)
 			childpubkeyhex := hex.EncodeToString(childpub)
 			_, _, err = GetSmpcAddr(childpubkeyhex)
 			if err != nil {
 				res := RPCSmpcRes{Ret: "", Tip: "get pubkey error", Err: fmt.Errorf("get pubkey error")}
 				ch <- res
 				return false
-			}
+			}*///No need to check pubkey here.
 
 			var ch1 = make(chan interface{}, 1)
 			for i := 0; i < recalcTimes; i++ {

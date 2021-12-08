@@ -100,7 +100,7 @@ func (round *base) GetIDs() (smpc.SortableIDSSlice, error) {
 }
 
 func (round *base) GetDNodeIDIndex(id string) (int, error) {
-	if id == "" || len(round.temp.kgRound0Messages) != round.dnodecount {
+	if id == "" || round.dnodecount < 3 || len(round.temp.kgRound0Messages) != round.dnodecount {
 		return -1, nil
 	}
 
@@ -109,7 +109,15 @@ func (round *base) GetDNodeIDIndex(id string) (int, error) {
 		return -1, errors.New("get id big number fail")
 	}
 
-	ids, err := round.GetIDs()
+	// fixed bug: get wrong index by id
+	for i:=0;i<round.dnodecount;i++ {
+	    v := big.NewInt(int64(i+1))
+	    if v.Cmp(idtmp) == 0 {
+		return i,nil
+	    }
+	}
+
+	/*ids, err := round.GetIDs()
 	if err != nil {
 		return -1, err
 	}
@@ -118,7 +126,7 @@ func (round *base) GetDNodeIDIndex(id string) (int, error) {
 		if v.Cmp(idtmp) == 0 {
 			return k, nil
 		}
-	}
+	}*/
 
 	return -1, errors.New("get dnode index fail,no found in kgRound0Messages")
 }

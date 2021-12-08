@@ -1341,7 +1341,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 			acceptreqdata, ok := da.(*AcceptReqAddrData)
 			if ok && acceptreqdata != nil {
 				common.Debug("======================SignEC3,get reqaddr info from pubkeydata db========================","key",msgprex,"acceptreqdata",acceptreqdata)
-				HandleC1Data(acceptreqdata, w.sid)
+				HandleC1Data(acceptreqdata, msgprex) // fixed: must use sub-key `msgprex`, don't use `w.sid`
 			}
 		}
 	}()
@@ -1768,7 +1768,7 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 			acceptreqdata, ok := da.(*AcceptReqAddrData)
 			if ok && acceptreqdata != nil {
 				common.Debug("================SignED,get reqaddr info from pubkeydata db========================","key",msgprex,"acceptreqdata",acceptreqdata)
-				HandleC1Data(acceptreqdata, w.sid)
+				HandleC1Data(acceptreqdata, msgprex) // fixed: must use sub-key `msgprex`, don't use `w.sid`
 			}
 		}
 	}()

@@ -20,6 +20,7 @@ package keygen
 import (
 	"errors"
 	"fmt"
+	"time"
 	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
@@ -190,8 +191,8 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		}
 
 		if len(p.temp.kgRound0Messages) == p.DNodeCountInGroup {
-			//fmt.Printf("================ StoreMessage,get all 0 messages ==============\n")
-			//time.Sleep(time.Duration(120) * time.Second) //tmp code
+			fmt.Printf("================ StoreMessage,get all ec keygen 0 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *KGRound1Message:
@@ -200,48 +201,48 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		m := msg.(*KGRound1Message)
 		p.data.U1PaillierPk[index] = m.U1PaillierPk
 		if len(p.temp.kgRound1Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound1Messages) {
-			//fmt.Printf("================ StoreMessage,get all 1 messages ==============\n")
-			//time.Sleep(time.Duration(20) * time.Second) //tmp code
+			fmt.Printf("================ StoreMessage,get all ec keygen 1 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *KGRound2Message:
 		index := msg.GetFromIndex()
 		p.temp.kgRound2Messages[index] = msg
 		if len(p.temp.kgRound2Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound2Messages) {
-			//fmt.Printf("================ StoreMessage,get all 2 messages ==============\n")
-			//time.Sleep(time.Duration(20) * time.Second) //tmp code
+			fmt.Printf("================ StoreMessage,get all ec keygen 2 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *KGRound2Message1:
 		index := msg.GetFromIndex()
 		p.temp.kgRound2Messages1[index] = msg
 		if len(p.temp.kgRound2Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound2Messages1) {
-			//fmt.Printf("================ StoreMessage,get all 2-1 messages ==============\n")
-			//time.Sleep(time.Duration(20) * time.Second) //tmp code
+			fmt.Printf("================ StoreMessage,get all ec keygen 2-1 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *KGRound2Message2:
 		index := msg.GetFromIndex()
 		p.temp.kgRound2Messages2[index] = msg
 		if len(p.temp.kgRound2Messages2) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound2Messages2) {
-			//fmt.Printf("================ StoreMessage,get all 2-1 messages ==============\n")
-			//time.Sleep(time.Duration(20) * time.Second) //tmp code
+			fmt.Printf("================ StoreMessage,get all ec keygen 2-2 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *KGRound3Message:
 		index := msg.GetFromIndex()
 		p.temp.kgRound3Messages[index] = msg
 		if len(p.temp.kgRound3Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound3Messages) {
-			//fmt.Printf("================ StoreMessage,get all 3 messages ==============\n")
-			//time.Sleep(time.Duration(20) * time.Second) //tmp code
+			fmt.Printf("================ StoreMessage,get all ec keygen 3 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *KGRound3Message1:
 		index := msg.GetFromIndex()
 		p.temp.kgRound3Messages1[index] = msg
 		if len(p.temp.kgRound3Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound3Messages1) {
-			//fmt.Printf("================ StoreMessage,get all 3 messages ==============\n")
-			//time.Sleep(time.Duration(20) * time.Second) //tmp code
+			fmt.Printf("================ StoreMessage,get all ec keygen 3-1 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *KGRound4Message:
@@ -278,38 +279,40 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		p.data.U1NtildeH1H2[index] = m.U1NtildeH1H2
 		p.temp.kgRound4Messages[index] = msg
 		if len(p.temp.kgRound4Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound4Messages) {
-			//fmt.Printf("================ StoreMessage,get all 4 messages ==============\n")
-			//time.Sleep(time.Duration(20) * time.Second) //tmp code
+			fmt.Printf("================ StoreMessage,get all ec keygen 4 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *KGRound5Message:
 		index := msg.GetFromIndex()
 		p.temp.kgRound5Messages[index] = msg
 		if len(p.temp.kgRound5Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages) {
-			//fmt.Printf("================ StoreMessage,get all 5 messages ==============\n")
-			//time.Sleep(time.Duration(20) * time.Second) //tmp code
+			fmt.Printf("================ StoreMessage,get all ec keygen 5 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *KGRound5Message1:
 		index := msg.GetFromIndex()
 		p.temp.kgRound5Messages1[index] = msg
 		if len(p.temp.kgRound5Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages1) {
-			//time.Sleep(time.Duration(20) * time.Second) //tmp code
+			fmt.Printf("================ StoreMessage,get all ec keygen 5-1 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *KGRound6Message:
 		index := msg.GetFromIndex()
 		p.temp.kgRound6Messages[index] = msg
 		if len(p.temp.kgRound6Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound6Messages) {
-			//fmt.Printf("================ StoreMessage,get all 6 messages ==============\n")
-			//time.Sleep(time.Duration(20) * time.Second) //tmp code
+			fmt.Printf("================ StoreMessage,get all ec keygen 6 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *KGRound6Message1:
 		index := msg.GetFromIndex()
 		p.temp.kgRound6Messages1[index] = msg
 		if len(p.temp.kgRound6Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound6Messages1) {
-			//time.Sleep(time.Duration(20) * time.Second) //tmp code
+			fmt.Printf("================ StoreMessage,get all ec keygen 6-1 messages ==============\n")
+			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	default: // unrecognised message, just ignore!
