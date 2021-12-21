@@ -124,6 +124,14 @@ func (mtAZK3Proof *MtAwcRespZKProof) MtAwcRespZKProofVefify(xG []*big.Int,c1 *bi
 	    return false
 	}
 
+	if publicKey.N2.Cmp(new(big.Int).Mul(publicKey.N,publicKey.N)) != 0 {
+	    return false
+	}
+
+	if publicKey.G.Cmp(new(big.Int).Add(publicKey.N,big.NewInt(1))) != 0 {
+	    return false
+	}
+	
 	if mtAZK3Proof.S1.Cmp(s256.S256().N3()) > 0 {
 		return false
 	}
