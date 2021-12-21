@@ -294,7 +294,11 @@ func GetAccounts(geteracc, mode string) (interface{}, string, error) {
 				return
 			}
 
-			dcrmpks, _ := hex.DecodeString(pubkey)
+			dcrmpks, err := hex.DecodeString(pubkey)
+			if err != nil {
+			    return
+			}
+
 			exsit, data2 := GetPubKeyData(dcrmpks[:])
 			if !exsit || data2 == nil {
 				return
@@ -361,7 +365,11 @@ func GetBip32ChildKey(rootpubkey string, inputcode string) (string, string, erro
 		return "", "param error", fmt.Errorf("param error")
 	}
 
-	smpcpks, _ := hex.DecodeString(rootpubkey)
+	smpcpks, err := hex.DecodeString(rootpubkey)
+	if err != nil {
+	    return "", "", err 
+	}
+
 	exsit, da := GetPubKeyData(smpcpks[:])
 	if !exsit {
 		common.Debug("============================get bip32 child key,not exist pubkey data===========================", "pubkey", rootpubkey)

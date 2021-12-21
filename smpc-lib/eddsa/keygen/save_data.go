@@ -75,19 +75,35 @@ func (sd *LocalDNodeSaveData) OutMap() map[string]string {
 func GetLocalDNodeSaveData(data map[string]string) *LocalDNodeSaveData {
 
 	var Sk [64]byte
-	sk, _ := hex.DecodeString(data["Sk"])
+	sk, err := hex.DecodeString(data["Sk"])
+	if err != nil {
+	    return nil
+	}
+
 	copy(Sk[:], sk[:])
 
 	var TSk [32]byte
-	tsk, _ := hex.DecodeString(data["TSk"])
+	tsk, err := hex.DecodeString(data["TSk"])
+	if err != nil {
+	    return nil
+	}
+
 	copy(TSk[:], tsk[:])
 
 	var Pk [32]byte
-	pk, _ := hex.DecodeString(data["Pk"])
+	pk, err := hex.DecodeString(data["Pk"])
+	if err != nil {
+	    return nil
+	}
+
 	copy(Pk[:], pk[:])
 
 	var FinalPkBytes [32]byte
-	finalpk, _ := hex.DecodeString(data["FinalPkBytes"])
+	finalpk, err := hex.DecodeString(data["FinalPkBytes"])
+	if err != nil {
+	    return nil
+	}
+
 	copy(FinalPkBytes[:], finalpk[:])
 
 	idstmp := strings.Split(data["IDs"], "|")

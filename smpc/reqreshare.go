@@ -406,7 +406,13 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 		return
 	}
 
-	smpcpks, _ := hex.DecodeString(pubkey)
+	smpcpks, err := hex.DecodeString(pubkey)
+	if err != nil {
+	    res := RPCSmpcRes{Ret: "", Err: err}
+	    ch <- res
+	    return
+	}
+
 	exsit, da := GetPubKeyData(smpcpks[:])
 	oldnode := true
 	if !exsit {

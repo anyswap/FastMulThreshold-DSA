@@ -84,7 +84,13 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 				return
 			}
 
-			sig, _ := hex.DecodeString(msgmap["Sig"])
+			sig, err := hex.DecodeString(msgmap["Sig"])
+			if err != nil {
+			    common.Error("[SIGN] decode msg sig data error","err",err,"key",msgprex)
+			    res := RPCSmpcRes{Ret: "", Err: err}
+			    ch <- res
+			    return
+			}
 			
 			common.Debug("===============sign,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			if !checkP2pSig(sig,mm,msgmap["ENode"]) {

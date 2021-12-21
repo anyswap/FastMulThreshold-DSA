@@ -87,7 +87,13 @@ func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, wg *s
 				return
 			}
 
-			sig, _ := hex.DecodeString(msgmap["Sig"])
+			sig, err := hex.DecodeString(msgmap["Sig"])
+			if err != nil {
+			    common.Error("[KEYGEN] decode msg sig data error","err",err,"key",msgprex)
+			    res := RPCSmpcRes{Ret: "", Err: err}
+			    ch <- res
+			    return
+			}
 			
 			common.Debug("===============keygen ed,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			if !checkP2pSig(sig,mm,msgmap["ENode"]) {
@@ -155,8 +161,8 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 		return nil
 	    }
 
-		cpks, _ := hex.DecodeString(msg["CPk"])
-		if cpks == nil {
+		cpks, err := hex.DecodeString(msg["CPk"])
+		if cpks == nil || err != nil {
 		    return nil
 		}
 
@@ -178,8 +184,8 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 		return nil
 	    }
 
-		zkpks, _ := hex.DecodeString(msg["ZkPk"])
-		if zkpks == nil {
+		zkpks, err := hex.DecodeString(msg["ZkPk"])
+		if zkpks == nil || err != nil {
 		    return nil
 		}
 
@@ -201,8 +207,8 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 		return nil
 	    }
 
-		dpks, _ := hex.DecodeString(msg["DPk"])
-		if dpks == nil {
+		dpks, err := hex.DecodeString(msg["DPk"])
+		if dpks == nil || err != nil {
 		    return nil
 		}
 
@@ -224,8 +230,8 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 		return nil
 	    }
 
-		shares, _ := hex.DecodeString(msg["Share"])
-		if shares == nil {
+		shares, err := hex.DecodeString(msg["Share"])
+		if shares == nil || err != nil {
 		    return nil
 		}
 
@@ -250,8 +256,8 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 		tmp := strings.Split(msg["CfsBBytes"], ":")
 		tmp2 := make([][32]byte, len(tmp))
 		for k, v := range tmp {
-			vv, _ := hex.DecodeString(v)
-			if vv == nil {
+			vv, err := hex.DecodeString(v)
+			if vv == nil || err != nil {
 			    return nil
 			}
 

@@ -114,7 +114,11 @@ func (req *ReqSmpcSign) GetReqAddrKeyByKey(key string) string {
 	if exsit {
 		ad, ok := da.(*AcceptSignData)
 		if ok && ad != nil {
-			smpcpks, _ := hex.DecodeString(ad.PubKey)
+			smpcpks, err := hex.DecodeString(ad.PubKey)
+			if err != nil {
+			    return ""
+			}
+
 			exsit, da2 := GetPubKeyData(smpcpks[:])
 			if exsit && da2 != nil {
 				pd, ok := da2.(*PubKeyData)
@@ -374,7 +378,13 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 			w.SmpcFrom = sd.SmpcFrom
 
-			smpcpks, _ := hex.DecodeString(pubkeyhex)
+			smpcpks, err := hex.DecodeString(pubkeyhex)
+			if err != nil {
+			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+			    ch <- res
+			    return false
+			}
+
 			exsit, da := GetPubKeyData(smpcpks[:])
 			if exsit {
 				pd, ok := da.(*PubKeyData)
@@ -484,7 +494,13 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			w.NodeCnt = gcnt
 			w.ThresHold = gcnt
 
-			smpcpks, _ := hex.DecodeString(ps.Pub)
+			smpcpks, err := hex.DecodeString(ps.Pub)
+			if err != nil {
+			    res2 := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+			    ch <- res2
+			    return false
+			}
+
 			exsit, da := GetPubKeyData(smpcpks[:])
 			if !exsit {
 				common.Debug("============================PreSign at ReqSmpcSign.DoReq,not exist presign data===========================", "pubkey", ps.Pub)
@@ -848,7 +864,11 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 		}
 
 		//check mode
-		smpcpks, _ := hex.DecodeString(pubkey)
+		smpcpks, err := hex.DecodeString(pubkey)
+		if err != nil {
+			return "", "", "", nil, err 
+		}
+
 		exsit, da := GetPubKeyData([]byte(smpcpks[:]))
 		if !exsit {
 			return "", "", "", nil, fmt.Errorf("get data from db fail in func sign")
@@ -887,7 +907,11 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 		}
 		//
 
-		smpcpks, _ := hex.DecodeString(pubkey)
+		smpcpks, err := hex.DecodeString(pubkey)
+		if err != nil {
+		    return "", "", "", nil,err 
+		}
+
 		exsit, _ := GetPubKeyData(smpcpks[:])
 		if !exsit {
 			return "", "", "", nil, fmt.Errorf("invalid pubkey")

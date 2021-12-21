@@ -84,7 +84,13 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *
 				return
 			}
 
-			sig, _ := hex.DecodeString(msgmap["Sig"])
+			sig, err := hex.DecodeString(msgmap["Sig"])
+			if err != nil {
+			    common.Error("[SIGN] decode msg sig data error","err",err,"key",msgprex)
+			    res := RPCSmpcRes{Ret: "", Err: err}
+			    ch <- res
+			    return
+			}
 			
 			common.Debug("===============sign ed,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			if !checkP2pSig(sig,mm,msgmap["ENode"]) {
@@ -152,8 +158,8 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 		return nil
 	    }
 
-		cr, _ := hex.DecodeString(msg["CR"])
-		if cr == nil {
+		cr, err := hex.DecodeString(msg["CR"])
+		if cr == nil || err != nil {
 		    return nil
 		}
 
@@ -177,8 +183,8 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 		return nil
 	    }
 
-		zkr, _ := hex.DecodeString(msg["ZkR"])
-		if zkr == nil {
+		zkr, err := hex.DecodeString(msg["ZkR"])
+		if zkr == nil || err != nil {
 		    return nil
 		}
 
@@ -202,8 +208,8 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 		return nil
 	    }
 
-		dr, _ := hex.DecodeString(msg["DR"])
-		if dr == nil {
+		dr, err := hex.DecodeString(msg["DR"])
+		if dr == nil || err != nil {
 		    return nil
 		}
 
@@ -227,8 +233,8 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 		return nil
 	    }
 
-		csb, _ := hex.DecodeString(msg["CSB"])
-		if csb == nil {
+		csb, err := hex.DecodeString(msg["CSB"])
+		if csb == nil || err != nil {
 		    return nil
 		}
 
@@ -252,8 +258,8 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 		return nil
 	    }
 
-		dsb, _ := hex.DecodeString(msg["DSB"])
-		if dsb == nil {
+		dsb, err := hex.DecodeString(msg["DSB"])
+		if dsb == nil || err != nil {
 		    return nil
 		}
 
@@ -277,8 +283,8 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 		return nil
 	    }
 
-		s, _ := hex.DecodeString(msg["S"])
-		if s == nil {
+		s, err := hex.DecodeString(msg["S"])
+		if s == nil || err != nil {
 		    return nil
 		}
 

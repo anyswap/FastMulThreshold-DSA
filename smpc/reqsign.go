@@ -394,7 +394,12 @@ func HandleRPCSign() {
 	for {
 		rsd := <-SignChan
 
-		smpcpks, _ := hex.DecodeString(rsd.PubKey)
+		smpcpks, err := hex.DecodeString(rsd.PubKey)
+		if err != nil {
+		    common.Error("[SIGN] decode pubkey string error", "pubkey", rsd.PubKey, "key", rsd.Key,"err",err)
+		    continue
+		}
+
 		exsit, da := GetPubKeyData(smpcpks[:])
 		common.Debug("=========================HandleRpcSign======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit)
 		if exsit {
@@ -671,7 +676,13 @@ func GetCurNodeSignInfo(geteracc string) ([]*SignCurNodeInfo, string, error) {
 // sign execut the sign command,including ec and ed.
 // keytype : EC256K1 || ED25519
 func sign(wsid string, account string, pubkey string, inputcode string, unsignhash []string, keytype string, nonce string, mode string, pickdata []*PickHashData, ch chan interface{}) {
-	smpcpks, _ := hex.DecodeString(pubkey)
+	smpcpks, err := hex.DecodeString(pubkey)
+	if err != nil {
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+	    ch <- res
+	    return
+	}
+
 	exsit, da := GetPubKeyData(smpcpks[:])
 	if !exsit {
 		common.Debug("============================sign,not exist sign data===========================", "pubkey", pubkey, "key", wsid)
@@ -1146,7 +1157,13 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 	sd.Pkx = pkx
 	sd.Pky = pky
 
-	smpcpks, _ := hex.DecodeString(w.SmpcFrom)
+	smpcpks, err := hex.DecodeString(w.SmpcFrom)
+	if err != nil {
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+	    ch <- res
+	    return nil
+	}
+
 	exsit, da := GetPubKeyData(smpcpks[:])
 	if !exsit || da == nil {
 		res := RPCSmpcRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
@@ -1703,7 +1720,13 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 		return ""
 	}
 
-	smpcpks, _ := hex.DecodeString(w.SmpcFrom)
+	smpcpks, err := hex.DecodeString(w.SmpcFrom)
+	if err != nil {
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+	    ch <- res
+	    return ""
+	}
+
 	exsit, da := GetPubKeyData(smpcpks[:])
 	if !exsit || da == nil {
 		res := RPCSmpcRes{Ret: "", Tip: "ed sign get local save data fail", Err: fmt.Errorf("ed sign get local save data fail")}

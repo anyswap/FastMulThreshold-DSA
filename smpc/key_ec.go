@@ -90,7 +90,13 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 				return
 			}
 
-			sig, _ := hex.DecodeString(msgmap["Sig"])
+			sig, err := hex.DecodeString(msgmap["Sig"])
+			if err != nil {
+			    common.Error("[KEYGEN] decode msg sig data error","err",err,"key",msgprex)
+			    res := RPCSmpcRes{Ret: "", Err: err}
+			    ch <- res
+			    return
+			}
 			
 			common.Debug("===============keygen,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			if !checkP2pSig(sig,mm,msgmap["ENode"]) {

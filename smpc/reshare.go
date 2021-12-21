@@ -94,7 +94,13 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, wg 
 				return
 			}
 
-			sig, _ := hex.DecodeString(msgmap["Sig"])
+			sig, err := hex.DecodeString(msgmap["Sig"])
+			if err != nil {
+			    common.Error("[RESHARE] decode msg sig data error","err",err,"key",msgprex)
+			    res := RPCSmpcRes{Ret: "", Err: err}
+			    ch <- res
+			    return
+			}
 			
 			common.Debug("===============reshare,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			if !checkP2pSig(sig,mm,msgmap["ENode"]) {
