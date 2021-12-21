@@ -1539,6 +1539,7 @@ func getUnSignMsgByte(msg smpclib.Message) ([]byte,error) {
     return hash,nil
 }
 
+// enodeID is the pubkey,corresponding to the private key reading from the 'KeyFile'
 func sigP2pMsg(msg smpclib.Message,enodeID string) ([]byte,error) {
     if msg == nil || enodeID == "" {
 	return nil,errors.New("param error")
@@ -1596,6 +1597,17 @@ func checkP2pSig(sig []byte,msg smpclib.Message,enodeID string) bool {
     // enodeID: 730c8fc7142d15669e8329138953d9484fd4cce0c690e35e105a9714deb741f10b52be1c5d49eeeb6f00aab8f3d2dec4e3352d0bf56bdbc2d86cb5f89c8e90d0
     if ss == enodeID {
 	return true
+    }
+
+    tmp := "04" + enodeID
+    pubkey, err := hex.DecodeString(tmp)
+    if err != nil {
+	common.Error("check p2p sig error(decode enode ID error)","enodeID",enodeID,"err",err)
+	return false
+    }
+
+    if !crypto.VerifySignature(pubkey,hash,sig) {
+	return false
     }
 
     //fmt.Printf("====================checkP2pSig, check fail,recover pubkey = %v,enodeID = %v=======================\n",ss,enodeID)

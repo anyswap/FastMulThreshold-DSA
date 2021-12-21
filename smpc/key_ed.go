@@ -103,6 +103,16 @@ func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, wg *s
 			    return
 			}
 			
+			// check fromID
+			id := fmt.Sprintf("%v", GetNodeUID(msgmap["ENode"], "ED25519",w.groupid))
+			if !strings.EqualFold(id,mm.GetFromID()) {
+			    common.Error("===============keygen ed,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"],"err","check from ID fail")
+			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check from ID fail")}
+			    ch <- res
+			    return
+			}
+			
+			// check whether 'from' is in the group
 			succ := false
 			_, nodes := GetGroup(w.groupid)
 			others := strings.Split(nodes, common.Sep2)

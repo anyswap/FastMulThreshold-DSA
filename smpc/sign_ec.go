@@ -100,6 +100,38 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 			    return
 			}
 			
+			// check fromID
+			// w.SmpcFrom is the MPC PubKey
+			smpcpks, err := hex.DecodeString(w.SmpcFrom)
+			if err != nil {
+			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+			    ch <- res
+			    return
+			}
+
+			exsit, da := GetPubKeyData(smpcpks[:])
+			if !exsit || da == nil {
+			    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get local save data fail")}
+			    ch <- res
+			    return
+			}
+			
+			pubs, ok := da.(*PubKeyData)
+			if !ok || pubs.GroupID == "" {
+				res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get local save data fail")}
+				ch <- res
+				return
+			}
+
+			id := fmt.Sprintf("%v", GetNodeUID(msgmap["ENode"], "EC256K1",pubs.GroupID))
+			if !strings.EqualFold(id,mm.GetFromID()) {
+			    common.Error("===============sign,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"],"err","check from ID fail")
+			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check from ID fail")}
+			    ch <- res
+			    return
+			}
+			
+			// check whether 'from' is in the group
 			succ := false
 			_, nodes := GetGroup(w.groupid)
 			others := strings.Split(nodes, common.Sep2)
