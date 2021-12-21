@@ -70,7 +70,6 @@ type localTempData struct {
 
 	//round 2
 	u1Shares []*ec2.ShareStruct2
-	x	[]*big.Int
 
 	//round 3
 
@@ -115,7 +114,6 @@ func NewLocalDNode(
 	p.PaillierKeyLength = paillierkeylength
 
 	p.temp.roh = make([][]*big.Int,DNodeCountInGroup)
-	p.temp.x = make([]*big.Int,DNodeCountInGroup)
 
 	p.temp.kgRound0Messages = make([]smpc.Message, 0)
 	p.temp.kgRound1Messages = make([]smpc.Message, DNodeCountInGroup)

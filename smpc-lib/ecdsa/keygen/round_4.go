@@ -53,52 +53,6 @@ func (round *round4) Start() error {
 		return err
 	}
 
-	// add for GG20: keygen phase 3. Each player Pi proves in ZK that Ni is square-free using the proof of Gennaro, Micciancio, and Rabin [30]
-	// An Efficient Non-Interactive Statistical Zero-Knowledge Proof System for Quasi-Safe Prime Products, section 3.1
-	// verifier check y^N = x mod N
-	for k := range ids {
-	    msg1, ok := round.temp.kgRound1Messages[k].(*KGRound1Message)
-	    if !ok {
-		return errors.New("round.Start get round1 msg fail")
-	    }
-
-	    paiPk := msg1.U1PaillierPk
-	    if paiPk == nil {
-		    return errors.New("error kg round1 message")
-	    }
-
-	    msg31, ok := round.temp.kgRound3Messages1[k].(*KGRound3Message1)
-	    if !ok {
-		return errors.New("round.Start get round3-1 msg fail")
-	    }
-
-	    // check y
-	    // y != nil
-	    // y mod N != 0
-	    // y mod N != 1
-	    // gcd(y,N) = 1
-	    if msg31.Y == nil {
-		return errors.New("get msg3-1 msg fail,y is nil")
-	    }
-
-	    one := big.NewInt(1)
-	    ymn := new(big.Int).Mod(msg31.Y,paiPk.N)
-	    if ymn.Cmp(zero) == 0 || ymn.Cmp(one) == 0 {
-		return errors.New("y mod N == 0 or 1")
-	    }
-	    gcd := big.NewInt(0)
-	    if gcd.GCD(nil,nil,msg31.Y,paiPk.N).Cmp(one) != 0 {
-		return errors.New("gcd(y,N) != 1")
-	    }
-
-	    yn := new(big.Int).Exp(msg31.Y,paiPk.N,paiPk.N)
-	    xn := new(big.Int).Mod(round.temp.x[k],paiPk.N)
-	    if yn.Cmp(xn) != 0 {
-		return errors.New("check that a zero-knowledge proof that paillier.N is a square-free integer fail")
-	    }
-	}
-
-	//
 	for k := range ids {
 		msg2, ok := round.temp.kgRound2Messages[k].(*KGRound2Message)
 		if !ok {

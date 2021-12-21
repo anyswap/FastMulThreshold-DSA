@@ -216,7 +216,7 @@ func (kg *KGRound2Message1) OutMap() map[string]string {
 // KGRound2Message2  Round 2 sending message2 
 type KGRound2Message2 struct {
 	*KGRoundMessage
-	X *big.Int
+	SfPf *ec2.SquareFreeProof
 }
 
 // GetFromID get the ID of sending nodes in the group
@@ -236,7 +236,7 @@ func (kg *KGRound2Message2) GetToID() []string {
 
 // IsBroadcast weather broacast the message
 func (kg *KGRound2Message2) IsBroadcast() bool {
-	return false 
+	return true
 }
 
 // OutMap transfer *KGRound2Message1 to map
@@ -244,8 +244,17 @@ func (kg *KGRound2Message2) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
-	m["ToID"] = strings.Join(kg.ToID, ":")
-	m["X"] = fmt.Sprintf("%v", kg.X)
+	m["ToID"] = ""
+	
+	if kg.SfPf == nil {
+	    return nil
+	}
+	sf,err := kg.SfPf.MarshalJSON()
+	if err != nil {
+	    return nil
+	}
+	m["SfPf"] = string(sf)
+
 	m["Type"] = "KGRound2Message2"
 	return m
 }

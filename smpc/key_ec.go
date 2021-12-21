@@ -234,23 +234,22 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 
 	//2-2 message
 	if msg["Type"] == "KGRound2Message2" {
-	    if msg["X"] == "" {
+	    if msg["SfPf"] == "" {
 		return nil
 	    }
 
-		x, _ := new(big.Int).SetString(msg["X"], 10)
-		if x == nil {
-		    return nil
-		}
-
+	    pf := &ec2.SquareFreeProof{}
+	    err := pf.UnmarshalJSON([]byte(msg["SfPf"]))
+	    if err == nil {
 		kg := &keygen.KGRound2Message2{
 		    KGRoundMessage: new(keygen.KGRoundMessage),
-		    X:             x,
+		    SfPf:             pf,
 		}
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
 		kg.ToID = to
 		return kg
+	    }
 	}
 
 	//3 message

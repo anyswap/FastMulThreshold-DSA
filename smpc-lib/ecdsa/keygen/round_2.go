@@ -69,45 +69,25 @@ func (round *round2) Start() error {
 
 	// add for GG20: keygen phase 3. Each player Pi proves in ZK that Ni is square-free using the proof of Gennaro, Micciancio, and Rabin [30]
 	// An Efficient Non-Interactive Statistical Zero-Knowledge Proof System for Quasi-Safe Prime Products, section 3.1
-	// pick x belong to Z* and send to prover
-	for k,id := range round.Save.IDs {
-		msg1, ok := round.temp.kgRound1Messages[k].(*KGRound1Message)
-		if !ok {
-		    return errors.New("round.Start get round1 msg fail")
-		}
-
-		paiPk := msg1.U1PaillierPk
-		if paiPk == nil {
-			return errors.New("error kg round1 message")
-		}
-
-		// x in Z*
-		x := ec2.GetRandomPositiveRelativelyPrimeInt(paiPk.N)
-		if x == nil {
-			return errors.New("get x from Z* fail")
-		}
-		// let x != 1,otherwise prover output y = 1 can pass the verify.
-		one := big.NewInt(1)
-		if x.Cmp(one) == 0 {
-			return errors.New("x equal to 1")
-		}
-		
-		round.temp.x[k] = x
-		kg := &KGRound2Message2{
-			KGRoundMessage: new(KGRoundMessage),
-			X:    x,
-		}
-		kg.SetFromID(round.dnodeid)
-		kg.SetFromIndex(curIndex)
-
-		if k == curIndex {
-		    round.temp.kgRound2Messages2[k] = kg
-		} else {
-		    kg.AppendToID(fmt.Sprintf("%v", id)) //id-->dnodeid
-		    round.out <- kg
-		}
+	uid,ok := new(big.Int).SetString(round.dnodeid,10)
+	if !ok {
+	    return errors.New("get dnode id fail")
 	}
-	//
+
+	sfProof := ec2.SquareFreeProve(round.Save.U1PaillierSk.N,round.Save.U1PaillierSk.L,uid)
+	if sfProof == nil {
+	    return errors.New("get square free proof fail")
+	}
+
+	srm := &KGRound2Message2{
+		KGRoundMessage: new(KGRoundMessage),
+		SfPf:		sfProof,
+	}
+	srm.SetFromID(round.dnodeid)
+	srm.SetFromIndex(curIndex)
+
+	round.temp.kgRound2Messages2[curIndex] = srm
+	round.out <- srm
 
 	dul,err := ec2.ContainsDuplicate(ids)
 	if err != nil || dul || len(ids) > round.dnodecount {
@@ -166,7 +146,7 @@ func (round *round2) CanAccept(msg smpc.Message) bool {
 		return msg.IsBroadcast()
 	}
 	if _, ok := msg.(*KGRound2Message2); ok {
-		return !msg.IsBroadcast()
+		return msg.IsBroadcast()
 	}
 	return false
 }
