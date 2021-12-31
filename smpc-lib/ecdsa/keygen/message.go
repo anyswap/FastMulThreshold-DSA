@@ -216,6 +216,7 @@ func (kg *KGRound2Message1) OutMap() map[string]string {
 // KGRound2Message2  Round 2 sending message2 
 type KGRound2Message2 struct {
 	*KGRoundMessage
+	Num *big.Int
 	SfPf *ec2.SquareFreeProof
 }
 
@@ -255,7 +256,9 @@ func (kg *KGRound2Message2) OutMap() map[string]string {
 	}
 	m["SfPf"] = string(sf)
 
+	m["Num"] = fmt.Sprintf("%v",kg.Num)
 	m["Type"] = "KGRound2Message2"
+	
 	return m
 }
 

@@ -19,93 +19,187 @@ package ec2
 import (
 	"encoding/json"
 	"fmt"
-	"errors"
+	"strings"
 	"math/big"
+)
+
+const ( 
+    m = 7 // default value is 7, recommend is m = T k/log2a T ,  a = 65537, k = 128
+)
+
+var (
+    alpha = 65537
 )
 
 // SquareFreeProof 
 // add for GG20: keygen phase 3. Each player Pi proves in ZK that Ni is square-free using the proof of Gennaro, Micciancio, and Rabin [30]
-// An Efficient Non-Interactive Statistical Zero-Knowledge Proof System for Quasi-Safe Prime Products, section 3.1  
+// An Efficient Non-Interactive Statistical Zero-Knowledge Proof System for Quasi-Safe Prime Products, section 3.1 
 type SquareFreeProof struct {
-	Y *big.Int
+	Sigma []*big.Int
 }
 
 //------------------------------------------------------------------------------------
 
+// joinInt join short x to X
+// len(X) == n.BitLen()
+// n is the paillier pubKey.N
+func joinInt(in []*big.Int,diff int) *big.Int {
+    inLen := len(in)
+    if inLen == 0 {
+	return nil
+    }
+    
+    bzSize := 0
+    ptrs := make([][]byte, inLen)
+    for i, n := range in {
+	ptrs[i] = n.Bytes()
+	bzSize += len(ptrs[i])
+    }
+
+    data := make([]byte, 0, bzSize+diff)
+    for i := range in {
+	data = append(data, ptrs[i]...)
+    }
+
+    //fmt.Printf("============================joinInt,inlen = %v,bzSize byte = %v,data.Len byte = %v===============================\n",inLen,bzSize,len(data))
+    return new(big.Int).SetBytes(data[:])
+}
+
 // CalcX 
-// random Input: x belong to ZN*
-func CalcX(n *big.Int,id *big.Int) *big.Int {
-	if n == nil || id == nil || zero.Cmp(n) != -1 {
+// return m random int: Xi belong to ZN*
+// len(Xi) == n.BitLen()
+// n is the paillier pubKey.N
+func CalcX(n *big.Int,num *big.Int) []*big.Int {
+	if n == nil || zero.Cmp(n) != -1 || num == nil || num.Cmp(zero) < 0 {
 		return nil
 	}
 
-	//fmt.Printf("[SquareFree] calc x, n = %v,id = %v\n",n,id)
-	
-	try := n	
-	for {
-		try = Sha512_256(try,id)
-		try = new(big.Int).Mod(try,n)
-		if IsNumberInMultiplicativeGroup(n, try) {
-			break
+	num = new(big.Int).Mod(num,n)
+	l := len(n.Bytes())
+
+	str := "productoftwoprimesproof"
+	strnum := new(big.Int).SetBytes([]byte(str))
+	roh := make([]*big.Int,m)
+	for i:= 0;i<m;i++ {
+	    tmp := make([]*big.Int,0)
+	    inlen := 0
+	    try := n
+	    diff := 0
+	    for {
+		// find short x
+		for {
+			try = Sha512_256(try,num,strnum,big.NewInt(int64(i)))
+			try = new(big.Int).Mod(try,n)
+			if IsNumberInMultiplicativeGroup(n, try) {
+				break
+			}
 		}
+		//
+
+		if (inlen + len(try.Bytes())) > l {
+		    diff = l - inlen
+		    if diff > 0 {
+			break
+		    }
+
+		    return nil
+		}
+		
+		tmp = append(tmp,try)
+		inlen += len(try.Bytes())
+		if inlen == l {
+		    break
+		}
+	    }
+
+	    X := joinInt(tmp,diff)
+	    if X == nil {
+		return nil
+	    }
+
+	    roh[i] = X
 	}
 
-	//fmt.Printf("[SquareFree] success get x = %v\n",try)
-	return try
+	return roh 
 }
 
 //---------------------------------------------------------------------------------
 
-// SquareFreeProve 
-// prover compute M = N^-1 mod OuLa(N) and output y = x^M mod N
-func SquareFreeProve(n *big.Int,l *big.Int,uid *big.Int) *SquareFreeProof {
-	if n == nil || l == nil || uid == nil {
+// SquareFreeProve
+// chooses m random value Xi belong to ZN*
+// prover compute M = N^-1 mod OuLa(N) and output sigmai = Xi^M mod N for every Xi
+func SquareFreeProve(n *big.Int,num *big.Int,l *big.Int) *SquareFreeProof {
+	if n == nil || l == nil || num == nil || num.Cmp(zero) < 0 {
 	    return nil
 	}
 
-	x := CalcX(n,uid)
-	if x == nil {
+	X := CalcX(n,num)
+	if X == nil {
 	    return nil
 	}
 
 	M := new(big.Int).ModInverse(n,l)
-	y := new(big.Int).Exp(x,M,n)
+	if M == nil {
+	    return nil
+	}
 
-	return &SquareFreeProof{Y: y}
+	sigma := make([]*big.Int,0)
+	for _,v := range X {
+	    y := new(big.Int).Exp(v,M,n)
+	    sigma = append(sigma,y)
+	}
+
+	return &SquareFreeProof{Sigma: sigma}
 }
 
 // SquareFreeVerify
-// verifier check y^N = x mod N
-func SquareFreeVerify(n *big.Int,uid *big.Int,proof *SquareFreeProof) bool {
-	if n == nil || uid == nil || proof == nil || proof.Y == nil {
-	    return false 
+// check:
+// N > 0 , N mod p != 0, p is prime, p < alpha
+// N > sigmai > 0 
+// verifier check sigmai^N = Xi (mod N)
+func SquareFreeVerify(n *big.Int,num *big.Int,proof *SquareFreeProof) bool {
+	if n == nil || proof == nil || proof.Sigma == nil || num == nil || num.Cmp(zero) < 0 {
+	    return false
 	}
-
-	// check y
-	// y != nil
-	// y mod N != 0
-	// y mod N != 1
-	// gcd(y,N) = 1
-	one := big.NewInt(1)
-	ymn := new(big.Int).Mod(proof.Y,n)
-	if ymn.Cmp(zero) == 0 || ymn.Cmp(one) == 0 {
-	    return false 
-	}
-	gcd := big.NewInt(0)
-	if gcd.GCD(nil,nil,proof.Y,n).Cmp(one) != 0 {
+	if len(proof.Sigma) != m {
 	    return false
 	}
 
-	x := CalcX(n,uid)
-	if x == nil {
+	X := CalcX(n,num)
+	if X == nil {
 	    return false 
 	}
 
-	yn := new(big.Int).Exp(proof.Y,n,n)
-	xn := new(big.Int).Mod(x,n)
-	if yn.Cmp(xn) != 0 {
-	    fmt.Printf("check that a zero-knowledge proof that paillier.N is a square-free integer fail\n")
+	// check N > 0 , N/p != 0, p is prime, p < alpha
+	if n.Cmp(zero) <= 0 {
 	    return false
+	}
+
+	for i:=2;i< alpha;i++ {
+	    ii := big.NewInt(int64(i))
+	    if ii.ProbablyPrime(PrimeTestTimes) {
+		qua := new(big.Int).Mod(n,ii)
+		if qua.Cmp(zero) == 0 {
+		    return false
+		}
+	    }
+	}
+
+	// check N > sigmai > 0
+	for _,v := range proof.Sigma {
+	    if v.Cmp(zero) <= 0 || v.Cmp(n) >= 0 {
+		return false
+	    }
+	}
+
+	for k,v := range X {
+	    // check sigmai^N = Xi (mod N)
+	    yn := new(big.Int).Exp(proof.Sigma[k],n,n)
+	    xn := new(big.Int).Mod(v,n)
+	    if yn.Cmp(xn) != 0 {
+		fmt.Printf("check that a zero-knowledge proof that paillier.N is a square-free integer fail\n")
+		return false
+	    }
 	}
 
 	return true
@@ -115,10 +209,16 @@ func SquareFreeVerify(n *big.Int,uid *big.Int,proof *SquareFreeProof) bool {
 
 // MarshalJSON marshal SquareFreeProof to json bytes
 func (sfpf *SquareFreeProof) MarshalJSON() ([]byte, error) {
+    	tmp := make([]string,0)
+	for _,v := range sfpf.Sigma {
+	    tmp = append(tmp,fmt.Sprintf("%v",v))
+	}
+
+	sigma := strings.Join(tmp,":")
 	return json.Marshal(struct {
 		Y string `json:"Y"`
 	}{
-		Y: fmt.Sprintf("%v", sfpf.Y),
+		Y: sigma,
 	})
 }
 
@@ -131,12 +231,18 @@ func (sfpf *SquareFreeProof) UnmarshalJSON(raw []byte) error {
 		return err
 	}
 
-	sfpf.Y, _ = new(big.Int).SetString(zk.Y, 10)
+	tmp := strings.Split(zk.Y,":")
+	sigma := make([]*big.Int,0)
+	for _,v := range tmp {
+	    y, _ := new(big.Int).SetString(v, 10)
+	    if y == nil {
+		return fmt.Errorf("get sigma fail")
+	    }
 
-	if sfpf.Y == nil {
-	    return errors.New("unmarshal json error")
+	    sigma = append(sigma,y)
 	}
 
+	sfpf.Sigma = sigma
 	return nil
 }
 

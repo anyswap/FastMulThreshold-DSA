@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	//"encoding/hex"
 )
 
 // Start verify vss,calc pk tSk

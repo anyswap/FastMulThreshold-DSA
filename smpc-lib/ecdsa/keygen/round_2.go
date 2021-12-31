@@ -69,18 +69,19 @@ func (round *round2) Start() error {
 
 	// add for GG20: keygen phase 3. Each player Pi proves in ZK that Ni is square-free using the proof of Gennaro, Micciancio, and Rabin [30]
 	// An Efficient Non-Interactive Statistical Zero-Knowledge Proof System for Quasi-Safe Prime Products, section 3.1
-	uid,ok := new(big.Int).SetString(round.dnodeid,10)
-	if !ok {
-	    return errors.New("get dnode id fail")
+	num := ec2.MustGetRandomInt(round.Save.U1PaillierSk.N.BitLen())
+	if num == nil {
+	    return errors.New("get random int fail")
 	}
 
-	sfProof := ec2.SquareFreeProve(round.Save.U1PaillierSk.N,round.Save.U1PaillierSk.L,uid)
+	sfProof := ec2.SquareFreeProve(round.Save.U1PaillierSk.N,num,round.Save.U1PaillierSk.L)
 	if sfProof == nil {
 	    return errors.New("get square free proof fail")
 	}
 
 	srm := &KGRound2Message2{
 		KGRoundMessage: new(KGRoundMessage),
+		Num:		num,
 		SfPf:		sfProof,
 	}
 	srm.SetFromID(round.dnodeid)
@@ -118,7 +119,6 @@ func (round *round2) Start() error {
 			} else if vv != nil && vv.Cmp(id) == 0 {
 				kg.AppendToID(fmt.Sprintf("%v", id)) //id-->dnodeid
 				round.out <- kg
-				//fmt.Printf("============ round2 send msg to peer = %v ============\n",id)
 				break
 			}
 		}

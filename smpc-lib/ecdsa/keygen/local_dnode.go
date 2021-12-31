@@ -180,19 +180,46 @@ func CheckFull(msg []smpc.Message) bool {
 	return true
 }
 
+func find(l []smpc.Message,msg smpc.Message) bool {
+    if msg == nil || l == nil {
+	return true
+    }
+
+    m,ok := msg.(*KGRound0Message)
+    if !ok {
+	return true
+    }
+
+    for _,v := range l {
+	vv,ok := v.(*KGRound0Message)
+	if !ok {
+	    return true
+	}
+
+	if vv.FromID == m.FromID {
+	    return true
+	}
+    }
+
+    return false
+}
+
 // StoreMessage Collect data from other nodes
 func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 	switch msg.(type) {
 	case *KGRound0Message:
-		if len(p.temp.kgRound0Messages) < p.DNodeCountInGroup {
-			p.temp.kgRound0Messages = append(p.temp.kgRound0Messages, msg)
+	    	if !find(p.temp.kgRound0Messages,msg) {
+		    if len(p.temp.kgRound0Messages) < p.DNodeCountInGroup {
+			    p.temp.kgRound0Messages = append(p.temp.kgRound0Messages, msg)
+		    }
+
+		    if len(p.temp.kgRound0Messages) == p.DNodeCountInGroup {
+			    fmt.Printf("================ StoreMessage,get all ec keygen 0 messages ==============\n")
+			    time.Sleep(time.Duration(1000000)) //tmp code
+			    return true, nil
+		    }
 		}
 
-		if len(p.temp.kgRound0Messages) == p.DNodeCountInGroup {
-			fmt.Printf("================ StoreMessage,get all ec keygen 0 messages ==============\n")
-			time.Sleep(time.Duration(1000000)) //tmp code
-			return true, nil
-		}
 	case *KGRound1Message:
 		index := msg.GetFromIndex()
 		p.temp.kgRound1Messages[index] = msg

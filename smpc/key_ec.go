@@ -238,11 +238,21 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 		return nil
 	    }
 
+	    if msg["Num"] == "" {
+		return nil
+	    }
+
 	    pf := &ec2.SquareFreeProof{}
 	    err := pf.UnmarshalJSON([]byte(msg["SfPf"]))
 	    if err == nil {
+		num, ok := new(big.Int).SetString(msg["Num"], 10)
+		if !ok {
+		    return nil
+		}
+
 		kg := &keygen.KGRound2Message2{
 		    KGRoundMessage: new(keygen.KGRoundMessage),
+		    Num:		num,
 		    SfPf:             pf,
 		}
 		kg.SetFromID(from)

@@ -19,14 +19,12 @@ package keygen
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 )
 
 // Start broacast commitment D 
 func (round *round3) Start() error {
-	fmt.Printf("========= keygen round3 start ==========\n")
 	if round.started {
 		return errors.New("round already started")
 	}
@@ -62,12 +60,8 @@ func (round *round3) Start() error {
 		return errors.New("round.Start get round2 msg 2 fail")
 	    }
 
-	    uid,ok := new(big.Int).SetString(msg22.GetFromID(),10)
-	    if !ok {
-		return errors.New("get dnode id fail")
-	    }
-
-	    if !ec2.SquareFreeVerify(paiPk.N,uid,msg22.SfPf) {
+	    if !ec2.SquareFreeVerify(paiPk.N,msg22.Num,msg22.SfPf) {
+		fmt.Printf("==========================keygen round3,check that a zero-knowledge proof that paillier.N is a square-free integer fail, k = %v,id = %v============================\n",k,ids[k])
 		return errors.New("check that a zero-knowledge proof that paillier.N is a square-free integer fail")
 	    }
 	}
