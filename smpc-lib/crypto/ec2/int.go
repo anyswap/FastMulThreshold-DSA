@@ -13,7 +13,6 @@ import (
 	"github.com/pkg/errors"
 	"crypto"
 	"encoding/binary"
-	"math"
 	"sync"
 	"strings"
 	"github.com/anyswap/Anyswap-MPCNode/internal/common"
@@ -22,7 +21,6 @@ import (
 const (
 	mustGetRandomIntMaxBits = 5000
 	hashInputDelimiter = byte('$')
-	HoeffdingBoundParam = 128
 )
 
 // modInt is a *big.Int that performs all of its arithmetic with modular reduction.
@@ -298,26 +296,13 @@ func EuclideanAlgorithm(a *big.Int,b *big.Int) (*big.Int,*big.Int,*big.Int) {
 
 //---------------------------------------------------------------
 
-// GetHoeffdingBound get hoeffding bound
-// k default set 128
-func GetHoeffdingBound(k float64) *big.Int {
-    if k <= 0 {
-	return nil
-    }
-
-    m := k*32*math.Log(2)
-    m = math.Ceil(m)
-    mInt,_ := new(big.Int).SetString(fmt.Sprintf("%v",m),10)
-    return mInt
-}
-
 // GetRandomValuesFromJN get m random values from JN
 func GetRandomValuesFromJN(N *big.Int) []*big.Int {
     if N == nil || N.Cmp(big.NewInt(1)) <= 0 {
 	return nil
     }
 
-    m := GetHoeffdingBound(HoeffdingBoundParam)
+    m := GetHoeffdingBound()
     mint := int(m.Int64())
     
     data := make(chan *big.Int,mint)
@@ -484,6 +469,31 @@ func ContainsDuplicate(ids []*big.Int) (bool,error) {
 }
 
 //------------------------------------------------------------------------------
+
+// joinInt join short x to X
+// len(X) == n.BitLen()
+// n is the paillier pubKey.N or ntilde ....
+func joinInt(in []*big.Int,diff int) *big.Int {
+    inLen := len(in)
+    if inLen == 0 {
+	return nil
+    }
+    
+    bzSize := 0
+    ptrs := make([][]byte, inLen)
+    for i, n := range in {
+	ptrs[i] = n.Bytes()
+	bzSize += len(ptrs[i])
+    }
+
+    data := make([]byte, 0, bzSize+diff)
+    for i := range in {
+	data = append(data, ptrs[i]...)
+    }
+
+    //fmt.Printf("============================joinInt,inlen = %v,bzSize byte = %v,data.Len byte = %v===============================\n",inLen,bzSize,len(data))
+    return new(big.Int).SetBytes(data[:])
+}
 
 
 

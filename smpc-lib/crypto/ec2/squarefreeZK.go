@@ -40,31 +40,6 @@ type SquareFreeProof struct {
 
 //------------------------------------------------------------------------------------
 
-// joinInt join short x to X
-// len(X) == n.BitLen()
-// n is the paillier pubKey.N
-func joinInt(in []*big.Int,diff int) *big.Int {
-    inLen := len(in)
-    if inLen == 0 {
-	return nil
-    }
-    
-    bzSize := 0
-    ptrs := make([][]byte, inLen)
-    for i, n := range in {
-	ptrs[i] = n.Bytes()
-	bzSize += len(ptrs[i])
-    }
-
-    data := make([]byte, 0, bzSize+diff)
-    for i := range in {
-	data = append(data, ptrs[i]...)
-    }
-
-    //fmt.Printf("============================joinInt,inlen = %v,bzSize byte = %v,data.Len byte = %v===============================\n",inLen,bzSize,len(data))
-    return new(big.Int).SetBytes(data[:])
-}
-
 // CalcX 
 // return m random int: Xi belong to ZN*
 // len(Xi) == n.BitLen()

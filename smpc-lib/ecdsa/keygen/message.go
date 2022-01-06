@@ -477,11 +477,14 @@ func (kg *KGRound5Message) OutMap() map[string]string {
 	return m
 }
 
+//------------------------------------------------------------
+
 // KGRound5Message1  Round 5-1 sending message 
 type KGRound5Message1 struct {
 	*KGRoundMessage
 
-	Roh []*big.Int // roh1,roh2,....,rohm from JN
+	Num *big.Int
+	HvPf *ec2.HvProof
 }
 
 // GetFromID get the ID of sending nodes in the group
@@ -501,7 +504,7 @@ func (kg *KGRound5Message1) GetToID() []string {
 
 // IsBroadcast weather broacast the message
 func (kg *KGRound5Message1) IsBroadcast() bool {
-	return false
+	return true
 }
 
 // OutMap transfer *KGRound5Message1 to map
@@ -509,14 +512,20 @@ func (kg *KGRound5Message1) OutMap() map[string]string {
 	m := make(map[string]string)
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
-	m["ToID"] = strings.Join(kg.ToID, ":")
-
-	tmp := make([]string, len(kg.Roh))
-	for k, v := range kg.Roh {
-		tmp[k] = fmt.Sprintf("%v", v)
+	m["ToID"] = ""
+	
+	if kg.HvPf == nil {
+	    return nil
 	}
-	m["Roh"] = strings.Join(tmp,":")
+	hv,err := kg.HvPf.MarshalJSON()
+	if err != nil {
+	    return nil
+	}
+	m["HvPf"] = string(hv)
+
+	m["Num"] = fmt.Sprintf("%v",kg.Num)
 	m["Type"] = "KGRound5Message1"
+	
 	return m
 }
 
@@ -622,48 +631,4 @@ func (kg *KGRound6Message) OutMap() map[string]string {
 	m["Type"] = "KGRound6Message"
 	return m
 }
-
-// KGRound6Message1  Round 6-1 sending message 
-type KGRound6Message1 struct {
-	*KGRoundMessage
-
-	Qua []*big.Int // reply to roh1,roh2,....,rohm from JN
-}
-
-// GetFromID get the ID of sending nodes in the group
-func (kg *KGRound6Message1) GetFromID() string {
-	return kg.FromID
-}
-
-// GetFromIndex get the Serial number of sending nodes in the group 
-func (kg *KGRound6Message1) GetFromIndex() int {
-	return kg.FromIndex
-}
-
-// GetToID get the ID of the node that broacasting message to
-func (kg *KGRound6Message1) GetToID() []string {
-	return kg.ToID
-}
-
-// IsBroadcast weather broacast the message
-func (kg *KGRound6Message1) IsBroadcast() bool {
-	return false
-}
-
-// OutMap transfer *KGRound6Message1 to map
-func (kg *KGRound6Message1) OutMap() map[string]string {
-	m := make(map[string]string)
-	m["FromID"] = kg.FromID
-	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
-	m["ToID"] = strings.Join(kg.ToID, ":")
-
-	tmp := make([]string, len(kg.Qua))
-	for k, v := range kg.Qua {
-		tmp[k] = fmt.Sprintf("%v", v)
-	}
-	m["Qua"] = strings.Join(tmp,":")
-	m["Type"] = "KGRound6Message1"
-	return m
-}
-
 

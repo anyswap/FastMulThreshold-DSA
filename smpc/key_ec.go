@@ -403,29 +403,28 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 
 	//5-1 message
 	if msg["Type"] == "KGRound5Message1" {
-	    if msg["Roh"] == "" {
+	    if msg["HvPf"] == "" || msg["Num"] == "" {
 		return nil
 	    }
 
-	    tmp := strings.Split(msg["Roh"],":")
-	    roh := make([]*big.Int,len(tmp))
-	    for k,v := range tmp {
-		r,_ := new(big.Int).SetString(v,10)
-		if r == nil {
+	    pf := &ec2.HvProof{}
+	    err := pf.UnmarshalJSON([]byte(msg["HvPf"]))
+	    if err == nil {
+		num, ok := new(big.Int).SetString(msg["Num"], 10)
+		if !ok {
 		    return nil
 		}
 
-		roh[k] = r
-	    }
-
-	    kg := &keygen.KGRound5Message1{
+		kg := &keygen.KGRound5Message1{
 		    KGRoundMessage: new(keygen.KGRoundMessage),
-		    Roh:             roh,
+		    Num:		num,
+		    HvPf:             pf,
+		}
+		kg.SetFromID(from)
+		kg.SetFromIndex(index)
+		kg.ToID = to
+		return kg
 	    }
-	    kg.SetFromID(from)
-	    kg.SetFromIndex(index)
-	    kg.ToID = to
-	    return kg
 	}
 
 	//5-2 message
@@ -481,33 +480,6 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 		kg.ToID = to
 		return kg
 	    }
-	}
-
-	//6-1 message
-	if msg["Type"] == "KGRound6Message1" {
-	    if msg["Qua"] == "" {
-		return nil
-	    }
-
-	    tmp := strings.Split(msg["Qua"],":")
-	    qua := make([]*big.Int,len(tmp))
-	    for k,v := range tmp {
-		r,_ := new(big.Int).SetString(v,10)
-		if r == nil {
-		    return nil
-		}
-
-		qua[k] = r
-	    }
-
-	    kg := &keygen.KGRound6Message1{
-		    KGRoundMessage: new(keygen.KGRoundMessage),
-		    Qua:             qua,
-	    }
-	    kg.SetFromID(from)
-	    kg.SetFromIndex(index)
-	    kg.ToID = to
-	    return kg
 	}
 
 	kg := &keygen.KGRound0Message{

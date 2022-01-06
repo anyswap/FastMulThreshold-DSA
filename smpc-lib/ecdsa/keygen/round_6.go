@@ -19,7 +19,6 @@ package keygen
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
 )
@@ -88,53 +87,24 @@ func (round *round6) Start() error {
 	// see Paper:   Attacking Threshold Wallets*   JP Aumasson and Omer Shlomovits   Taurus Group, Switzerland   ZenGo X, Israel   section 5  The Golden Shoe Attack
 	// Mitigation: The fix is simple: Ntilde,h1,h2 must be validated on the receiving end.For Ntilde,the sender must attach a proof that Ntilde is a valid RSA modulus from two safe primes.For h1,h2, there is a nice trick in [FO97]: pick h1 at random and h2 = h1^alpha and prove to the receiver the knowledge of alpha with respect to h1, h2.
 	// see Paper : Efficient Noninteractive Certification of RSA Moduli and Beyond   Sharon Goldberg*, Leonid Reyzin*, Omar Sagga*, and Foteini Baldimtsi      Boston University, Boston, MA, USA  George Mason University, Fairfax, VA, USA foteini@gmu.edu   October 3, 2019     section 3.4  HVZK Proof for a Product of Two Primes
-	// for Ntilde = p*q
-	// get quadratic residue x for roh1,roh2,roh3 ..... rohm that receiving from the verifier
-	// For every rohj belong to QRn,the Prover sends back xj(belong to Z*) such that xj^2 mod Ntilde = rohj, Of the four square roots, the Prover chooses one at random. For other rohj,the prover sends back 0.
-	zero := big.NewInt(0) 
-	ntilde := round.temp.kgRound4Messages[curIndex].(*KGRound4Message).U1NtildeH1H2.Ntilde
+	for k,_ := range ids {
+	    msg4,ok := round.temp.kgRound4Messages[k].(*KGRound4Message)
+	    if !ok {
+		return errors.New("round.Start get round 4 msg fail")
+	    }
+	    ntilde := msg4.U1NtildeH1H2.Ntilde
+	    if ntilde == nil {
+		    return errors.New("error kg round4 message")
+	    }
 
-	for k,id := range ids {
 	    msg51, ok := round.temp.kgRound5Messages1[k].(*KGRound5Message1)
 	    if !ok {
 		return errors.New("round.Start get round 5-1 msg fail")
 	    }
-
-	    qua := make([]*big.Int,len(msg51.Roh))
-	    for kk,vv := range msg51.Roh {
-		var x *big.Int
-		if round.temp.p1.Cmp(round.temp.p2) >= 0 {
-		    x,_,_,_ = ec2.GetTheQuadraticResidueInt(vv,ntilde,round.temp.p1,round.temp.p2)
-		} else {
-		    x,_,_,_ = ec2.GetTheQuadraticResidueInt(vv,ntilde,round.temp.p2,round.temp.p1)
-		}
-
-		if x != nil {
-		    x2 := new(big.Int).Mul(x,x)
-		    x2 = new(big.Int).Mod(x2,ntilde)
-		    if x2.Cmp(vv) == 0 {
-			qua[kk] = new(big.Int).Abs(x) // Select the x value greater than or equal to 0 
-			continue
-		    }
-		}
-
-		qua[kk] = zero
-
-		//fmt.Printf("===========================round 6, k = %v,kk = %v, roh = %v,x = %v, N = %v===========================\n",k,kk,vv,qua[kk],ntilde)
-	    }
-	
-	    kg := &KGRound6Message1{
-		    KGRoundMessage: new(KGRoundMessage),
-		    Qua:    qua,
-	    }
-	    kg.SetFromID(round.dnodeid)
-	    kg.SetFromIndex(curIndex)
-
-	    if k == curIndex {
-		round.temp.kgRound6Messages1[k] = kg
-	    } else {
-		kg.AppendToID(fmt.Sprintf("%v", id)) //id-->dnodeid
-		round.out <- kg
+	    
+	    if !ec2.HvVerify(ntilde,msg51.Num,msg51.HvPf) {
+		fmt.Printf("==========================keygen round6,check that a zero-knowledge proof that ntilde is a valid RSA modulus from two safe primes fail, k = %v,id = %v============================\n",k,ids[k])
+		return errors.New("check that a zero-knowledge proof that ntilde is a valid RSA modulus from two safe primes fail")
 	    }
 	}
 	///////////
@@ -169,26 +139,20 @@ func (round *round6) CanAccept(msg smpc.Message) bool {
 		return msg.IsBroadcast()
 	}
 	
-	if _, ok := msg.(*KGRound6Message1); ok {
-		return !msg.IsBroadcast()
-	}
-	
 	return false
 }
 
 // Update  is the message received and ready for the next round? 
 func (round *round6) Update() (bool, error) {
-	for j, msg := range round.temp.kgRound6Messages1 {
+	for j, msg := range round.temp.kgRound6Messages {
 		if round.ok[j] {
 			continue
 		}
+		
 		if msg == nil || !round.CanAccept(msg) {
 			return false, nil
 		}
-		msg6 := round.temp.kgRound6Messages[j]
-		if msg6 == nil || !round.CanAccept(msg6) {
-			return false, nil
-		}
+		
 		round.ok[j] = true
 	}
 	

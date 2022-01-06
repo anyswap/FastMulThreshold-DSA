@@ -18,10 +18,10 @@ package keygen
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
 	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"fmt"
 )
 
 const (
@@ -90,31 +90,27 @@ func (round *round5) Start() error {
 	// see Paper:   Attacking Threshold Wallets*   JP Aumasson and Omer Shlomovits   Taurus Group, Switzerland   ZenGo X, Israel   section 5  The Golden Shoe Attack
 	// Mitigation: The fix is simple: Ntilde,h1,h2 must be validated on the receiving end.For Ntilde,the sender must attach a proof that Ntilde is a valid RSA modulus from two safe primes.For h1,h2, there is a nice trick in [FO97]: pick h1 at random and h2 = h1^alpha and prove to the receiver the knowledge of alpha with respect to h1, h2.
 	// see Paper : Efficient Noninteractive Certification of RSA Moduli and Beyond   Sharon Goldberg*, Leonid Reyzin*, Omar Sagga*, and Foteini Baldimtsi      Boston University, Boston, MA, USA  George Mason University, Fairfax, VA, USA foteini@gmu.edu   October 3, 2019     section 3.4  HVZK Proof for a Product of Two Primes
-	// for Ntilde = p*q
-	// pick m random values send to prover first, rohi belong to JN.   i = 1,2,3,....m
-	for k,id := range round.Save.IDs {
-	    msg4, ok := round.temp.kgRound4Messages[k].(*KGRound4Message)
-	    if !ok {
-		return errors.New("round.Start get round4 msg fail")
-	    }
-
-	    roh := ec2.GetRandomValuesFromJN(msg4.U1NtildeH1H2.Ntilde)
-	    round.temp.roh[k] = roh
-
-	    kg := &KGRound5Message1{
-		    KGRoundMessage: new(KGRoundMessage),
-		    Roh:    roh,
-	    }
-	    kg.SetFromID(round.dnodeid)
-	    kg.SetFromIndex(curIndex)
-
-	    if k == curIndex {
-		round.temp.kgRound5Messages1[k] = kg
-	    } else {
-		kg.AppendToID(fmt.Sprintf("%v", id)) //id-->dnodeid
-		round.out <- kg
-	    }
+	num = ec2.MustGetRandomInt(ntilde.BitLen())
+	if num == nil {
+	    return errors.New("get random int fail")
 	}
+
+	fmt.Printf("===========================keygen round 5, get num = %v for ntilde = %v==========================\n",num,ntilde)
+	hvProof := ec2.HvProve(ntilde,num,round.temp.p1,round.temp.p2)
+	if hvProof == nil {
+	    return errors.New("get hvzk proof fail")
+	}
+
+	srm2 := &KGRound5Message1{
+		KGRoundMessage: new(KGRoundMessage),
+		Num:		num,
+		HvPf:		hvProof,
+	}
+	srm2.SetFromID(round.dnodeid)
+	srm2.SetFromIndex(curIndex)
+
+	round.temp.kgRound5Messages1[curIndex] = srm2
+	round.out <- srm2
 
 	kg := &KGRound5Message{
 		KGRoundMessage: new(KGRoundMessage),
@@ -138,7 +134,7 @@ func (round *round5) CanAccept(msg smpc.Message) bool {
 	}
 	
 	if _, ok := msg.(*KGRound5Message1); ok {
-		return !msg.IsBroadcast()
+		return msg.IsBroadcast()
 	}
 	
 	if _, ok := msg.(*KGRound5Message2); ok {

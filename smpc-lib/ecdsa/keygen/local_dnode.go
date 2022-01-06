@@ -51,7 +51,6 @@ type localTempData struct {
 	kgRound5Messages1,
 	kgRound5Messages2,
 	kgRound6Messages,
-	kgRound6Messages1,
 	kgRound7Messages []smpc.Message
 
 	// temp data (thrown away after keygen)
@@ -81,7 +80,6 @@ type localTempData struct {
 	commitXiG  *ec2.Commitment
 
 	//round 5
-	roh [][]*big.Int
 
 	//round 6
 
@@ -114,8 +112,6 @@ func NewLocalDNode(
 	p.ThresHold = threshold
 	p.PaillierKeyLength = paillierkeylength
 
-	p.temp.roh = make([][]*big.Int,DNodeCountInGroup)
-
 	p.temp.kgRound0Messages = make([]smpc.Message, 0)
 	p.temp.kgRound1Messages = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound2Messages = make([]smpc.Message, DNodeCountInGroup)
@@ -128,7 +124,6 @@ func NewLocalDNode(
 	p.temp.kgRound5Messages1 = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound5Messages2 = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound6Messages = make([]smpc.Message, DNodeCountInGroup)
-	p.temp.kgRound6Messages1 = make([]smpc.Message, DNodeCountInGroup)
 	return p
 }
 
@@ -341,14 +336,6 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		p.temp.kgRound6Messages[index] = msg
 		if len(p.temp.kgRound6Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound6Messages) {
 			fmt.Printf("================ StoreMessage,get all ec keygen 6 messages ==============\n")
-			time.Sleep(time.Duration(1000000)) //tmp code
-			return true, nil
-		}
-	case *KGRound6Message1:
-		index := msg.GetFromIndex()
-		p.temp.kgRound6Messages1[index] = msg
-		if len(p.temp.kgRound6Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound6Messages1) {
-			fmt.Printf("================ StoreMessage,get all ec keygen 6-1 messages ==============\n")
 			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
