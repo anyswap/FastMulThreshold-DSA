@@ -100,7 +100,10 @@ func Map(m Interface, c chan struct{}, protocol string, extport, intport int, na
 	refresh := time.NewTimer(mapUpdateInterval)
 	defer func() {
 		refresh.Stop()
-		m.DeleteMapping(protocol, extport, intport)
+		err := m.DeleteMapping(protocol, extport, intport)
+		if err != nil {
+		    fmt.Printf("====================Map,delete map fail, err = %v====================\n",err)
+		}
 	}()
 	if err := m.AddMapping(protocol, extport, intport, name, mapTimeout); err != nil {
 	} else {

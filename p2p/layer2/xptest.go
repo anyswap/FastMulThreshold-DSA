@@ -54,7 +54,10 @@ func Xprotocol_startTest() {
 		fmt.Printf("\nSendToXpGroup ...\n")
 		num += 1
 		msgtest := fmt.Sprintf("%+v test SendToXpGroup ...", num)
-		Xprotocol_sendToGroupOneNode(msgtest)
+		_,err := Xprotocol_sendToGroupOneNode(msgtest)
+		if err != nil {
+		    return
+		}
 		time.Sleep(time.Duration(5) * time.Second)
 	}
 

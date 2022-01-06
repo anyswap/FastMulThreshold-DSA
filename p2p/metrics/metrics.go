@@ -53,6 +53,9 @@ func CollectProcessMetrics(refresh time.Duration) {
 	memFrees := GetOrRegisterMeter("system/memory/frees", DefaultRegistry)
 	memInuse := GetOrRegisterMeter("system/memory/inuse", DefaultRegistry)
 	memPauses := GetOrRegisterMeter("system/memory/pauses", DefaultRegistry)
+	if memAllocs == nil || memFrees == nil || memInuse == nil || memPauses == nil {
+	    return
+	}
 
 	var diskReads, diskReadBytes, diskWrites, diskWriteBytes Meter
 	var diskReadBytesCounter, diskWriteBytesCounter Counter
@@ -63,6 +66,9 @@ func CollectProcessMetrics(refresh time.Duration) {
 		diskWrites = GetOrRegisterMeter("system/disk/writecount", DefaultRegistry)
 		diskWriteBytes = GetOrRegisterMeter("system/disk/writedata", DefaultRegistry)
 		diskWriteBytesCounter = GetOrRegisterCounter("system/disk/writebytes", DefaultRegistry)
+		if diskReads == nil || diskReadBytes == nil || diskReadBytesCounter == nil || diskWrites == nil || diskWriteBytes == nil || diskWriteBytesCounter == nil {
+		    return
+		}
 	} else {
 	}
 	// Iterate loading the different stats and updating the meters

@@ -308,7 +308,13 @@ func (t *udp) sendPing(toid NodeID, toaddr *net.UDPAddr, callback func()) <-chan
 		}
 		return ok
 	})
-	t.write(toaddr, req.name(), packet)
+	err2 := t.write(toaddr, req.name(), packet)
+	if err2 != nil {
+	    errc := make(chan error, 1)
+	    errc <- err2
+	    return errc
+	}
+
 	return errc
 }
 
@@ -322,8 +328,14 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 	// If we haven't seen a ping from the destination node for a while, it won't remember
 	// our endpoint proof and reject findnode. Solicit a ping first.
 	if time.Since(t.db.lastPingReceived(toid)) > nodeDBNodeExpiration {
-		t.ping(toid, toaddr)
-		t.waitping(toid)
+	    err := t.ping(toid, toaddr)
+	    if err != nil {
+		return nil,err
+	    }	
+	    err = t.waitping(toid)
+	    if err != nil {
+		return nil,err
+	    }
 	}
 
 	nodes := make([]*Node, 0, bucketSize)
@@ -340,10 +352,15 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 		}
 		return nreceived >= bucketSize
 	})
-	t.send(toaddr, findnodePacket, &findnode{
+
+	_,err := t.send(toaddr, findnodePacket, &findnode{
 		Target:     target,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
 	})
+	if err != nil {
+	    return nil,err
+	}
+
 	return nodes, <-errc
 }
 
@@ -499,7 +516,11 @@ func init() {
 
 func (t *udp) send(toaddr *net.UDPAddr, ptype byte, req packet) ([]byte, error) {
 	packet, hash, err := encodePacket(t.priv, ptype, req)
-	encodePacket(t.priv, ptype, packet)
+	_,_,err2 := encodePacket(t.priv, ptype, packet)
+	if err2 != nil {
+	    return nil,err2
+	}
+
 	if err != nil {
 		return hash, err
 	}
@@ -635,11 +656,15 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 	if expired(req.Expiration) {
 		return errExpired
 	}
-	t.send(from, pongPacket, &pong{
+	_,err := t.send(from, pongPacket, &pong{
 		To:         makeEndpoint(from, req.From.TCP),
 		ReplyTok:   mac,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
 	})
+	if err != nil {
+	    return err
+	}
+
 	t.handleReply(fromID, pingPacket, req)
 
 	// Add the node to the table. Before doing so, ensure that we have a recent enough pong
@@ -650,7 +675,11 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 	} else {
 		t.addThroughPing(n)
 	}
-	t.db.updateLastPingReceived(fromID, time.Now())
+	err = t.db.updateLastPingReceived(fromID, time.Now())
+	if err != nil {
+	    return err
+	}
+
 	return nil
 }
 
@@ -663,7 +692,10 @@ func (req *pong) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 	if !t.handleReply(fromID, pongPacket, req) {
 		return errUnsolicitedReply
 	}
-	t.db.updateLastPongReceived(fromID, time.Now())
+	err := t.db.updateLastPongReceived(fromID, time.Now())
+	if err != nil {
+	    return err
+	}
 	return nil
 }
 
@@ -696,13 +728,20 @@ func (req *findnode) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte
 			p.Nodes = append(p.Nodes, nodeToRPC(n))
 		}
 		if len(p.Nodes) == maxNeighbors {
-			t.send(from, neighborsPacket, &p)
+			_,err := t.send(from, neighborsPacket, &p)
+			if err != nil {
+			    return err
+			}
+
 			p.Nodes = p.Nodes[:0]
 			sent = true
 		}
 	}
 	if len(p.Nodes) > 0 || !sent {
-		t.send(from, neighborsPacket, &p)
+	    _,err := t.send(from, neighborsPacket, &p)
+	    if err != nil {
+		return err
+	    }
 	}
 	return nil
 }

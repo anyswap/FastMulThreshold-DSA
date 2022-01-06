@@ -139,7 +139,10 @@ func newTable(t transport, ourID NodeID, ourAddr *net.UDPAddr, nodeDBPath string
 
 func (tab *Table) seedRand() {
 	var b [8]byte
-	crand.Read(b[:])
+	_,err := crand.Read(b[:])
+	if err != nil {
+	    return
+	}
 
 	tab.mutex.Lock()
 	tab.rand.Seed(int64(binary.BigEndian.Uint64(b[:])))
@@ -324,12 +327,19 @@ func (tab *Table) findnode(n *Node, targetID NodeID, reply chan<- []*Node) {
 	r, err := tab.net.findnode(n.ID, n.addr(), targetID)
 	if err != nil || len(r) == 0 {
 		fails++
-		tab.db.updateFindFails(n.ID, fails)
+		err = tab.db.updateFindFails(n.ID, fails)
+		if err != nil {
+		    return
+		}
+
 		if fails >= maxFindnodeFailures {
 			tab.delete(n)
 		}
 	} else if fails > 0 {
-		tab.db.updateFindFails(n.ID, fails-1)
+		err = tab.db.updateFindFails(n.ID, fails-1)
+		if err != nil {
+		    return
+		}
 	}
 
 	// Grab as many nodes as possible. Some of them might not be alive anymore, but we'll
@@ -435,7 +445,11 @@ func (tab *Table) doRefresh(done chan struct{}) {
 	// We perform a few lookups with a random target instead.
 	for i := 0; i < 3; i++ {
 		var target NodeID
-		crand.Read(target[:])
+		_,err := crand.Read(target[:])
+		if err != nil {
+		    return
+		}
+
 		tab.lookup(target, false)
 	}
 }
@@ -516,7 +530,10 @@ func (tab *Table) copyLiveNodes() {
 	for _, b := range &tab.buckets {
 		for _, n := range b.entries {
 			if now.Sub(n.addedAt) >= seedMinTableTime {
-				tab.db.updateNode(n)
+			    err := tab.db.updateNode(n)
+			    if err != nil {
+				return
+			    }
 			}
 		}
 	}

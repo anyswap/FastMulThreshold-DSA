@@ -89,7 +89,11 @@ func StartSmpc(c *cli.Context) {
 	}()
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
-	startP2pNode()
+	err := startP2pNode()
+	if err != nil {
+	    fmt.Printf("start p2p node fail,err = %v\n",err)
+	    return
+	}
 
 	time.Sleep(time.Duration(30) * time.Second)
 
@@ -227,7 +231,11 @@ func startP2pNode() error {
 	common.InitDir(datadir)
 	params.SetVersion(gitVersion, gitCommit, gitDate)
 	layer2.InitP2pDir()
-	getConfig()
+	err := getConfig()
+	if err != nil {
+	    return err
+	}
+
 	if port == 0 {
 		port = 4441
 	}
@@ -284,10 +292,18 @@ func startP2pNode() error {
 		nodeKey, errkey = crypto.LoadECDSA(keyfile)
 		if errkey != nil {
 			nodeKey, _ = crypto.GenerateKey()
-			crypto.SaveECDSA(keyfile, nodeKey)
+			err = crypto.SaveECDSA(keyfile, nodeKey)
+			if err != nil {
+			    os.Exit(1)
+			}
+
 			var kfd *os.File
 			kfd, _ = os.OpenFile(keyfile, os.O_WRONLY|os.O_APPEND, 0600)
-			kfd.WriteString(fmt.Sprintf("\nenode://%v\n", discover.PubkeyID(&nodeKey.PublicKey)))
+			_,err2 := kfd.WriteString(fmt.Sprintf("\nenode://%v\n", discover.PubkeyID(&nodeKey.PublicKey)))
+			if err2 != nil {
+			    kfd.Close()
+			    os.Exit(1)
+			}
 			kfd.Close()
 		}
 	}
@@ -331,10 +347,10 @@ func startP2pNode() error {
 	fmt.Printf("==== startP2pNode() ====, bootnodes = %v\n", bootNodes)
 	nodeserv.Config.BootstrapNodes = []*discover.Node{bootNodes}
 
-	go func() error {
+	go func() {
 		if err := nodeserv.Start(); err != nil {
 			fmt.Printf("==== startP2pNode() ====, nodeserv.Start err: %v\n", err)
-			return err
+			return
 		}
 
 		layer2.InitServer(nodeserv)
@@ -424,7 +440,10 @@ func updateRPCPort(pubdir, rpcport string) {
 	portDir := common.DefaultDataDir()
 	dir := filepath.Join(portDir, statDir, pubdir)
 	if common.FileExist(dir) != true {
-		os.MkdirAll(dir, os.ModePerm)
+	    err := os.MkdirAll(dir, os.ModePerm)
+	    if err != nil {
+		return
+	    }
 	}
 	rpcfile := filepath.Join(dir, "rpcport")
 	fmt.Printf("==== updateRPCPort() ====, rpcfile: %v, rpcport: %v\n", rpcfile, rpcport)
@@ -434,6 +453,9 @@ func updateRPCPort(pubdir, rpcport string) {
 		fmt.Println(err.Error())
 	} else {
 		_, err = f.Write([]byte(rpcport))
+		if err != nil {
+		    return
+		}
 	}
 }
 

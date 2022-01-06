@@ -178,35 +178,159 @@ func RegisterRuntimeMemStats(r Registry) {
 	runtimeMetrics.NumThread = NewGauge()
 	runtimeMetrics.ReadMemStats = NewTimer()
 
-	r.Register("runtime.MemStats.Alloc", runtimeMetrics.MemStats.Alloc)
-	r.Register("runtime.MemStats.BuckHashSys", runtimeMetrics.MemStats.BuckHashSys)
-	r.Register("runtime.MemStats.DebugGC", runtimeMetrics.MemStats.DebugGC)
-	r.Register("runtime.MemStats.EnableGC", runtimeMetrics.MemStats.EnableGC)
-	r.Register("runtime.MemStats.Frees", runtimeMetrics.MemStats.Frees)
-	r.Register("runtime.MemStats.HeapAlloc", runtimeMetrics.MemStats.HeapAlloc)
-	r.Register("runtime.MemStats.HeapIdle", runtimeMetrics.MemStats.HeapIdle)
-	r.Register("runtime.MemStats.HeapInuse", runtimeMetrics.MemStats.HeapInuse)
-	r.Register("runtime.MemStats.HeapObjects", runtimeMetrics.MemStats.HeapObjects)
-	r.Register("runtime.MemStats.HeapReleased", runtimeMetrics.MemStats.HeapReleased)
-	r.Register("runtime.MemStats.HeapSys", runtimeMetrics.MemStats.HeapSys)
-	r.Register("runtime.MemStats.LastGC", runtimeMetrics.MemStats.LastGC)
-	r.Register("runtime.MemStats.Lookups", runtimeMetrics.MemStats.Lookups)
-	r.Register("runtime.MemStats.Mallocs", runtimeMetrics.MemStats.Mallocs)
-	r.Register("runtime.MemStats.MCacheInuse", runtimeMetrics.MemStats.MCacheInuse)
-	r.Register("runtime.MemStats.MCacheSys", runtimeMetrics.MemStats.MCacheSys)
-	r.Register("runtime.MemStats.MSpanInuse", runtimeMetrics.MemStats.MSpanInuse)
-	r.Register("runtime.MemStats.MSpanSys", runtimeMetrics.MemStats.MSpanSys)
-	r.Register("runtime.MemStats.NextGC", runtimeMetrics.MemStats.NextGC)
-	r.Register("runtime.MemStats.NumGC", runtimeMetrics.MemStats.NumGC)
-	r.Register("runtime.MemStats.GCCPUFraction", runtimeMetrics.MemStats.GCCPUFraction)
-	r.Register("runtime.MemStats.PauseNs", runtimeMetrics.MemStats.PauseNs)
-	r.Register("runtime.MemStats.PauseTotalNs", runtimeMetrics.MemStats.PauseTotalNs)
-	r.Register("runtime.MemStats.StackInuse", runtimeMetrics.MemStats.StackInuse)
-	r.Register("runtime.MemStats.StackSys", runtimeMetrics.MemStats.StackSys)
-	r.Register("runtime.MemStats.Sys", runtimeMetrics.MemStats.Sys)
-	r.Register("runtime.MemStats.TotalAlloc", runtimeMetrics.MemStats.TotalAlloc)
-	r.Register("runtime.NumCgoCall", runtimeMetrics.NumCgoCall)
-	r.Register("runtime.NumGoroutine", runtimeMetrics.NumGoroutine)
-	r.Register("runtime.NumThread", runtimeMetrics.NumThread)
-	r.Register("runtime.ReadMemStats", runtimeMetrics.ReadMemStats)
+	err := r.Register("runtime.MemStats.Alloc", runtimeMetrics.MemStats.Alloc)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.BuckHashSys", runtimeMetrics.MemStats.BuckHashSys)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.DebugGC", runtimeMetrics.MemStats.DebugGC)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.EnableGC", runtimeMetrics.MemStats.EnableGC)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.Frees", runtimeMetrics.MemStats.Frees)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.HeapAlloc", runtimeMetrics.MemStats.HeapAlloc)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.HeapIdle", runtimeMetrics.MemStats.HeapIdle)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.HeapInuse", runtimeMetrics.MemStats.HeapInuse)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.HeapObjects", runtimeMetrics.MemStats.HeapObjects)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.HeapReleased", runtimeMetrics.MemStats.HeapReleased)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.HeapSys", runtimeMetrics.MemStats.HeapSys)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.LastGC", runtimeMetrics.MemStats.LastGC)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.Lookups", runtimeMetrics.MemStats.Lookups)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.Mallocs", runtimeMetrics.MemStats.Mallocs)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.MCacheInuse", runtimeMetrics.MemStats.MCacheInuse)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.MCacheSys", runtimeMetrics.MemStats.MCacheSys)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.MSpanInuse", runtimeMetrics.MemStats.MSpanInuse)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.MSpanSys", runtimeMetrics.MemStats.MSpanSys)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.NextGC", runtimeMetrics.MemStats.NextGC)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.NumGC", runtimeMetrics.MemStats.NumGC)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.GCCPUFraction", runtimeMetrics.MemStats.GCCPUFraction)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.PauseNs", runtimeMetrics.MemStats.PauseNs)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.PauseTotalNs", runtimeMetrics.MemStats.PauseTotalNs)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.StackInuse", runtimeMetrics.MemStats.StackInuse)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.StackSys", runtimeMetrics.MemStats.StackSys)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.Sys", runtimeMetrics.MemStats.Sys)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.MemStats.TotalAlloc", runtimeMetrics.MemStats.TotalAlloc)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.NumCgoCall", runtimeMetrics.NumCgoCall)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.NumGoroutine", runtimeMetrics.NumGoroutine)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.NumThread", runtimeMetrics.NumThread)
+	if err != nil {
+	    return
+	}
+
+	err = r.Register("runtime.ReadMemStats", runtimeMetrics.ReadMemStats)
+	if err != nil {
+	    return
+	}
 }
+

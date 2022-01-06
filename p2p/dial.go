@@ -301,7 +301,10 @@ func (t *dialTask) Do(srv *Server) {
 		// Try resolving the ID of static nodes if dialing failed.
 		if _, ok := err.(*dialError); ok && t.flags&staticDialedConn != 0 {
 			if t.resolve(srv) {
-				t.dial(srv, t.dest)
+			    err = t.dial(srv, t.dest)
+			    if err != nil {
+				return
+			    }
 			}
 		}
 	}
@@ -366,7 +369,11 @@ func (t *discoverTask) Do(srv *Server) {
 	}
 	srv.lastLookup = time.Now()
 	var target discover.NodeID
-	rand.Read(target[:])
+	_,err := rand.Read(target[:])
+	if err != nil {
+	    return
+	}
+
 	t.results = srv.ntab.Lookup(target)
 }
 

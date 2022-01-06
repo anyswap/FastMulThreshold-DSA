@@ -63,14 +63,21 @@ func GetSignNonce(account string) (string, string, error) {
 	exsit, da := GetPubKeyData([]byte(key))
 	if !exsit {
 		nonce := "0"
-		PutPubKeyData([]byte(key), []byte(nonce))
+		err := PutPubKeyData([]byte(key), []byte(nonce))
+		if err != nil {
+		    return "", "", err 
+		}
+
 		return "0", "", nil
 	}
 
 	nonce, _ := new(big.Int).SetString(string(da.([]byte)), 10)
 	one, _ := new(big.Int).SetString("1", 10)
 	nonce = new(big.Int).Add(nonce, one)
-	PutPubKeyData([]byte(key), []byte(fmt.Sprintf("%v", nonce)))
+	err := PutPubKeyData([]byte(key), []byte(fmt.Sprintf("%v", nonce)))
+	if err != nil {
+	    return "", "", err 
+	}
 	return fmt.Sprintf("%v", nonce), "", nil
 }
 

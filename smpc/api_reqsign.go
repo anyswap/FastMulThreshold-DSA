@@ -670,7 +670,12 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 				pd := &PickHashData{Hash: vv.Hash, Pre: pre}
 				pickdata = append(pickdata, pd)
-				DeletePreSignData(sig.PubKey, sig.InputCode, sig.GroupID, vv.PickKey)
+				err = DeletePreSignData(sig.PubKey, sig.InputCode, sig.GroupID, vv.PickKey)
+				if err != nil {
+					res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+					ch <- res
+					return false
+				}
 			}
 
 			signpick := &SignPickData{Raw: signbrocast.Raw, PickData: pickdata}

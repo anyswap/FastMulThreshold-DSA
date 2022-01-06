@@ -486,7 +486,10 @@ func processReshare(msgprex string, groupid string, pubkey string, account strin
 					}
 					//
 
-					DeletePubKeyData([]byte(daa.Key))
+					err = DeletePubKeyData([]byte(daa.Key))
+					if err != nil {
+						return nil, err
+					}
 				}
 			}
 
@@ -600,7 +603,10 @@ func processReshare(msgprex string, groupid string, pubkey string, account strin
 				}
 			}
 
-			AcceptReqAddr("", account, "ALL", groupid, nonce, w.limitnum, mode, "true", "true", "Success", pubkey, "", "", nil, w.id, "")
+			_,err2 := AcceptReqAddr("", account, "ALL", groupid, nonce, w.limitnum, mode, "true", "true", "Success", pubkey, "", "", nil, w.id, "")
+			if err2 != nil {
+				return nil, err2
+			}
 			return msg.SkU1, nil
 		}
 	}

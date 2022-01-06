@@ -52,7 +52,10 @@ func NewServer() *Server {
 	// register a default service which will provide meta information about the RPC service such as the services and
 	// methods it offers.
 	rpcService := &RPCService{server}
-	server.RegisterName(MetadataApi, rpcService)
+	err := server.RegisterName(MetadataApi, rpcService)
+	if err != nil {
+	    return nil
+	}
 
 	return server
 }
@@ -148,7 +151,6 @@ func (s *Server) serveRequest(ctx context.Context, codec ServerCodec, singleShot
 	s.codecsMu.Lock()
 	if atomic.LoadInt32(&s.run) != 1 { // server stopped
 		s.codecsMu.Unlock()
-		fmt.Println("================================!!!smpcwalletrpclog,Server.serveRequest,err =%v!!!!===========================================", fmt.Errorf("server stopped"))
 		return &shutdownError{}
 	}
 	s.codecs.Add(codec)
@@ -158,10 +160,12 @@ func (s *Server) serveRequest(ctx context.Context, codec ServerCodec, singleShot
 	for atomic.LoadInt32(&s.run) == 1 {
 		reqs, batch, err := s.readRequest(codec)
 		if err != nil {
-			fmt.Println("================================!!!smpcwalletrpclog,Server.serveRequest,err =%v!!!!===========================================", err)
 			// If a parsing error occurred, send an error
 			if err.Error() != "EOF" {
-				codec.Write(codec.CreateErrorResponse(nil, err))
+			    err2 := codec.Write(codec.CreateErrorResponse(nil, err))
+			    if err2 != nil {
+				return err2
+			    }
 			}
 			// Error or end of stream, wait for requests and tear down
 			pend.Wait()
@@ -171,16 +175,21 @@ func (s *Server) serveRequest(ctx context.Context, codec ServerCodec, singleShot
 		// check if server is ordered to shutdown and return an error
 		// telling the client that his request failed.
 		if atomic.LoadInt32(&s.run) != 1 {
-			fmt.Println("================================!!!smpcwalletrpclog,Server.serveRequest,err =%v!!!!===========================================", fmt.Errorf("server stopped"))
 			err = &shutdownError{}
 			if batch {
 				resps := make([]interface{}, len(reqs))
 				for i, r := range reqs {
 					resps[i] = codec.CreateErrorResponse(&r.id, err)
 				}
-				codec.Write(resps)
+				err2 := codec.Write(resps)
+				if err2 != nil {
+				    return err2
+				}
 			} else {
-				codec.Write(codec.CreateErrorResponse(&reqs[0].id, err))
+			    err2 := codec.Write(codec.CreateErrorResponse(&reqs[0].id, err))
+			    if err2 != nil {
+				return err2
+			    }
 			}
 			return nil
 		}
@@ -213,14 +222,22 @@ func (s *Server) serveRequest(ctx context.Context, codec ServerCodec, singleShot
 // stopped. In either case the codec is closed.
 func (s *Server) ServeCodec(codec ServerCodec, options CodecOption) {
 	defer codec.Close()
-	s.serveRequest(context.Background(), codec, false, options)
+	err := s.serveRequest(context.Background(), codec, false, options)
+	if err != nil {
+	    fmt.Printf("serve Request fail,err = %v\n",err)
+	    return
+	}
 }
 
 // ServeSingleRequest reads and processes a single RPC request from the given codec. It will not
 // close the codec unless a non-recoverable error has occurred. Note, this method will return after
 // a single request has been processed!
 func (s *Server) ServeSingleRequest(ctx context.Context, codec ServerCodec, options CodecOption) {
-	s.serveRequest(ctx, codec, true, options)
+    err := s.serveRequest(ctx, codec, true, options)
+    if err != nil {
+	    fmt.Printf("serve Sing Request fail,err = %v\n",err)
+	    return
+    }
 }
 
 // Stop will stop reading new requests, wait for stopPendingRequestTimeout to allow pending requests to finish,

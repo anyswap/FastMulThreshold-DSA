@@ -818,7 +818,10 @@ func (srv *Server) listenLoop() {
 
 		fd = newMeteredConn(fd, true)
 		go func() {
-			srv.SetupConn(fd, inboundConn, nil)
+		    err := srv.SetupConn(fd, inboundConn, nil)
+		    if err != nil {
+			return
+		    }
 			slots <- struct{}{}
 		}()
 	}

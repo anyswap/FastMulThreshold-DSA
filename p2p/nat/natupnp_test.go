@@ -203,14 +203,22 @@ func (dev *fakeIGD) ServeMessage(r *http.Request) {
 		return
 	}
 	defer conn.Close()
-	io.WriteString(conn, dev.replaceListenAddr(dev.ssdpResp))
+	err := io.WriteString(conn, dev.replaceListenAddr(dev.ssdpResp))
+	if err != nil {
+		fmt.Printf("write string error: %v", err)
+		return
+	}
 }
 
 // http.Handler
 func (dev *fakeIGD) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if resp, ok := dev.httpResps[r.Method+" "+r.RequestURI]; ok {
 		dev.t.Logf(`HTTP request "%s %s" --> %d`, r.Method, r.RequestURI, 200)
-		io.WriteString(w, dev.replaceListenAddr(resp))
+		err := io.WriteString(w, dev.replaceListenAddr(resp))
+		if err != nil {
+		    fmt.Printf("write string error: %v", err)
+		    return
+		}
 	} else {
 		dev.t.Logf(`HTTP request "%s %s" --> %d`, r.Method, r.RequestURI, 404)
 		w.WriteHeader(http.StatusNotFound)
@@ -233,9 +241,25 @@ func (dev *fakeIGD) listen() (err error) {
 	return nil
 }
 
+func httpuServe(dev *fakeIGD) {
+	err := httpu.Serve(dev.mcastListener, dev)
+	if err != nil {
+	    fmt.Printf("httpu serve fail")
+	    return
+	}
+}
+
+func httpServe(dev *fakeIGD) {
+    err := http.Serve(dev.listener, dev)
+    if err != nil {
+	    fmt.Printf("http serve fail")
+	    return
+    }
+}
+
 func (dev *fakeIGD) serve() {
-	go httpu.Serve(dev.mcastListener, dev)
-	go http.Serve(dev.listener, dev)
+    go httpuServe(dev)
+    go httpServe(dev)
 }
 
 func (dev *fakeIGD) close() {

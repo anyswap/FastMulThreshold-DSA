@@ -56,7 +56,10 @@ func main() {
 		fmt.Printf("\nSendToSmpcGroup ...\n")
 		num += 1
 		msg := fmt.Sprintf("%+v test SendToSmpcGroup ...", num)
-		SmpcProtocol_sendToGroupOneNode(msg) // -> Handle: SmpcProtocol_registerCallback(call)
+		_,err := SmpcProtocol_sendToGroupOneNode(msg) // -> Handle: SmpcProtocol_registerCallback(call)
+		if err != nil {
+		    return
+		}
 		// -> *msg Handle: SmpcProtocol_registerMsgRecvCallback(smpccall)
 		//    SmpcProtocol_registerMsgRetCallback(smpccallret) <- SmpcProtocol_registerMsgRecvCallback(smpccall)
 		time.Sleep(time.Duration(2) * time.Second)

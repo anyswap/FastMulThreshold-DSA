@@ -149,7 +149,12 @@ func doInstall(cmdline []string) {
 		arch = flag.String("arch", "", "Architecture to cross build for")
 		cc   = flag.String("cc", "", "C compiler to cross build with")
 	)
-	flag.CommandLine.Parse(cmdline)
+	
+	err := flag.CommandLine.Parse(cmdline)
+	if err != nil {
+	    return
+	}
+
 	env := build.Env()
 
 	// Check Go version. People regularly open issues about compilation

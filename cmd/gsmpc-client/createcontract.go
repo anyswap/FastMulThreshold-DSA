@@ -123,7 +123,11 @@ func createContract() error {
 
 	rawTx := types.NewContractCreation(nonce, big.NewInt(0), gasLimit, gasPrice, input)
 	fmt.Println("create raw tx success")
-	printTx(rawTx, true)
+	err = printTx(rawTx, true)
+	if err != nil {
+	    return err
+	}
+
 	fmt.Println()
 
 	chainSigner := types.NewEIP155Signer(nodeChainID)
@@ -167,7 +171,10 @@ func createContract() error {
 
 	fmt.Printf("signed tx hash is %v\n", txHash)
 	fmt.Printf("sender is %v\n", sender.String())
-	printTx(signedTx, false)
+	err = printTx(signedTx, false)
+	if err != nil {
+	    return err
+	}
 
 	if !dryrun {
 		err = ethClient.SendTransaction(ctx, signedTx)

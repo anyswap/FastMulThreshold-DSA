@@ -41,11 +41,19 @@ func SmpcProtocol_sendToGroupOneNode(msg string) (string, error) {
 // broadcast
 // to group's nodes
 func SmpcProtocol_broadcastInGroupAll(msg string) { // within self
-	BroadcastToGroup(discover.NodeID{}, msg, SmpcProtocol_type, true)
+    _,err := BroadcastToGroup(discover.NodeID{}, msg, SmpcProtocol_type, true)
+    if err != nil {
+	fmt.Printf("broadcast msg to group, err = %v\n",err)
+	return
+    }
 }
 
 func SmpcProtocol_broadcastInGroupOthers(msg string) { // without self
-	BroadcastToGroup(discover.NodeID{}, msg, SmpcProtocol_type, false)
+	_,err := BroadcastToGroup(discover.NodeID{}, msg, SmpcProtocol_type, false)
+	if err != nil {
+	    fmt.Printf("broadcast msg to group, err = %v\n",err)
+	    return
+	}
 }
 
 // unicast

@@ -84,21 +84,31 @@ type rlpx struct {
 }
 
 func newRLPX(fd net.Conn) transport {
-	fd.SetDeadline(time.Now().Add(handshakeTimeout))
+    err := fd.SetDeadline(time.Now().Add(handshakeTimeout))
+    if err != nil {
+	return nil
+    }
 	return &rlpx{fd: fd}
 }
 
 func (t *rlpx) ReadMsg() (Msg, error) {
 	t.rmu.Lock()
 	defer t.rmu.Unlock()
-	t.fd.SetReadDeadline(time.Now().Add(frameReadTimeout))
+	err := t.fd.SetReadDeadline(time.Now().Add(frameReadTimeout))
+	if err != nil {
+	    return Msg{},err
+	}
 	return t.rw.ReadMsg()
 }
 
 func (t *rlpx) WriteMsg(msg Msg) error {
 	t.wmu.Lock()
 	defer t.wmu.Unlock()
-	t.fd.SetWriteDeadline(time.Now().Add(frameWriteTimeout))
+	err := t.fd.SetWriteDeadline(time.Now().Add(frameWriteTimeout))
+	if err != nil {
+	    return err
+	}
+
 	return t.rw.WriteMsg(msg)
 }
 
@@ -114,7 +124,11 @@ func (t *rlpx) close(err error) {
 			// a write deadline. Because of this only try to send
 			// the disconnect reason message if there is no error.
 			if err := t.fd.SetWriteDeadline(time.Now().Add(discWriteTimeout)); err == nil {
-				SendItems(t.rw, discMsg, r)
+				err = SendItems(t.rw, discMsg, r)
+				if err != nil {
+				    t.fd.Close()
+				    return
+				}
 			}
 		}
 	}
@@ -155,7 +169,11 @@ func readProtocolHandshake(rw MsgReader, our *protoHandshake) (*protoHandshake, 
 		// We can't return the reason directly, though, because it is echoed
 		// back otherwise. Wrap it in a string instead.
 		var reason [1]DiscReason
-		rlp.Decode(msg.Payload, &reason)
+		err := rlp.Decode(msg.Payload, &reason)
+		if err != nil {
+		    return nil,err
+		}
+
 		return nil, reason[0]
 	}
 	if msg.Code != handshakeMsg {

@@ -777,8 +777,14 @@ func CleanUpAllReqAddrInfo() {
 			continue
 		}
 
-		DeleteReqAddrInfoData(key)
-		PutPubKeyData(key, []byte(es))
+		err = DeleteReqAddrInfoData(key)
+		if err != nil {
+		    continue
+		}
+		err = PutPubKeyData(key, []byte(es))
+		if err != nil {
+		    continue
+		}
 	}
 	iter.Release()
 }
@@ -820,8 +826,14 @@ func CleanUpAllSignInfo() {
 			continue
 		}
 
-		DeleteSignInfoData(key)
-		PutPubKeyData(key, []byte(es))
+		err = DeleteSignInfoData(key)
+		if err != nil {
+			continue
+		}
+		err = PutPubKeyData(key, []byte(es))
+		if err != nil {
+			continue
+		}
 	}
 	iter.Release()
 }
@@ -863,8 +875,14 @@ func CleanUpAllReshareInfo() {
 			continue
 		}
 
-		DeleteReShareInfoData(key)
-		PutPubKeyData(key, []byte(es))
+		err = DeleteReShareInfoData(key)
+		if err != nil {
+			continue
+		}
+		err = PutPubKeyData(key, []byte(es))
+		if err != nil {
+			continue
+		}
 	}
 	iter.Release()
 }
@@ -936,7 +954,10 @@ func CopyAllAccountsFromDb() {
 		//key: ys (marshal(pkx,pky))
 		//key: []byte(hash256(tolower(dcrmaddr)))
 		//value: []byte(pubkey)
-		PutAccountDataToDb([]byte(key), []byte(pubkey))
+		err = PutAccountDataToDb([]byte(key), []byte(pubkey))
+		if err != nil {
+			continue
+		}
 	}
 
 	iter.Release()

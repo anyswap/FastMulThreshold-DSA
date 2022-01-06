@@ -474,10 +474,14 @@ func (req *getsmpcmessage) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac 
 	//	return errExpired
 	//}
 	common.Debug("send ack ==== (req *getsmpcmessage) handle() ====", "to", from, "squencencen", req.Sequence)
-	t.send(from, byte(Ack_Packet), &Ack{
+	_,err := t.send(from, byte(Ack_Packet), &Ack{
 		Sequence:   req.Sequence,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
 	})
+	if err != nil {
+	    return err
+	}
+
 	ss := fmt.Sprintf("get-%v-%v", fromID, req.Sequence)
 	common.Debug("==== (req *getsmpcmessage) handle() ====", "from", from, "sequence", req.Sequence)
 	sequenceLock.Lock()
@@ -543,10 +547,14 @@ func (req *smpcmessage) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []b
 	msgHash := crypto.Keccak256Hash([]byte(strings.ToLower(req.Msg))).Hex()
 	common.Debug("==== (req *smpcmessage) handle() ==== p2pBroatcast", "recv from target", fromID, "from", from, "msgHash", msgHash)
 	common.Debug("send ack ==== (req *smpcmessage) handle() ====", "to", from, "msg", req.Msg)
-	t.send(from, byte(Ack_Packet), &Ack{
+	_,err := t.send(from, byte(Ack_Packet), &Ack{
 		Sequence:   req.Sequence,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
 	})
+	if err != nil {
+	    return err
+	}
+
 	ss := fmt.Sprintf("%v-%v", fromID, req.Sequence)
 	common.Debug("==== (req *smpcmessage) handle() ====", "recvMsg", ss)
 	sequenceLock.Lock()
@@ -713,9 +721,16 @@ func setGroup(n *Node, replace string) {
 	setGroupCC(n, replace, Smpcprotocol_type)
 }
 
+func sendpeer(gid, toid NodeID, ipa *net.UDPAddr,p2pType int) {
+    err := SendToPeer(gid, toid, ipa, "", p2pType)
+    if err != nil {
+	return 
+    }
+}
+
 func sendGroupToNode(groupList *Group, p2pType int, node *Node) { //nooo
 	ipa := &net.UDPAddr{IP: node.IP, Port: int(node.UDP)}
-	go SendToPeer(groupList.ID, node.ID, ipa, "", p2pType)
+	go sendpeer(groupList.ID, node.ID, ipa, p2pType)
 	if p2pType == Smpcprotocol_type || p2pType == Sdkprotocol_type {
 		var tmp int = 0
 		for i := 0; i < groupList.count; i++ {
@@ -727,7 +742,11 @@ func sendGroupToNode(groupList *Group, p2pType int, node *Node) { //nooo
 			cDgid := fmt.Sprintf("%v", groupList.ID) + "|" + "1smpcslash1:" + strconv.Itoa(tmp) + "#" + "Init"
 			common.Debug("==== sendGroupToNode() ====", "cDgid", cDgid)
 			ipa := &net.UDPAddr{IP: node.IP, Port: int(node.UDP)}
-			SendMsgToNode(node.ID, ipa, cDgid)
+			err := SendMsgToNode(node.ID, ipa, cDgid)
+			if err != nil {
+			    return
+			}
+
 			break
 		}
 	}
@@ -743,14 +762,17 @@ func sendGroupInfo(gid NodeID, nodes []RpcNode, p2pType int) { //nooo
 		//	go callGroupEvent(req.ID, req.Mode, nodes, int(req.P2pType), req.Type)
 		//}
 		ipa := &net.UDPAddr{IP: node.IP, Port: int(node.UDP)}
-		go SendToPeer(gid, node.ID, ipa, "", p2pType)
+		go sendpeer(gid, node.ID, ipa, p2pType)
 	}
 }
 
 func sendGroupInit2Node(gid NodeID, node RpcNode, i int) {
 	cDgid := fmt.Sprintf("%v", gid) + "|" + "1smpcslash1:" + strconv.Itoa(i) + "#" + "Init"
 	ipa := &net.UDPAddr{IP: node.IP, Port: int(node.UDP)}
-	SendMsgToNode(node.ID, ipa, cDgid)
+	err := SendMsgToNode(node.ID, ipa, cDgid)
+	if err != nil {
+	    return
+	}
 }
 
 func sendGroupInit(groupList *Group, p2pType int) { //nooo
@@ -834,7 +856,11 @@ func updateGroup(n *Node, p2pType int) { //nooo
 				g.Nodes = append(g.Nodes, RpcNode(nodeToRPC(n)))
 				sendGroupInfo(g.ID, g.Nodes, p2pType)
 				sendGroupInit(g, p2pType)
-				StoreGroupToDb(g)
+				err := StoreGroupToDb(g)
+				if err != nil {
+				    return
+				}
+
 				break
 			}
 		}
@@ -889,7 +915,11 @@ func updateGroupSDKNode(nd *Node, p2pType int) { //nooo
 					common.Debug("==== updateGroupSDKNode() ====", "update group(gid", gid, ") enode", node, "->", n)
 					//sendGroupInfo(g, p2pType)
 					sendGroupInit(g, p2pType)
-					StoreGroupToDb(g)
+					err := StoreGroupToDb(g)
+					if err != nil {
+					    return
+					}
+
 					break
 				}
 				//ipa := &net.UDPAddr{IP: node.IP, Port: int(node.UDP)}
@@ -956,14 +986,20 @@ func setGroupSDK(n *Node, replace string, p2pType int) {
 			common.Debug("==== setGroupSDK() ====", "nodeID", n.ID, "group", SDK_groupList[n.ID])
 			sendGroupInfo(n.ID, SDK_groupList[n.ID].Nodes, p2pType)
 			sendGroupInit(SDK_groupList[n.ID], p2pType)
-			StoreGroupToDb(SDK_groupList[n.ID])
+			err := StoreGroupToDb(SDK_groupList[n.ID])
+			if err != nil {
+			    return
+			}
 		} else { // add self node
 			if len(groupSDKList) < SDK_groupNum {
 				//e := fmt.Sprintf("enode://%v@%v:%v", node.ID, node.IP, node.UDP)
 				groupSDKList = append(groupSDKList, n)
 				common.Debug("==== setGroupSDK() ====", "len(groupSDKList)", len(groupSDKList))
 				if len(groupSDKList) == (SDK_groupNum - 1) {
-					StoreGroupSDKListToDb()
+				    err := StoreGroupSDKListToDb()
+				    if err != nil {
+					return
+				    }
 				}
 			}
 		}
@@ -1002,7 +1038,7 @@ func setGroupCC(n *Node, replace string, p2pType int) {
 				enode += e
 				if bytes.Equal(n.IP, node.IP) == true && n.UDP == node.UDP {
 					ipa := &net.UDPAddr{IP: node.IP, Port: int(node.UDP)}
-					go SendToPeer(NodeID{}, node.ID, ipa, "", p2pType)
+					go sendpeer(NodeID{}, node.ID, ipa, p2pType)
 				}
 			}
 			enodes := fmt.Sprintf("%v,%v", count, enode)
@@ -1051,7 +1087,7 @@ func setGroupCC(n *Node, replace string, p2pType int) {
 			e := fmt.Sprintf("enode://%v@%v:%v", node.ID, node.IP, node.UDP)
 			enode += e
 			ipa := &net.UDPAddr{IP: node.IP, Port: int(node.UDP)}
-			go SendToPeer(NodeID{}, node.ID, ipa, "", p2pType)
+			go sendpeer(NodeID{}, node.ID, ipa, p2pType)
 		}
 		enodes := fmt.Sprintf("%v,%v", count, enode)
 		if p2pType == Smpcprotocol_type {
@@ -1398,7 +1434,12 @@ func StoreGroupToDb(groupInfo *Group) error { //nooo
 	}
 
 	common.Debug("==== StoreGroupInfo() ==== new", "ac", ac)
-	db.Put([]byte(key), []byte(ss), nil)
+	err = db.Put([]byte(key), []byte(ss), nil)
+	if err != nil {
+	    db.Close()
+	    return err
+	}
+
 	db.Close()
 	return nil
 }
@@ -1466,7 +1507,11 @@ func StoreGroupSDKListToDb() error { //nooo
 	}
 
 	common.Debug("==== StoreGroupSDKListToDb() ==== new", "groupSDKList", ac)
-	db.Put([]byte(key), []byte(ss), nil)
+	err = db.Put([]byte(key), []byte(ss), nil)
+	if err != nil {
+	    db.Close()
+	}
+
 	db.Close()
 	return nil
 }
@@ -1579,10 +1624,14 @@ func Compress(c []byte) (string, error) {
 	var in bytes.Buffer
 	w, err := zlib.NewWriterLevel(&in, zlib.BestCompression-1)
 	if err != nil {
-		return "", err
+	    return "", err
 	}
 
-	w.Write(c)
+	_,err2 := w.Write(c)
+	if err2 != nil {
+	    return "", err2
+	}
+
 	w.Close()
 
 	s := in.String()
@@ -1603,7 +1652,11 @@ func UnCompress(s string) (string, error) {
 	}
 
 	var out bytes.Buffer
-	io.Copy(&out, r)
+	_,err2 := io.Copy(&out, r)
+	if err2 != nil {
+	    return "", err2
+	}
+
 	return out.String(), nil
 }
 

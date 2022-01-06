@@ -83,7 +83,10 @@ func sntpDrift(measurements int) (time.Duration, error) {
 			return 0, err
 		}
 		// Retrieve the reply and calculate the elapsed time
-		conn.SetDeadline(time.Now().Add(5 * time.Second))
+		err = conn.SetDeadline(time.Now().Add(5 * time.Second))
+		if err != nil {
+			return 0, err
+		}
 
 		reply := make([]byte, 48)
 		if _, err = conn.Read(reply); err != nil {

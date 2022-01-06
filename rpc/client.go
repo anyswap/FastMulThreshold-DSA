@@ -498,20 +498,29 @@ func (c *Client) write(ctx context.Context, msg interface{}) error {
 	if !ok {
 		deadline = time.Now().Add(defaultWriteTimeout)
 	}
+	
 	// The previous write failed. Try to establish a new connection.
 	if c.writeConn == nil {
 		if err := c.reconnect(ctx); err != nil {
-			fmt.Println("================================!!!smpcwalletrpclog,client.write,err =%v!!!!===========================================", err)
 			return err
 		}
 	}
-	c.writeConn.SetWriteDeadline(deadline)
-	err := json.NewEncoder(c.writeConn).Encode(msg)
-	c.writeConn.SetWriteDeadline(time.Time{})
+	
+	err := c.writeConn.SetWriteDeadline(deadline)
 	if err != nil {
-		c.writeConn = nil
+	    return err
 	}
-	fmt.Println("================================!!!smpcwalletrpclog,client.write,err =%v!!!!===========================================", err)
+
+	err = json.NewEncoder(c.writeConn).Encode(msg)
+	err2 := c.writeConn.SetWriteDeadline(time.Time{})
+	if err2 != nil {
+	    return err2
+	}
+	
+	if err != nil {
+	    c.writeConn = nil
+	}
+
 	return err
 }
 
@@ -533,12 +542,20 @@ func (c *Client) reconnect(ctx context.Context) error {
 	}
 }
 
+func ClientRead(c *Client,conn net.Conn) {
+    err := c.read(conn)
+    if err != nil {
+	fmt.Printf("read conn fail, err = %v\n",err)
+	return
+    }
+}
+
 // dispatch is the main loop of the client.
 // It sends read messages to waiting calls to Call and BatchCall
 // and subscription notifications to registered subscriptions.
 func (c *Client) dispatch(conn net.Conn) {
 	// Spawn the initial read loop.
-	go c.read(conn)
+	go ClientRead(c,conn)
 
 	var (
 		lastOp        *requestOp    // tracks last send operation
@@ -601,7 +618,7 @@ func (c *Client) dispatch(conn net.Conn) {
 				conn.Close()
 				<-c.readErr
 			}
-			go c.read(newconn)
+			go ClientRead(c,newconn)
 			reading = true
 			conn = newconn
 
@@ -783,13 +800,16 @@ func (sub *ClientSubscription) quitWithError(err error, unsubscribeServer bool) 
 		// unblocks deliver.
 		close(sub.quit)
 		if unsubscribeServer {
-			sub.requestUnsubscribe()
+		    err := sub.requestUnsubscribe()
+		    if err != nil {
+			sub.err <- err
+			return
+		    }
 		}
 		if err != nil {
 			if err == ErrClientQuit {
 				err = nil // Adhere to subscription semantics.
 			}
-			fmt.Println("================================!!!smpcwalletrpclog,quitWithError,err =%v!!!!===========================================", err)
 			sub.err <- err
 		}
 	})

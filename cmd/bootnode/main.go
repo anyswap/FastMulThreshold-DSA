@@ -45,7 +45,11 @@ func main() {
 		err     error
 	)
 	flag.Parse()
-	getConfig(listenAddr, nodeKeyFile)
+	err = getConfig(listenAddr, nodeKeyFile)
+	if err != nil {
+	    fmt.Errorf("get config: %v", err)
+	    return
+	}
 
 	if *listenAddr == "" {
 		*listenAddr = ":4440"

@@ -215,8 +215,11 @@ func (p *Peer) Run(handler func(ctx context.Context, msg interface{}) error) err
 	for {
 		if err := p.handleIncoming(handler); err != nil {
 			if err != io.EOF {
-				metrics.GetOrRegisterCounter("peer.handleincoming.error", nil).Inc(1)
-				fmt.Errorf("peer.handleIncoming", "err", err)
+			    reg := metrics.GetOrRegisterCounter("peer.handleincoming.error", nil)
+			    if reg != nil {
+				reg.Inc(1)
+			    }
+			    fmt.Errorf("peer.handleIncoming", "err", err)
 			}
 
 			return err
@@ -236,8 +239,17 @@ func (p *Peer) Drop(err error) {
 // this low level call will be wrapped by libraries providing routed or broadcast sends
 // but often just used to forward and push messages to directly connected peers
 func (p *Peer) Send(ctx context.Context, msg interface{}) error {
-	defer metrics.GetOrRegisterResettingTimer("peer.send_t", nil).UpdateSince(time.Now())
-	metrics.GetOrRegisterCounter("peer.send", nil).Inc(1)
+    defer func() {
+	reg := metrics.GetOrRegisterResettingTimer("peer.send_t", nil)
+	if reg != nil {
+	    reg.UpdateSince(time.Now())
+	}
+    }()
+
+    reg := metrics.GetOrRegisterCounter("peer.send", nil)
+    if reg != nil {
+	reg.Inc(1)
+    }
 
 	var b bytes.Buffer
 	/*	if tracing.Enabled {

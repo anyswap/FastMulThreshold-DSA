@@ -66,7 +66,10 @@ func InitDir(dir string) {
 		pwdDir, _ := os.Getwd()
 		datadir = filepath.Join(pwdDir, dir)
 		if FileExist(datadir) != true {
-			os.Mkdir(datadir, os.ModePerm)
+		    err := os.Mkdir(datadir, os.ModePerm)
+		    if err != nil {
+			fmt.Printf("==== InitDir(), mk dir fail ====, datadir: %v,err: %v\n", datadir,err)
+		    }
 		}
 	}
 	fmt.Printf("==== InitDir() ====, datadir: %v\n", datadir)

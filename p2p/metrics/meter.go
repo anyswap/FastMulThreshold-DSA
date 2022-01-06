@@ -26,7 +26,13 @@ func GetOrRegisterMeter(name string, r Registry) Meter {
 	if nil == r {
 		r = DefaultRegistry
 	}
-	return r.GetOrRegister(name, NewMeter).(Meter)
+
+	reg := r.GetOrRegister(name, NewMeter)
+	if reg == nil {
+	    return nil
+	}
+
+	return reg.(Meter)
 }
 
 // GetOrRegisterMeterForced returns an existing Meter or constructs and registers a
@@ -37,7 +43,13 @@ func GetOrRegisterMeterForced(name string, r Registry) Meter {
 	if nil == r {
 		r = DefaultRegistry
 	}
-	return r.GetOrRegister(name, NewMeterForced).(Meter)
+
+	reg := r.GetOrRegister(name, NewMeterForced)
+	if reg == nil {
+	    return nil
+	}
+
+	return reg.(Meter)
 }
 
 // NewMeter constructs a new StandardMeter and launches a goroutine.
@@ -81,7 +93,11 @@ func NewRegisteredMeter(name string, r Registry) Meter {
 	if nil == r {
 		r = DefaultRegistry
 	}
-	r.Register(name, c)
+	err := r.Register(name, c)
+	if err != nil {
+	    return nil
+	}
+
 	return c
 }
 
@@ -94,7 +110,11 @@ func NewRegisteredMeterForced(name string, r Registry) Meter {
 	if nil == r {
 		r = DefaultRegistry
 	}
-	r.Register(name, c)
+	err := r.Register(name, c)
+	if err != nil {
+	    return nil
+	}
+
 	return c
 }
 

@@ -307,7 +307,11 @@ func AcceptReqAddr(initiator string, account string, cointype string, groupid st
 	}
 
 	if ac2.Status != "Pending" {
-		DeleteReqAddrInfoData([]byte(key))
+	    err := DeleteReqAddrInfoData([]byte(key))
+	    if err != nil {
+		return err.Error(), err
+	    }
+
 		err = PutPubKeyData([]byte(key), []byte(es))
 		if err != nil {
 			common.Error("===================================AcceptReqAddr,put reqaddr accept data to pubkey data db fail===========================", "err", err, "key", key)
@@ -481,7 +485,10 @@ func AcceptSign(initiator string, account string, pubkey string, msghash []strin
 	}
 
 	if ac2.Status != "Pending" {
-		DeleteSignInfoData([]byte(key))
+	    err := DeleteSignInfoData([]byte(key))
+	    if err != nil {
+		return err.Error(), err
+	    }
 		err = PutPubKeyData([]byte(key), []byte(es))
 		if err != nil {
 			common.Error("========================AcceptSign,put sign accept data to pubkey data db fail.=======================", "key", key, "err", err)
@@ -651,7 +658,10 @@ func AcceptReShare(initiator string, account string, groupid string, tsgroupid s
 	}
 
 	if ac2.Status != "Pending" {
-		DeleteReShareInfoData([]byte(key))
+		err = DeleteReShareInfoData([]byte(key))
+		if err != nil {
+			return err.Error(), err
+		}
 		err = PutPubKeyData([]byte(key), []byte(es))
 		if err != nil {
 			common.Error("=====================AcceptReShare, put reshare accept data to pubkey data db fail======================", "err", err, "key", key)

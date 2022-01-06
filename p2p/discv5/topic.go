@@ -145,7 +145,11 @@ func (t *topicTable) checkDeleteNode(node *Node) {
 func (t *topicTable) storeTicketCounters(node *Node) {
 	n := t.getOrNewNode(node)
 	if t.db != nil {
-		t.db.updateTopicRegTickets(node.ID, n.lastIssuedTicket, n.lastUsedTicket)
+	    err := t.db.updateTopicRegTickets(node.ID, n.lastIssuedTicket, n.lastUsedTicket)
+	    if err != nil {
+		fmt.Printf("==============storeTicketCounters,update topic reg tickets fail,err = %v=================\n",err)
+		return
+	    }
 	}
 }
 

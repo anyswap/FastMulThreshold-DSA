@@ -663,7 +663,12 @@ var (
 // RPCInit rpc start init
 func RPCInit(port int) {
 	rpcport = port
-	go startRPCServer()
+	go func() {
+	    err := startRPCServer()
+	    if err != nil {
+		return
+	    }
+	}()
 }
 
 // splitAndTrim splits input separated by a comma
@@ -677,7 +682,7 @@ func splitAndTrim(input string) []string {
 }
 
 func startRPCServer() error {
-	go func() error {
+	go func() {
 		server = rpc.NewServer()
 		service := new(Service)
 		if err := server.RegisterName("smpc", service); err != nil {
@@ -751,7 +756,13 @@ func startRPCServer() error {
 
 		vhosts := make([]string, 0)
 		cors := splitAndTrim("*")
-		go rpc.NewHTTPServer(cors, vhosts, rpc.DefaultHTTPTimeouts, server).Serve(listener)
+		go func() {
+		    err2 := rpc.NewHTTPServer(cors, vhosts, rpc.DefaultHTTPTimeouts, server).Serve(listener)
+		    if err2 != nil {
+			fmt.Printf("new http server fail, err = %v\n",err2)
+			return
+		    }
+		}()
 		rpcstring := "\n==================== RPC Service Start! url = " + fmt.Sprintf("http://%s", endpoint) + " =====================\n"
 		fmt.Println(rpcstring)
 
@@ -759,8 +770,6 @@ func startRPCServer() error {
 		<-exit
 
 		server.Stop()
-
-		return nil
 	}()
 
 	return nil

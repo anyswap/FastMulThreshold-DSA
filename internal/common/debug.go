@@ -69,6 +69,5 @@ func PrintLogToFile(path string) error {
 		return err
 	}
 
-	logs.SetLogger("file", string(configStr))
-	return nil
+	return logs.SetLogger("file", string(configStr))
 }

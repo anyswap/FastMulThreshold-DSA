@@ -272,10 +272,14 @@ func (t *udp) sendPing(remote *Node, toaddr *net.UDPAddr, topics []Topic) (hash 
 }
 
 func (t *udp) sendFindnode(remote *Node, target NodeID) {
-	t.sendPacket(remote.ID, remote.addr(), byte(findnodePacket), findnode{
+    _,err := t.sendPacket(remote.ID, remote.addr(), byte(findnodePacket), findnode{
 		Target:     target,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
 	})
+	if err != nil {
+	    fmt.Printf("===================sendFindnode,send packet fail,err = %v=========================\n",err)
+	    return
+	}
 }
 
 func (t *udp) sendNeighbours(remote *Node, results []*Node) {
@@ -285,25 +289,37 @@ func (t *udp) sendNeighbours(remote *Node, results []*Node) {
 	for i, result := range results {
 		p.Nodes = append(p.Nodes, nodeToRPC(result))
 		if len(p.Nodes) == maxNeighbors || i == len(results)-1 {
-			t.sendPacket(remote.ID, remote.addr(), byte(neighborsPacket), p)
+		    _,err := t.sendPacket(remote.ID, remote.addr(), byte(neighborsPacket), p)
+		    if err != nil {
+			fmt.Printf("sendNeighbours,send neighbours fail,err =%v\n",err)
+			return
+		    }
 			p.Nodes = p.Nodes[:0]
 		}
 	}
 }
 
 func (t *udp) sendFindnodeHash(remote *Node, target common.Hash) {
-	t.sendPacket(remote.ID, remote.addr(), byte(findnodeHashPacket), findnodeHash{
+    _,err := t.sendPacket(remote.ID, remote.addr(), byte(findnodeHashPacket), findnodeHash{
 		Target:     target,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
 	})
+	if err != nil {
+	    fmt.Printf("sendFindnodeHash,send find node hash fail,err =%v\n",err)
+	    return
+	}
 }
 
 func (t *udp) sendTopicRegister(remote *Node, topics []Topic, idx int, pong []byte) {
-	t.sendPacket(remote.ID, remote.addr(), byte(topicRegisterPacket), topicRegister{
+    _,err := t.sendPacket(remote.ID, remote.addr(), byte(topicRegisterPacket), topicRegister{
 		Topics: topics,
 		Idx:    uint(idx),
 		Pong:   pong,
 	})
+	if err != nil {
+	    fmt.Printf("sendTopicRegister,send topic register fail,err =%v\n",err)
+	    return
+	}
 }
 
 func (t *udp) sendTopicNodes(remote *Node, queryHash common.Hash, nodes []*Node) {
@@ -314,13 +330,20 @@ func (t *udp) sendTopicNodes(remote *Node, queryHash common.Hash, nodes []*Node)
 			p.Nodes = append(p.Nodes, nodeToRPC(result))
 		}
 		if len(p.Nodes) == maxTopicNodes {
-			t.sendPacket(remote.ID, remote.addr(), byte(topicNodesPacket), p)
+		    _,err := t.sendPacket(remote.ID, remote.addr(), byte(topicNodesPacket), p)
+		    if err != nil {
+			return
+		    }
+
 			p.Nodes = p.Nodes[:0]
 			sent = true
 		}
 	}
 	if !sent || len(p.Nodes) > 0 {
-		t.sendPacket(remote.ID, remote.addr(), byte(topicNodesPacket), p)
+	    _,err := t.sendPacket(remote.ID, remote.addr(), byte(topicNodesPacket), p)
+	    if err != nil {
+		return
+	    }
 	}
 }
 
@@ -378,7 +401,10 @@ func (t *udp) readLoop() {
 			// Shut down the loop for permament errors.
 			return
 		}
-		t.handlePacket(from, buf[:nbytes])
+		err = t.handlePacket(from, buf[:nbytes])
+		if err != nil {
+		    return
+		}
 	}
 }
 

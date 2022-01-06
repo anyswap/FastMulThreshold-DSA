@@ -389,17 +389,32 @@ func recvGroupInfo(gid discover.NodeID, mode string, req interface{}, p2pType in
 		}
 	}
 	common.Debug("==== recvGroupInfo() ====", "Store Group", xvcGroup)
-	discover.StoreGroupToDb(xvcGroup)
-	discover.RecoverGroupAll(SdkGroup)
+	err := discover.StoreGroupToDb(xvcGroup)
+	if err != nil {
+	    return
+	}
+
+	err = discover.RecoverGroupAll(SdkGroup)
+	if err != nil {
+	    return
+	}
+
 	if false {
 		var testGroup map[discover.NodeID]*discover.Group = make(map[discover.NodeID]*discover.Group) //TODO delete
-		discover.RecoverGroupAll(testGroup)
+		err = discover.RecoverGroupAll(testGroup)
+		if err != nil {
+		    return
+		}
+
 		common.Debug("==== recvGroupInfo() ====", "Recov test Group", testGroup)
 		for i, g := range testGroup {
 			common.Debug("testGroup", "i", i, "g", g)
 		}
 	}
-	discover.RecoverGroupAll(discover.SDK_groupList) // Group
+	err = discover.RecoverGroupAll(discover.SDK_groupList) // Group
+	if err != nil {
+	    return
+	}
 }
 
 func Broadcast(msg string) {
@@ -460,7 +475,10 @@ func SendToMyself(enode, msg string, p2pType int) error {
 func SendToPeer(enode string, msg string) {
 	node, _ := discover.ParseNode(enode)
 	ipa := &net.UDPAddr{IP: node.IP, Port: int(node.UDP)}
-	discover.SendMsgToNode(node.ID, ipa, msg)
+	err := discover.SendMsgToNode(node.ID, ipa, msg)
+	if err != nil {
+	    return
+	}
 }
 
 // broadcastInGroup will propagate a batch of message to all peers which are not known to
@@ -529,13 +547,22 @@ func (tx *Transaction) hash() common.Hash {
 		return hash.(common.Hash)
 	}
 	v := rlpHash(tx.Payload)
+	var tmp common.Hash
+	if v == tmp {
+	    return tmp
+	}
+
 	tx.Hash.Store(v)
 	return v
 }
 
 func rlpHash(x interface{}) (h common.Hash) {
 	hw := sha3.NewKeccak256()
-	rlp.Encode(hw, x)
+	err := rlp.Encode(hw, x)
+	if err != nil {
+	    return
+	}
+
 	hw.Sum(h[:0])
 	return h
 }
@@ -559,20 +586,30 @@ func InitServer(nodeserv interface{}) {
 	defer discover.GroupSDK.Unlock()
 	selfid = discover.GetLocalID()
 	p2pServer = nodeserv.(p2p.Server)
-	discover.RecoverGroupAll(SdkGroup)
+	err := discover.RecoverGroupAll(SdkGroup)
+	if err != nil {
+	    return
+	}
+
 	for i, g := range SdkGroup {
 		common.Debug("==== InitServer() ====", "GetGroupFromDb, g", g)
 		for _, node := range g.Nodes {
 			common.Debug("==== InitServer() ====", "gid", i, "node", node)
 			if node.ID != selfid {
-				discover.PingNode(node.ID, node.IP, int(node.UDP))
+				err = discover.PingNode(node.ID, node.IP, int(node.UDP))
+				if err != nil {
+				    return
+				}
 				en := discover.NewNode(node.ID, node.IP, node.UDP, node.TCP)
 				go p2pServer.AddPeer(en)
 				go p2pServer.AddTrustedPeer(en)
 			}
 		}
 	}
-	discover.RecoverGroupAll(discover.SDK_groupList) // Group
+	err = discover.RecoverGroupAll(discover.SDK_groupList) // Group
+	if err != nil {
+	    return
+	}
 	discover.SDK_groupListChan <- 1
 }
 

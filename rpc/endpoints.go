@@ -21,6 +21,14 @@ import (
 	"net"
 )
 
+func HttpServerServe(cors []string, vhosts []string, timeouts HTTPTimeouts,listener net.Listener,handler *Server) {
+    err := NewHTTPServer(cors, vhosts, timeouts, handler).Serve(listener)
+    if err != nil {
+	fmt.Printf("http serve fail,err = %v\n",err)
+	return 
+    }
+}
+
 // StartHTTPEndpoint starts the HTTP RPC endpoint, configured with cors/vhosts/modules
 func StartHTTPEndpoint(endpoint string, apis []API, modules []string, cors []string, vhosts []string, timeouts HTTPTimeouts) (net.Listener, *Server, error) {
 	// Generate the whitelist based on the allowed modules
@@ -33,7 +41,6 @@ func StartHTTPEndpoint(endpoint string, apis []API, modules []string, cors []str
 	for _, api := range apis {
 		if whitelist[api.Namespace] || (len(whitelist) == 0 && api.Public) {
 			if err := handler.RegisterName(api.Namespace, api.Service); err != nil {
-				fmt.Println("================================!!!smpcwalletrpclog,StartHTTPEndpoint,err =%v!!!!===========================================", err)
 				return nil, nil, err
 			}
 		}
@@ -44,10 +51,9 @@ func StartHTTPEndpoint(endpoint string, apis []API, modules []string, cors []str
 		err      error
 	)
 	if listener, err = net.Listen("tcp", endpoint); err != nil {
-		fmt.Println("================================!!!smpcwalletrpclog,StartHTTPEndpoint,err =%v!!!!===========================================", err)
 		return nil, nil, err
 	}
-	go NewHTTPServer(cors, vhosts, timeouts, handler).Serve(listener)
-	fmt.Println("================================!!!smpcwalletrpclog,StartHTTPEndpoint,err =%v!!!!===========================================", err)
+	
+	go HttpServerServe(cors,vhosts, timeouts, listener,handler)
 	return listener, handler, err
 }
