@@ -49,6 +49,7 @@ type localTempData struct {
 	kgRound4Messages,
 	kgRound5Messages,
 	kgRound5Messages1,
+	kgRound5Messages2,
 	kgRound6Messages,
 	kgRound6Messages1,
 	kgRound7Messages []smpc.Message
@@ -125,6 +126,7 @@ func NewLocalDNode(
 	p.temp.kgRound4Messages = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound5Messages = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound5Messages1 = make([]smpc.Message, DNodeCountInGroup)
+	p.temp.kgRound5Messages2 = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound6Messages = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound6Messages1 = make([]smpc.Message, DNodeCountInGroup)
 	return p
@@ -180,6 +182,7 @@ func CheckFull(msg []smpc.Message) bool {
 	return true
 }
 
+// find only check KGRound0Message
 func find(l []smpc.Message,msg smpc.Message) bool {
     if msg == nil || l == nil {
 	return true
@@ -208,6 +211,7 @@ func find(l []smpc.Message,msg smpc.Message) bool {
 func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 	switch msg.(type) {
 	case *KGRound0Message:
+		// fixed bug: node id error
 	    	if !find(p.temp.kgRound0Messages,msg) {
 		    if len(p.temp.kgRound0Messages) < p.DNodeCountInGroup {
 			    p.temp.kgRound0Messages = append(p.temp.kgRound0Messages, msg)
@@ -322,6 +326,14 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		if len(p.temp.kgRound5Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages1) {
 			fmt.Printf("================ StoreMessage,get all ec keygen 5-1 messages ==============\n")
 			time.Sleep(time.Duration(1000000)) //tmp code
+			return true, nil
+		}
+	case *KGRound5Message2:
+		index := msg.GetFromIndex()
+		p.temp.kgRound5Messages2[index] = msg
+		if len(p.temp.kgRound5Messages2) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages2) {
+			fmt.Printf("================ StoreMessage,get all ec keygen 5-2 messages ==============\n")
+			time.Sleep(time.Duration(1000000))
 			return true, nil
 		}
 	case *KGRound6Message:

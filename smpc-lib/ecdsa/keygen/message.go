@@ -520,6 +520,59 @@ func (kg *KGRound5Message1) OutMap() map[string]string {
 	return m
 }
 
+//-----------------------------------------------------------------
+
+// KGRound5Message2  Round 5 sending message2 
+type KGRound5Message2 struct {
+	*KGRoundMessage
+	Num *big.Int
+	SfPf *ec2.SquareFreeProof
+}
+
+// GetFromID get the ID of sending nodes in the group
+func (kg *KGRound5Message2) GetFromID() string {
+	return kg.FromID
+}
+
+// GetFromIndex get the Serial number of sending nodes in the group 
+func (kg *KGRound5Message2) GetFromIndex() int {
+	return kg.FromIndex
+}
+
+// GetToID get the ID of the node that broacasting message to
+func (kg *KGRound5Message2) GetToID() []string {
+	return kg.ToID
+}
+
+// IsBroadcast weather broacast the message
+func (kg *KGRound5Message2) IsBroadcast() bool {
+	return true
+}
+
+// OutMap transfer *KGRound5Message2 to map
+func (kg *KGRound5Message2) OutMap() map[string]string {
+	m := make(map[string]string)
+	m["FromID"] = kg.FromID
+	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
+	m["ToID"] = ""
+	
+	if kg.SfPf == nil {
+	    return nil
+	}
+	sf,err := kg.SfPf.MarshalJSON()
+	if err != nil {
+	    return nil
+	}
+	m["SfPf"] = string(sf)
+
+	m["Num"] = fmt.Sprintf("%v",kg.Num)
+	m["Type"] = "KGRound5Message2"
+	
+	return m
+}
+
+//-----------------------------------------------------------------
+
 // KGRound6Message  Round 6 sending message 
 type KGRound6Message struct {
 	*KGRoundMessage

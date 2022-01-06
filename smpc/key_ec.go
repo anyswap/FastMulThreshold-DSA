@@ -428,6 +428,36 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 	    return kg
 	}
 
+	//5-2 message
+	if msg["Type"] == "KGRound5Message2" {
+	    if msg["SfPf"] == "" {
+		return nil
+	    }
+
+	    if msg["Num"] == "" {
+		return nil
+	    }
+
+	    pf := &ec2.SquareFreeProof{}
+	    err := pf.UnmarshalJSON([]byte(msg["SfPf"]))
+	    if err == nil {
+		num, ok := new(big.Int).SetString(msg["Num"], 10)
+		if !ok {
+		    return nil
+		}
+
+		kg := &keygen.KGRound5Message2{
+		    KGRoundMessage: new(keygen.KGRoundMessage),
+		    Num:		num,
+		    SfPf:             pf,
+		}
+		kg.SetFromID(from)
+		kg.SetFromIndex(index)
+		kg.ToID = to
+		return kg
+	    }
+	}
+
 	//6 message
 	if msg["Type"] == "KGRound6Message" {
 	    b := false

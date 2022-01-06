@@ -61,6 +61,30 @@ func (round *round6) Start() error {
 		}
 	}
 
+	// add for GG20: In keygen phase 3, each player Pi need to proves in ZK that Ni is square-free using the proof of Gennaro, Micciancio, and Rabin [30].Similarly, it needs to prove it for ntilde.
+	// An Efficient Non-Interactive Statistical Zero-Knowledge Proof System for Quasi-Safe Prime Products, section 3.1
+	for k := range ids {
+	    msg4, ok := round.temp.kgRound4Messages[k].(*KGRound4Message)
+	    if !ok {
+		return errors.New("round.Start get round4 msg fail")
+	    }
+
+	    ntilde := msg4.U1NtildeH1H2.Ntilde
+	    if ntilde == nil {
+		    return errors.New("error kg round4 message")
+	    }
+
+	    msg52, ok := round.temp.kgRound5Messages2[k].(*KGRound5Message2)
+	    if !ok {
+		return errors.New("round.Start get round5 msg 2 fail")
+	    }
+
+	    if !ec2.SquareFreeVerify(ntilde,msg52.Num,msg52.SfPf) {
+		fmt.Printf("==========================keygen round6,check that a zero-knowledge proof that ntilde is a square-free integer fail, k = %v,id = %v============================\n",k,ids[k])
+		return errors.New("check that a zero-knowledge proof that ntilde is a square-free integer fail")
+	    }
+	}
+
 	// see Paper:   Attacking Threshold Wallets*   JP Aumasson and Omer Shlomovits   Taurus Group, Switzerland   ZenGo X, Israel   section 5  The Golden Shoe Attack
 	// Mitigation: The fix is simple: Ntilde,h1,h2 must be validated on the receiving end.For Ntilde,the sender must attach a proof that Ntilde is a valid RSA modulus from two safe primes.For h1,h2, there is a nice trick in [FO97]: pick h1 at random and h2 = h1^alpha and prove to the receiver the knowledge of alpha with respect to h1, h2.
 	// see Paper : Efficient Noninteractive Certification of RSA Moduli and Beyond   Sharon Goldberg*, Leonid Reyzin*, Omar Sagga*, and Foteini Baldimtsi      Boston University, Boston, MA, USA  George Mason University, Fairfax, VA, USA foteini@gmu.edu   October 3, 2019     section 3.4  HVZK Proof for a Product of Two Primes
