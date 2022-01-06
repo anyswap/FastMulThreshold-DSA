@@ -118,6 +118,10 @@ func (BitCurve *BitCurve) IsOnCurve(x, y *big.Int) bool {
 // top of the file.
 func (BitCurve *BitCurve) affineFromJacobian(x, y, z *big.Int) (xOut, yOut *big.Int) {
 	zinv := new(big.Int).ModInverse(z, BitCurve.P)
+	if zinv == nil {
+	    return
+	}
+
 	zinvsq := new(big.Int).Mul(zinv, zinv)
 
 	xOut = new(big.Int).Mul(x, zinvsq)

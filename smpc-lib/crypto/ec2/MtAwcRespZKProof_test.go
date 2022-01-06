@@ -54,6 +54,7 @@ func TestMtAZK3Verify_nhh(t *testing.T) {
 
 		sub := new(big.Int).Sub(v, self)
 		subInverse := new(big.Int).ModInverse(sub, secp256k1.S256().N)
+		assert.NotZero(t, subInverse)
 		times := new(big.Int).Mul(subInverse, v)
 		lambda1 = new(big.Int).Mul(lambda1, times)
 		lambda1 = new(big.Int).Mod(lambda1, secp256k1.S256().N)

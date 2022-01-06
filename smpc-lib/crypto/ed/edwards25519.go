@@ -1855,6 +1855,10 @@ func ScModInverse(a, order [32]byte) [32]byte {
 	orderBigInt := GetBigIntOrder()
 
 	aInvBigInt := new(big.Int).ModInverse(aBigInt, orderBigInt)
+	if aInvBigInt == nil {
+	    var tmp [32]byte
+	    return tmp
+	}
 
 	var aInv [32]byte
 	copy(aInv[32-len(aInvBigInt.Bytes()):], aInvBigInt.Bytes())

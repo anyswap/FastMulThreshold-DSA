@@ -53,6 +53,9 @@ func GenerateNtildeH1H2(length int) (*NtildeH1H2, *big.Int, *big.Int, *big.Int, 
 	f1 := GetRandomPositiveRelativelyPrimeInt(NTildei)
 	alpha := GetRandomPositiveRelativelyPrimeInt(NTildei)
 	beta := modPQ.Inverse(alpha)
+	if beta == nil {
+		return nil, nil, nil, nil, nil,nil,nil
+	}
 
 	h1i := modNTildeI.Mul(f1, f1)
 	h2i := modNTildeI.Exp(h1i, alpha)
@@ -122,6 +125,10 @@ func CreateNt(length int) (*NtildeH1H2, *big.Int, *big.Int, *big.Int, *big.Int) 
 	f1 := GetRandomPositiveRelativelyPrimeInt(NTildei)
 	alpha := GetRandomPositiveRelativelyPrimeInt(NTildei)
 	beta := modPQ.Inverse(alpha)
+	if beta == nil {
+		return nil, nil, nil, nil, nil
+	}
+
 	h1i := modNTildeI.Mul(f1, f1)
 	h2i := modNTildeI.Exp(h1i, alpha)
 

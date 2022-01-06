@@ -74,6 +74,9 @@ func GenerateKeyPair(length int) (*PublicKey, *PrivateKey,*big.Int,*big.Int) {
 
 	l := new(big.Int).Mul(pMinus1, qMinus1)
 	u := new(big.Int).ModInverse(l, n)
+	if u == nil {
+		return nil, nil,nil,nil
+	}
 
 	publicKey := &PublicKey{Length: strconv.Itoa(length), N: n, G: g, N2: n2}
 	privateKey := &PrivateKey{Length: strconv.Itoa(length), PublicKey: *publicKey, L: l, U: u}
@@ -293,6 +296,9 @@ func CreatPair(length int) (*PublicKey, *PrivateKey) {
 
 	l := new(big.Int).Mul(pMinus1, qMinus1)
 	u := new(big.Int).ModInverse(l, n)
+	if u == nil {
+		return nil, nil
+	}
 
 	publicKey := &PublicKey{Length: strconv.Itoa(length), N: n, G: g, N2: n2}
 	privateKey := &PrivateKey{Length: strconv.Itoa(length), PublicKey: *publicKey, L: l, U: u}
