@@ -1,7 +1,9 @@
 # Introduction
-Fast Multiparty Threshold DSA is a distributed key generation and distributed signature service that can serve as a distributed custodial solution.
+Fast MPC Threshold DSA is a distributed key generation and distributed signature network.
 
-*Note : smpc-walletService is considered beta software. We make no warranties or guarantees of its security or stability.*
+Base on [GG20: One Round Threshold ECDSA with Identifiable Abort](https://eprint.iacr.org/2020/540.pdf)
+
+*Note : fastMPC is considered beta software. We make no warranties or guarantees of its security or stability.*
 
 # Install from code
 # Prerequisites
@@ -37,3 +39,8 @@ nohup ./bin/cmd/gsmpc --nodekey node1.key &
 ```
 The `gsmpc` will provide rpc service, the default RPC port is port 4449.
 
+## Local test
+
+```
+make test
+```
