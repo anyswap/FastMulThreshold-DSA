@@ -34,6 +34,7 @@ type LocalDNodeSaveData struct {
 	SkU1         *big.Int
 	U1PaillierSk *ec2.PrivateKey
 	U1PaillierPk []*ec2.PublicKey
+	U1NtildePrivData *ec2.NtildePrivData
 	U1NtildeH1H2 []*ec2.NtildeH1H2
 
 	IDs        smpc.SortableIDSSlice
@@ -48,6 +49,7 @@ func NewLocalDNodeSaveData(DNodeCount int) (saveData LocalDNodeSaveData) {
 	saveData.SkU1 = nil
 	saveData.U1PaillierSk = nil
 	saveData.U1PaillierPk = make([]*ec2.PublicKey, DNodeCount)
+	saveData.U1NtildePrivData = nil
 	saveData.U1NtildeH1H2 = make([]*ec2.NtildeH1H2, DNodeCount)
 	saveData.IDs = nil
 	saveData.CurDNodeID = nil
@@ -80,6 +82,13 @@ func (sd *LocalDNodeSaveData) OutMap() map[string]string {
 	}
 
 	sdout["U1PaillierPk"] = strings.Join(paipk, "|")
+
+	ntildepriv, err := sd.U1NtildePrivData.MarshalJSON()
+	if err != nil {
+		return nil
+	}
+
+	sdout["U1NtildePrivData"] = string(ntildepriv)
 
 	nth := make([]string, len(sd.U1NtildeH1H2))
 	for k, v := range sd.U1NtildeH1H2 {
@@ -129,6 +138,12 @@ func GetLocalDNodeSaveData(data map[string]string) *LocalDNodeSaveData {
 		pk[k] = pktmp
 	}
 
+	ntildepriv := &ec2.NtildePrivData{}
+	err = ntildepriv.UnmarshalJSON([]byte(data["U1NtildePrivData"]))
+	if err != nil {
+		return nil
+	}
+
 	nth := strings.Split(data["U1NtildeH1H2"], "|")
 	nt := make([]*ec2.NtildeH1H2, len(nth))
 	for k, v := range nth {
@@ -149,7 +164,7 @@ func GetLocalDNodeSaveData(data map[string]string) *LocalDNodeSaveData {
 
 	curdnodeid, _ := new(big.Int).SetString(data["CurDNodeID"], 10)
 
-	sd := &LocalDNodeSaveData{Pkx: pkx, Pky: pky, C: c, SkU1: sku1, U1PaillierSk: usk, U1PaillierPk: pk, U1NtildeH1H2: nt, IDs: ids, CurDNodeID: curdnodeid}
+	sd := &LocalDNodeSaveData{Pkx: pkx, Pky: pky, C: c, SkU1: sku1, U1PaillierSk: usk, U1PaillierPk: pk, U1NtildePrivData:ntildepriv, U1NtildeH1H2: nt, IDs: ids, CurDNodeID: curdnodeid}
 	return sd
 }
 

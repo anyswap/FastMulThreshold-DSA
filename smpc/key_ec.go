@@ -107,7 +107,8 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			}
 
 			// check fromID
-			id := fmt.Sprintf("%v", GetNodeUID(msgmap["ENode"], "EC256K1",w.groupid))
+			_,UID := GetNodeUID(msgmap["ENode"], "EC256K1",w.groupid)
+			id := fmt.Sprintf("%v", UID)
 			if !strings.EqualFold(id,mm.GetFromID()) {
 			    common.Error("===============keygen,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"],"err","check from ID fail")
 			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check from ID fail")}
@@ -545,6 +546,15 @@ func processKeyGen(msgprex string, errChan chan struct{}, outCh <-chan smpclib.M
 				s3 = string(v.H2.Bytes())
 				ss = ss + s1 + common.SepSave + s2 + common.SepSave + s3 + common.SepSave
 			}
+			
+			ss += string(msg.U1NtildePrivData.Alpha.Bytes())
+			ss += common.SepSave
+			ss += string(msg.U1NtildePrivData.Beta.Bytes())
+			ss += common.SepSave
+			ss += string(msg.U1NtildePrivData.Q1.Bytes())
+			ss += common.SepSave
+			ss += string(msg.U1NtildePrivData.Q2.Bytes())
+			ss += common.SepSave
 
 			ss += "NULL"
 			w.save.PushBack(string(ss))

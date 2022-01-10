@@ -133,7 +133,8 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, wg 
 				return
 			}
 
-			id := fmt.Sprintf("%v", GetNodeUID(msgmap["ENode"], "EC256K1",pubs.GroupID))
+			_,ID := GetNodeUID(msgmap["ENode"], "EC256K1",pubs.GroupID)
+			id := fmt.Sprintf("%v", ID)
 			if !strings.EqualFold(id,mm.GetFromID()) {
 			    common.Error("===============reshare,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"],"err","check from ID fail")
 			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check from ID fail")}

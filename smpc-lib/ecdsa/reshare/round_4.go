@@ -28,6 +28,7 @@ func (round *round4) Start() error {
 	if round.started {
 		return errors.New("round already started")
 	}
+	
 	round.number = 4
 	round.started = true
 	round.resetOK()
@@ -50,10 +51,25 @@ func (round *round4) Start() error {
 	}
 
 	// zk of paillier key
-	NtildeLength := 2048
-	u1NtildeH1H2, alpha, beta, p, q,_,_ := ec2.GenerateNtildeH1H2(NtildeLength)
-	if u1NtildeH1H2 == nil {
-		return errors.New("gen ntilde h1 h2 fail")
+	var u1NtildeH1H2 *ec2.NtildeH1H2
+	var alpha *big.Int
+	var beta *big.Int
+	var p *big.Int
+	var q *big.Int
+
+	if round.oldnode && round.oldindex != -1 {
+	    u1NtildeH1H2 = round.Save.U1NtildeH1H2[round.oldindex]
+	    alpha = round.Save.U1NtildePrivData.Alpha
+	    beta = round.Save.U1NtildePrivData.Beta
+	    p = round.Save.U1NtildePrivData.Q1
+	    q = round.Save.U1NtildePrivData.Q2
+	} else {
+	    NtildeLength := 2048
+	    u1NtildeH1H2, alpha, beta, p, q,_,_ = ec2.GenerateNtildeH1H2(NtildeLength)
+	    if u1NtildeH1H2 == nil {
+		    return errors.New("gen ntilde h1 h2 fail")
+	    }
+
 	}
 
 	ntildeProof1 := ec2.NewNtildeProof(u1NtildeH1H2.H1, u1NtildeH1H2.H2, alpha, p, q, u1NtildeH1H2.Ntilde)
@@ -69,6 +85,7 @@ func (round *round4) Start() error {
 	re.SetFromIndex(curIndex)
 
 	round.temp.u1NtildeH1H2 = u1NtildeH1H2
+	round.temp.u1NtildePrivData = &ec2.NtildePrivData{Alpha:alpha,Beta:beta,Q1:p,Q2:q}
 	round.temp.reshareRound4Messages[curIndex] = re
 	round.out <- re
 

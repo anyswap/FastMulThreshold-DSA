@@ -387,14 +387,15 @@ func GetIDs(keytype string, groupid string) smpclib.SortableIDSSlice {
 }
 
 // GetNodeUID get current node uid,gid is the `keygen gid`
-func GetNodeUID(EnodeID string,keytype string,gid string) *big.Int {
+// return (index,UID)
+func GetNodeUID(EnodeID string,keytype string,gid string) (int,*big.Int) {
     if EnodeID == "" || keytype == "" || gid == "" {
-	return nil
+	return -1,nil
     }
 
     uid := DoubleHash(EnodeID,keytype)
     if uid == nil {
-	return nil
+	return -1,nil
     }
     
     _, nodes := GetGroup(gid)
@@ -402,18 +403,18 @@ func GetNodeUID(EnodeID string,keytype string,gid string) *big.Int {
     
     ids := GetIDs(keytype,gid)
     if len(ids) == 0 {
-	return nil
+	return -1,nil
     }
 
     for k,v := range ids {
 	if v.Cmp(uid) == 0 {
 	    if (k+1) <= len(others) {
-		return big.NewInt(int64(k+1))
+		return k,big.NewInt(int64(k+1))
 	    }
 	}
     }
 
-    return nil
+    return -1,nil
 }
 
 // GetGroupNodeUIDs get the uids of node in group subgid

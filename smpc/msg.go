@@ -661,10 +661,10 @@ func HandleC1Data(ac *AcceptReqAddrData, key string) {
 
 	for _, node := range nodes {
 		node2 := ParseNode(node)
-		uid := GetNodeUID(node2, "EC256K1",ac.GroupID)
+		_,uid := GetNodeUID(node2, "EC256K1",ac.GroupID)
 		HandleKG(key, uid)
 		HandleSign(key, uid)
-		uid = GetNodeUID(node2, "ED25519",ac.GroupID)
+		_,uid = GetNodeUID(node2, "ED25519",ac.GroupID)
 		HandleKG(key, uid)
 		HandleSign(key, uid)
 	}

@@ -37,6 +37,7 @@ type LocalDNode struct {
 	out     chan<- smpc.Message
 	end     chan<- keygen.LocalDNodeSaveData
 	oldnode bool //the node join the keygen and join the reshare
+	oldindex int //the node join the keygen and join the reshare, return it's index in group
 	//save for check msg0
 	firstround smpc.Round
 }
@@ -71,6 +72,7 @@ type localTempData struct {
 
 	//round 4
 	u1NtildeH1H2 *ec2.NtildeH1H2
+	u1NtildePrivData *ec2.NtildePrivData
 
 	//round 5
 
@@ -88,6 +90,7 @@ func NewLocalDNode(
 	paillierkeylength int,
 	sd *keygen.LocalDNodeSaveData,
 	oldnode bool,
+	oldindex int,
 ) smpc.DNode {
 
 	var id string
@@ -110,6 +113,7 @@ func NewLocalDNode(
 		out:       out,
 		end:       end,
 		oldnode:   oldnode,
+		oldindex:   oldindex,
 	}
 
 	p.ID = id
@@ -131,7 +135,7 @@ func NewLocalDNode(
 
 // FirstRound first round
 func (p *LocalDNode) FirstRound() smpc.Round {
-	fr := newRound0(p.data, &p.temp, p.out, p.end, p.ID, p.DNodeCountInGroup, p.ThresHold, p.PaillierKeyLength, p.oldnode)
+	fr := newRound0(p.data, &p.temp, p.out, p.end, p.ID, p.DNodeCountInGroup, p.ThresHold, p.PaillierKeyLength, p.oldnode,p.oldindex)
 	p.firstround = fr
 	return fr
 }

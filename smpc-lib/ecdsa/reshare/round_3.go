@@ -105,21 +105,12 @@ func (round *round3) Start() error {
 
 	newskU1 = new(big.Int).Mod(newskU1, secp256k1.S256().N)
 
-	//round.Save.SkU1 = newskU1
-	//round.Save.Pkx = pkx
-	//round.Save.Pky = pky
+	round.Save.SkU1 = newskU1
+	round.Save.Pkx = pkx
+	round.Save.Pky = pky
 	round.temp.pkx = pkx
 	round.temp.pky = pky
 	round.temp.newskU1 = newskU1
-
-	///////////////////
-	//  In order to keep completely consistent with the Reshare protocol, the code that needs to be processed outside the protocol is removed here 
-	round.Save.SkU1 = round.temp.newskU1
-	round.Save.Pkx = round.temp.pkx
-	round.Save.Pky = round.temp.pky
-	round.end <- *round.Save
-	return nil
-	///////////////////
 
 	idtmp, ok := new(big.Int).SetString(round.dnodeid, 10)
 	if !ok {
@@ -138,7 +129,17 @@ func (round *round3) Start() error {
 		return errors.New("get cur index fail")
 	}
 
-	u1PaillierPk, u1PaillierSk,_,_ := ec2.GenerateKeyPair(round.paillierkeylength)
+	var u1PaillierSk *ec2.PrivateKey
+	var u1PaillierPk *ec2.PublicKey
+
+	// old node use old paillier.PK/paillier.SK
+	// new node generate new paillier.PK/paillier.SK
+	if round.oldnode && round.oldindex != -1 {
+	    u1PaillierSk = round.Save.U1PaillierSk
+	    u1PaillierPk = round.Save.U1PaillierPk[round.oldindex]
+	} else {
+	    u1PaillierPk, u1PaillierSk,_,_ = ec2.GenerateKeyPair(round.paillierkeylength)
+	}
 
 	//round.Save.U1PaillierSk = u1PaillierSk
 	//round.Save.U1PaillierPk[curIndex] = u1PaillierPk

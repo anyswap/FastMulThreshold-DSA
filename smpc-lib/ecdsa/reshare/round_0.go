@@ -28,9 +28,9 @@ var (
 	zero = big.NewInt(0)
 )
 
-func newRound0(save *keygen.LocalDNodeSaveData, temp *localTempData, out chan<- smpc.Message, end chan<- keygen.LocalDNodeSaveData, dnodeid string, dnodecount int, threshold int, paillierkeylength int, oldnode bool) smpc.Round {
+func newRound0(save *keygen.LocalDNodeSaveData, temp *localTempData, out chan<- smpc.Message, end chan<- keygen.LocalDNodeSaveData, dnodeid string, dnodecount int, threshold int, paillierkeylength int, oldnode bool,oldindex int) smpc.Round {
 	return &round0{
-		&base{save, temp, out, end, make([]bool, dnodecount), false, 0, dnodeid, dnodecount, threshold, paillierkeylength, oldnode, nil}}
+		&base{save, temp, out, end, make([]bool, dnodecount), false, 0, dnodeid, dnodecount, threshold, paillierkeylength, oldnode,oldindex, nil}}
 }
 
 // Start  Broadcast current dnode ID to other nodes 

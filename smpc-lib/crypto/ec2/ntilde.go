@@ -30,6 +30,13 @@ type NtildeH1H2 struct {
 	H2     *big.Int
 }
 
+type NtildePrivData struct {
+    Alpha *big.Int
+    Beta *big.Int
+    Q1 *big.Int
+    Q2 *big.Int
+}
+
 // GenerateNtildeH1H2 create ntilde data
 func GenerateNtildeH1H2(length int) (*NtildeH1H2, *big.Int, *big.Int, *big.Int, *big.Int,*big.Int,*big.Int) {
     	if length <= 0 {
@@ -103,6 +110,46 @@ func (ntilde *NtildeH1H2) UnmarshalJSON(raw []byte) error {
 }
 
 //----------------------------------------------------------------------
+
+// MarshalJSON marshal PrivateKey to json bytes
+func (priv *NtildePrivData) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Alpha    string `json:"Alpha"`
+		Beta string `json:"Beta"`
+		Q1         string `json:"Q1"`
+		Q2        string `json:"Q2"`
+	}{
+		Alpha:    fmt.Sprintf("%v",priv.Alpha),
+		Beta: 	fmt.Sprintf("%v",priv.Beta),
+		Q1:         fmt.Sprintf("%v", priv.Q1),
+		Q2:         fmt.Sprintf("%v", priv.Q2),
+	})
+}
+
+// UnmarshalJSON unmarshal raw to PrivateKey
+func (priv *NtildePrivData) UnmarshalJSON(raw []byte) error {
+	var pri struct {
+		Alpha    string `json:"Alpha"`
+		Beta 	string `json:"Beta"`
+		Q1         string `json:"Q1"`
+		Q2        string `json:"Q2"`
+	}
+	if err := json.Unmarshal(raw, &pri); err != nil {
+		return err
+	}
+
+	priv.Alpha,_ = new(big.Int).SetString(pri.Alpha,10)
+	priv.Beta, _ = new(big.Int).SetString(pri.Beta, 10)
+	priv.Q1, _ = new(big.Int).SetString(pri.Q1, 10)
+	priv.Q2, _ = new(big.Int).SetString(pri.Q2, 10)
+	if priv.Alpha == nil || priv.Beta == nil || priv.Q1 == nil || priv.Q2 == nil {
+	    return errors.New("unmarshal json error")
+	}
+
+	return nil
+}
+
+//-----------------------------------------------------------------------------------
 
 // CreateNt create data for Nt zk proof
 func CreateNt(length int) (*NtildeH1H2, *big.Int, *big.Int, *big.Int, *big.Int) {

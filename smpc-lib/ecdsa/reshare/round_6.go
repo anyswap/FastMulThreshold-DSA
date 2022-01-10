@@ -54,6 +54,7 @@ func (round *round6) Start() error {
 	round.Save.U1PaillierSk = round.temp.u1PaillierSk
 	round.Save.U1PaillierPk[curIndex] = round.temp.u1PaillierPk
 	round.Save.U1NtildeH1H2[curIndex] = round.temp.u1NtildeH1H2
+	round.Save.U1NtildePrivData = round.temp.u1NtildePrivData
 
 	round.end <- *round.Save
 

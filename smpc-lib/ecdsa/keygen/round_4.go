@@ -177,6 +177,9 @@ func (round *round4) Start() error {
 		return errors.New("gen ntilde h1 h2 fail")
 	}
 
+	priv := &ec2.NtildePrivData{Alpha:alpha,Beta:beta,Q1:p,Q2:q}
+	round.Save.U1NtildePrivData = priv
+
 	round.temp.p1 = p1
 	round.temp.p2 = p2
 

@@ -1051,7 +1051,7 @@ func GetCurNodeIndex(gid string,subgid string,keytype string) int {
 		return -1
 	}
 
-	uid := GetNodeUID(curEnode, keytype,gid)
+	_,uid := GetNodeUID(curEnode, keytype,gid)
 	ids := GetGroupNodeUIDs(keytype, gid,subgid)
 
 	for k, v := range ids {
@@ -1112,6 +1112,29 @@ func GetNtildeByIndexFromSaveData(save string, index int, NodeCnt int) *ec2.Ntil
 	return ntildeh1h2
 }
 
+//-------------------------------------------------------------------------------------------------------------
+
+// GetNtildePrivDataByIndexFromSaveData get ntilde priv data by index from saved data that obtained when generating pubkey
+func GetNtildePrivDataByIndexFromSaveData(save string,NodeCnt int) *ec2.NtildePrivData {
+	if save == "" || NodeCnt < 0 {
+		return nil
+	}
+
+	mm := strings.Split(save, common.SepSave)
+	s := 4 + 4*NodeCnt + 3*NodeCnt
+	if len(mm) < (s + 3) {
+		return nil
+	}
+
+	alpha := new(big.Int).SetBytes([]byte(mm[s]))
+	beta := new(big.Int).SetBytes([]byte(mm[s+1]))
+	q1 := new(big.Int).SetBytes([]byte(mm[s+2]))
+	q2 := new(big.Int).SetBytes([]byte(mm[s+3]))
+	priv := &ec2.NtildePrivData{Alpha: alpha, Beta: beta, Q1: q1,Q2:q2}
+
+	return priv
+}
+
 //---------------------------------------------------------------------------------------------------
 
 // GetMsgToEnode get uid of node in group by groupid,and put it to the map.
@@ -1127,7 +1150,7 @@ func GetMsgToEnode(keytype string, gid string,groupid string) map[string]string 
     others := strings.Split(nodes, common.Sep2)
     for _, v := range others {
 	    node2 := ParseNode(v)
-	    uid := GetNodeUID(node2, keytype,gid)
+	    _,uid := GetNodeUID(node2, keytype,gid)
 	    msgtoenode[fmt.Sprintf("%v", uid)] = node2
     }
 
@@ -1197,7 +1220,7 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 	sd.U1NtildeH1H2 = U1NtildeH1H2
 
 	sd.IDs = GetGroupNodeUIDs(cointype,pubs.GroupID,pubs.GroupID)
-	sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
+	_,sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
 
 	msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
 	kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
@@ -1333,7 +1356,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 	sd.U1NtildeH1H2 = U1NtildeH1H2
 
 	sd.IDs = GetGroupNodeUIDs(cointype, pubs.GroupID,pubs.GroupID)
-	sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
+	_,sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
 
 	msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
 	kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
@@ -1348,7 +1371,8 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 	predata := &signing.PrePubData{K1: pre.K1, R: pre.R, Ry: pre.Ry, Sigma1: pre.Sigma1}
 	signDNode := signing.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, true, predata, mMtA, finalizeendCh)
 	w.DNode = signDNode
-	signDNode.SetDNodeID(fmt.Sprintf("%v", GetNodeUID(curEnode, "EC256K1",pubs.GroupID)))
+	_,UID := GetNodeUID(curEnode, "EC256K1",pubs.GroupID)
+	signDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 
 	var signWg sync.WaitGroup
 	signWg.Add(2)
@@ -1764,7 +1788,7 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 	sd.TSk = tsk
 	sd.FinalPkBytes = pkfinal
 	sd.IDs = GetGroupNodeUIDs(cointype, pubs.GroupID,pubs.GroupID)
-	sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
+	_,sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
 
 	msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
 	kgsave := &KGLocalDBSaveDataED{Save: sd, MsgToEnode: msgtoenode}
@@ -1781,7 +1805,8 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 	errChan := make(chan struct{})
 	signDNode := edsigning.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, mMtA, finalizeendCh)
 	w.DNode = signDNode
-	signDNode.SetDNodeID(fmt.Sprintf("%v", GetNodeUID(curEnode, "ED25519",pubs.GroupID)))
+	_,UID := GetNodeUID(curEnode, "ED25519",pubs.GroupID)
+	signDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 
 	var signWg sync.WaitGroup
 	signWg.Add(2)

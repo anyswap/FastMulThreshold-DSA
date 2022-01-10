@@ -39,6 +39,7 @@ type (
 		threshold         int
 		paillierkeylength int
 		oldnode           bool
+		oldindex           int
 		//add for check msg0
 		idreshare smpc.SortableIDSSlice
 	}

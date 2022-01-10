@@ -467,14 +467,14 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 		sd.U1NtildeH1H2 = U1NtildeH1H2
 
 		sd.IDs = GetGroupNodeUIDs("EC256K1",groupid,groupid) // 1,2,3,4,6
-		sd.CurDNodeID = GetNodeUID(curEnode,"EC256K1",groupid) 
+		_,sd.CurDNodeID = GetNodeUID(curEnode,"EC256K1",groupid) 
 
 		//msgtoenode := GetMsgToEnode("EC256K1",(da.(*PubKeyData)).GroupID,(da.(*PubKeyData)).GroupID)
 		//kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
 
 		found := false
 		ids := GetGroupNodeUIDs("EC256K1",groupid,w.groupid)
-		uid := GetNodeUID(curEnode,"EC256K1",groupid)
+		_,uid := GetNodeUID(curEnode,"EC256K1",groupid)
 		for _,v := range ids {
 		    if v.Cmp(uid) == 0 {
 			found = true
@@ -488,14 +488,24 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 		}
 
 		if oldnode {
+		
+			oldindex,_ := GetNodeUID(curEnode,"EC256K1",(da.(*PubKeyData)).GroupID)
+			sd.U1NtildePrivData = GetNtildePrivDataByIndexFromSaveData(save,w.NodeCnt)
+			if sd.U1NtildePrivData == nil {
+				res := RPCSmpcRes{Ret: "", Tip: "get ntilde priv data fail", Err: fmt.Errorf("get ntilde priv data fail")}
+				ch <- res
+				return
+			}
+
 			fmt.Printf("================= ReShareEC2,oldnode is true, groupid = %v, w.groupid = %v =======================\n", groupid, w.groupid)
 			commStopChan := make(chan struct{})
 			outCh := make(chan smpclib.Message, ns)
 			endCh := make(chan keygen.LocalDNodeSaveData, ns)
 			errChan := make(chan struct{})
-			reshareDNode := reshare.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048, sd, true)
+			reshareDNode := reshare.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048, sd, true,oldindex)
 			w.DNode = reshareDNode
-			reshareDNode.SetDNodeID(fmt.Sprintf("%v", GetNodeUID(curEnode,"EC256K1",groupid)))
+			_,UID := GetNodeUID(curEnode,"EC256K1",groupid)
+			reshareDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 
 			uid, _ := new(big.Int).SetString(w.DNode.DNodeID(), 10)
 			w.MsgToEnode[fmt.Sprintf("%v", uid)] = curEnode
@@ -534,9 +544,10 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 	outCh := make(chan smpclib.Message, ns)
 	endCh := make(chan keygen.LocalDNodeSaveData, ns)
 	errChan := make(chan struct{})
-	reshareDNode := reshare.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048, nil, false)
+	reshareDNode := reshare.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048, nil, false,-1)
 	w.DNode = reshareDNode
-	reshareDNode.SetDNodeID(fmt.Sprintf("%v", GetNodeUID(curEnode,"EC256K1",groupid)))
+	_,UID := GetNodeUID(curEnode,"EC256K1",groupid)
+	reshareDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 
 	uid, _ := new(big.Int).SetString(w.DNode.DNodeID(), 10)
 	w.MsgToEnode[fmt.Sprintf("%v", uid)] = curEnode
