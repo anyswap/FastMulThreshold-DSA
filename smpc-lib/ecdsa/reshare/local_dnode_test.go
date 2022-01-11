@@ -20,8 +20,8 @@ package reshare_test
 import (
 	"github.com/stretchr/testify/assert"
 	"testing"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/reshare"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/ecdsa/reshare"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 )
 
 func TestCheckFull(t *testing.T) {

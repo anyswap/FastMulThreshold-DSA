@@ -23,7 +23,7 @@ import (
 	"sync"
 	"strings"
 	"math/big"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 )
 
 const ( 

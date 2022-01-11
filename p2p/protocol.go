@@ -19,7 +19,7 @@ package p2p
 import (
 	"fmt"
 
-	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
 )
 
 // Protocol represents a P2P subprotocol implementation.

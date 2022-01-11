@@ -28,8 +28,8 @@ import (
 
 	"crypto/hmac"
 	"crypto/sha512"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"github.com/fsn-dev/cryptoCoins/coins"
 )
 

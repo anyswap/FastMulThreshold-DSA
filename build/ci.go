@@ -25,8 +25,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/anyswap/Anyswap-MPCNode/internal/build"
-	"github.com/anyswap/Anyswap-MPCNode/internal/params"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/build"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/params"
 )
 
 var (

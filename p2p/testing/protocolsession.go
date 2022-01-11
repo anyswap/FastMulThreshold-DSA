@@ -22,9 +22,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/anyswap/Anyswap-MPCNode/p2p"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/simulations/adapters"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/simulations/adapters"
 )
 
 var errTimedOut = errors.New("timed out")

@@ -20,7 +20,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
 	"sort"
 )

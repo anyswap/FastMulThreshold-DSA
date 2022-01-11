@@ -18,8 +18,8 @@ package signing
 
 import (
 	"errors"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/ecdsa/keygen"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
 	"fmt"
 )

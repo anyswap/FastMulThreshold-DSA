@@ -26,11 +26,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/discv5"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/event"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/nat"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/netutil"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discv5"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/event"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/nat"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/netutil"
 )
 
 const (

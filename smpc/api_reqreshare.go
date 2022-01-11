@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"container/list"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
 	"github.com/fsn-dev/cryptoCoins/coins"
 	"github.com/fsn-dev/cryptoCoins/coins/types"
 	"github.com/fsn-dev/cryptoCoins/tools/rlp"

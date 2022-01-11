@@ -23,8 +23,8 @@ import (
 	"errors"
 	"math/big"
 
-	s256 "github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
+	s256 "github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common/math/random"
 )
 
 // MtARangeProof GG18 A.1 Range Proof in MtA protocol

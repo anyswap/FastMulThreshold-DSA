@@ -21,13 +21,13 @@ import (
 	"fmt"
 	//"time"
 	"sync"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
-	//"github.com/anyswap/Anyswap-MPCNode/internal/common"
+	//"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	//"crypto/rand"
-	//"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
+	//"github.com/anyswap/FastMulThreshold-DSA/internal/common/math/random"
 )
 
 var (

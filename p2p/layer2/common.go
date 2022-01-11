@@ -22,11 +22,11 @@ import (
 	"net"
 	"time"
 
-	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
-	"github.com/anyswap/Anyswap-MPCNode/p2p"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/rlp"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto/sha3"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/rlp"
 	mapset "github.com/deckarep/golang-set"
 )
 

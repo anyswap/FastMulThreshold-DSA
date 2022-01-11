@@ -27,8 +27,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/anyswap/Anyswap-MPCNode/node"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
+	"github.com/anyswap/FastMulThreshold-DSA/node"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
 	"github.com/docker/docker/pkg/reexec"
 )
 

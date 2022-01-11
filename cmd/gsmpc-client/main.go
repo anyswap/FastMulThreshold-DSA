@@ -30,9 +30,9 @@ import (
 	"time"
 
 	"encoding/hex"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
-	"github.com/anyswap/Anyswap-MPCNode/ethdb"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common/hexutil"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto/sha3"
+	"github.com/anyswap/FastMulThreshold-DSA/ethdb"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common/hexutil"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"

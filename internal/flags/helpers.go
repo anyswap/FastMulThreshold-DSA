@@ -20,7 +20,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/anyswap/Anyswap-MPCNode/internal/params"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/params"
 	cli "gopkg.in/urfave/cli.v1"
 )
 

@@ -21,9 +21,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"io"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/eddsa/signing"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/eddsa/signing"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
 	cryptorand "crypto/rand"
 )
 

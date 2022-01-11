@@ -20,7 +20,7 @@ package smpc_test
 import (
 	"github.com/stretchr/testify/assert"
 	"testing"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
 )
 

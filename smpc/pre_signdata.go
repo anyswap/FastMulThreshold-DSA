@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	dberrors "github.com/syndtr/goleveldb/leveldb/errors"
 	"math/big"
 	"strconv"

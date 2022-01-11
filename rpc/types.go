@@ -23,7 +23,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/anyswap/Anyswap-MPCNode/internal/common/hexutil"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common/hexutil"
 	mapset "github.com/deckarep/golang-set"
 )
 

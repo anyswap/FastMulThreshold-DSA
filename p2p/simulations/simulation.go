@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
 )
 
 // Simulation provides a framework for running actions in a simulated network

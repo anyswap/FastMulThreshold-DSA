@@ -25,8 +25,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/event"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/event"
 	"github.com/fsn-dev/cryptoCoins/tools/rlp"
 )
 

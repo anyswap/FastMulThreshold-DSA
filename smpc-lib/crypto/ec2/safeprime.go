@@ -18,7 +18,7 @@ package ec2
 
 import (
 	"fmt"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common/math/random"
 	"math/big"
 	"time"
 )

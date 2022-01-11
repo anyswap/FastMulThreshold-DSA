@@ -19,9 +19,9 @@ package node
 import (
 	"reflect"
 
-	"github.com/anyswap/Anyswap-MPCNode/p2p"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/event"
-	"github.com/anyswap/Anyswap-MPCNode/rpc"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/event"
+	"github.com/anyswap/FastMulThreshold-DSA/rpc"
 )
 
 // ServiceContext is a collection of service independent options inherited from

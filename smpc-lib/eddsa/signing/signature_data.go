@@ -21,7 +21,7 @@ import (
 	"bytes"
 	"crypto/sha512"
 	"fmt"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
 	"strconv"
 	edlib "crypto/ed25519"
 )

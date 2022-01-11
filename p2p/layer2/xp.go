@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/anyswap/Anyswap-MPCNode/p2p"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
-	"github.com/anyswap/Anyswap-MPCNode/rpc"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
+	"github.com/anyswap/FastMulThreshold-DSA/rpc"
 )
 
 // txs start

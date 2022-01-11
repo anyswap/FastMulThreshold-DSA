@@ -23,12 +23,12 @@ import (
 	"net"
 	"sync"
 
-	"github.com/anyswap/Anyswap-MPCNode/node"
-	"github.com/anyswap/Anyswap-MPCNode/p2p"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/event"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/simulations/pipes"
-	"github.com/anyswap/Anyswap-MPCNode/rpc"
+	"github.com/anyswap/FastMulThreshold-DSA/node"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/event"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/simulations/pipes"
+	"github.com/anyswap/FastMulThreshold-DSA/rpc"
 )
 
 // SimAdapter is a NodeAdapter which creates in-memory simulation nodes and

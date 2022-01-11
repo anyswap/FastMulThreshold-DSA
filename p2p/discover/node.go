@@ -31,9 +31,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anyswap/Anyswap-MPCNode/crypto"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 )
 
 const NodeIDBits = 512

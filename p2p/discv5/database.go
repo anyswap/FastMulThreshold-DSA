@@ -27,7 +27,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/anyswap/Anyswap-MPCNode/crypto"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto"
 	"github.com/fsn-dev/cryptoCoins/tools/rlp"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"

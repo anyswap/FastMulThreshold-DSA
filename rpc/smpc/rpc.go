@@ -25,9 +25,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
-	"github.com/anyswap/Anyswap-MPCNode/rpc"
-	"github.com/anyswap/Anyswap-MPCNode/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/rpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc"
 )
 
 func listenSignal(exit chan int) {

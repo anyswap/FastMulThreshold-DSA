@@ -26,8 +26,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/anyswap/Anyswap-MPCNode/crypto/sha3"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common/hexutil"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto/sha3"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common/hexutil"
 )
 
 // Lengths of hashes and addresses in bytes.

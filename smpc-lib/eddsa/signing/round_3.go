@@ -19,7 +19,7 @@ package signing
 import (
 	"errors"
 	"fmt"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 )
 
 // Start broacast DR

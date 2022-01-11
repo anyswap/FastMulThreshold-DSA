@@ -23,8 +23,8 @@ import (
 	"sync"
 	"time"
 
-	//"github.com/anyswap/Anyswap-MPCNode/log"
-	//"github.com/anyswap/Anyswap-MPCNode/metrics"
+	//"github.com/anyswap/FastMulThreshold-DSA/log"
+	//"github.com/anyswap/FastMulThreshold-DSA/metrics"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"

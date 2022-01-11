@@ -18,7 +18,7 @@ package signing
 
 import (
 	"fmt"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
 	"math/big"
 	"strconv"
 	"strings"

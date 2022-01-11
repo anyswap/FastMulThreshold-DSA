@@ -21,7 +21,7 @@ import (
 	"math/big"
 	"strings"
 	"encoding/hex"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 )
 
 // LocalDNodeSaveData the ed data need to save in local db

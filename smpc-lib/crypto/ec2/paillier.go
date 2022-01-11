@@ -23,7 +23,7 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common/math/random"
 )
 
 // ErrMessageTooLong error info to print

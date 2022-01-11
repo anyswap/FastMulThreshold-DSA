@@ -19,8 +19,8 @@ package smpc
 import (
 	"container/list"
 	"fmt"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
-	smpclib "github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
+	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"runtime/debug"
 	"strings"
 )

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 )
 
 // Genesis hashes to enforce below configs on.

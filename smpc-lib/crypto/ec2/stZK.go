@@ -22,9 +22,9 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common/math/random"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 )
 
 // ZK proof for knowledge of sigma_i, l_i such that S_i = R^sigma_i, T_i = g^sigma_i h^l_i (GG20)

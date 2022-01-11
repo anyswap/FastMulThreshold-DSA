@@ -24,9 +24,9 @@ import (
 	"net"
 	"time"
 
-	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/netutil"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/netutil"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 )
 
 const (

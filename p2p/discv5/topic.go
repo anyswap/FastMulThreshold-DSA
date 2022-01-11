@@ -23,7 +23,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/anyswap/Anyswap-MPCNode/internal/common/mclock"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common/mclock"
 )
 
 const (

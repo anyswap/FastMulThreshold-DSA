@@ -26,11 +26,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/anyswap/Anyswap-MPCNode/p2p"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/event"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/event"
 
-	//"github.com/anyswap/Anyswap-MPCNode/p2p/smpc"
-	"github.com/anyswap/Anyswap-MPCNode/rpc"
+	//"github.com/anyswap/FastMulThreshold-DSA/p2p/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/rpc"
 )
 
 // Node is a container on which services can be registered.

@@ -19,7 +19,7 @@ package reshare
 import (
 	"errors"
 	"math/big"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 )
 
 // Start broacast success status to other nodes

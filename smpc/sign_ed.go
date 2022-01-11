@@ -21,13 +21,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	edsigning "github.com/anyswap/Anyswap-MPCNode/smpc-lib/eddsa/signing"
-	smpclib "github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	edsigning "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/eddsa/signing"
+	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 )
 
 //--------------------------------------------------------EDDSA start-------------------------------------------------------

@@ -22,8 +22,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/anyswap/Anyswap-MPCNode/cmd/utils"
-	"github.com/anyswap/Anyswap-MPCNode/internal/params"
+	"github.com/anyswap/FastMulThreshold-DSA/cmd/utils"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/params"
 	"gopkg.in/urfave/cli.v1"
 )
 

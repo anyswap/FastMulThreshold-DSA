@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
 )
 
 type TestPeer interface {

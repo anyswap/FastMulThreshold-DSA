@@ -20,9 +20,9 @@ import (
 	"errors"
 	"fmt"
 	"encoding/hex"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"github.com/agl/ed25519"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
 )
 
 // Start calc S and check (R,S)

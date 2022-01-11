@@ -23,10 +23,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anyswap/Anyswap-MPCNode/p2p"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/simulations/adapters"
-	p2ptest "github.com/anyswap/Anyswap-MPCNode/p2p/testing"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/simulations/adapters"
+	p2ptest "github.com/anyswap/FastMulThreshold-DSA/p2p/testing"
 )
 
 // handshake message type

@@ -37,11 +37,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/anyswap/Anyswap-MPCNode/p2p"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/metrics"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/metrics"
 	"github.com/fsn-dev/cryptoCoins/tools/rlp"
-	//"github.com/anyswap/Anyswap-MPCNode/swarm/spancontext"
-	//"github.com/anyswap/Anyswap-MPCNode/swarm/tracing"
+	//"github.com/anyswap/FastMulThreshold-DSA/swarm/spancontext"
+	//"github.com/anyswap/FastMulThreshold-DSA/swarm/tracing"
 )
 
 // error codes used by this  protocol scheme

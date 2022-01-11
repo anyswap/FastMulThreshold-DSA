@@ -25,9 +25,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/anyswap/Anyswap-MPCNode/crypto"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common/mclock"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common/mclock"
 )
 
 const (

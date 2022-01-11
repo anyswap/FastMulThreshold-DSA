@@ -20,10 +20,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/anyswap/Anyswap-MPCNode/ethdb"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common/fdlimit"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
+	"github.com/anyswap/FastMulThreshold-DSA/ethdb"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common/fdlimit"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
 )
 
 var (

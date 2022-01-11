@@ -24,10 +24,10 @@ import (
 	"net"
 	"time"
 
-	"github.com/anyswap/Anyswap-MPCNode/crypto"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/nat"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/netutil"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/nat"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/netutil"
 	"github.com/fsn-dev/cryptoCoins/tools/rlp"
 )
 

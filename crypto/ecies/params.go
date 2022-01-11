@@ -42,7 +42,7 @@ import (
 	"fmt"
 	"hash"
 
-	ethcrypto "github.com/anyswap/Anyswap-MPCNode/crypto"
+	ethcrypto "github.com/anyswap/FastMulThreshold-DSA/crypto"
 )
 
 var (

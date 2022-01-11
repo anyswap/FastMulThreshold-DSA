@@ -20,9 +20,9 @@ package smpc
 import (
 	"fmt"
 
-	"github.com/anyswap/Anyswap-MPCNode/internal/params"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/layer2"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/params"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/layer2"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 )
 
 // RPCTEST test

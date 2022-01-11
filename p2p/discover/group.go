@@ -31,9 +31,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/anyswap/Anyswap-MPCNode/crypto"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/rlp"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/rlp"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 

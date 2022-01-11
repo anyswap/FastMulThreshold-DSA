@@ -21,7 +21,7 @@ import (
 	"math/big"
 	"crypto/rand"
 	"fmt"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
 	"strings"
 )
 

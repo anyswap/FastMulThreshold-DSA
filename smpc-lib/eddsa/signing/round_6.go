@@ -20,10 +20,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"crypto/sha512"
 	"encoding/hex"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
 )
 
 // Start verify CSB DSB commitment data,broacast current node s to other nodes

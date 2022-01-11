@@ -19,8 +19,8 @@ package keygen
 import (
 	"errors"
 	"fmt"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
 )
 
 // Start broacast commitment D 

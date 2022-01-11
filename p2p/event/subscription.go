@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/anyswap/Anyswap-MPCNode/internal/common/mclock"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common/mclock"
 )
 
 // Subscription represents a stream of events. The carrier of the events is typically a

@@ -1,4 +1,4 @@
-module github.com/anyswap/Anyswap-MPCNode
+module github.com/anyswap/FastMulThreshold-DSA
 
 go 1.13
 

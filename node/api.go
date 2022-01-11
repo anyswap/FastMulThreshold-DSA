@@ -22,13 +22,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anyswap/Anyswap-MPCNode/crypto"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common/hexutil"
-	"github.com/anyswap/Anyswap-MPCNode/p2p"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/metrics"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common/hexutil"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/metrics"
 
-	"github.com/anyswap/Anyswap-MPCNode/p2p/discover"
-	"github.com/anyswap/Anyswap-MPCNode/rpc"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
+	"github.com/anyswap/FastMulThreshold-DSA/rpc"
 )
 
 // PrivateAdminAPI is the collection of administrative API methods exposed only

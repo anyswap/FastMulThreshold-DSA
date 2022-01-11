@@ -19,8 +19,8 @@ package keygen
 import (
 	"errors"
 	"fmt"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	cryptorand "crypto/rand"
 	"crypto/sha512"
 	"io"

@@ -21,10 +21,10 @@ import (
 	"testing"
 	cryptorand "crypto/rand"
 	"io"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ed"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
 	"fmt"
 	"crypto/sha512"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
 	"sort"
 )

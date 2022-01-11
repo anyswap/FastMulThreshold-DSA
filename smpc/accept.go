@@ -21,7 +21,7 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"strings"
 )
 

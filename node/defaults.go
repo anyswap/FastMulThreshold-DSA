@@ -22,10 +22,10 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/anyswap/Anyswap-MPCNode/internal/common"
-	"github.com/anyswap/Anyswap-MPCNode/p2p"
-	"github.com/anyswap/Anyswap-MPCNode/p2p/nat"
-	"github.com/anyswap/Anyswap-MPCNode/rpc"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/nat"
+	"github.com/anyswap/FastMulThreshold-DSA/rpc"
 )
 
 const (

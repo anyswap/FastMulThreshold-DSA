@@ -20,8 +20,8 @@ import (
 	"errors"
 	"fmt"
 	//"math/big"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 )
 
 // Start paillier Encrypt and get MtAZK1Proof

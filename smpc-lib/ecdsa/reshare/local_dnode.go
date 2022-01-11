@@ -21,11 +21,11 @@ import (
 	"errors"
 	"fmt"
 	"time"
-	"github.com/anyswap/Anyswap-MPCNode/crypto/secp256k1"
-	"github.com/anyswap/Anyswap-MPCNode/internal/common/math/random"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/crypto/ec2"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/ecdsa/keygen"
-	"github.com/anyswap/Anyswap-MPCNode/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common/math/random"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/ecdsa/keygen"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
 )
 
