@@ -84,28 +84,28 @@ func GetChannelValue(t int, obj interface{}) (string, string, error) {
 				return ret.Ret, ret.Tip, ret.Err
 			}
 		case <-timeout:
-			return "", "smpc back-end internal error:get result from channel timeout", fmt.Errorf("get result from channel timeout")
+			return "", "", fmt.Errorf("get RpcDcrmRes result fail")
 		}
 	case chan string:
 		select {
 		case v := <-ch:
 			return v, "", nil
 		case <-timeout:
-			return "", "smpc back-end internal error:get result from channel timeout", fmt.Errorf("get result from channel timeout")
+			return "", "", fmt.Errorf("get string result fail")
 		}
 	case chan int64:
 		select {
 		case v := <-ch:
 			return strconv.Itoa(int(v)), "", nil
 		case <-timeout:
-			return "", "smpc back-end internal error:get result from channel timeout", fmt.Errorf("get result from channel timeout")
+			return "", "", fmt.Errorf("get int64 result fail")
 		}
 	case chan int:
 		select {
 		case v := <-ch:
 			return strconv.Itoa(v), "", nil
 		case <-timeout:
-			return "", "smpc back-end internal error:get result from channel timeout", fmt.Errorf("get result from channel timeout")
+			return "", "", fmt.Errorf("get int result fail")
 		}
 	case chan bool:
 		select {
@@ -116,13 +116,13 @@ func GetChannelValue(t int, obj interface{}) (string, string, error) {
 
 			return "true", "", nil
 		case <-timeout:
-			return "", "smpc back-end internal error:get result from channel timeout", fmt.Errorf("get result from channel timeout")
+			return "", "", fmt.Errorf("get bool result fail")
 		}
 	default:
-		return "", "smpc back-end internal error:unknown channel type", fmt.Errorf("unknown channel type")
+		return "", "unknown channel type", fmt.Errorf("unknown channel type")
 	}
 
-	return "", "smpc back-end internal error:unknown error.", fmt.Errorf("get result from channel fail,unsupported channel type")
+	return "", "unknown error", fmt.Errorf("unknown channel type")
 }
 
 //----------------------------------------------------------------------------------------

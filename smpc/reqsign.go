@@ -1776,6 +1776,16 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 
 	var sk [64]byte
 	va := sku1.Bytes()
+	if len(va) < 64 {
+	    diff := 64 - len(va)
+	    for i := 0;i<diff;i++ {
+		sk[i] = byte(0x00)
+	    }
+	    copy(sk[diff:], va[:])
+	} else {
+	    copy(sk[:], va[:64])
+	}
+
 	copy(sk[:], va[:64])
 	var tsk [32]byte
 	va = []byte(mm[2])

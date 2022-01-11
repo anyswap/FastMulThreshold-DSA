@@ -842,6 +842,10 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 		}
 		//
 
+		if keytype != "EC256K1" && keytype != "ED25519" {
+		    return "","","",nil,fmt.Errorf("invalid keytype")
+		}
+
 		nums := strings.Split(threshold, "/")
 		if len(nums) != 2 {
 			return "", "", "", nil, fmt.Errorf("threshold is not right")

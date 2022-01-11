@@ -669,6 +669,17 @@ func HandleC1Data(ac *AcceptReqAddrData, key string) {
 		HandleSign(key, uid)
 	}
 
+	// ED
+	for _, node := range nodes {
+	    node2 := ParseNode(node)
+	    c1data := key + "-" + node2 + common.Sep + "EDC21" 
+	    c1, exist := C1Data.ReadMap(strings.ToLower(c1data))
+	    if exist {
+		DisMsg(c1.(string))
+		go C1Data.DeleteMap(strings.ToLower(c1data))
+	    }
+	}
+
 	mms := strings.Split(ac.Sigs, common.Sep)
 	if len(mms) < 3 { //1:enodeid1:account1
 		return

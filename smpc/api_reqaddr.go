@@ -497,6 +497,11 @@ func (req *ReqSmpcAddr) CheckTxData(txdata []byte, from string, nonce uint64) (s
 	req2 := TxDataReqAddr{}
 	err := json.Unmarshal(txdata, &req2)
 	if err == nil && req2.TxType == "REQSMPCADDR" {
+		keytype := req2.Keytype 
+		if keytype != "EC256K1" && keytype != "ED25519" {
+			return "","","",nil,fmt.Errorf("invalid keytype")
+		}
+		
 		groupid := req2.GroupID
 		if groupid == "" {
 			return "", "", "", nil, fmt.Errorf("get group id fail")
