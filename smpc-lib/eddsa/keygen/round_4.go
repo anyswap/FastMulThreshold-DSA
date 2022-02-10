@@ -71,7 +71,7 @@ func (round *round4) Start() error {
 
 		var t [32]byte
 		copy(t[:], msg3.DPk[32:])
-		zkPkFlag := ed.VerifyZk2(msg2.ZkPk, t,round.temp.pk)
+		zkPkFlag := ed.VerifyZk2(msg2.ZkPk, t,round.temp.pk) // remove pk
 		if !zkPkFlag {
 			fmt.Printf("Error: ZeroKnowledge Proof (Pk) Not Pass at User: %v \n", id)
 			return errors.New("smpc back-end internal error:zeroknowledge check fail")

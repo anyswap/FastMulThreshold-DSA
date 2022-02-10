@@ -452,7 +452,7 @@ func updateRPCPort(pubdir, rpcport string) {
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
-		_, err = f.Write([]byte(rpcport))
+		_, err = f.Write([]byte(rpcport)) // set separator when use hash, recommand search all files with pattern ".Write("
 		if err != nil {
 		    return
 		}

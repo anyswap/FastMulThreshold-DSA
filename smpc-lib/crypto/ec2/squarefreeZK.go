@@ -25,6 +25,7 @@ import (
 
 const ( 
     m = 7 // default value is 7, recommend is m = T k/log2a T ,  a = 65537, k = 128
+	// m = 8, ceiling of above result
 )
 
 var (
@@ -55,7 +56,7 @@ func CalcX(n *big.Int,num *big.Int) []*big.Int {
 	str := "productoftwoprimesproof"
 	strnum := new(big.Int).SetBytes([]byte(str))
 	roh := make([]*big.Int,m)
-	for i:= 0;i<m;i++ {
+	for i:= 0;i<m;i++ { // use multi-thread?
 	    tmp := make([]*big.Int,0)
 	    inlen := 0
 	    try := n
@@ -64,8 +65,8 @@ func CalcX(n *big.Int,num *big.Int) []*big.Int {
 		// find short x
 		for {
 			try = Sha512_256(try,num,strnum,big.NewInt(int64(i)))
-			try = new(big.Int).Mod(try,n)
-			if IsNumberInMultiplicativeGroup(n, try) {
+			try = new(big.Int).Mod(try,n) // no need mod
+			if IsNumberInMultiplicativeGroup(n, try) { // no need to check and for loop
 				break
 			}
 		}
@@ -92,6 +93,7 @@ func CalcX(n *big.Int,num *big.Int) []*big.Int {
 		return nil
 	    }
 
+		// check if X is in In Multiplicative Group
 	    roh[i] = X
 	}
 

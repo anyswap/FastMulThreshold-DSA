@@ -118,7 +118,7 @@ func (round *round1) Start() error {
 
 	// 3. zkSchnorr(rU1)
 	//zkR,err := ed.Prove(r)
-	zkR,err := ed.Prove2(r,pkfinal)
+	zkR,err := ed.Prove2(r,pkfinal) // use RBytes
 	if err != nil {
 	    return err
 	}

@@ -96,7 +96,7 @@ func CalcRoh(n *big.Int,num *big.Int) []*big.Int {
 		for {
 		    // find short roh
 		    try = Sha512_256(try,num,strnum,big.NewInt(index))
-		    try = new(big.Int).Mod(try,n)
+		    try = new(big.Int).Mod(try,n) // no need mod
 		    //
 		    
 		    if (inlen + len(try.Bytes())) > l {

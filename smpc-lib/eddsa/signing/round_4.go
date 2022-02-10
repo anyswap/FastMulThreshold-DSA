@@ -67,7 +67,7 @@ func (round *round4) Start() error {
 		var temR [32]byte
 		copy(temR[:], msg3.DR[32:])
 
-		zkRFlag := ed.VerifyZk2(msg2.ZkR, temR,round.temp.pkfinal)
+		zkRFlag := ed.VerifyZk2(msg2.ZkR, temR,round.temp.pkfinal) // remove pkfinal
 		if !zkRFlag {
 			fmt.Printf("Error: ZeroKnowledge Proof (R) Not Pass at User: %v\n", round.save.CurDNodeID)
 			return errors.New("smpc back-end internal error:zeroknowledge verification fail in ed sign")
