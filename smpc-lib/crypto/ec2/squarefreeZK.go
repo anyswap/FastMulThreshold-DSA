@@ -19,12 +19,13 @@ package ec2
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 	"strings"
 	"math/big"
 )
 
 const ( 
-    m = 7 // default value is 7, recommend is m = T k/log2a T ,  a = 65537, k = 128
+    m = 8 // default value is 8, recommend is m = T k/log2a T ,  a = 65537, k = 128
 )
 
 var (
@@ -55,44 +56,63 @@ func CalcX(n *big.Int,num *big.Int) []*big.Int {
 	str := "productoftwoprimesproof"
 	strnum := new(big.Int).SetBytes([]byte(str))
 	roh := make([]*big.Int,m)
+	
+	var wg sync.WaitGroup
 	for i:= 0;i<m;i++ {
-	    tmp := make([]*big.Int,0)
-	    inlen := 0
-	    try := n
-	    diff := 0
-	    for {
-		// find short x
-		for {
-			try = Sha512_256(try,num,strnum,big.NewInt(int64(i)))
-			try = new(big.Int).Mod(try,n)
-			if IsNumberInMultiplicativeGroup(n, try) {
-				break
-			}
-		}
-		//
+	    wg.Add(1)
+	    go func(index int) {
 
-		if (inlen + len(try.Bytes())) > l {
-		    diff = l - inlen
-		    if diff > 0 {
-			break
+		defer wg.Done()
+		tmp := make([]*big.Int,0)
+		inlen := 0
+		try := n
+		diff := 0
+
+		for {
+		    for {
+			// get short x
+			try = Sha512_256(try,num,strnum,big.NewInt(int64(index)))
+
+			if (inlen + len(try.Bytes())) > l {
+			    diff = l - inlen
+			    if diff > 0 {
+				break
+			    }
+
+			    return
+			}
+			
+			tmp = append(tmp,try)
+			inlen += len(try.Bytes())
+			if inlen == l {
+			    break
+			}
 		    }
 
-		    return nil
-		}
-		
-		tmp = append(tmp,try)
-		inlen += len(try.Bytes())
-		if inlen == l {
-		    break
-		}
-	    }
+		    X := joinInt(tmp,diff)
+		    if X == nil {
+			return
+		    }
 
-	    X := joinInt(tmp,diff)
-	    if X == nil {
+		    X = new(big.Int).Mod(X,n)
+		    if IsNumberInMultiplicativeGroup(n, X) {
+			roh[index] = X
+			break
+		    }
+	    
+		    // retry
+		    tmp = make([]*big.Int,0)
+		    inlen = 0
+		    diff = 0
+		}
+	    }(i)
+	}
+	wg.Wait()
+
+	for _,v := range roh {
+	    if v == nil {
 		return nil
 	    }
-
-	    roh[i] = X
 	}
 
 	return roh 
