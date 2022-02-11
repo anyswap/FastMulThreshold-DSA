@@ -160,7 +160,7 @@ func Prove2(sk [32]byte,pk [32]byte) ([64]byte,error) {
 }
 
 // VerifyZk2 verify SK zero knowledge proof data,include pk
-func VerifyZk2(signature [64]byte, pk [32]byte,finalpk [32]byte) bool {
+func VerifyZk2(signature [64]byte, pk [32]byte) bool {
 
 	var sG, X, eX, RCal ExtendedGroupElement
 
@@ -192,7 +192,7 @@ func VerifyZk2(signature [64]byte, pk [32]byte,finalpk [32]byte) bool {
 
 	// fixed: Weak Fiat-Shamir transformation in Schnorr’s ZKP
 	// This transformation is known to be insecure if the calculation of the hash does not include the public value g^sk.
-	h.Write(finalpk[:])
+	h.Write(pk[:])
 	h.Write(message[:])
 	h.Sum(eCalDigest[:0])
 	ScReduce(&eCal, &eCalDigest)
