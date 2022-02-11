@@ -470,6 +470,8 @@ func GetBip32ChildKey(rootpubkey string, inputcode string) (string, string, erro
 					_, _, cherr := GetChannelValue(cht+10, rch)
 					if cherr != nil {
 						common.Error("=====================ExcutePreSignData, failed to pre-generate sign data.========================", "pubkey", rootpubkey, "err", cherr, "Index", index)
+						time.Sleep(time.Duration(1000000))
+						continue
 					}
 
 					common.Info("===================generate pre-sign data for bip32===============", "current total number of the data ", GetTotalCount(rootpubkey, inputcode, gg), "the number of remaining pre-sign data", (PreBip32DataCount - GetTotalCount(rootpubkey, inputcode, gg)), "pub", pub, "pubkey", rootpubkey, "inputcode", inputcode, "sub-groupid", gg)

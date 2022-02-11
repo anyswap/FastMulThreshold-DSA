@@ -231,6 +231,7 @@ func (db *nodeDB) expirer() {
 		select {
 		case <-tick.C:
 			if err := db.expireNodes(); err != nil {
+				return
 			}
 		case <-db.quit:
 			return

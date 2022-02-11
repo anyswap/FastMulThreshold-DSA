@@ -198,6 +198,7 @@ func writeData(rw *bufio.ReadWriter) {
 		bytes, err := json.Marshal(Blockchain)
 		if err != nil {
 			log.Println(err)
+			panic(err)
 		}
 
 		spew.Dump(Blockchain)
@@ -216,6 +217,7 @@ func checkError(err error) {
 	if err != nil {
 		//log.Fatal(err)
 		fmt.Printf("=======================checkError, err = %v ========================\n", err)
+		return
 	}
 }
 

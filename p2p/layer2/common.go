@@ -75,6 +75,7 @@ func p2pBroatcast(dccpGroup *discover.Group, msg string, msgCode int, myself boo
 		discover.PrintBucketNodeInfo(node.ID)
 		err := p2pSendMsg(node, uint64(msgCode), msg)
 		if err != nil {
+			continue
 		}
 		//}(node)
 		time.Sleep(time.Duration(100) * time.Millisecond)
@@ -98,6 +99,8 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 		if p != nil {
 			if err = p2p.Send(p.ws, msgCode, msg); err != nil {
 				common.Debug("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "send", "fail p2perror")
+				emitter.Unlock()
+				return err
 			} else {
 				emitter.Unlock()
 				common.Debug("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "countSend", countSendFail, "msg", msg[:cdLen], "send", "success")
@@ -230,6 +233,7 @@ func HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 			err := rlp.Decode(msg.Payload, &recv)
 			if err != nil {
 				common.Debug("==== handle() ==== p2pBroatcast", "Err: decode msg err", err)
+				return err
 			} else {
 				common.Debug("==== handle() ==== p2pBroatcast", "Recv callEvent(), peerMsgCode fromID", peer.ID().String(), "msg", string(recv))
 				go callEvent(string(recv), peer.ID().String())
@@ -240,6 +244,7 @@ func HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 			err := rlp.Decode(msg.Payload, &recv)
 			if err != nil {
 				common.Debug("==== handle() ==== p2pBroatcast", "Err: decode sdk msg err", err)
+				return err
 			} else {
 				cdLen := getCDLen(string(recv))
 				common.Debug("==== handle() ==== p2pBroatcast", "Recv Sdk_callEvent(), Sdk_msgCode fromID", peer.ID().String(), "msg", string(recv)[:cdLen])
@@ -251,6 +256,7 @@ func HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 			err := rlp.Decode(msg.Payload, &recv)
 			if err != nil {
 				common.Info("Err: decode msg", "err", err)
+				return err
 			} else {
 				go Smpc_callEvent(string(recv))
 			}
@@ -260,6 +266,7 @@ func HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 			err := rlp.Decode(msg.Payload, &recv)
 			if err != nil {
 				common.Debug("Err: decode msg", "err", err)
+				return err
 			} else {
 				go Xp_callEvent(string(recv))
 			}
@@ -441,6 +448,7 @@ func SendMsgToPeer(enode string, msg string) error {
 		if p != nil {
 			if err := p2p.Send(p.ws, peerMsgCode, msg); err != nil {
 				common.Debug("==== SendMsgToPeer() ====", "send to node", node.ID, "msg", msg, "p2perror", err, "countSend", countSendFail)
+				return err
 			} else {
 				common.Debug("==== SendMsgToPeer() ====", "send to node", node.ID, "msg", msg, "SUCCESS, countSend", countSendFail)
 				emitter.Unlock()

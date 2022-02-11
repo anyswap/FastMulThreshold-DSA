@@ -839,8 +839,9 @@ func (srv *Server) SetupConn(fd net.Conn, flags connFlag, dialDest *discover.Nod
 	err := srv.setupConn(c, flags, dialDest)
 	if err != nil {
 		c.close(err)
+		return err
 	}
-	return err
+	return nil
 }
 
 func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) error {
@@ -921,13 +922,23 @@ func (srv *Server) runPeer(p *Peer) {
 
 	// run the protocol
 	remoteRequested, err := p.run()
+	if err != nil {
+		// broadcast peer drop
+		srv.peerFeed.Send(&PeerEvent{
+			Type:  PeerEventTypeDrop,
+			Peer:  p.ID(),
+			Error: err.Error(),
+		})
+	} else {
+		// broadcast peer drop
+		srv.peerFeed.Send(&PeerEvent{
+			Type:  PeerEventTypeDrop,
+			Peer:  p.ID(),
+			Error: "",
+		})
+	}
 
-	// broadcast peer drop
-	srv.peerFeed.Send(&PeerEvent{
-		Type:  PeerEventTypeDrop,
-		Peer:  p.ID(),
-		Error: err.Error(),
-	})
+	
 
 	// Note: run waits for existing peers to be sent on srv.delpeer
 	// before returning, so this send should not select on srv.quit.

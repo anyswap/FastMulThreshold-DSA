@@ -59,6 +59,7 @@ func main() {
 	case "exec":
 		tmpdir, err := ioutil.TempDir("", "p2p-example")
 		if err != nil {
+			return
 		}
 		defer os.RemoveAll(tmpdir)
 		adapter = adapters.NewExecAdapter(tmpdir)
@@ -67,6 +68,7 @@ func main() {
 		var err error
 		adapter, err = adapters.NewDockerAdapter()
 		if err != nil {
+			return
 		}
 
 	default:
@@ -78,6 +80,7 @@ func main() {
 		DefaultService: "ping-pong",
 	})
 	if err := http.ListenAndServe(":8888", simulations.NewServer(network)); err != nil {
+		return
 	}
 }
 

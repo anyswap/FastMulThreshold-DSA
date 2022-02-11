@@ -61,10 +61,11 @@ func (b *Bytes) UnmarshalText(input []byte) error {
 	dec := make([]byte, len(raw)/2)
 	if _, err = hex.Decode(dec, raw); err != nil {
 		err = mapError(err)
+		return err
 	} else {
 		*b = dec
 	}
-	return err
+	return nil
 }
 
 // String returns the hex encoding of b.

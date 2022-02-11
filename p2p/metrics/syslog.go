@@ -19,18 +19,21 @@ func Syslog(r Registry, d time.Duration, w *syslog.Writer) {
 				err := w.Info(s)
 				if err != nil {
 				    fmt.Println(s)
+					break
 				}
 			case Gauge:
 			    	s := fmt.Sprintf("gauge %s: value: %d", name, metric.Value())
 				err := w.Info(s)
 				if err != nil {
 				    fmt.Println(s)
+					break
 				}
 			case GaugeFloat64:
 			    	s := fmt.Sprintf("gauge %s: value: %f", name, metric.Value())
 				err := w.Info(s)
 				if err != nil {
 				    fmt.Println(s)
+					break
 				}
 			case Healthcheck:
 				metric.Check()
@@ -38,6 +41,7 @@ func Syslog(r Registry, d time.Duration, w *syslog.Writer) {
 				err := w.Info(s)
 				if err != nil {
 				    fmt.Println(s)
+					break
 				}
 			case Histogram:
 				h := metric.Snapshot()
@@ -59,6 +63,7 @@ func Syslog(r Registry, d time.Duration, w *syslog.Writer) {
 				err := w.Info(s)
 				if err != nil {
 				    fmt.Println(s)
+					break
 				}
 			case Meter:
 				m := metric.Snapshot()
@@ -74,6 +79,7 @@ func Syslog(r Registry, d time.Duration, w *syslog.Writer) {
 				err := w.Info(s)
 				if err != nil {
 				    fmt.Println(s)
+					break
 				}
 			case Timer:
 				t := metric.Snapshot()
@@ -99,8 +105,10 @@ func Syslog(r Registry, d time.Duration, w *syslog.Writer) {
 				err := w.Info(s)
 				if err != nil {
 				    fmt.Println(s)
+					break
 				}
 			}
 		})
 	}
 }
+

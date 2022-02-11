@@ -133,6 +133,7 @@ func (db *LDBDatabase) Close() {
 		//db.log.Info("Database closed")
 	} else {
 		//db.log.Error("Failed to close database", "err", err)
+		return
 	}
 }
 

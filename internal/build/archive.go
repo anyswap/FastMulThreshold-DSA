@@ -85,6 +85,7 @@ func WriteArchive(name string, files []string) (err error) {
 		// Remove the half-written archive on failure.
 		if err != nil {
 			os.Remove(name)
+			return
 		}
 	}()
 	archive, basename := NewArchive(archfd)

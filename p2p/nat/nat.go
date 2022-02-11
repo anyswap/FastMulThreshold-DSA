@@ -103,11 +103,13 @@ func Map(m Interface, c chan struct{}, protocol string, extport, intport int, na
 		err := m.DeleteMapping(protocol, extport, intport)
 		if err != nil {
 		    fmt.Printf("====================Map,delete map fail, err = %v====================\n",err)
+			return
 		}
 	}()
 	if err := m.AddMapping(protocol, extport, intport, name, mapTimeout); err != nil {
-	} else {
+		return
 	}
+	
 	for {
 		select {
 		case _, ok := <-c:
@@ -116,6 +118,7 @@ func Map(m Interface, c chan struct{}, protocol string, extport, intport int, na
 			}
 		case <-refresh.C:
 			if err := m.AddMapping(protocol, extport, intport, name, mapTimeout); err != nil {
+				return
 			}
 			refresh.Reset(mapUpdateInterval)
 		}

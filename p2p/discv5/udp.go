@@ -355,6 +355,7 @@ func (t *udp) sendPacket(toid NodeID, toaddr *net.UDPAddr, ptype byte, req inter
 		return hash, err
 	}
 	if nbytes, err := t.conn.WriteToUDP(packet, toaddr); err != nil {
+		return hash,err
 	} else {
 		egressTrafficMeter.Mark(int64(nbytes))
 	}

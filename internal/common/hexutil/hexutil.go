@@ -67,8 +67,9 @@ func Decode(input string) ([]byte, error) {
 	b, err := hex.DecodeString(input[2:])
 	if err != nil {
 		err = mapError(err)
+		return b,err
 	}
-	return b, err
+	return b, nil
 }
 
 // MustDecode decodes a hex string with 0x prefix. It panics for invalid input.
@@ -97,8 +98,9 @@ func DecodeUint64(input string) (uint64, error) {
 	dec, err := strconv.ParseUint(raw, 16, 64)
 	if err != nil {
 		err = mapError(err)
+		return dec,err
 	}
-	return dec, err
+	return dec, nil
 }
 
 // MustDecodeUint64 decodes a hex string with 0x prefix as a quantity.

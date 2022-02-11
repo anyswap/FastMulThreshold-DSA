@@ -148,6 +148,8 @@ func probabilistic(net *Network, quit chan struct{}, nodeCount int) {
 				time.Sleep(randWait)
 				err := net.Start(id)
 				if err != nil {
+					wg.Done()
+					return
 				}
 				wg.Done()
 			}(nodes[i])

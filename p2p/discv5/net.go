@@ -422,6 +422,7 @@ loop:
 			//prestate := n.state
 			//status := "ok"
 			if err := net.handle(n, pkt.ev, &pkt); err != nil {
+				continue
 				//status = err.Error()
 			}
 			//log.Trace("", "msg", log.Lazy{Fn: func() string {
@@ -440,6 +441,7 @@ loop:
 			//prestate := timeout.node.state
 			//status := "ok"
 			if err := net.handle(timeout.node, timeout.ev, nil); err != nil {
+				continue
 				//status = err.Error()
 			}
 			//log.Trace("", "msg", log.Lazy{Fn: func() string {
@@ -1127,8 +1129,8 @@ func (net *Network) handleKnownPong(n *Node, pkt *ingressPacket) error {
 	if err == nil {
 		// fmt.Printf("(%x) ticket: %+v\n", net.tab.self.ID[:8], pkt.data)
 		net.ticketStore.addTicket(now, pkt.data.(*pong).ReplyTok, ticket)
-	} else {
 	}
+	
 	n.pingEcho = nil
 	n.pingTopics = nil
 	return err

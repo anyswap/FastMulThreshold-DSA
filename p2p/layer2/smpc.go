@@ -345,6 +345,9 @@ func CreateSDKGroup(threshold string, enodes []string, subGroup bool) (string, i
 	}
 	gid, err := getGIDFromEnodes(tmpEnodes)
 	common.Debug("CreateSDKGroup", "gid <- id", gid, "err", err)
+	if err != nil {
+		return "",0,err.Error()
+	}
 	discover.GroupSDK.Lock()
 	exist := false
 	for i := range SdkGroup {

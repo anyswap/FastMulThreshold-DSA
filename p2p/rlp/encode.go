@@ -265,8 +265,11 @@ func (w *encbuf) toWriter(out io.Writer) (err error) {
 	if strpos < len(w.str) {
 		// write string data after the last list header
 		_, err = out.Write(w.str[strpos:])
+		if err != nil {
+			return err
+		}
 	}
-	return err
+	return nil
 }
 
 // encReader is the io.Reader returned by EncodeToReader.

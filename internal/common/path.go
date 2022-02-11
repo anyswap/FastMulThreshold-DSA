@@ -69,6 +69,7 @@ func InitDir(dir string) {
 		    err := os.Mkdir(datadir, os.ModePerm)
 		    if err != nil {
 			fmt.Printf("==== InitDir(), mk dir fail ====, datadir: %v,err: %v\n", datadir,err)
+			return
 		    }
 		}
 	}

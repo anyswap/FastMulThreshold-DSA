@@ -176,11 +176,13 @@ func main() {
 		err := createContract()
 		if err != nil {
 			fmt.Printf("createContract failed. %v\n", err)
+			return
 		}
 	case "GETSMPCADDR":
 		err := getSmpcAddr()
 		if err != nil {
 			fmt.Printf("pubkey = %v, get smpc addr failed. %v\n", pubkey, err)
+			return
 		}
 	default:
 		fmt.Printf("\nCMD('%v') not support\nSupport cmd: EnodeSig|SetGroup|REQSMPCADDR|ACCEPTREQADDR|ACCEPTLOCKOUT|SIGN|PRESIGNDATA|DELPRESIGNDATA|GETPRESIGNDATA|ACCEPTSIGN|RESHARE|ACCEPTRESHARE|CREATECONTRACT|GETSMPCADDR\n", *cmd)
@@ -244,6 +246,7 @@ func init() {
 		keyjson, err = ioutil.ReadFile(*keyfile)
 		if err != nil {
 			fmt.Println("Read keystore fail", err)
+			panic(err)
 		}
 	} else {
 		keyjson = []byte(KEYFILE)
@@ -475,6 +478,7 @@ func acceptReqAddr() {
 		playload, err := json.Marshal(data)
 		if err != nil {
 			fmt.Println("error:", err)
+			panic(err)
 		}
 		// sign tx
 		rawTX, err := signTX(signer, keyWrapper.PrivateKey, 0, playload)
@@ -598,6 +602,7 @@ func acceptLockOut() {
 		playload, err := json.Marshal(data)
 		if err != nil {
 			fmt.Println("error:", err)
+			panic(err)
 		}
 		// sign tx
 		rawTX, err := signTX(signer, keyWrapper.PrivateKey, 0, playload)
@@ -796,6 +801,11 @@ func delPreSignData() {
 	predbtmp, err := ethdb.NewLDBDatabase(dir, 76, 512)
 	if err != nil {
 		predb = nil
+		if predb == nil {
+			fmt.Printf("==========================delPreSignData,open db fail,dir = %v,pubkey = %v,gid = %v,cur_enode = %v ================================\n", dir, *pubkey, *gid, enodePubkey[1])
+			os.Exit(1)
+			return
+		}
 	} else {
 		predb = predbtmp
 	}
@@ -859,14 +869,13 @@ func getPreSignData() {
 	predbtmp, err := ethdb.NewLDBDatabase(dir, 76, 512)
 	if err != nil {
 		predb = nil
+		if predb == nil {
+			fmt.Printf("==========================getPreSignData,open db fail,dir = %v,pubkey = %v,gid = %v,cur_enode = %v ================================\n", dir, *pubkey, *gid, enodePubkey[1])
+			os.Exit(1)
+			return
+		}
 	} else {
 		predb = predbtmp
-	}
-
-	if predb == nil {
-		fmt.Printf("==========================getPreSignData,open db fail,dir = %v,pubkey = %v,gid = %v,cur_enode = %v ================================\n", dir, *pubkey, *gid, enodePubkey[1])
-		os.Exit(1)
-		return
 	}
 
 	fmt.Printf("================================getPreSignData,pubkey = %v,gid = %v ======================\n", *pubkey, *gid)
@@ -1085,6 +1094,7 @@ func acceptSign() {
 		playload, err := json.Marshal(data)
 		if err != nil {
 			fmt.Println("error:", err)
+			panic(err)
 		}
 		// sign tx
 		rawTX, err := signTX(signer, keyWrapper.PrivateKey, 0, playload)
@@ -1126,7 +1136,11 @@ func reshare() {
 		Sigs:      sigs,
 		TimeStamp: timestamp,
 	}
-	playload, _ := json.Marshal(txdata)
+	playload, err := json.Marshal(txdata)
+	if err != nil {
+		panic(err)
+	}
+
 	// sign tx
 	rawTX, err := signTX(signer, keyWrapper.PrivateKey, 0, playload)
 	if err != nil {
@@ -1180,6 +1194,7 @@ func acceptReshare() {
 		playload, err := json.Marshal(data)
 		if err != nil {
 			fmt.Println("error:", err)
+			panic(err)
 		}
 		// sign tx
 		rawTX, err := signTX(signer, keyWrapper.PrivateKey, 0, playload)

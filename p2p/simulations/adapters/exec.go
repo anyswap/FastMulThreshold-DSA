@@ -335,6 +335,7 @@ type execNodeConfig struct {
 func ExternalIP() net.IP {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
+		return net.IP{127, 0, 0, 1}
 	}
 	for _, addr := range addrs {
 		if ip, ok := addr.(*net.IPNet); ok && !ip.IP.IsLoopback() && !ip.IP.IsLinkLocalUnicast() {
@@ -358,6 +359,7 @@ func execP2PNode() {
 	}
 	var conf execNodeConfig
 	if err := json.Unmarshal([]byte(confEnv), &conf); err != nil {
+		return
 	}
 	conf.Stack.P2P.PrivateKey = conf.Node.PrivateKey
 
@@ -371,6 +373,7 @@ func execP2PNode() {
 	// initialize the devp2p stack
 	stack, err := node.New(&conf.Stack)
 	if err != nil {
+		return
 	}
 
 	// register the services, collecting them into a map so we can wrap
@@ -379,6 +382,7 @@ func execP2PNode() {
 	for _, name := range serviceNames {
 		serviceFunc, exists := serviceFuncs[name]
 		if !exists {
+			continue
 		}
 		constructor := func(nodeCtx *node.ServiceContext) (node.Service, error) {
 			ctx := &ServiceContext{
@@ -397,6 +401,7 @@ func execP2PNode() {
 			return service, nil
 		}
 		if err := stack.Register(constructor); err != nil {
+			continue
 		}
 	}
 
@@ -404,10 +409,12 @@ func execP2PNode() {
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		return &snapshotService{services}, nil
 	}); err != nil {
+		return
 	}
 
 	// start the stack
 	if err := stack.Start(); err != nil {
+		return
 	}
 
 	// stop the stack if we get a SIGTERM signal

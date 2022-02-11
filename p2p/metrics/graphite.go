@@ -42,6 +42,7 @@ func GraphiteWithConfig(c GraphiteConfig) {
 	for range time.Tick(c.FlushInterval) {
 		if err := graphite(&c); nil != err {
 			log.Println(err)
+			continue
 		}
 	}
 }

@@ -239,6 +239,7 @@ func (net *Network) watchPeerEvents(id discover.NodeID, events chan *p2p.PeerEve
 		case err := <-sub.Err():
 			if err != nil {
 				fmt.Sprintf("error getting peer events for node %v, err %v", id, err)
+				return
 			}
 			return
 		}
@@ -492,6 +493,7 @@ func (net *Network) Shutdown() {
 		fmt.Sprintf("stopping node %s", node.ID().TerminalString())
 		if err := node.Stop(); err != nil {
 			fmt.Sprintf("error stopping node %s", node.ID().TerminalString())
+			continue
 		}
 	}
 	close(net.quitc)
@@ -708,9 +710,11 @@ func (net *Network) executeControlEvent(event *Event) {
 	switch event.Type {
 	case EventTypeNode:
 		if err := net.executeNodeEvent(event); err != nil {
+			return
 		}
 	case EventTypeConn:
 		if err := net.executeConnEvent(event); err != nil {
+			return
 		}
 	case EventTypeMsg:
 	}

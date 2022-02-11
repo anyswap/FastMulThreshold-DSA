@@ -313,6 +313,7 @@ func (t *udp) findgroup(gid, toid NodeID, toaddr *net.UDPAddr, target NodeID, p2
 	})
 	if errs != nil {
 		common.Debug("==== (t *udp) sendMsgToPeer ====", "errs", errs)
+		return nil,errs
 	}
 	err := <-errc
 	return nodes, err
@@ -339,6 +340,7 @@ func (req *findgroup) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byt
 		_, errs := t.send(from, byte(groupPacket), p)
 		if errs != nil {
 			common.Debug("==== (t *udp) sendMsgToPeer ====", "errs", errs)
+			return errs
 		}
 	}
 	return nil
@@ -448,6 +450,7 @@ func (t *udp) sendToGroupCC(toid NodeID, toaddr *net.UDPAddr, msg string, p2pTyp
 		_, err = t.udpSendMsg(toid, toaddr, msg, number, p2pType, false)
 		if err != nil {
 			common.Debug("==== (t *udp) sendMsgToPeer ====", "err", common.CurrentTime(), err)
+			return "",err
 		}
 	} else if len(msg) > 800 && len(msg) < 1600 {
 		number[1] = 1
@@ -455,12 +458,14 @@ func (t *udp) sendToGroupCC(toid NodeID, toaddr *net.UDPAddr, msg string, p2pTyp
 		_, err = t.udpSendMsg(toid, toaddr, msg[0:800], number, p2pType, false)
 		if err != nil {
 			common.Debug("=== (t *udp) sendMsgToPeer ====, err: %v\n", err)
+			return "",err
 		} else {
 			number[1] = 2
 			number[2] = 2
 			_, err = t.udpSendMsg(toid, toaddr, msg[800:], number, p2pType, false)
 			if err != nil {
 				common.Debug("==== (t *udp) sendMsgToPeer ====", "eer", err)
+				return "",err
 			}
 		}
 	} else {
@@ -522,6 +527,7 @@ func (req *getsmpcmessage) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac 
 		_, err := t.udpSendMsg(fromID, from, msg, number, int(req.P2pType), true)
 		if err != nil {
 			common.Debug("smpc handle", "send to target", fromID, "from", from, "msg(len", len(msg), "err", err)
+			return
 		}
 	}()
 	return nil
@@ -660,6 +666,7 @@ func SendToGroup(gid NodeID, msg string, allNodes bool, p2pType int, gg []*Node)
 			if err != nil {
 				common.Debug("SendToGroup", "sendToGroupCC(n.ID", n.ID, "ipa", ipa, ") error", err)
 				retMsg = fmt.Sprintf("%v; SendToGroup, sendToGroupCC(n.ID: %v, ipa: %v) error", retMsg, n.ID, ipa)
+				return "", errors.New(retMsg)
 			} else {
 				retMsg = fmt.Sprintf("%v; sendToGroupCC(n.ID: %v, ipa: %v) Success", retMsg, n.ID, ipa)
 			}
@@ -1121,6 +1128,7 @@ func (t *udp) sendToPeer(gid, toid NodeID, toaddr *net.UDPAddr, msg string, p2pT
 	_, errt := t.send(toaddr, byte(Smpc_groupInfoPacket), req)
 	if errt != nil {
 		common.Debug("====  (t *udp) sendToPeer()  ====", "t.send, toaddr", toaddr, "err", errt)
+		return errt
 	} else {
 		common.Debug("====  (t *udp) sendToPeer()  ====", "t.send, toaddr", toaddr, "groupInfo", req, "SUCCESS", "")
 	}
@@ -1160,6 +1168,7 @@ func (t *udp) sendMsgToPeer(toid NodeID, toaddr *net.UDPAddr, msg string) error 
 	})
 	if errs != nil {
 		common.Debug("==== (t *udp) sendMsgToPeer ====", "errs", errs)
+		return errs
 	}
 	err := <-errc
 	return err
@@ -1510,6 +1519,7 @@ func StoreGroupSDKListToDb() error { //nooo
 	err = db.Put([]byte(key), []byte(ss), nil)
 	if err != nil {
 	    db.Close()
+		return err
 	}
 
 	db.Close()

@@ -53,10 +53,12 @@ func TestAutoDiscRace(t *testing.T) {
 		case rval := <-results:
 			if rval.err != nil {
 				t.Errorf("result %d: unexpected error: %v", i, rval.err)
+				return
 			}
 			wantIP := net.IP{33, 44, 55, 66}
 			if !rval.ip.Equal(wantIP) {
 				t.Errorf("result %d: got IP %v, want %v", i, rval.ip, wantIP)
+				return
 			}
 		}
 	}
