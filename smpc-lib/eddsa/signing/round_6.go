@@ -79,13 +79,25 @@ func (round *round6) Start() error {
 	if err != nil {
 		return err
 	}
+	_, err = h.Write([]byte("hello multichain"))
+	if err != nil {
+		return err
+	}
 
 	_, err = h.Write(round.temp.pkfinal[:])
 	if err != nil {
 		return err
 	}
+	_, err = h.Write([]byte("hello multichain"))
+	if err != nil {
+		return err
+	}
 
 	_, err = h.Write(([]byte(round.temp.message))[:])
+	if err != nil {
+		return err
+	}
+	_, err = h.Write([]byte("hello multichain"))
 	if err != nil {
 		return err
 	}

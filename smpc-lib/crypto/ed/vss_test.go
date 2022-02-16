@@ -95,8 +95,16 @@ func TestVerify_vss(t *testing.T) {
     if err != nil {
 	    return
     }
+    _, err = h.Write([]byte("hello multichain"))
+    if err != nil {
+	    return
+    }
 
     _, err = h.Write(PkSet)
+    if err != nil {
+	    return
+    }
+    _, err = h.Write([]byte("hello multichain"))
     if err != nil {
 	    return
     }

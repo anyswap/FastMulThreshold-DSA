@@ -410,9 +410,30 @@ func GetBip32ChildKey(rootpubkey string, inputcode string) (string, string, erro
 	childSKU1 := sku1
 	for idxi := 1; idxi < len(indexs); idxi++ {
 		h := hmac.New(sha512.New, TRb)
-		h.Write(childPKx.Bytes())
-		h.Write(childPKy.Bytes())
-		h.Write([]byte(indexs[idxi]))
+		_,err := h.Write(childPKx.Bytes())
+		if err != nil {
+		    return "","",err
+		}
+		_,err = h.Write([]byte("hello multichain"))
+		if err != nil {
+		    return "","",err
+		}
+		_,err = h.Write(childPKy.Bytes())
+		if err != nil {
+		    return "","",err
+		}
+		_,err = h.Write([]byte("hello multichain"))
+		if err != nil {
+		    return "","",err
+		}
+		_,err = h.Write([]byte(indexs[idxi]))
+		if err != nil {
+		    return "","",err
+		}
+		_,err = h.Write([]byte("hello multichain"))
+		if err != nil {
+		    return "","",err
+		}
 		T := h.Sum(nil)
 		TRb = T[32:]
 		TL := new(big.Int).SetBytes(T[:32])

@@ -197,7 +197,11 @@ func (a Address) Hash() Hash { return BytesToHash(a[:]) }
 func (a Address) Hex() string {
 	unchecksummed := hex.EncodeToString(a[:])
 	sha := sha3.NewKeccak256()
-	sha.Write([]byte(unchecksummed))
+	_,err := sha.Write([]byte(unchecksummed))
+	if err != nil {
+	    return ""
+	}
+
 	hash := sha.Sum(nil)
 
 	result := []byte(unchecksummed)

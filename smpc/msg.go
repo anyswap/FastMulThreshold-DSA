@@ -938,6 +938,8 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 					sstmp += node2
 					sstmp += common.Sep
 					sstmp += from
+
+					fmt.Printf("=========================GetGroupSigsDataByRaw,pubkey = %v,enode = %v,from = %v=========================\n",pubkey,node2,from)
 				}
 			}
 		}

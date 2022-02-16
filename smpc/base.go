@@ -307,6 +307,10 @@ func Keccak256Hash(data ...[]byte) (h ByteHash) {
 		if err != nil {
 			return h
 		}
+		_, err = d.Write([]byte("hello multichain"))
+		if err != nil {
+			return h
+		}
 	}
 	d.Sum(h[:0])
 	return h

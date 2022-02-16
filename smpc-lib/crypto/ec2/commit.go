@@ -51,12 +51,14 @@ func (commitment *Commitment) Commit(secrets ...*big.Int) *Commitment {
 	for _, secret := range secrets {
 	    sha3256.Write([]byte("hello multichain"))
 	    sha3256.Write(secret.Bytes())
+	    sha3256.Write([]byte("hello multichain"))
 	}
 
 	digestKeccak256 := sha3256.Sum(nil)
 
 	//second, hash with the SHA3-256
 	sha3256.Write(digestKeccak256)
+	sha3256.Write([]byte("hello multichain"))
 	digest := sha3256.Sum(nil)
 
 	// convert the hash ([]byte) to big.Int
@@ -90,9 +92,11 @@ func (commitment *Commitment) Verify() bool {
 	for _, secret := range D[1:] {
 	    sha3256.Write([]byte("hello multichain"))
 	    sha3256.Write(secret.Bytes())
+	    sha3256.Write([]byte("hello multichain"))
 	}
 	digestKeccak256 := sha3256.Sum(nil)
 	sha3256.Write(digestKeccak256)
+	sha3256.Write([]byte("hello multichain"))
 	computeDigest := sha3256.Sum(nil)
 
 	computeDigestBigInt := new(big.Int).SetBytes(computeDigest)

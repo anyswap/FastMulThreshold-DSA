@@ -96,8 +96,16 @@ func (round *round4) Start() error {
 	if err != nil {
 		return err
 	}
+	_, err = h.Write([]byte("hello multichain"))
+	if err != nil {
+		return err
+	}
 
 	_, err = h.Write(PkSet)
+	if err != nil {
+		return err
+	}
+	_, err = h.Write([]byte("hello multichain"))
 	if err != nil {
 		return err
 	}
