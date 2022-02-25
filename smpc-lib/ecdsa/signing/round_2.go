@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	//"math/big"
+	"encoding/hex"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 )
@@ -82,7 +83,9 @@ func (round *round2) Start() error {
 		if curIndex == k {
 			round.temp.signRound2Messages[curIndex] = srm
 		} else {
-			srm.AppendToID(fmt.Sprintf("%v", v))
+			tmp := fmt.Sprintf("%v",v)
+			idtmp := hex.EncodeToString([]byte(tmp))
+			srm.AppendToID(idtmp) //id-->dnodeid
 			round.out <- srm
 		}
 	}

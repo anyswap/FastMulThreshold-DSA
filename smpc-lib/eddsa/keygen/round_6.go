@@ -19,6 +19,7 @@ package keygen
 import (
 	"bytes"
 	"crypto/sha512"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
@@ -97,15 +98,7 @@ func (round *round6) Start() error {
 		if err != nil {
 			return err
 		}
-		_, err = h.Write([]byte("hello multichain"))
-		if err != nil {
-			return err
-		}
 		_, err = h.Write(PkSet2)
-		if err != nil {
-			return err
-		}
-		_, err = h.Write([]byte("hello multichain"))
 		if err != nil {
 			return err
 		}
@@ -160,16 +153,8 @@ func (round *round6) Start() error {
 		if err != nil {
 			return err
 		}
-		_, err = h.Write([]byte("hello multichain"))
-		if err != nil {
-			return err
-		}
 
 		_, err = h.Write(PkSet2)
-		if err != nil {
-			return err
-		}
-		_, err = h.Write([]byte("hello multichain"))
 		if err != nil {
 			return err
 		}
@@ -197,8 +182,8 @@ func (round *round6) Start() error {
 
 	round.end <- *round.Save
 
-	//pub := hex.EncodeToString(finalPkBytes[:])
-	//fmt.Printf("========= round6 start success, pubkey = %v ==========\n", pub)
+	pub := hex.EncodeToString(finalPkBytes[:])
+	fmt.Printf("========= round6 start success, pubkey = %v ==========\n", pub)
 	return nil
 }
 

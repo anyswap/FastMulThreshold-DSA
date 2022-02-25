@@ -45,25 +45,13 @@ func EdVerify(input InputVerify) bool {
 	if err != nil {
 		return false
 	}
-	_, err = h.Write([]byte("hello multichain"))
-	if err != nil {
-		return false
-	}
 
 	_, err = h.Write(input.FinalPk[:])
 	if err != nil {
 		return false
 	}
-	_, err = h.Write([]byte("hello multichain"))
-	if err != nil {
-		return false
-	}
 
 	_, err = h.Write(input.Message[:])
-	if err != nil {
-		return false
-	}
-	_, err = h.Write([]byte("hello multichain"))
 	if err != nil {
 		return false
 	}
@@ -129,11 +117,8 @@ func Verify(publicKey edlib.PublicKey, message, sig []byte) bool {
 
 	h := sha512.New()
 	h.Write(sig[:32])
-	h.Write([]byte("hello multichain"))
 	h.Write(publicKey[:])
-	h.Write([]byte("hello multichain"))
 	h.Write(message)
-	h.Write([]byte("hello multichain"))
 	var digest [64]byte
 	h.Sum(digest[:0])
 

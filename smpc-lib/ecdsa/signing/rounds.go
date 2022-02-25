@@ -22,6 +22,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
 	"fmt"
+	"encoding/hex"
 )
 
 type (
@@ -109,11 +110,12 @@ func (round *base) GetDNodeIDIndex(id string) (int, error) {
 		return -1, nil
 	}
 
-	idtmp, ok := new(big.Int).SetString(id, 10)
-	if !ok {
-		return -1, errors.New("get id big number fail")
+	uidtmp, err := hex.DecodeString(id)
+	if err != nil {
+	    return -1,err
 	}
-
+	idtmp,_ := new(big.Int).SetString(string(uidtmp[:]),10)
+	
 	for k, v := range round.idsign {
 		if v.Cmp(idtmp) == 0 {
 			return k, nil

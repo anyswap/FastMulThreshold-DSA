@@ -414,23 +414,11 @@ func GetBip32ChildKey(rootpubkey string, inputcode string) (string, string, erro
 		if err != nil {
 		    return "","",err
 		}
-		_,err = h.Write([]byte("hello multichain"))
-		if err != nil {
-		    return "","",err
-		}
 		_,err = h.Write(childPKy.Bytes())
 		if err != nil {
 		    return "","",err
 		}
-		_,err = h.Write([]byte("hello multichain"))
-		if err != nil {
-		    return "","",err
-		}
 		_,err = h.Write([]byte(indexs[idxi]))
-		if err != nil {
-		    return "","",err
-		}
-		_,err = h.Write([]byte("hello multichain"))
 		if err != nil {
 		    return "","",err
 		}

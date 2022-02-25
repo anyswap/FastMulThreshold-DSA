@@ -24,6 +24,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
+	"encoding/hex"
 )
 
 // Start verify MtAZK1Proof,paillier homo add ,paillier homo mul
@@ -158,7 +159,9 @@ func (round *round4) Start() error {
 			}
 			srm.SetFromID(round.kgid)
 			srm.SetFromIndex(curIndex)
-			srm.AppendToID(fmt.Sprintf("%v", v))
+			tmp := fmt.Sprintf("%v",v)
+			idtmp := hex.EncodeToString([]byte(tmp))
+			srm.AppendToID(idtmp) //id-->dnodeid
 			round.out <- srm
 		}
 
@@ -206,7 +209,9 @@ func (round *round4) Start() error {
 			}
 			srm.SetFromID(round.kgid)
 			srm.SetFromIndex(curIndex)
-			srm.AppendToID(fmt.Sprintf("%v", v))
+			tmp := fmt.Sprintf("%v",v)
+			idtmp := hex.EncodeToString([]byte(tmp))
+			srm.AppendToID(idtmp) //id-->dnodeid
 			round.out <- srm
 		}
 

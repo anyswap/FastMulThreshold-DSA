@@ -23,6 +23,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
 	"sort"
+	"encoding/hex"
 )
 
 type (
@@ -90,11 +91,12 @@ func (round *base) CanProceed() bool {
 func (round *base) GetIDs() (smpc.SortableIDSSlice, error) {
 	var ids smpc.SortableIDSSlice
 	for _, v := range round.temp.reshareRound0Messages {
-		uid, ok := new(big.Int).SetString(v.GetFromID(), 10)
-		if !ok {
-			return nil, errors.New("get uid fail")
+		uidtmp, err := hex.DecodeString(v.GetFromID())
+		if err != nil {
+		    return nil,err
 		}
 
+		uid,_ := new(big.Int).SetString(string(uidtmp[:]),10)
 		ids = append(ids, uid)
 	}
 
@@ -108,10 +110,11 @@ func (round *base) GetDNodeIDIndex(id string) (int, error) {
 		return -1, nil
 	}
 
-	idtmp, ok := new(big.Int).SetString(id, 10)
-	if !ok {
-		return -1, errors.New("get id big number fail")
+	uidtmp, err := hex.DecodeString(id)
+	if err != nil {
+	    return -1,err
 	}
+	idtmp,_ := new(big.Int).SetString(string(uidtmp[:]),10)
 
 	for k, v := range round.idreshare {
 		if v.Cmp(idtmp) == 0 {

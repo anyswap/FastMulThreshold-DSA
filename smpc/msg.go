@@ -544,15 +544,6 @@ func (recv *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		res = msgdata
 	}
 
-	/*mm := strings.Split(res, common.Sep)
-	if len(mm) >= 3 {
-		common.Debug("================RecvMsg.Run,begin to dis msg =================", "res", res)
-		//msg:  key-enode:C1:X1:X2....:Xn
-		//msg:  key-enode1:NoReciv:enode2:C1
-		DisMsg(res)
-		return true
-	}*/
-
 	var req CmdReq
 	msgmap := make(map[string]string)
 	err := json.Unmarshal([]byte(res), &msgmap)
@@ -578,9 +569,7 @@ func Handle(key string, c1data string) {
 
 	val, exist := C1Data.ReadMap(c1data)
 	if exist {
-		common.Debug("==============================Handle,exsit c1data========================","key",key,"c1data key",c1data)
 		if w.DNode != nil && w.DNode.Round() != nil {
-			common.Info("==============================Handle,put c1data to w.SmpcMsg channel success.========================","key",key,"c1data key",c1data,"c1data value",val.(string))
 			w.SmpcMsg <- val.(string)
 			go C1Data.DeleteMap(c1data)
 		}
@@ -589,17 +578,21 @@ func Handle(key string, c1data string) {
 
 // HandleKG Process pre-save msg for keygen
 func HandleKG(key string, uid *big.Int) {
-	c1data := strings.ToLower(key + "-" + fmt.Sprintf("%v", uid) + "-" + "KGRound0Message")
+    	uidtmp := fmt.Sprintf("%v", uid)
+	tmp := hex.EncodeToString([]byte(uidtmp))
+	c1data := strings.ToLower(key + "-" + tmp + "-" + "KGRound0Message")
 	Handle(key, c1data)
-	c1data = strings.ToLower(key + "-" + fmt.Sprintf("%v", uid) + "-" + "KGRound1Message")
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound1Message")
 	Handle(key, c1data)
 }
 
 // HandleSign Process pre-save msg for sign 
 func HandleSign(key string, uid *big.Int) {
-	c1data := strings.ToLower(key + "-" + fmt.Sprintf("%v", uid) + "-" + "SignRound1Message")
+    	uidtmp := fmt.Sprintf("%v", uid)
+	tmp := hex.EncodeToString([]byte(uidtmp))
+	c1data := strings.ToLower(key + "-" + tmp + "-" + "SignRound1Message")
 	Handle(key, c1data)
-	c1data = strings.ToLower(key + "-" + fmt.Sprintf("%v", uid) + "-" + "SignRound9Message")
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "SignRound9Message")
 	Handle(key, c1data)
 }
 

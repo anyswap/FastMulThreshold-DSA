@@ -19,11 +19,9 @@ package signing
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/eddsa/keygen"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
-	"strings"
 )
 
 type (
@@ -76,13 +74,11 @@ func (round *base) RoundNumber() int {
 
 func (round *base) CanProceed() bool {
 	if !round.started {
-		fmt.Printf("=========== round.CanProceed,not start, round.number = %v ============\n", round.number)
 		return false
 	}
 
 	for _, ok := range round.ok {
 		if !ok {
-			//fmt.Printf("=========== round.CanProceed,not ok, round.number = %v ============\n", round.number)
 			return false
 		}
 	}
@@ -101,10 +97,14 @@ func (round *base) GetDNodeIDIndex(id string) (int, error) {
 		return -1, nil
 	}
 
+	uidtmp, err := hex.DecodeString(id)
+	if err != nil {
+	    return -1,err
+	}
+	idtmp,_ := new(big.Int).SetString(string(uidtmp[:]),10)
+	
 	for k, v := range round.idsign {
-		var id2 [32]byte
-		copy(id2[:], v.Bytes())
-		if strings.EqualFold(hex.EncodeToString(id2[:]), id) {
+		if v.Cmp(idtmp) == 0 {
 			return k, nil
 		}
 

@@ -714,14 +714,12 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 
 	w := workers[id]
 	if w.groupid == "" {
-		///bug groupid == nil ???
 		w, err := FindWorker(msgprex)
 		if err != nil || w.groupid == "" {
 			res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get group id fail")}
 			ch <- res
 			return false
 		}
-		//////
 	}
 
 	ns, _ := GetGroup(w.groupid)
@@ -739,10 +737,9 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 	w.DNode = keyGenDNode
 	_,UID := GetNodeUID(curEnode, "EC256K1",w.groupid)
 	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", UID))
-	fmt.Printf("=========== KeyGenerateDECDSA, node uid = %v ===========\n", keyGenDNode.DNodeID())
+	fmt.Printf("=========== KeyGenerateDECDSA, current node uid = %v ===========\n", keyGenDNode.DNodeID())
 
-	uid, _ := new(big.Int).SetString(w.DNode.DNodeID(), 10)
-	w.MsgToEnode[fmt.Sprintf("%v", uid)] = curEnode
+	w.MsgToEnode[w.DNode.DNodeID()] = curEnode
 
 	var keyGenWg sync.WaitGroup
 	keyGenWg.Add(2)

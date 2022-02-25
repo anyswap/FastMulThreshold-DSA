@@ -22,6 +22,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
+	"encoding/hex"
 )
 
 // Start get vss data and send to corresponding peer
@@ -97,9 +98,10 @@ func (round *round2) Start() error {
 				break
 			} else if vv != nil && vv.Cmp(id) == 0 {
 				fmt.Printf("=========== round2, share struct id = %v, share = %v, k = %v ===========\n", v.ID, v.Share, k)
-				re.AppendToID(fmt.Sprintf("%v", id)) //id-->dnodeid
+				tmp := fmt.Sprintf("%v",id)
+				idtmp := hex.EncodeToString([]byte(tmp))
+				re.AppendToID(idtmp)
 				round.out <- re
-				//fmt.Printf("============ round2 send msg to peer = %v ============\n",id)
 				break
 			}
 		}

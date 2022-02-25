@@ -96,16 +96,8 @@ func (round *round4) Start() error {
 	if err != nil {
 		return err
 	}
-	_, err = h.Write([]byte("hello multichain"))
-	if err != nil {
-		return err
-	}
 
 	_, err = h.Write(PkSet)
-	if err != nil {
-		return err
-	}
-	_, err = h.Write([]byte("hello multichain"))
 	if err != nil {
 		return err
 	}
@@ -158,10 +150,8 @@ func (round *round4) Start() error {
 		if k == curIndex {
 			round.temp.kgRound4Messages[k] = kg
 		} else {
-
-			var tmp [32]byte
-			copy(tmp[:], id.Bytes())
-			idtmp := hex.EncodeToString(tmp[:])
+			tmp := fmt.Sprintf("%v",id)
+			idtmp := hex.EncodeToString([]byte(tmp))
 			kg.AppendToID(idtmp) //id-->dnodeid
 			round.out <- kg
 		}

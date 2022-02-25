@@ -117,7 +117,6 @@ func BaseUpdate(p DNode, msg Message) (ok bool, err error) {
 		}
 
 		if _, err := p.Round().Update(); err != nil {
-			fmt.Printf("=========== BaseUpdate,update err = %v ===========\n", err)
 			p.unlock() // recursive so can't defer after return
 			return false, err
 		}
@@ -140,3 +139,4 @@ func BaseUpdate(p DNode, msg Message) (ok bool, err error) {
 	p.unlock()
 	return true, nil
 }
+

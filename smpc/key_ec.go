@@ -66,8 +66,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 
 			if msgmap["Type"] == "KGRound0Message" { //0 message
 				from := msgmap["FromID"]
-				id, _ := new(big.Int).SetString(from, 10)
-				w.MsgToEnode[fmt.Sprintf("%v", id)] = msgmap["ENode"]
+				w.MsgToEnode[from] = msgmap["ENode"]
 			}
 
 			mm := GetRealMessage(msgmap)
@@ -109,7 +108,8 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			// check fromID
 			_,UID := GetNodeUID(msgmap["ENode"], "EC256K1",w.groupid)
 			id := fmt.Sprintf("%v", UID)
-			if !strings.EqualFold(id,mm.GetFromID()) {
+			uid := hex.EncodeToString([]byte(id))
+			if !strings.EqualFold(uid,mm.GetFromID()) {
 			    common.Error("===============keygen,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"],"err","check from ID fail")
 			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check from ID fail")}
 			    ch <- res
@@ -134,7 +134,6 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 				ch <- res
 				return
 			}
-			////
 
 			_, err = w.DNode.Update(mm)
 			if err != nil {
@@ -585,7 +584,9 @@ func GetKGLocalDBSaveData(data map[string]string) *KGLocalDBSaveData {
 	save := keygen.GetLocalDNodeSaveData(data)
 	msgtoenode := make(map[string]string)
 	for _, v := range save.IDs {
-		msgtoenode[fmt.Sprintf("%v", v)] = data[fmt.Sprintf("%v", v)]
+	    tmp := fmt.Sprintf("%v",v)
+	    id := strings.ToLower(hex.EncodeToString([]byte(tmp)))
+	    msgtoenode[id] = data[id]
 	}
 
 	kgsave := &KGLocalDBSaveData{Save: save, MsgToEnode: msgtoenode}
@@ -620,13 +621,6 @@ func ProcessOutCh(msgprex string, msg smpclib.Message) error {
 		return err
 	}
 
-	/////test
-	/*hash,err := getUnSignMsgByte(msg)
-	if err == nil {
-	    common.Debug("===============keygen,sign p2p msg success===============","hash",hash,"sig",hex.EncodeToString(sig),"sender",curEnode,"msg type",msgmap["Type"])
-	}*/
-	//////////
-	
 	if msg.IsBroadcast() {
 		SendMsgToSmpcGroup(string(s), w.groupid)
 	} else {

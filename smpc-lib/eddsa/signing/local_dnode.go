@@ -109,7 +109,6 @@ func NewLocalDNode(
 	var id [32]byte
 	copy(id[:], kgid.Bytes())
 	p.ID = hex.EncodeToString(id[:])
-	fmt.Printf("=========== NewLocalDNode, kgid = %v, p.ID = %v =============\n", kgid, p.ID)
 
 	p.ThresHold = threshold
 	p.PaillierKeyLength = paillierkeylength
@@ -151,8 +150,11 @@ func (p *LocalDNode) DNodeID() string {
 }
 
 // SetDNodeID set the ID of current DNode
+// p.ID : enode --> DoubleHash --> index+1 --> Sprintf(index+1) --> []byte( Sprintf(index+1) ) --> EncodeToString
+// *big.Int format: index+1
+// string format: EncodeToString
 func (p *LocalDNode) SetDNodeID(id string) {
-	p.ID = id
+	p.ID = hex.EncodeToString([]byte(id))
 }
 
 // Finalize weather gg20 round

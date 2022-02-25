@@ -45,7 +45,7 @@ func (round *round1) Start() error {
 
 	index, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
-		fmt.Printf("============round1 start,get dnode id index fail,err = %v ===========\n", err)
+		fmt.Printf("============round1 start,get dnode id index fail,uid = %v,err = %v ===========\n", round.dnodeid,err)
 		return err
 	}
 

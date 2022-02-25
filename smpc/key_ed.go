@@ -106,7 +106,8 @@ func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, wg *s
 			// check fromID
 			_,UID := GetNodeUID(msgmap["ENode"], "ED25519",w.groupid)
 			id := fmt.Sprintf("%v", UID)
-			if !strings.EqualFold(id,mm.GetFromID()) {
+			uid := hex.EncodeToString([]byte(id))
+			if !strings.EqualFold(uid,mm.GetFromID()) {
 			    common.Error("===============keygen ed,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"],"err","check from ID fail")
 			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check from ID fail")}
 			    ch <- res
@@ -356,10 +357,9 @@ func GetKGLocalDBSaveDataED(data map[string]string) *KGLocalDBSaveDataED {
 	save := edkeygen.GetLocalDNodeSaveData(data)
 	msgtoenode := make(map[string]string)
 	for _, v := range save.IDs {
-		var tmp [32]byte
-		copy(tmp[:], v.Bytes())
-		id := strings.ToLower(hex.EncodeToString(tmp[:]))
-		msgtoenode[id] = data[id]
+	    tmp := fmt.Sprintf("%v",v)
+	    id := strings.ToLower(hex.EncodeToString([]byte(tmp)))
+	    msgtoenode[id] = data[id]
 	}
 
 	kgsave := &KGLocalDBSaveDataED{Save: save, MsgToEnode: msgtoenode}

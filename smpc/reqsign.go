@@ -387,8 +387,36 @@ func Sign(raw string) (string, string, error) {
 	common.Debug("=====================Sign================", "key", key, "from", from, "raw", raw)
 
 	if sig.Keytype == "ED25519" {
-		SendMsgToSmpcGroup(raw, sig.GroupID)
-		SetUpMsgList(raw, curEnode)
+		pickdata := make([]*PickHashData, 0)
+		pickhash := make([]*PickHashKey, 0)
+		m := make(map[string]string)
+		send, err := CompressSignBrocastData(raw, pickhash)
+		if err != nil || send == "" {
+		    return "","",err
+		}
+
+		m["ComSignBrocastData"] = send
+		m["Type"] = "ComSignBrocastData"
+		val, err := json.Marshal(m)
+		if err != nil {
+		    return "", "",err 
+		}
+
+		SendMsgToSmpcGroup(string(val), sig.GroupID)
+
+		m2 := make(map[string]string)
+		selfsend, err := CompressSignData(raw, pickdata)
+		if err != nil || selfsend == "" {
+		    return "","",err
+		}
+
+		m2["ComSignData"] = selfsend
+		m2["Type"] = "ComSignData"
+		val2, err := json.Marshal(m2)
+		if err != nil {
+		    return "", "",err 
+		}
+		SetUpMsgList(string(val2), curEnode)
 	} else {
 		rsd := &RPCSignData{Raw: raw, PubKey: sig.PubKey, InputCode: sig.InputCode, GroupID: sig.GroupID, MsgHash: sig.MsgHash, Key: key}
 		SignChan <- rsd
@@ -1151,7 +1179,8 @@ func GetMsgToEnode(keytype string, gid string,groupid string) map[string]string 
     for _, v := range others {
 	    node2 := ParseNode(v)
 	    _,uid := GetNodeUID(node2, keytype,gid)
-	    msgtoenode[fmt.Sprintf("%v", uid)] = node2
+	    tmp := fmt.Sprintf("%v",uid)
+	    msgtoenode[hex.EncodeToString([]byte(tmp))] = node2
     }
 
     return msgtoenode
@@ -1664,6 +1693,8 @@ func signED(msgprex string, txhash []string, save string, sku1 *big.Int, pk stri
 		} else {
 			tmp = append(tmp, string(txhashs))
 		}
+
+		//tmp = append(tmp, string(common.FromHex(v)))
 	}
 
 	w, err := FindWorker(msgprex)

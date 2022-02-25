@@ -267,7 +267,12 @@ func (Sbd *SignBrocastData) MarshalJSON() ([]byte, error) {
 
 		ph = append(ph, string(s))
 	}
-	phs := strings.Join(ph, "|")
+
+	var phs string
+
+	if len(ph) != 0 {
+	    phs = strings.Join(ph, "|")
+	}
 
 	return json.Marshal(struct {
 		Raw      string `json:"Raw"`
@@ -289,19 +294,22 @@ func (Sbd *SignBrocastData) UnmarshalJSON(raw []byte) error {
 	}
 
 	Sbd.Raw = sbd.Raw
-	phs := strings.Split(sbd.PickHash, "|")
-	pickhash := make([]*PickHashKey, 0)
-	for _, v := range phs {
-		vv := &PickHashKey{}
-		if err := vv.UnmarshalJSON([]byte(v)); err != nil {
-			return err
-		}
 
-		pickhash = append(pickhash, vv)
+	pickhash := make([]*PickHashKey, 0)
+	var phs []string
+	if sbd.PickHash != "" {
+	    phs = strings.Split(sbd.PickHash, "|")
+	    for _, v := range phs {
+		    vv := &PickHashKey{}
+		    if err := vv.UnmarshalJSON([]byte(v)); err != nil {
+			    return err
+		    }
+
+		    pickhash = append(pickhash, vv)
+	    }
 	}
 
 	Sbd.PickHash = pickhash
-
 	return nil
 }
 
@@ -324,7 +332,11 @@ func (Spd *SignPickData) MarshalJSON() ([]byte, error) {
 
 		ph = append(ph, string(s))
 	}
-	phs := strings.Join(ph, "|")
+
+	var phs string
+	if len(ph) != 0 {
+	    phs = strings.Join(ph, "|")
+	}
 
 	return json.Marshal(struct {
 		Raw      string `json:"Raw"`
@@ -347,19 +359,22 @@ func (Spd *SignPickData) UnmarshalJSON(raw []byte) error {
 
 	Spd.Raw = spd.Raw
 
-	phs := strings.Split(spd.PickData, "|")
 	pickdata := make([]*PickHashData, 0)
-	for _, v := range phs {
-		vv := &PickHashData{}
-		if err := vv.UnmarshalJSON([]byte(v)); err != nil {
-			return err
-		}
+	var phs []string
 
-		pickdata = append(pickdata, vv)
+	if spd.PickData != "" {
+	    phs = strings.Split(spd.PickData, "|")
+	    for _, v := range phs {
+		    vv := &PickHashData{}
+		    if err := vv.UnmarshalJSON([]byte(v)); err != nil {
+			    return err
+		    }
+
+		    pickdata = append(pickdata, vv)
+	    }
 	}
 
 	Spd.PickData = pickdata
-
 	return nil
 }
 

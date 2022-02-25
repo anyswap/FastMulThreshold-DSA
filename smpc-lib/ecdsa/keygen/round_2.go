@@ -22,6 +22,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
+	"encoding/hex"
 )
 
 const (
@@ -117,7 +118,9 @@ func (round *round2) Start() error {
 				round.temp.kgRound2Messages[k] = kg
 				break
 			} else if vv != nil && vv.Cmp(id) == 0 {
-				kg.AppendToID(fmt.Sprintf("%v", id)) //id-->dnodeid
+				tmp := fmt.Sprintf("%v",id)
+				idtmp := hex.EncodeToString([]byte(tmp))
+				kg.AppendToID(idtmp) //id-->dnodeid
 				round.out <- kg
 				break
 			}

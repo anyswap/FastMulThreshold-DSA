@@ -307,7 +307,6 @@ func Keccak256Hash(data ...[]byte) (h ByteHash) {
 		if err != nil {
 			return h
 		}
-		_, err = d.Write([]byte("hello multichain"))
 		if err != nil {
 			return h
 		}
@@ -332,11 +331,6 @@ func DoubleHash(id string, keytype string) *big.Int {
 		return nil
 	}
 
-	_,err = keccak256.Write([]byte("hello multichain"))
-	if err != nil {
-	    return nil
-	}
-
 	digestKeccak256 := keccak256.Sum(nil)
 
 	//second, hash with the SHA3-256
@@ -345,11 +339,6 @@ func DoubleHash(id string, keytype string) *big.Int {
 	_, err = sha3256.Write(digestKeccak256)
 	if err != nil {
 		return nil
-	}
-
-	_,err = sha3256.Write([]byte("hello multichain"))
-	if err != nil {
-	    return nil
 	}
 
 	if keytype == "ED25519" {

@@ -26,6 +26,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
+	"encoding/hex"
 )
 
 // LocalDNode current local node
@@ -158,8 +159,11 @@ func (p *LocalDNode) DNodeID() string {
 }
 
 // SetDNodeID set the ID of current DNode
+// p.ID : enode --> DoubleHash --> index+1 --> Sprintf(index+1) --> []byte( Sprintf(index+1) ) --> EncodeToString
+// big.Int format: index+1
+// string format: EncodeToString
 func (p *LocalDNode) SetDNodeID(id string) {
-	p.ID = id
+	p.ID = hex.EncodeToString([]byte(id))
 }
 
 // CheckFull  Check for empty messages 

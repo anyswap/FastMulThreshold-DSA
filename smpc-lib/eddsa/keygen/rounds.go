@@ -90,7 +90,7 @@ func (round *base) GetIDs() (smpc.SortableIDSSlice, error) {
 		    return nil,err
 		}
 
-		uid := new(big.Int).SetBytes(uidtmp[:])
+		uid,_ := new(big.Int).SetString(string(uidtmp[:]),10)
 		ids = append(ids, uid)
 	}
 
@@ -114,7 +114,7 @@ func (round *base) GetDNodeIDIndex(id string) (int, error) {
 	    return -1,err
 	}
 
-	uid := new(big.Int).SetBytes(uidtmp[:])
+	uid,_ := new(big.Int).SetString(string(uidtmp[:]),10)
 	for k, v := range ids {
 		if v.Cmp(uid) == 0 {
 			return k, nil

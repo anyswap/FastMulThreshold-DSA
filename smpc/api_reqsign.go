@@ -427,31 +427,13 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 					    ch <- res
 					    return false
 					}
-					_,err = h.Write([]byte("hello multichain"))
-					if err != nil {
-					    res := RPCSmpcRes{Ret: "", Tip: "", Err:err}
-					    ch <- res
-					    return false
-					}
 					_,err = h.Write(childPKy.Bytes())
 					if err != nil {
 					    res := RPCSmpcRes{Ret: "", Tip: "", Err:err}
 					    ch <- res
 					    return false
 					}
-					_,err = h.Write([]byte("hello multichain"))
-					if err != nil {
-					    res := RPCSmpcRes{Ret: "", Tip: "", Err:err}
-					    ch <- res
-					    return false
-					}
 					_,err = h.Write([]byte(indexs[idxi]))
-					if err != nil {
-					    res := RPCSmpcRes{Ret: "", Tip: "", Err:err}
-					    ch <- res
-					    return false
-					}
-					_,err = h.Write([]byte("hello multichain"))
 					if err != nil {
 					    res := RPCSmpcRes{Ret: "", Tip: "", Err:err}
 					    ch <- res
@@ -598,31 +580,13 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 					    ch <- res
 					    return false
 					}
-					_,err = h.Write([]byte("hello multichain"))
-					if err != nil {
-					    res := RPCSmpcRes{Ret: "", Tip: "", Err:err}
-					    ch <- res
-					    return false
-					}
 					_,err = h.Write(childPKy.Bytes())
 					if err != nil {
 					    res := RPCSmpcRes{Ret: "", Tip: "", Err:err}
 					    ch <- res
 					    return false
 					}
-					_,err = h.Write([]byte("hello multichain"))
-					if err != nil {
-					    res := RPCSmpcRes{Ret: "", Tip: "", Err:err}
-					    ch <- res
-					    return false
-					}
 					_,err = h.Write([]byte(indexs[idxi]))
-					if err != nil {
-					    res := RPCSmpcRes{Ret: "", Tip: "", Err:err}
-					    ch <- res
-					    return false
-					}
-					_,err = h.Write([]byte("hello multichain"))
 					if err != nil {
 					    res := RPCSmpcRes{Ret: "", Tip: "", Err:err}
 					    ch <- res
@@ -706,6 +670,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 		if msgmap["Type"] == "ComSignBrocastData" {
 			signbrocast, err := UnCompressSignBrocastData(msgmap["ComSignBrocastData"])
 			if err != nil {
+			    fmt.Printf("=======================PreSign at RecvMsg.Run,uncompress sign brocast data fail,err = %v========================\n",err)
 			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			    ch <- res
 			    return false
@@ -729,18 +694,20 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			for _, vv := range signbrocast.PickHash {
 				pre := GetPreSignData(sig.PubKey, sig.InputCode, sig.GroupID, vv.PickKey)
 				if pre == nil {
-					res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get pre-sign data fail", Err: fmt.Errorf("get pre-sign data fail")}
-					ch <- res
-					return false
+				    fmt.Printf("============================PreSign at RecvMsg.Run,get pre-sign data fail============================\n")
+				    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get pre-sign data fail")}
+				    ch <- res
+				    return false
 				}
 
 				pd := &PickHashData{Hash: vv.Hash, Pre: pre}
 				pickdata = append(pickdata, pd)
 				err = DeletePreSignData(sig.PubKey, sig.InputCode, sig.GroupID, vv.PickKey)
 				if err != nil {
-					res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
-					ch <- res
-					return false
+				    fmt.Printf("============================PreSign at RecvMsg.Run,delete pre-sign data fail,err = %v============================\n",err)
+				    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+				    ch <- res
+				    return false
 				}
 			}
 
@@ -756,6 +723,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 		if msgmap["Type"] == "ComSignData" {
 			signpick, err := UnCompressSignData(msgmap["ComSignData"])
 			if err != nil {
+			    fmt.Printf("=========================PreSign at RecvMsg.Run,uncompress sign data fail,err = %v=========================\n",err)
 			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			    ch <- res
 			    return false
