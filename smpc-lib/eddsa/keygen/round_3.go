@@ -37,7 +37,7 @@ func (round *round3) Start() error {
 
 	kg := &KGRound3Message{
 		KGRoundMessage: new(KGRoundMessage),
-		DPk:            round.temp.DPk,
+		DPk:            round.temp.DPk, // can do in round 2
 	}
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(curIndex)

@@ -88,7 +88,7 @@ func (round *round1) Start() error {
 
 	// [Notes]
 	// 1. calculate R
-	var r [32]byte
+	var r [32]byte // random select
 	var RBytes [32]byte
 	var rDigest [64]byte
 

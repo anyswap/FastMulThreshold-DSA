@@ -46,7 +46,7 @@ func (round *round1) Start() error {
 
 	// 1.2 privateKey' = SHA512(seed)
 
-	var sk [64]byte
+	var sk [64]byte // random select in range (0, q), then bit compute and mod q
 	var pk [32]byte
 
 	seedDigest := sha512.Sum512(seed[:])
@@ -56,13 +56,16 @@ func (round *round1) Start() error {
 	//seedDigest[31] &= 63
 	seedDigest[31] |= 64
 
+	// seedDigest mod q
+
 	copy(sk[:], seedDigest[:])
 
 	// 1.3 publicKey
 	var temSk [32]byte
 	copy(temSk[:], sk[:32])
 
-	var A ed.ExtendedGroupElement
+	var A ed.ExtendedGroupElement // considering refer Golang Standard ed25519, rather than use possible expired lib
+
 	ed.GeScalarMultBase(&A, &temSk)
 
 	A.ToBytes(&pk)
@@ -86,7 +89,7 @@ func (round *round1) Start() error {
 	copy(sk[32:], pk[:])*/
 	/////////////////solana
 
-	CPk, DPk, err := ed.Commit(pk)
+	CPk, DPk, err := ed.Commit(pk) // commit coefficients * G of vss, so create vss shares here
 	if err != nil {
 	    return err
 	}
@@ -107,6 +110,7 @@ func (round *round1) Start() error {
 		return err
 	}
 
+	// Q: enter new round only after receiving all messages?
 	kg := &KGRound1Message{
 		KGRoundMessage: new(KGRoundMessage),
 		CPk:            CPk,

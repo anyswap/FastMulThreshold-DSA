@@ -39,7 +39,7 @@ func (round *round2) Start() error {
 
 	srm := &SignRound2Message{
 		SignRoundMessage: new(SignRoundMessage),
-		ZkR:              round.temp.zkR,
+		ZkR:              round.temp.zkR, // also can broadcast DR
 	}
 	srm.SetFromID(round.kgid)
 	srm.SetFromIndex(curIndex)

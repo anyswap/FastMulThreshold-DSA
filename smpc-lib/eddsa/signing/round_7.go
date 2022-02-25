@@ -47,6 +47,8 @@ func (round *round7) Start() error {
 		ed.ScAdd(&FinalS, &FinalS, &t)
 	}
 
+	// finalS mod q
+
 	inputVerify := InputVerify{FinalR: round.temp.FinalRBytes, FinalS: FinalS, Message: []byte(round.temp.message), FinalPk: round.temp.pkfinal}
 
 	var pass = EdVerify(inputVerify)

@@ -82,6 +82,10 @@ func (round *round4) Start() error {
 
 	fmt.Printf("================round 4, ZeroKnowledge Proof Pass================\n")
 
+	// verfiy commit, zk, vss shares
+	// calculate sum of vss shares
+	// calculate pk
+
 	// 2.5 calculate a = SHA256(PkU1, {PkU2, PkU3})
 	var a [32]byte
 	var aDigest [64]byte
@@ -113,7 +117,7 @@ func (round *round4) Start() error {
 	h.Sum(aDigest[:0])
 	ed.ScReduce(&a, &aDigest)
 
-	// 2.6 calculate ask
+	// 2.6 calculate ask // no need to calculate, just use sk
 	var ask [32]byte
 	var temSk2 [32]byte
 	copy(temSk2[:], round.temp.sk[:32])

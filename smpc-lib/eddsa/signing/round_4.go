@@ -94,7 +94,7 @@ func (round *round4) Start() error {
 	if err != nil {
 		return err
 	}
-	_, err = h.Write([]byte("hello multichain"))
+	_, err = h.Write([]byte("hello multichain")) // like discussed offline, remove it
 	if err != nil {
 		return err
 	}
@@ -162,6 +162,8 @@ func (round *round4) Start() error {
 
 	ed.ScMul(&s, &s, &k)
 	ed.ScAdd(&s, &s, &round.temp.r)
+
+	// mod q
 
 	// 2.9 calculate sBBytes
 	var sBBytes [32]byte

@@ -46,6 +46,10 @@ func (round *round2) Start() error {
 		KGRoundMessage: new(KGRoundMessage),
 		ZkPk:           round.temp.zkPk,
 	}
+
+	// broadcast: zk, DPK
+	// send vss shares privately
+
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(curIndex)
 	round.temp.kgRound2Messages[curIndex] = kg
