@@ -935,6 +935,18 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 			}
 		}
 
+		ato,err := strconv.Atoi(sig.AcceptTimeOut)
+		if err != nil || sig.AcceptTimeOut == "" {
+			ato = 600
+		}
+		if ato <= 0 {
+			return "", "", "", nil, fmt.Errorf("illegal agreed timeout")
+		}
+
+		if ato > MaxAcceptTime {
+			return "", "", "", nil, fmt.Errorf("greater than the agreed maximum timeout")
+		}
+
 		key := Keccak256Hash([]byte(strings.ToLower(from + ":" + fmt.Sprintf("%v", nonce) + ":" + pubkey + ":" + getSignHash(hash, keytype) + ":" + keytype + ":" + groupid + ":" + threshold + ":" + mode))).Hex()
 		return key, from, fmt.Sprintf("%v", nonce), &sig, nil
 	}

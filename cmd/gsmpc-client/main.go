@@ -384,6 +384,7 @@ func reqSmpcAddr() {
 		GroupID:   *gid,
 		ThresHold: *ts,
 		Mode:      *mode,
+		AcceptTimeOut: "600",
 		TimeStamp: timestamp,
 		Sigs:      sigs,
 	}
@@ -978,6 +979,7 @@ func signMsgHash(hashs []string, contexts []string, loopCount int) (rsv []string
 		GroupID:    *gid,
 		ThresHold:  *ts,
 		Mode:       *mode,
+		AcceptTimeOut: "600",
 		TimeStamp:  timestamp,
 	}
 	playload, _ := json.Marshal(txdata)
@@ -1133,6 +1135,7 @@ func reshare() {
 		ThresHold: *ts,
 		Account:   keyWrapper.Address.String(),
 		Mode:      *mode,
+		AcceptTimeOut: "600",
 		Sigs:      sigs,
 		TimeStamp: timestamp,
 	}
@@ -1396,6 +1399,7 @@ type reqAddrData struct {
 	GroupID   string `json:"GroupId"`
 	ThresHold string `json:"ThresHold"`
 	Mode      string `json:"Mode"`
+	AcceptTimeOut  string `json:"AcceptTimeOut"` //unit: second
 	TimeStamp string `json:"TimeStamp"`
 	Sigs      string `json:"Sigs"`
 }
@@ -1435,6 +1439,7 @@ type signData struct {
 	GroupID    string   `json:"GroupId"`
 	ThresHold  string   `json:"ThresHold"`
 	Mode       string   `json:"Mode"`
+	AcceptTimeOut  string `json:"AcceptTimeOut"` //unit: second
 	TimeStamp  string   `json:"TimeStamp"`
 }
 type preSignData struct {
@@ -1450,6 +1455,7 @@ type reshareData struct {
 	ThresHold string `json:"ThresHold"`
 	Account   string `json:"Account"`
 	Mode      string `json:"Mode"`
+	AcceptTimeOut  string `json:"AcceptTimeOut"` //unit: second
 	Sigs      string `json:"Sigs"`
 	TimeStamp string `json:"TimeStamp"`
 }

@@ -94,6 +94,7 @@ type TxDataReqAddr struct {
 	GroupID   string
 	ThresHold string
 	Mode      string
+	AcceptTimeOut      string
 	TimeStamp string
 	Sigs      string
 }

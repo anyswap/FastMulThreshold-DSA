@@ -169,7 +169,12 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 		timeout := make(chan bool, 1)
 		go func(wid int) {
 			curEnode = discover.GetLocalID().String() //GetSelfEnode()
-			agreeWaitTime := time.Duration(WaitAgree) * time.Second
+			ato,err := strconv.Atoi(sig.AcceptTimeOut)
+			if err != nil || sig.AcceptTimeOut == "" {
+				ato = 600 
+			}
+
+			agreeWaitTime := time.Duration(ato) * time.Second
 			agreeWaitTimeOut := time.NewTicker(agreeWaitTime)
 
 			wtmp2 := workers[wid]
@@ -363,6 +368,7 @@ type TxDataSign struct {
 	GroupID    string
 	ThresHold  string
 	Mode       string
+	AcceptTimeOut      string
 	TimeStamp  string
 }
 

@@ -62,8 +62,8 @@ var (
 	waitall         = cht * recalcTimes
 	waitallgg20     = WaitMsgTimeGG20 * recalcTimes
 
-	// WaitAgree agree timeout
-	WaitAgree       = 120 // second
+	// MaxAcceptTime agree timeout
+	MaxAcceptTime       = 406800 // second
 
 	// C1Data the data arrive before cmd by p2p
 	C1Data          = common.NewSafeMap(10)

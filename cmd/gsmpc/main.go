@@ -99,7 +99,7 @@ func StartSmpc(c *cli.Context) {
 
 	rpcsmpc.RPCInit(rpcport)
 
-	params := &smpc.LunchParams{WaitMsg: waitmsg, TryTimes: trytimes, PreSignNum: presignnum, WaitAgree: waitagree, Bip32Pre: bip32pre, SyncPreSign: syncpresign}
+	params := &smpc.LunchParams{WaitMsg: waitmsg, TryTimes: trytimes, PreSignNum: presignnum, MaxAcceptTime: maxaccepttime, Bip32Pre: bip32pre, SyncPreSign: syncpresign}
 	smpc.Start(params)
 	select {} // note for server, or for client
 }
@@ -132,7 +132,7 @@ var (
 	waitmsg      uint64
 	trytimes     uint64
 	presignnum   uint64
-	waitagree    uint64
+	maxaccepttime    uint64
 	bip32pre     uint64
 	syncpresign string
 
@@ -183,7 +183,7 @@ func init() {
 		cli.Uint64Flag{Name: "waitmsg", Value: 120, Usage: "the time to wait p2p msg", Destination: &waitmsg},
 		cli.Uint64Flag{Name: "trytimes", Value: 1, Usage: "the times to try key-gen/sign", Destination: &trytimes},
 		cli.Uint64Flag{Name: "presignnum", Value: 10, Usage: "the total of pre-sign data", Destination: &presignnum},
-		cli.Uint64Flag{Name: "waitagree", Value: 120, Usage: "the time to wait for agree from all nodes", Destination: &waitagree},
+		cli.Uint64Flag{Name: "maxaccepttime", Value: 604800, Usage: "the max time to wait for accept from all nodes", Destination: &maxaccepttime},
 		cli.Uint64Flag{Name: "bip32pre", Value: 4, Usage: "the total counts of pre-sign data for bip32 child pubkey", Destination: &bip32pre},
 		cli.StringFlag{Name: "sync-presign", Value: "true", Usage: "synchronize presign data between group nodes", Destination: &syncpresign},
 	}

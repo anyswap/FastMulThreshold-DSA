@@ -57,7 +57,7 @@ type LunchParams struct {
 	WaitMsg      uint64
 	TryTimes     uint64
 	PreSignNum   uint64
-	WaitAgree    uint64
+	MaxAcceptTime    uint64
 	Bip32Pre     uint64
 	SyncPreSign string
 }
@@ -94,7 +94,7 @@ func Start(params *LunchParams) {
 	WaitMsgTimeGG20 = int(params.WaitMsg)
 	recalcTimes = int(params.TryTimes)
 	waitallgg20 = WaitMsgTimeGG20 * recalcTimes
-	WaitAgree = int(params.WaitAgree)
+	MaxAcceptTime = int(params.MaxAcceptTime)
 	PreBip32DataCount = int(params.Bip32Pre)
 	if params.SyncPreSign == "true" {
 		syncpresign = true

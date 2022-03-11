@@ -114,6 +114,7 @@ type TxDataReShare struct {
 	ThresHold string
 	Account   string
 	Mode      string
+	AcceptTimeOut      string
 	Sigs      string
 	TimeStamp string
 }

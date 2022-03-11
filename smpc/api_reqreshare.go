@@ -286,7 +286,12 @@ func (req *ReqSmpcReshare) DoReq(raw string, workid int, sender string, ch chan 
 		timeout := make(chan bool, 1)
 		go func(wid int) {
 			curEnode = discover.GetLocalID().String() //GetSelfEnode()
-			agreeWaitTime := 10 * time.Minute
+			ato,err := strconv.Atoi(rh.AcceptTimeOut)
+			if err != nil || rh.AcceptTimeOut == "" {
+				ato = 600 
+			}
+
+			agreeWaitTime := time.Duration(ato) * time.Second
 			agreeWaitTimeOut := time.NewTicker(agreeWaitTime)
 
 			wtmp2 := workers[wid]
@@ -491,6 +496,18 @@ func (req *ReqSmpcReshare) CheckTxData(txdata []byte, from string, nonce uint64)
 		nc, _ := GetGroup(rh.GroupID)
 		if nc < limit || nc > nodecnt {
 			return "", "", "", nil, fmt.Errorf("check group node count error")
+		}
+
+		ato,err := strconv.Atoi(rh.AcceptTimeOut)
+		if err != nil || rh.AcceptTimeOut == "" {
+			ato = 600
+		}
+		if ato <= 0 {
+			return "", "", "", nil, fmt.Errorf("illegal agreed timeout")
+		}
+
+		if ato > MaxAcceptTime {
+			return "", "", "", nil, fmt.Errorf("greater than the agreed maximum timeout")
 		}
 
 		key := Keccak256Hash([]byte(strings.ToLower(from + ":" + rh.GroupID + ":" + rh.TSGroupID + ":" + rh.PubKey + ":" + rh.ThresHold + ":" + rh.Mode))).Hex()

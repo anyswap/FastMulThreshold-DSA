@@ -269,7 +269,12 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 			timeout := make(chan bool, 1)
 			go func(wid int) {
 				curEnode = discover.GetLocalID().String() //GetSelfEnode()
-				agreeWaitTime := 10 * time.Minute
+				ato,err := strconv.Atoi(req2.AcceptTimeOut)
+				if err != nil || req2.AcceptTimeOut == "" {
+					ato = 600 
+				}
+
+				agreeWaitTime := time.Duration(ato) * time.Second
 				agreeWaitTimeOut := time.NewTicker(agreeWaitTime)
 				if wid < 0 || wid >= len(workers) || workers[wid] == nil {
 					ars := GetAllReplyFromGroup(w.id, req2.GroupID, RPCREQADDR, sender)
@@ -514,6 +519,18 @@ func (req *ReqSmpcAddr) CheckTxData(txdata []byte, from string, nonce uint64) (s
 		mode := req2.Mode
 		if mode == "" {
 			return "", "", "", nil, fmt.Errorf("get mode fail")
+		}
+
+		ato,err := strconv.Atoi(req2.AcceptTimeOut)
+		if err != nil || req2.AcceptTimeOut == "" {
+			ato = 600
+		}
+		if ato <= 0 {
+			return "", "", "", nil, fmt.Errorf("illegal agreed timeout")
+		}
+
+		if ato > MaxAcceptTime {
+			return "", "", "", nil, fmt.Errorf("greater than the agreed maximum timeout")
 		}
 
 		timestamp := req2.TimeStamp
