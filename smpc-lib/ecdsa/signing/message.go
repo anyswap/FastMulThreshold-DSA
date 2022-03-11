@@ -89,6 +89,11 @@ func (srm *SignRound1Message) OutMap() map[string]string {
 	return m
 }
 
+// GetMsgType get msg type
+func (srm *SignRound1Message) GetMsgType() string {
+	return "SignRound1Message"
+}
+
 // SignRound2Message  Round 2 sending message 
 type SignRound2Message struct {
 	*SignRoundMessage
@@ -132,6 +137,11 @@ func (srm *SignRound2Message) OutMap() map[string]string {
 	m["U1u1MtAZK1Proof"] = string(proof)
 
 	return m
+}
+
+// GetMsgType get msg type
+func (srm *SignRound2Message) GetMsgType() string {
+	return "SignRound2Message"
 }
 
 // SignRound3Message  Round 3 sending message 
@@ -180,6 +190,11 @@ func (srm *SignRound3Message) OutMap() map[string]string {
 	return m
 }
 
+// GetMsgType get msg type
+func (srm *SignRound3Message) GetMsgType() string {
+	return "SignRound3Message"
+}
+
 // SignRound4Message  Round 4 sending message 
 type SignRound4Message struct {
 	*SignRoundMessage
@@ -226,6 +241,11 @@ func (srm *SignRound4Message) OutMap() map[string]string {
 	return m
 }
 
+// GetMsgType get msg type
+func (srm *SignRound4Message) GetMsgType() string {
+	return "SignRound4Message"
+}
+
 // SignRound4Message1  Round 5 sending message 
 type SignRound4Message1 struct {
 	*SignRoundMessage
@@ -270,6 +290,11 @@ func (srm *SignRound4Message1) OutMap() map[string]string {
 	m["U1Kw1Cipher"] = fmt.Sprintf("%v", srm.U1Kw1Cipher)
 
 	return m
+}
+
+// GetMsgType get msg type
+func (srm *SignRound4Message1) GetMsgType() string {
+	return "SignRound4Message1"
 }
 
 // SignRound5Message  Round 5 sending message 
@@ -320,6 +345,11 @@ func (srm *SignRound5Message) OutMap() map[string]string {
 
 	m["Tpf"] = string(proof) 
 	return m
+}
+
+// GetMsgType get msg type
+func (srm *SignRound5Message) GetMsgType() string {
+	return "SignRound5Message"
 }
 
 // SignRound6Message  Round 6 sending message 
@@ -373,6 +403,11 @@ func (srm *SignRound6Message) OutMap() map[string]string {
 	return m
 }
 
+// GetMsgType get msg type
+func (srm *SignRound6Message) GetMsgType() string {
+	return "SignRound6Message"
+}
+
 // SignRound7Message  Round 7 sending message 
 type SignRound7Message struct {
 	*SignRoundMessage
@@ -419,6 +454,11 @@ func (srm *SignRound7Message) OutMap() map[string]string {
 	m["PdlwSlackPf"] = string(proof)
 
 	return m
+}
+
+// GetMsgType get msg type
+func (srm *SignRound7Message) GetMsgType() string {
+	return "SignRound7Message"
 }
 
 // SignRound8Message  Round 8 sending message 
@@ -469,6 +509,11 @@ func (srm *SignRound8Message) OutMap() map[string]string {
 	return m
 }
 
+// GetMsgType get msg type
+func (srm *SignRound8Message) GetMsgType() string {
+	return "SignRound8Message"
+}
+
 // SignRound9Message  Round 9 sending message 
 type SignRound9Message struct {
 	*SignRoundMessage
@@ -505,5 +550,10 @@ func (srm *SignRound9Message) OutMap() map[string]string {
 
 	m["Us1"] = fmt.Sprintf("%v", srm.Us1)
 	return m
+}
+
+// GetMsgType get msg type
+func (srm *SignRound9Message) GetMsgType() string {
+	return "SignRound9Message"
 }
 

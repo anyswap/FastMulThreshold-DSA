@@ -316,7 +316,6 @@ func GetCurNodeReqAddrInfo(geteracc string) ([]*ReqAddrReply, string, error) {
 				return
 			}
 
-			common.Debug("================GetCurNodeReqAddrInfo, it is *AcceptReqAddrData===================", "vv", vv, "vv.Deal", vv.Deal, "vv.Mode", vv.Mode, "vv.Status", vv.Status, "key", key)
 			if vv.Deal == "true" || vv.Status == "Success" {
 				return
 			}
@@ -335,7 +334,6 @@ func GetCurNodeReqAddrInfo(geteracc string) ([]*ReqAddrReply, string, error) {
 
 			los := &ReqAddrReply{Key: key, Account: vv.Account, Cointype: vv.Cointype, GroupID: vv.GroupID, Nonce: vv.Nonce, ThresHold: vv.LimitNum, Mode: vv.Mode, TimeStamp: vv.TimeStamp}
 			ch <- los
-			common.Debug("================GetCurNodeReqAddrInfo success return================", "key", key)
 		}(string(key2), da, data)
 	}
 	iter.Release()

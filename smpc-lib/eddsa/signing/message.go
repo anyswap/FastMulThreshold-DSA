@@ -84,6 +84,11 @@ func (srm *SignRound1Message) OutMap() map[string]string {
 	return m
 }
 
+// GetMsgType get msg type
+func (srm *SignRound1Message) GetMsgType() string {
+	return "SignRound1Message"
+}
+
 // SignRound2Message  Round 2 sending message 
 type SignRound2Message struct {
 	*SignRoundMessage
@@ -122,6 +127,11 @@ func (srm *SignRound2Message) OutMap() map[string]string {
 	m["ZkR"] = zkr
 
 	return m
+}
+
+// GetMsgType get msg type
+func (srm *SignRound2Message) GetMsgType() string {
+	return "SignRound2Message"
 }
 
 // SignRound3Message  Round 3 sending message 
@@ -164,6 +174,11 @@ func (srm *SignRound3Message) OutMap() map[string]string {
 	return m
 }
 
+// GetMsgType get msg type
+func (srm *SignRound3Message) GetMsgType() string {
+	return "SignRound3Message"
+}
+
 // SignRound4Message  Round 4 sending message 
 type SignRound4Message struct {
 	*SignRoundMessage
@@ -202,6 +217,11 @@ func (srm *SignRound4Message) OutMap() map[string]string {
 	m["CSB"] = csb
 
 	return m
+}
+
+// GetMsgType get msg type
+func (srm *SignRound4Message) GetMsgType() string {
+	return "SignRound4Message"
 }
 
 // SignRound5Message  Round 5 sending message 
@@ -244,6 +264,11 @@ func (srm *SignRound5Message) OutMap() map[string]string {
 	return m
 }
 
+// GetMsgType get msg type
+func (srm *SignRound5Message) GetMsgType() string {
+	return "SignRound5Message"
+}
+
 // SignRound6Message  Round 6 sending message 
 type SignRound6Message struct {
 	*SignRoundMessage
@@ -283,3 +308,9 @@ func (srm *SignRound6Message) OutMap() map[string]string {
 
 	return m
 }
+
+// GetMsgType get msg type
+func (srm *SignRound6Message) GetMsgType() string {
+	return "SignRound6Message"
+}
+

@@ -112,6 +112,7 @@ func BaseUpdate(p DNode, msg Message) (ok bool, err error) {
 	if p.Round() != nil {
 		ok, err := p.StoreMessage(msg)
 		if err != nil || !ok {
+			fmt.Printf("==========================BaseUpdate,store msg fail,msg = %v,err = %v=====================\n",msg,err)
 			p.unlock()
 			return false, err
 		}
@@ -124,6 +125,7 @@ func BaseUpdate(p DNode, msg Message) (ok bool, err error) {
 		if p.Round().CanProceed() {
 			if p.advance(); p.Round() != nil {
 				if err := p.Round().Start(); err != nil {
+					fmt.Printf("==========================BaseUpdate,round start fail,msg,err = %v=====================\n",msg,err)
 					p.unlock() // recursive so can't defer after return
 					return false, err
 				}

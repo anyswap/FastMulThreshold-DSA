@@ -195,6 +195,7 @@ func (round *round4) Start() error {
 	}
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(curIndex)
+	//fmt.Printf("===========================keygen,ec round4,uid = %v,index = %v,dnodecount = %v=============================\n",round.dnodeid,curIndex,round.dnodecount)
 
 	round.Save.U1NtildeH1H2[curIndex] = u1NtildeH1H2
 	round.temp.kgRound4Messages[curIndex] = kg

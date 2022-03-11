@@ -347,7 +347,7 @@ func processSigned(msgprex string, msgtoenode map[string]string, errChan chan st
 			fmt.Printf("=========================== processSigned,error channel closed fail to start local smpc node, key = %v =====================\n", msgprex)
 			return nil, errors.New("error channel closed fail to start local smpc node")
 
-		case <-time.After(time.Second * 300):
+		case <-time.After(time.Second * time.Duration(EdSignTimeout)):
 			fmt.Printf("========================== processSigned,sign timeout, key = %v ==========================\n", msgprex)
 			return nil, errors.New("ed sign timeout")
 		case msg := <-outCh:

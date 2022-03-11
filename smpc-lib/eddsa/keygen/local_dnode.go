@@ -166,24 +166,17 @@ func CheckFull(msg []smpc.Message) bool {
 	return true
 }
 
-// find only check KGRound0Message
 func find(l []smpc.Message,msg smpc.Message) bool {
     if msg == nil || l == nil {
 	return true
     }
 
-    m,ok := msg.(*KGRound0Message)
-    if !ok {
-	return true
-    }
-
     for _,v := range l {
-	vv,ok := v.(*KGRound0Message)
-	if !ok {
-	    return true
-	}
+	    if v == nil {
+		    continue
+	    }
 
-	if vv.FromID == m.FromID {
+	if v.GetMsgType() == msg.GetMsgType() && v.GetFromID() == msg.GetFromID() {
 	    return true
 	}
     }

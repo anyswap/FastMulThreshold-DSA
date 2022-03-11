@@ -310,7 +310,7 @@ func processKeyGenEDDSA(msgprex string, errChan chan struct{}, outCh <-chan smpc
 			fmt.Printf("=========== processKeyGenEDDSA,error channel closed fail to start local smpc node, key = %v ===========\n", msgprex)
 			return errors.New("error channel closed fail to start local smpc node")
 
-		case <-time.After(time.Second * 300):
+		case <-time.After(time.Second * time.Duration(EdKeygenTimeout)):
 			fmt.Printf("====================== processKeyGenEDDSA,ed keygen timeout, key = %v ====================\n", msgprex)
 			return errors.New("ed keygen timeout")
 		case msg := <-outCh:

@@ -181,24 +181,35 @@ func CheckFull(msg []smpc.Message) bool {
 	return true
 }
 
-// find only check KGRound0Message
+// getFullCount  Check for empty messages 
+func getFullCount(msg []smpc.Message) int {
+	if len(msg) == 0 {
+		return 0
+	}
+
+	count := 0 
+	for _, v := range msg {
+		if v == nil {
+			continue
+		}
+
+		count++
+	}
+
+	return count
+}
+
 func find(l []smpc.Message,msg smpc.Message) bool {
     if msg == nil || l == nil {
 	return true
     }
 
-    m,ok := msg.(*KGRound0Message)
-    if !ok {
-	return true
-    }
-
     for _,v := range l {
-	vv,ok := v.(*KGRound0Message)
-	if !ok {
-	    return true
-	}
+	    if v == nil {
+		    continue
+	    }
 
-	if vv.FromID == m.FromID {
+	if v.GetMsgType() == msg.GetMsgType() && v.GetFromID() == msg.GetFromID() {
 	    return true
 	}
     }
@@ -274,6 +285,14 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return true, nil
 		}
 	case *KGRound4Message:
+	    	if find(p.temp.kgRound4Messages,msg) {
+			if len(p.temp.kgRound4Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound4Messages) {
+				return true, nil
+			}
+			//fmt.Printf("================ StoreMessage,the msg 4 have exsit already,msg = %v,len = %v ==============\n",msg,getFullCount(p.temp.kgRound4Messages))
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		m := msg.(*KGRound4Message)
 
@@ -283,64 +302,103 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		Ntilde := m.U1NtildeH1H2.Ntilde
 		pf1 := m.NtildeProof1
 		pf2 := m.NtildeProof2
-		//fmt.Printf("=========================keygen StoreMessage, message 4, curindex = %v, h1 = %v, h2 = %v, ntilde = %v, pf1 = %v, pf2 = %v ===========================\n", index, H1, H2, Ntilde, pf1, pf2)
 		zero,_ := new(big.Int).SetString("0",10)
 		one,_ := new(big.Int).SetString("1",10)
 		h1modn := new(big.Int).Mod(H1,Ntilde)
 		h2modn := new(big.Int).Mod(H2,Ntilde)
 		if h1modn.Cmp(zero) == 0 || h2modn.Cmp(zero) == 0 {
+			fmt.Printf("=========================keygen StoreMessage, message 4, h1 or h2 is equal 0 mod ntilde.from index = %v, msg = %v, ===========================\n", index, m)
 		    return false,errors.New("h1 or h2 is equal 0 mod Ntilde")
 		}
 		if h1modn.Cmp(one) == 0 || h2modn.Cmp(one) == 0 {
+			fmt.Printf("=========================keygen StoreMessage, message 4, h1 or h2 is equal 1 mod ntilde.from index = %v, msg = %v, ===========================\n", index, m)
 		    return false,errors.New("h1 or h2 is equal 1 mod Ntilde")
 		}
 
 		if h1modn.Cmp(h2modn) == 0 {
+			fmt.Printf("=========================keygen StoreMessage, message 4, h1 and h2 were equal mod ntilde.from index = %v, msg = %v, ===========================\n", index, m)
 			return false, errors.New("h1 and h2 were equal mod Ntilde")
 		}
 		
 		if !pf1.Verify(H1, H2, Ntilde) || !pf2.Verify(H2, H1, Ntilde) {
+			fmt.Printf("=========================keygen StoreMessage, message 4, ntilde zk proof check fail.from index = %v, msg = %v, ===========================\n", index, m)
 			return false, errors.New("ntilde zk proof check fail")
 		}
-		////////
 
 		p.data.U1NtildeH1H2[index] = m.U1NtildeH1H2
 		p.temp.kgRound4Messages[index] = msg
+		fmt.Printf("=========================keygen StoreMessage, message 4, msg len = %v,from index = %v, msg = %v, ===========================\n", getFullCount(p.temp.kgRound4Messages),index, m)
 		if len(p.temp.kgRound4Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound4Messages) {
 			fmt.Printf("================ StoreMessage,get all ec keygen 4 messages ==============\n")
-			time.Sleep(time.Duration(1000000)) //tmp code
+			time.Sleep(time.Duration(1000000))
 			return true, nil
 		}
 	case *KGRound5Message:
+	    	if find(p.temp.kgRound5Messages,msg) {
+			if len(p.temp.kgRound5Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages) {
+				return true, nil
+			}
+			//fmt.Printf("================ StoreMessage,msg 5,the msg have exsit already,msg = %v,len = %v ==============\n",msg,getFullCount(p.temp.kgRound5Messages))
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.kgRound5Messages[index] = msg
+		fmt.Printf("=========================keygen StoreMessage, message 5, msg len = %v,from index = %v, msg = %v, ===========================\n", getFullCount(p.temp.kgRound5Messages),index, msg)
 		if len(p.temp.kgRound5Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages) {
 			fmt.Printf("================ StoreMessage,get all ec keygen 5 messages ==============\n")
-			time.Sleep(time.Duration(1000000)) //tmp code
+			time.Sleep(time.Duration(1000000))
 			return true, nil
 		}
 	case *KGRound5Message1:
+	    	if find(p.temp.kgRound5Messages1,msg) {
+			if len(p.temp.kgRound5Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages1) {
+				return true, nil
+			}
+			//fmt.Printf("================ StoreMessage,msg 5-1,the msg have exsit already,msg = %v,len = %v ==============\n",msg,getFullCount(p.temp.kgRound5Messages1))
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.kgRound5Messages1[index] = msg
+		fmt.Printf("=========================keygen StoreMessage, message 5-1, msg len = %v,from index = %v, msg = %v, ===========================\n", getFullCount(p.temp.kgRound5Messages1),index, msg)
 		if len(p.temp.kgRound5Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages1) {
 			fmt.Printf("================ StoreMessage,get all ec keygen 5-1 messages ==============\n")
-			time.Sleep(time.Duration(1000000)) //tmp code
+			time.Sleep(time.Duration(1000000))
 			return true, nil
 		}
 	case *KGRound5Message2:
+	    	if find(p.temp.kgRound5Messages2,msg) {
+			if len(p.temp.kgRound5Messages2) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages2) {
+				return true, nil
+			}
+			//fmt.Printf("================ StoreMessage,msg 5-2,the msg have exsit already,msg = %v,len = %v ==============\n",msg,getFullCount(p.temp.kgRound5Messages2))
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.kgRound5Messages2[index] = msg
+		fmt.Printf("=========================keygen StoreMessage, message 5-2, msg len = %v,from index = %v, msg = %v, ===========================\n", getFullCount(p.temp.kgRound5Messages2),index, msg)
 		if len(p.temp.kgRound5Messages2) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages2) {
 			fmt.Printf("================ StoreMessage,get all ec keygen 5-2 messages ==============\n")
 			time.Sleep(time.Duration(1000000))
 			return true, nil
 		}
 	case *KGRound6Message:
+	    	if find(p.temp.kgRound6Messages,msg) {
+			if len(p.temp.kgRound6Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound6Messages) {
+				return true, nil
+			}
+			//fmt.Printf("================ StoreMessage,msg 6,the msg have exsit already,msg = %v,len = %v ==============\n",msg,getFullCount(p.temp.kgRound6Messages))
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.kgRound6Messages[index] = msg
+		fmt.Printf("=========================keygen StoreMessage, message 6, msg len = %v,from index = %v, msg = %v, ===========================\n", getFullCount(p.temp.kgRound6Messages),index, msg)
 		if len(p.temp.kgRound6Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound6Messages) {
 			fmt.Printf("================ StoreMessage,get all ec keygen 6 messages ==============\n")
-			time.Sleep(time.Duration(1000000)) //tmp code
+			time.Sleep(time.Duration(1000000))
 			return true, nil
 		}
 	default: // unrecognised message, just ignore!

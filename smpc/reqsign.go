@@ -659,7 +659,6 @@ func GetCurNodeSignInfo(geteracc string) ([]*SignCurNodeInfo, string, error) {
 				return
 			}
 
-			common.Debug("================GetCurNodeSignInfo======================", "vv", vv, "vv.Deal", vv.Deal, "vv.Status", vv.Status, "key", key)
 			if vv.Deal == "true" || vv.Status == "Success" {
 				return
 			}
@@ -679,7 +678,6 @@ func GetCurNodeSignInfo(geteracc string) ([]*SignCurNodeInfo, string, error) {
 			}
 
 			ch <- los
-			common.Debug("================GetCurNodeSignInfo success return=======================", "key", key)
 		}(string(key2), val, data)
 	}
 	iter.Release()
@@ -1289,7 +1287,7 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 	go SignProcessInboundMessages(msgprex, commStopChan, &signWg, ch)
 	pre, err := processSign(msgprex, kgsave.MsgToEnode, errChan, outCh, endCh)
 	if err != nil || pre == nil {
-	    	common.Debug("==========================PreSignEC3,process sign===========================","key",msgprex,"err",err)
+	    	common.Debug("==========================PreSignEC3,process sign fail===========================","key",msgprex,"err",err)
 		close(commStopChan)
 		res := RPCSmpcRes{Ret: "", Err: err}
 		ch <- res
@@ -1425,7 +1423,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 	go SignProcessInboundMessages(msgprex, commStopChan, &signWg, ch)
 	s, err := processSignFinalize(msgprex, kgsave.MsgToEnode, errChan, outCh, finalizeendCh, gid)
 	if err != nil || s == nil {
-	    	common.Debug("=========================SignEC3,process sign==============================","key",msgprex,"err",err)
+	    	common.Debug("=========================SignEC3,process sign fail==============================","key",msgprex,"err",err)
 		close(commStopChan)
 		res := RPCSmpcRes{Ret: "", Err: err}
 		ch <- res
@@ -1871,7 +1869,7 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 	go EdSignProcessInboundMessages(msgprex, commStopChan, &signWg, ch)
 	edrs, err := processSigned(msgprex, kgsave.MsgToEnode, errChan, outCh, endCh)
 	if err != nil || edrs == nil {
-		common.Debug("================SignED,process sign========================","key",msgprex,"err",err)
+		common.Debug("================SignED,process sign fail========================","key",msgprex,"err",err)
 		close(commStopChan)
 		res := RPCSmpcRes{Ret: "", Err: err}
 		ch <- res

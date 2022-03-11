@@ -72,7 +72,6 @@ func GetPubKeyData(key []byte) (bool, interface{}) {
 
 	da, err := db.Get(key)
 	if da == nil || err != nil {
-		common.Debug("========================GetPubKeyData, get pubkey data from local db fail =======================", "key", string(key))
 		return false, nil
 	}
 

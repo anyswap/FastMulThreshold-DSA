@@ -95,9 +95,10 @@ func (round *round5) Start() error {
 	    return errors.New("get random int fail")
 	}
 
-	fmt.Printf("===========================keygen round 5, get num = %v for ntilde = %v==========================\n",num,ntilde)
+	//fmt.Printf("===========================keygen round 5, get num = %v for ntilde = %v==========================\n",num,ntilde)
 	hvProof := ec2.HvProve(ntilde,num,round.temp.p1,round.temp.p2)
 	if hvProof == nil {
+		fmt.Printf("===========================keygen round 5, get hvzk proof fail==========================\n")
 	    return errors.New("get hvzk proof fail")
 	}
 

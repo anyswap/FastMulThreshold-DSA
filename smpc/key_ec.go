@@ -56,9 +56,16 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			return
 		case m := <-w.SmpcMsg:
 
+			if w.DNode == nil {
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("node data error")}
+				ch <- res
+				return
+			}
+			
 			msgmap := make(map[string]string)
 			err := json.Unmarshal([]byte(m), &msgmap)
 			if err != nil {
+				fmt.Printf("======================ProcessInboundMessages,unmarshal msg error,key = %v,msg = %v,err = %v=============\n",msgprex,m,err)
 				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
@@ -71,6 +78,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 
 			mm := GetRealMessage(msgmap)
 			if mm == nil {
+				fmt.Printf("======================ProcessInboundMessages,get msg error,key = %v,msg = %v,err = %v=============\n",msgprex,m,err)
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to process inbound messages")}
 				ch <- res
 				return
@@ -78,13 +86,15 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			
 			//check sig
 			if msgmap["Sig"] == "" {
-				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail")}
+				fmt.Printf("======================ProcessInboundMessages,verify sig fail,sig data error,key = %v,msg = %v,err = %v=============\n",msgprex,m,err)
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail,sig data error")}
 				ch <- res
 				return
 			}
 
 			if msgmap["ENode"] == "" {
-				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail")}
+				fmt.Printf("======================ProcessInboundMessages,verify sig fail,enode info error,key = %v,msg = %v,err = %v=============\n",msgprex,m,err)
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail,enode info error")}
 				ch <- res
 				return
 			}
@@ -97,7 +107,6 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			    return
 			}
 			
-			common.Debug("===============keygen,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			if !checkP2pSig(sig,mm,msgmap["ENode"]) {
 			    common.Error("===============keygen,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
@@ -110,7 +119,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			id := fmt.Sprintf("%v", UID)
 			uid := hex.EncodeToString([]byte(id))
 			if !strings.EqualFold(uid,mm.GetFromID()) {
-			    common.Error("===============keygen,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"],"err","check from ID fail")
+			    common.Error("===============keygen,check p2p msg fail===============","UID",UID,"uid",uid,"fromID",mm.GetFromID(),"gid",w.groupid,"sender",msgmap["ENode"],"msg type",msgmap["Type"],"err","check from ID fail")
 			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check from ID fail")}
 			    ch <- res
 			    return
@@ -504,7 +513,7 @@ func processKeyGen(msgprex string, errChan chan struct{}, outCh <-chan smpclib.M
 			fmt.Printf("=========== processKeyGen,error channel closed fail to start local smpc node, key = %v ===========\n", msgprex)
 			return errors.New("error channel closed fail to start local smpc node")
 
-		case <-time.After(time.Second * 300):
+		case <-time.After(time.Second * time.Duration(EcKeygenTimeout)):
 			fmt.Printf("=========== processKeyGen,keygen timeout, key = %v ===========\n", msgprex)
 			return errors.New("keygen timeout")
 		case msg := <-outCh:

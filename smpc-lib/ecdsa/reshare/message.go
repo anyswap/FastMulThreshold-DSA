@@ -81,6 +81,11 @@ func (re *ReRound0Message) OutMap() map[string]string {
 	return m
 }
 
+// GetMsgType get msg type
+func (re *ReRound0Message) GetMsgType() string {
+	return "ReRound0Message"
+}
+
 // ReRound1Message  Round 1 sending message 
 type ReRound1Message struct {
 	*ReRoundMessage
@@ -116,6 +121,11 @@ func (re *ReRound1Message) OutMap() map[string]string {
 	m["ComC"] = fmt.Sprintf("%v", re.ComC)
 	m["Type"] = "ReRound1Message"
 	return m
+}
+
+// GetMsgType get msg type
+func (re *ReRound1Message) GetMsgType() string {
+	return "ReRound1Message"
 }
 
 // ReRound2Message  Round 2 sending message 
@@ -157,6 +167,11 @@ func (re *ReRound2Message) OutMap() map[string]string {
 	m["Type"] = "ReRound2Message"
 	fmt.Printf("\n===========ReRound2Message.OutMap, re.ID = %v,re.Share = %v, FromID = %v ==========\n", m["ID"], m["Share"], m["FromID"])
 	return m
+}
+
+// GetMsgType get msg type
+func (re *ReRound2Message) GetMsgType() string {
+	return "ReRound2Message"
 }
 
 // ReRound2Message1  Round 2 sending message 
@@ -220,6 +235,11 @@ func (re *ReRound2Message1) OutMap() map[string]string {
 	return m
 }
 
+// GetMsgType get msg type
+func (re *ReRound2Message1) GetMsgType() string {
+	return "ReRound2Message1"
+}
+
 // ReRound3Message  Round 3 sending message 
 type ReRound3Message struct {
 	*ReRoundMessage
@@ -261,6 +281,11 @@ func (re *ReRound3Message) OutMap() map[string]string {
 	m["U1PaillierPk"] = string(pk)
 	m["Type"] = "ReRound3Message"
 	return m
+}
+
+// GetMsgType get msg type
+func (re *ReRound3Message) GetMsgType() string {
+	return "ReRound3Message"
 }
 
 // ReRound4Message  Round 4 sending message 
@@ -322,6 +347,11 @@ func (re *ReRound4Message) OutMap() map[string]string {
 	return m
 }
 
+// GetMsgType get msg type
+func (re *ReRound4Message) GetMsgType() string {
+	return "ReRound4Message"
+}
+
 // ReRound5Message  Round 5 sending message 
 type ReRound5Message struct {
 	*ReRoundMessage
@@ -358,3 +388,9 @@ func (re *ReRound5Message) OutMap() map[string]string {
 	m["Type"] = "ReRound4Message"
 	return m
 }
+
+// GetMsgType get msg type
+func (re *ReRound5Message) GetMsgType() string {
+	return "ReRound5Message"
+}
+

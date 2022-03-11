@@ -62,7 +62,6 @@ func (req *ReqSmpcAddr) GetReplyFromGroup(wid int, gid string, initiator string)
 		iter := w.msgacceptreqaddrres.Front()
 		if iter != nil {
 			mdss := iter.Value.(string)
-			common.Debug("===================== GetAllReplyFromGroup call CheckRaw,it is RPCREQADDR ================")
 			key, _, _, _, _ := CheckRaw(mdss)
 			exsit, da := GetReqAddrInfoData([]byte(key))
 			if !exsit || da == nil {
@@ -685,7 +684,6 @@ func (req *ReqSmpcAddr) DisAcceptMsg(raw string, workid int, key string) {
 	}
 
 	if Find(w.msgacceptreqaddrres, raw) {
-		common.Debug("======================ReqSmpcAddr.DisAcceptMsg,receive one msg and already in list.===========================", "raw", raw, "key", key)
 		return
 	}
 
@@ -696,11 +694,10 @@ func (req *ReqSmpcAddr) DisAcceptMsg(raw string, workid int, key string) {
 	w.msgacceptreqaddrres.PushBack(raw)
 	if w.msgacceptreqaddrres.Len() >= w.NodeCnt {
 		if !CheckReply(w.msgacceptreqaddrres, RPCREQADDR, key) {
-			common.Debug("=====================ReqSmpcAddr.DisAcceptMsg,receive one msg, but Not all accept data has been received ===================", "raw", raw, "key", key)
 			return
 		}
 
-		common.Debug("=====================ReqSmpcAddr.DisAcceptMsg,receive one msg,all accept data has been received===================", "raw", raw, "key", key)
+		//common.Debug("=====================ReqSmpcAddr.DisAcceptMsg,receive one msg,all accept data has been received===================", "raw", raw, "key", key)
 		w.bacceptreqaddrres <- true
 		exsit, da := GetReqAddrInfoData([]byte(key))
 		if !exsit {
@@ -712,7 +709,6 @@ func (req *ReqSmpcAddr) DisAcceptMsg(raw string, workid int, key string) {
 			return
 		}
 
-		common.Debug("=====================ReqSmpcAddr.DisAcceptMsg,receive one msg,all accept data has been received,set acceptReqAddrChan ===================", "raw", raw, "key", key)
 		workers[ac.WorkID].acceptReqAddrChan <- "go on"
 	}
 }

@@ -79,6 +79,11 @@ func (kg *KGRound0Message) OutMap() map[string]string {
 	return m
 }
 
+// GetMsgType get msg type
+func (kg *KGRound0Message) GetMsgType() string {
+	return "KGRound0Message"
+}
+
 // KGRound1Message  Round 1 sending message 
 type KGRound1Message struct {
 	*KGRoundMessage
@@ -118,6 +123,11 @@ func (kg *KGRound1Message) OutMap() map[string]string {
 
 	m["Type"] = "KGRound1Message"
 	return m
+}
+
+// GetMsgType get msg type
+func (kg *KGRound1Message) GetMsgType() string {
+	return "KGRound1Message"
 }
 
 // KGRound2Message  Round 2 sending message 
@@ -161,6 +171,11 @@ func (kg *KGRound2Message) OutMap() map[string]string {
 	return m
 }
 
+// GetMsgType get msg type
+func (kg *KGRound2Message) GetMsgType() string {
+	return "KGRound2Message"
+}
+
 // KGRound3Message  Round 3 sending message 
 type KGRound3Message struct {
 	*KGRoundMessage
@@ -202,6 +217,11 @@ func (kg *KGRound3Message) OutMap() map[string]string {
 	return m
 }
 
+// GetMsgType get msg type
+func (kg *KGRound3Message) GetMsgType() string {
+	return "KGRound3Message"
+}
+
 // KGRound4Message  Round 4 sending message 
 type KGRound4Message struct {
 	*KGRoundMessage
@@ -240,6 +260,11 @@ func (kg *KGRound4Message) OutMap() map[string]string {
 	m["Share"] = shares
 	m["Type"] = "KGRound4Message"
 	return m
+}
+
+// GetMsgType get msg type
+func (kg *KGRound4Message) GetMsgType() string {
+	return "KGRound4Message"
 }
 
 // KGRound5Message  Round 5 sending message 
@@ -287,3 +312,9 @@ func (kg *KGRound5Message) OutMap() map[string]string {
 	m["Type"] = "KGRound5Message"
 	return m
 }
+
+// GetMsgType get msg type
+func (kg *KGRound5Message) GetMsgType() string {
+	return "KGRound5Message"
+}
+

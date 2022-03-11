@@ -44,6 +44,18 @@ import (
 var (
 	cht            = 300
 
+	//ec keygen timeout
+	EcKeygenTimeout = 1200
+
+	//ed keygen timeout
+	EdKeygenTimeout = 1200
+
+	//ec sign timeout
+	EcSignTimeout = 1200
+
+	//ed sign timeout
+	EdSignTimeout = 1200
+
 	// WaitMsgTimeGG20 wait msg timeout
 	WaitMsgTimeGG20 = 100
 
@@ -584,6 +596,8 @@ func HandleKG(key string, uid *big.Int) {
 	Handle(key, c1data)
 	c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound1Message")
 	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound4Message")
+	Handle(key, c1data)
 }
 
 // HandleSign Process pre-save msg for sign 
@@ -698,7 +712,7 @@ func GetRawType(raw string) (string, string) {
 		return "", ""
 	}
 
-	key, from, _, txdata, err := CheckRaw(raw)
+	key, _, _, txdata, err := CheckRaw(raw)
 	if err != nil {
 		common.Error("=======================GetRawType,check accept raw data error===================","raw",raw,"err", err)
 		return "", ""
@@ -706,37 +720,31 @@ func GetRawType(raw string) (string, string) {
 
 	_, ok := txdata.(*TxDataReqAddr)
 	if ok {
-		common.Debug("=======================GetRawType,get one accept raw data===================", "raw", raw, "key", key, "from", from, "txdata", txdata)
 		return "REQADDR", key
 	}
 
 	_, ok = txdata.(*TxDataSign)
 	if ok {
-		common.Debug("=======================GetRawType,get one accept raw data===================", "raw", raw, "key", key, "from", from, "txdata", txdata)
 		return "SIGN", key
 	}
 
 	_, ok = txdata.(*TxDataReShare)
 	if ok {
-		common.Debug("=======================GetRawType,get one accept raw data===================", "raw", raw, "key", key, "from", from, "txdata", txdata)
 		return "RESHARE", key
 	}
 
 	acceptreq, ok := txdata.(*TxDataAcceptReqAddr)
 	if ok {
-		common.Debug("=======================GetRawType,get one accept raw data===================", "raw", raw, "key", acceptreq.Key, "from", from, "txdata", txdata)
 		return "ACCEPTREQADDR", acceptreq.Key
 	}
 
 	acceptsig, ok := txdata.(*TxDataAcceptSign)
 	if ok {
-		common.Debug("=======================GetRawType,get one accept raw data===================", "raw", raw, "key", acceptsig.Key, "from", from, "txdata", txdata)
 		return "ACCEPTSIGN", acceptsig.Key
 	}
 
 	acceptreshare, ok := txdata.(*TxDataAcceptReShare)
 	if ok {
-		common.Debug("=======================GetRawType,get one accept raw data===================", "raw", raw, "key", acceptreshare.Key, "from", from, "txdata", txdata)
 		return "ACCEPTRESHARE", acceptreshare.Key
 	}
 

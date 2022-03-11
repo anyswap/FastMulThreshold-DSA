@@ -26,4 +26,5 @@ type Message interface {
 	GetToID() []string
 	IsBroadcast() bool
 	OutMap() map[string]string
+	GetMsgType() string
 }
