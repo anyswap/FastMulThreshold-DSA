@@ -12,12 +12,13 @@ rm -rf test/sign.sh
 
 $(pwd)/bootnode-test.sh $1 &
 
-sleep 20
+sleep 40
 
 path=$1/test/tmp/aaa
 val=$(cat $path)
 boot=`echo ${val%@*}`
 boot2=`echo ${boot:0-128:128}`
+echo -------------boot: $boot --------------------
 echo -------------------------------------------------- bootnode key : $boot2 ------------------------------------------------------------------
 
 one=1
@@ -175,7 +176,7 @@ sleep 500
 echo -------------------------------------------------------------  Generation of 4 LARGE PRIME NUMBERS completed ------------------------------------------------------------------
 
 $1/test/bin/gsmpc-client-test -cmd SetGroup -url http://127.0.0.1:$port -ts 3/5 -node http://127.0.0.1:$port -node http://127.0.0.1:$port2 -node http://127.0.0.1:$port3 -node http://127.0.0.1:$port4 -node http://127.0.0.1:$port5 > $1/test/tmp/bbb &
-sleep 10
+sleep 15
 
 val=$(cat $1/test/tmp/bbb)
 gid=`echo ${val:0-128:128}`
@@ -183,7 +184,7 @@ echo
 echo --------------------------------------------------------- gid : $gid ---------------------------------------------------------------------------------
 
 $1/test/bin/gsmpc-client-test -cmd SetGroup -url http://127.0.0.1:$port -ts 3/5 -node http://127.0.0.1:$port -node http://127.0.0.1:$port2 -node http://127.0.0.1:$port3 > $1/test/tmp/ccc &
-sleep 10
+sleep 15
 
 val=$(cat $1/test/tmp/ccc)
 subgid=`echo ${val:0-128:128}`
@@ -192,48 +193,69 @@ echo ---------------------------------------------------------- subgid : $subgid
 
 
 $1/test/bin/gsmpc-client-test -cmd EnodeSig -url http://127.0.0.1:$port --keystore $keyfile1 --passwdfile $pf1 > $1/test/tmp/ddd1 &
-sleep 5
+sleep 10 
 
 val=$(cat $1/test/tmp/ddd1)
-nodesig1=`echo ${val:0-284:284}`
+echo --------- val: $val ----------
+
+#nodesig1=`echo ${val:0-284:284}`
+tmps1="enode"
+tmps2=`echo ${val##*enode}`
+nodesig1=$tmps1$tmps2
 echo ---------------------------------------- node sig 1 : $nodesig1 ------------------------------------------------------------------
 
 
 $1/test/bin/gsmpc-client-test -cmd EnodeSig -url http://127.0.0.1:$port2 --keystore $keyfile2 --passwdfile $pf2 > $1/test/tmp/ddd2 &
-sleep 5
+sleep 10
 
 val=$(cat $1/test/tmp/ddd2)
-nodesig2=`echo ${val:0-284:284}`
+echo --------- val: $val ----------
+
+tmps1="enode"
+tmps2=`echo ${val##*enode}`
+nodesig2=$tmps1$tmps2
 echo ----------------------------------------- node sig 2 : $nodesig2 -------------------------------------------------------------------
 
 $1/test/bin/gsmpc-client-test -cmd EnodeSig -url http://127.0.0.1:$port3 --keystore $keyfile3 --passwdfile $pf3 > $1/test/tmp/ddd3 &
-sleep 5
+sleep 10
 
 val=$(cat $1/test/tmp/ddd3)
-nodesig3=`echo ${val:0-284:284}`
+echo --------- val: $val ----------
+
+tmps1="enode"
+tmps2=`echo ${val##*enode}`
+nodesig3=$tmps1$tmps2
 echo ----------------------------------------- node sig 3 : $nodesig3 -------------------------------------------------------------------
 
 
 $1/test/bin/gsmpc-client-test -cmd EnodeSig -url http://127.0.0.1:$port4 --keystore $keyfile4 --passwdfile $pf4 > $1/test/tmp/ddd4 &
-sleep 5
+sleep 10
 
 val=$(cat $1/test/tmp/ddd4)
-nodesig4=`echo ${val:0-284:284}`
+echo --------- val: $val ----------
+
+tmps1="enode"
+tmps2=`echo ${val##*enode}`
+nodesig4=$tmps1$tmps2
 echo ----------------------------------------- node sig 4 : $nodesig4 ---------------------------------------------------------------
 
 
 $1/test/bin/gsmpc-client-test -cmd EnodeSig -url http://127.0.0.1:$port5 --keystore $keyfile5 --passwdfile $pf5 > $1/test/tmp/ddd5 &
-sleep 5
+sleep 10
 
 val=$(cat $1/test/tmp/ddd5)
-nodesig5=`echo ${val:0-284:284}`
+echo --------- val: $val ----------
+
+tmps1="enode"
+tmps2=`echo ${val##*enode}`
+nodesig5=$tmps1$tmps2
 echo ----------------------------------------- node sig 5 : $nodesig5 ------------------------------------------------------------------
 echo
 
 echo ------------------------------------------------------- begin to generate pubkey -----------------------------------------------------------------
 
 $1/test/bin/gsmpc-client-test -cmd REQSMPCADDR --keystore $keyfile1 --passwdfile $pf1 -ts 3/5 --keytype $kt -gid $gid -mode 0 -url http://127.0.0.1:$port -sig $nodesig1 -sig $nodesig2 -sig $nodesig3 -sig $nodesig4 -sig $nodesig5 > $1/test/tmp/eee &
-sleep 50
+sleep 60
 
 val=$(cat $1/test/tmp/eee)
 val=`echo ${val##*=}`
@@ -241,19 +263,19 @@ key=`echo ${val:0:66}`
 echo ----------------------------------------------------------- keygen cmd key : $key -----------------------------------------------------------------------------------
 
 $1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port --keystore $keyfile1 --passwdfile $pf1 -key $key &
-sleep 2 
+sleep 3 
 
 $1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port2 --keystore $keyfile2 --passwdfile $pf2 -key $key &
-sleep 2
+sleep 3
 
 $1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port3 --keystore $keyfile3 --passwdfile $pf3 -key $key &
-sleep 2
+sleep 3
 
 $1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port4 --keystore $keyfile4 --passwdfile $pf4 -key $key &
-sleep 2
+sleep 3
 
 $1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port5 --keystore $keyfile5 --passwdfile $pf5 -key $key &
-sleep 70
+sleep 240
 
 touch test/reqaddr.sh
 sleep 2
@@ -273,7 +295,7 @@ echo $str | tee $1/test/reqaddr.sh
 echo 
 
 $1/test/reqaddr.sh &
-sleep 15 
+sleep 30
 
 val=$(cat $1/test/tmp/fff)
 val=`echo ${val##*PubKey}`
@@ -282,12 +304,12 @@ echo
 echo ------------------------------------------------------------------ pubkey : $pubkey ------------------------------------------------------------
 
 $1/test/bin/gsmpc-client-test -cmd PRESIGNDATA --keystore $keyfile1 --passwdfile $pf1 -pubkey $pubkey -subgid $subgid  -url  http://127.0.0.1:$port --keytype $kt &
-sleep 10
+sleep 20
 
 rm -rf $1/test/tmp/ggg
 
 $1/test/bin/gsmpc-client-test -cmd SIGN --loop 1 --n 1 -ts 3/5 --keystore $keyfile1 --passwdfile $pf1 --keytype $kt --logfilepath $1/test/tmp/logfile -gid $subgid -mode 0 -url http://127.0.0.1:$port -pubkey $pubkey -msghash 0x90e032be062dd0dc689fa23df8c044936a2478cb602b292c7397354238a67d88  -msgcontext '{"swapInfo":{"swapid":"0x4f62545cdd05cc346c75bb42f685a18a02621e91512e0806eac528d0b2f6aa5f","swaptype":1,"bind":"0x0520e8e5e08169c4dbc1580dc9bf56638532773a","identifier":"ssUSDT2FSN"},"extra":{"ethExtra":{"gas":90000,"gasPrice":10000000000,"nonce":1}}}' > $1/test/tmp/ggg &
-sleep 50
+sleep 60
 
 val=$(cat $1/test/tmp/ggg)
 val=`echo ${val##*keyID=}`
@@ -298,13 +320,13 @@ echo ------------------------------------------------------------------sign cmd 
 rm -rf $1/test/tmp/hhh
 
 $1/test/bin/gsmpc-client-test -cmd ACCEPTSIGN  -url http://127.0.0.1:$port --keystore $keyfile1 --passwdfile $pf1 --key $signkey &
-sleep 2
+sleep 3
 
 $1/test/bin/gsmpc-client-test  -cmd ACCEPTSIGN -url http://127.0.0.1:$port2 --keystore $keyfile2 --passwdfile $pf2 --key $signkey &
-sleep 2
+sleep 3
 
 $1/test/bin/gsmpc-client-test  -cmd ACCEPTSIGN -url http://127.0.0.1:$port3 --keystore $keyfile3 --passwdfile $pf3 --key $signkey &
-sleep 70
+sleep 90
 
 touch test/sign.sh
 sleep 2
@@ -324,7 +346,7 @@ echo $str | tee $1/test/sign.sh
 echo
 
 $1/test/sign.sh &
-sleep 15 
+sleep 20 
 
 val=$(cat $1/test/tmp/hhh)
 val=`echo ${val##*Rsv}`
