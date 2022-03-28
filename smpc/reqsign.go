@@ -1821,7 +1821,7 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 	    copy(sk[:], va[:64])
 	}
 
-	copy(sk[:], va[:64])
+	//copy(sk[:], va[:64])
 	var tsk [32]byte
 	va = []byte(mm[2])
 	copy(tsk[:], va[:32])
