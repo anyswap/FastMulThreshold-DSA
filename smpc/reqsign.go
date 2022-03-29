@@ -1809,19 +1809,18 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 
 	sd := &edkeygen.LocalDNodeSaveData{}
 
-	var sk [64]byte
+	var sk [32]byte
 	va := sku1.Bytes()
-	if len(va) < 64 {
-	    diff := 64 - len(va)
+	if len(va) < 32 {
+	    diff := 32 - len(va)
 	    for i := 0;i<diff;i++ {
 		sk[i] = byte(0x00)
 	    }
 	    copy(sk[diff:], va[:])
 	} else {
-	    copy(sk[:], va[:64])
+	    copy(sk[:], va[:32])
 	}
 
-	//copy(sk[:], va[:64])
 	var tsk [32]byte
 	va = []byte(mm[2])
 	copy(tsk[:], va[:32])

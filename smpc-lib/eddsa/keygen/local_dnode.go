@@ -47,7 +47,7 @@ type localTempData struct {
 	// temp data (thrown away after keygen)
 
 	//round 1
-	sk   [64]byte
+	sk   [32]byte
 	pk   [32]byte
 	DPk  [64]byte
 	zkPk [64]byte

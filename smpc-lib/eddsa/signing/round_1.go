@@ -22,9 +22,10 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/eddsa/keygen"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
-	"crypto/sha512"
 	"encoding/hex"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
+	cryptorand "crypto/rand"
+	"io"
 )
 
 var (
@@ -52,8 +53,8 @@ func (round *round1) Start() error {
 		return err
 	}
 
-	var sk [64]byte
-	copy(sk[:], round.save.Sk[:64])
+	var sk [32]byte
+	copy(sk[:], round.save.Sk[:32])
 	var tsk [32]byte
 	copy(tsk[:], round.save.TSk[:32])
 	var pkfinal [32]byte
@@ -89,22 +90,16 @@ func (round *round1) Start() error {
 	// [Notes]
 	// 1. calculate R
 	var r [32]byte
+	var rTem [64]byte
 	var RBytes [32]byte
-	var rDigest [64]byte
 
-	h := sha512.New()
-	_, err = h.Write(sk[32:])
-	if err != nil {
-		return err
+	rand := cryptorand.Reader
+	if _, err := io.ReadFull(rand, r[:]); err != nil {
+		fmt.Println("Error: io.ReadFull(rand, r)")
+		return err 
 	}
-
-	_, err = h.Write([]byte(round.temp.message))
-	if err != nil {
-		return err
-	}
-
-	h.Sum(rDigest[:0])
-	ed.ScReduce(&r, &rDigest)
+	copy(rTem[:], r[:])
+	ed.ScReduce(&r, &rTem)
 
 	var R ed.ExtendedGroupElement
 	ed.GeScalarMultBase(&R, &r)

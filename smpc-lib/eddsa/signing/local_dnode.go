@@ -53,7 +53,7 @@ type localTempData struct {
 
 	//round 1
 	uids    [][32]byte
-	sk      [64]byte
+	sk      [32]byte
 	tsk     [32]byte
 	pkfinal [32]byte
 	message []byte

@@ -27,7 +27,7 @@ import (
 // LocalDNodeSaveData the ed data need to save in local db
 type LocalDNodeSaveData struct {
 	//
-	Sk           [64]byte
+	Sk           [32]byte
 	Pk           [32]byte
 	TSk          [32]byte
 	FinalPkBytes [32]byte
@@ -74,7 +74,7 @@ func (sd *LocalDNodeSaveData) OutMap() map[string]string {
 // GetLocalDNodeSaveData get LocalDNodeSaveData from map
 func GetLocalDNodeSaveData(data map[string]string) *LocalDNodeSaveData {
 
-	var Sk [64]byte
+	var Sk [32]byte
 	sk, err := hex.DecodeString(data["Sk"])
 	if err != nil {
 	    return nil

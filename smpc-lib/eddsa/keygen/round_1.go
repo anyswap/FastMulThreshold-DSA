@@ -22,7 +22,6 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	cryptorand "crypto/rand"
-	"crypto/sha512"
 	"io"
 )
 
@@ -36,34 +35,28 @@ func (round *round1) Start() error {
 	round.started = true
 	round.resetOK()
 
+	//1.1-1.2 generate 32-bits privatekey', then bit calculation to privatekey
 	rand := cryptorand.Reader
-	var seed [32]byte
 
-	if _, err := io.ReadFull(rand, seed[:]); err != nil {
-		fmt.Println("Error: io.ReadFull(rand, seed)")
-		return err
+	var sk [32]byte
+	var pk [32]byte
+	var skTem [64]byte
+
+	if _, err := io.ReadFull(rand, sk[:]); err != nil {
+	    fmt.Println("Error: io.ReadFull(rand, sk)")
 	}
 
-	// 1.2 privateKey' = SHA512(seed)
+	sk[0] &= 248
+	sk[31] &= 127
+	sk[31] |= 64
 
-	var sk [64]byte
-	var pk [32]byte
-
-	seedDigest := sha512.Sum512(seed[:])
-
-	seedDigest[0] &= 248
-	seedDigest[31] &= 127
-	//seedDigest[31] &= 63
-	seedDigest[31] |= 64
-
-	copy(sk[:], seedDigest[:])
-
+	copy(skTem[:], sk[:])
+	ed.ScReduce(&sk, &skTem)
+	
 	// 1.3 publicKey
-	var temSk [32]byte
-	copy(temSk[:], sk[:32])
 
 	var A ed.ExtendedGroupElement
-	ed.GeScalarMultBase(&A, &temSk)
+	ed.GeScalarMultBase(&A, &sk)
 
 	A.ToBytes(&pk)
 	///////////////////solana
@@ -91,7 +84,7 @@ func (round *round1) Start() error {
 	    return err
 	}
 
-	zkPk,err := ed.Prove2(temSk,pk)
+	zkPk,err := ed.Prove2(sk,pk)
 	if err != nil {
 	    return err
 	}
