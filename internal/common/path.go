@@ -86,11 +86,11 @@ func DefaultDataDir() string {
 	home := homeDir()
 	if home != "" {
 		if runtime.GOOS == "darwin" {
-			return filepath.Join(home, "Library", "Anyswap-MPCNode")
+			return filepath.Join(home, "Library", "fastMPC")
 		} else if runtime.GOOS == "windows" {
-			return filepath.Join(home, "AppData", "Roaming", "Anyswap-MPCNode")
+			return filepath.Join(home, "AppData", "Roaming", "fastMPC")
 		} else {
-			return filepath.Join(home, ".Anyswap-MPCNode")
+			return filepath.Join(home, ".fastMPC")
 		}
 	}
 	// As we cannot guess a stable location, return empty and handle later
