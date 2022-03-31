@@ -98,9 +98,9 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 		p := emitter.peers[node.ID]
 		if p != nil {
 			if err = p2p.Send(p.ws, msgCode, msg); err != nil {
-				common.Debug("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "send", "fail p2perror")
-				emitter.Unlock()
-				return err
+				common.Debug("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "send", "fail waitting resend")
+				//emitter.Unlock()
+				//return err
 			} else {
 				emitter.Unlock()
 				common.Debug("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "countSend", countSendFail, "msg", msg[:cdLen], "send", "success")
@@ -113,11 +113,11 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 
 		countSendFail += 1
 		if countSendFail >= 30 {
-			common.Debug("==== p2pBroatcast p2pSendMsg() ====", "send to node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "timeout p2perror", "")
+			common.Debug("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "send", "fail p2perror", "sendCount", countSendFail)
 			break
 		}
 		if countSendFail == 1 || countSendFail%5 == 0 {
-			common.Debug("==== p2pBroatcast p2pSendMsg() ====", "send to node", node.ID, "countSend", "countSendFail")
+			common.Debug("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "send", "fail p2perror", "sendCount", countSendFail)
 		}
 		time.Sleep(time.Duration(1) * time.Second)
 	}
