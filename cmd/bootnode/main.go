@@ -26,6 +26,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/nat"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/netutil"
@@ -148,11 +149,15 @@ func main() {
 func getConfig(listenAddr, nodeKeyFile *string) error {
 	var cf conf
 	var path string = "./conf.toml"
-	if _, err := toml.DecodeFile(path, &cf); err != nil {
-		return err
+	nkey := ""
+	pt := uint(0)
+	if common.FileExist(path) {
+		if _, err := toml.DecodeFile(path, &cf); err != nil {
+			return err
+		}
+		nkey = cf.Bootnode.Nodekey
+		pt = cf.Bootnode.Addr
 	}
-	nkey := cf.Bootnode.Nodekey
-	pt := cf.Bootnode.Addr
 	if nkey != "" && *nodeKeyFile == "" {
 		*nodeKeyFile = nkey
 	}
