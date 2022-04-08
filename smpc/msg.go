@@ -32,6 +32,7 @@ import (
 	"github.com/fsn-dev/cryptoCoins/coins"
 	"github.com/fsn-dev/cryptoCoins/coins/types"
 	"github.com/fsn-dev/cryptoCoins/tools/rlp"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 	"math/big"
 	"runtime/debug"
 	"strconv"
@@ -468,13 +469,14 @@ func Call(msg interface{}, enode string) {
 				    key := strings.ToLower(val + "-" + from + "-" + msgtype)
 				    C1Data.WriteMap(key, s)
 				    //fmt.Printf("===============================Call, pre-save p2p msg, worker found, key = %v,fromID = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
+				    //log.Debug("===============================Call, pre-save p2p msg, worker found=============", "key",val,"fromID",from,"msgtype",msgtype,"c1data key",key,"c1data value",s)
 			    }
 		    } else {
 			    from := msgmap["FromID"]
 			    msgtype := msgmap["Type"]
 			    key := strings.ToLower(val + "-" + from + "-" + msgtype)
 			    C1Data.WriteMap(key, s)
-			    fmt.Printf("===============================Call, pre-save p2p msg, worker not found, key = %v,fromID = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
+			    log.Debug("===============================Call, pre-save p2p msg, worker not found============", "key",val,"fromID",from,"msgtype",msgtype,"c1data key",key,"c1data value",s)
 		    }
 
 		    return
@@ -897,7 +899,7 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 	_, enodes := GetGroup(groupid)
 	nodes := strings.Split(enodes, common.Sep2)
 	if nodecnt != len(sigs) {
-		fmt.Printf("============================GetGroupSigsDataByRaw,nodecnt = %v,common.Sep2 = %v,enodes = %v,groupid = %v,sigs len = %v,groupsigs = %v========================\n", nodecnt, common.Sep2, enodes, groupid, len(sigs), groupsigs)
+		log.Error("============================GetGroupSigsDataByRaw,group sigs error.======================")
 		return "", fmt.Errorf("group sigs error")
 	}
 
@@ -908,14 +910,14 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 			node2 := ParseNode(node)
 			enID := strings.Split(en[0], "//")
 			if len(enID) < 2 {
-				fmt.Printf("==========================GetGroupSigsDataByRaw,len enid = %v========================\n", len(enID))
+				log.Error("============================GetGroupSigsDataByRaw,group sigs error.======================")
 				return "", fmt.Errorf("group sigs error")
 			}
 
 			if strings.EqualFold(node2, enID[1]) {
 				enodesigs := []rune(sigs[j])
 				if len(enodesigs) <= len(node) {
-					fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v========================\n", node, enodesigs, len(node), len(enodesigs), enodes, groupsigs)
+					log.Error("============================GetGroupSigsDataByRaw,group sigs error.======================")
 					return "", fmt.Errorf("group sigs error")
 				}
 
@@ -923,13 +925,13 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 				//sigbit, _ := hex.DecodeString(string(sig[:]))
 				sigbit := common.FromHex(string(sig[:]))
 				if sigbit == nil {
-					fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v,sig = %v========================\n", node, enodesigs, len(node), len(enodesigs), enodes, groupsigs, sig)
+					log.Error("============================GetGroupSigsDataByRaw,group sigs error.======================")
 					return "", fmt.Errorf("group sigs error")
 				}
 
 				pub, err := secp256k1.RecoverPubkey(crypto.Keccak256([]byte(node2)), sigbit)
 				if err != nil {
-					fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v,sig = %v,err = %v========================\n", node, enodesigs, len(node), len(enodesigs), enodes, groupsigs, sig, err)
+					log.Error("============================GetGroupSigsDataByRaw,recover pubkey err======================","err",err)
 					return "", err
 				}
 
@@ -938,7 +940,7 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 					pubkey := hex.EncodeToString(pub)
 					from, err := h.PublicKeyToAddress(pubkey)
 					if err != nil {
-						fmt.Printf("==========================GetGroupSigsDataByRaw,node = %v,enodesigs = %v,node len = %v,enodessigs len = %v,enodes = %v,groupsigs = %v,sig = %v,err = %v, pubkey = %v========================\n", node, enodesigs, len(node), len(enodesigs), enodes, groupsigs, sig, err, pubkey)
+						log.Error("============================GetGroupSigsDataByRaw,pubkey to addr fail======================","err",err)
 						return "", err
 					}
 
@@ -947,8 +949,6 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 					sstmp += node2
 					sstmp += common.Sep
 					sstmp += from
-
-					fmt.Printf("=========================GetGroupSigsDataByRaw,pubkey = %v,enode = %v,from = %v=========================\n",pubkey,node2,from)
 				}
 			}
 		}
@@ -1536,13 +1536,10 @@ func getNodePrivate(keyfile string) (*ecdsa.PrivateKey,error) {
 
     nodeKey, err := crypto.LoadECDSA(keyfile)
     if err != nil {
-	fmt.Printf("====================getNodePrivate,err = %v=======================\n",err)
+	log.Error("====================getNodePrivate fail========================","err",err)
 	return nil,err
     }
     
-    //enodeID := discover.PubkeyID(&nodeKey.PublicKey).String()
-    //fmt.Printf("======================getNodePrivate,enodeID = %v,cur_enode = %v===================\n",enodeID,curEnode)
-
     return nodeKey,nil
 }
 
@@ -1553,7 +1550,7 @@ func getUnSignMsgByte(msg smpclib.Message) ([]byte,error) {
     
     s, err := json.Marshal(msg)
     if err != nil {
-	fmt.Printf("====================getUnSignMsgByte,err = %v=======================\n",err)
+	log.Error("====================getUnSignMsgByte fail========================","err",err)
 	    return nil,err
     }
 
@@ -1583,7 +1580,7 @@ func sigP2pMsg(msg smpclib.Message,enodeID string) ([]byte,error) {
 
     sig,err := crypto.Sign(hash,priv)
     if err != nil {
-	fmt.Printf("====================sigP2pMsg,err = %v=======================\n",err)
+	log.Error("====================sigP2pMsg fail=======================","err",err)
 	return nil,err
     }
 
@@ -1606,7 +1603,7 @@ func checkP2pSig(sig []byte,msg smpclib.Message,enodeID string) bool {
 
     public,err := crypto.SigToPub(hash,sig)
     if err != nil {
-	fmt.Printf("====================checkP2pSig,err = %v=======================\n",err)
+	log.Error("====================checkP2pSig fail=======================","err",err)
 	return false
     }
 

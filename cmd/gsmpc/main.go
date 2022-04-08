@@ -45,6 +45,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/nat"
 	rpcsmpc "github.com/anyswap/FastMulThreshold-DSA/rpc/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc"
+	comlog "github.com/anyswap/FastMulThreshold-DSA/log"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -90,7 +91,7 @@ func StartSmpc(c *cli.Context) {
 
 	err := startP2pNode()
 	if err != nil {
-	    fmt.Printf("start p2p node fail,err = %v\n",err)
+	    comlog.Error("start p2p node fail","err",err)
 	    return
 	}
 
@@ -205,7 +206,7 @@ func getConfig() error {
 			fmt.Printf("DecodeFile %v: %v\n", path, err)
 			return err
 		}
-		fmt.Printf("config file: %v\n", path)
+		comlog.Info("config file","path", path)
 
 		nkey = cf.Gsmpc.Nodekey
 		bnodes = cf.Gsmpc.Bootnodes
@@ -249,7 +250,7 @@ func startP2pNode() error {
 	if genKey != "" {
 		nodeKey, err := crypto.GenerateKey()
 		if err != nil {
-			fmt.Printf("could not generate key: %v\n", err)
+			comlog.Error("could not generate key","err", err)
 			os.Exit(1)
 		}
 		if err = crypto.SaveECDSA(genKey, nodeKey); err != nil {
@@ -280,15 +281,15 @@ func startP2pNode() error {
 	if keyfilehex != "" {
 		nodeKey, errkey = crypto.HexToECDSA(keyfilehex)
 		if errkey != nil {
-			fmt.Printf("HexToECDSA nodekeyhex: %v, err: %v\n", keyfilehex, errkey)
+			comlog.Error("HexToECDSA nodekeyhex","keyfile", keyfilehex, "err",errkey)
 			os.Exit(1)
 		}
-		fmt.Printf("keyfilehex: %v, bootnodes: %v\n", keyfilehex, bootnodes)
+		comlog.Info("start p2p","keyfilehex",keyfilehex,"bootnodes",bootnodes)
 	} else {
 		if keyfile == "" {
 			keyfile = fmt.Sprintf("node.key")
 		}
-		fmt.Printf("keyfile: %v, bootnodes: %v\n", keyfile, bootnodes)
+		comlog.Info("start p2p","keyfilehex",keyfilehex,"bootnodes",bootnodes)
 		smpc.KeyFile = keyfile
 		nodeKey, errkey = crypto.LoadECDSA(keyfile)
 		if errkey != nil {
@@ -322,7 +323,7 @@ func startP2pNode() error {
 		rpcport = getPort(rpcport)
 		storeRPCPort(pubdir, rpcport)
 	}
-	fmt.Printf("port: %v, rpcport: %v\n", port, rpcport)
+	comlog.Info("start gsmpc","port",port,"rpcport",rpcport)
 	layer2.InitSelfNodeID(nodeidString)
 	layer2.InitIPPort(port)
 
@@ -345,18 +346,18 @@ func startP2pNode() error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("==== startP2pNode() ====, bootnodes = %v\n", bootNodes)
+	comlog.Info("=========== startP2pNode() ==========","bootnodes", bootNodes)
 	nodeserv.Config.BootstrapNodes = []*discover.Node{bootNodes}
 
 	go func() {
 		if err := nodeserv.Start(); err != nil {
-			fmt.Printf("==== startP2pNode() ====, nodeserv.Start err: %v\n", err)
+			comlog.Error("==== startP2pNode() ====","nodeserv.Start err", err)
 			return
 		}
 
 		layer2.InitServer(nodeserv)
 		//fmt.Printf("\nNodeInfo: %+v\n", nodeserv.NodeInfo())
-		fmt.Println("\n=================== P2P Service Start! ===================\n")
+		comlog.Info("=================== P2P Service Start! ===================")
 		if privateNet {
 			go func() {
 				signalChan := make(chan os.Signal, 1)
