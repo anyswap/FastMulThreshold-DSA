@@ -22,7 +22,7 @@ gsmpc-client:
 	@echo "Done building."
 
 clean:
-	rm -fr bin/cmd/*
+	rm -fr ./build/bin/*
 	./build.sh gsmpc-test-clean
 
 fmt:
@@ -31,5 +31,3 @@ fmt:
 gsmpc-test:
 	./build.sh gsmpc-test
 
-gsmpc-test-short:
-	./build.sh gsmpc-test-short
