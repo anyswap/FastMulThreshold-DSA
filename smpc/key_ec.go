@@ -144,13 +144,28 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 				return
 			}
 
-			_, err = w.DNode.Update(mm)
+			ok, err := w.DNode.Update(mm)
 			if err != nil {
 				common.Error("====================ProcessInboundMessages,dnode update fail=======================", "receiv msg", m, "err", err)
 				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
 			}
+
+			if ok {
+			    //////also broacast to group for msg4 msg5 msg51 msg52 msg6
+			    if mm.GetMsgType() == "KGRound4Message" || mm.GetMsgType() == "KGRound5Message" || mm.GetMsgType() == "KGRound5Message1" || mm.GetMsgType() == "KGRound5Message2" || mm.GetMsgType() == "KGRound6Message" {
+				if mm.IsBroadcast() {
+				    go func(msg string,gid string) {
+					for i:=0;i<2;i++ {
+					    SendMsgToSmpcGroup(msg,gid)
+					    time.Sleep(time.Duration(5) * time.Second) //1000 == 1s
+					}
+				    }(m,w.groupid)
+				}
+			    }
+			    //////
+			}	
 		}
 	}
 }

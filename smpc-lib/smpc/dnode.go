@@ -112,7 +112,7 @@ func BaseUpdate(p DNode, msg Message) (ok bool, err error) {
 	if p.Round() != nil {
 		ok, err := p.StoreMessage(msg)
 		if err != nil || !ok {
-			fmt.Printf("==========================BaseUpdate,store msg fail,msg = %v,err = %v=====================\n",msg,err)
+			//fmt.Printf("==========================BaseUpdate,store msg fail,msg = %v,err = %v=====================\n",msg,err)
 			p.unlock()
 			return false, err
 		}

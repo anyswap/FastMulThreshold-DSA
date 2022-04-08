@@ -460,14 +460,14 @@ func Call(msg interface{}, enode string) {
 		    w, err := FindWorker(val)
 		    if err == nil {
 			    if w.DNode != nil && w.DNode.Round() != nil {
-				    common.Debug("====================Call, get smpc msg,worker found.===================", "key", val, "msg", msg, "sender node", enode)
+				    //common.Debug("====================Call, get smpc msg,worker found.===================", "key", val, "msg", msg, "sender node", enode)
 				    w.SmpcMsg <- s
 			    } else {
 				    from := msgmap["FromID"]
 				    msgtype := msgmap["Type"]
 				    key := strings.ToLower(val + "-" + from + "-" + msgtype)
 				    C1Data.WriteMap(key, s)
-				    fmt.Printf("===============================Call, pre-save p2p msg, worker found, key = %v,fromID = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
+				    //fmt.Printf("===============================Call, pre-save p2p msg, worker found, key = %v,fromID = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
 			    }
 		    } else {
 			    from := msgmap["FromID"]
@@ -598,6 +598,14 @@ func HandleKG(key string, uid *big.Int) {
 	Handle(key, c1data)
 	c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound4Message")
 	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound5Message")
+        Handle(key, c1data)
+        c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound5Message1")
+        Handle(key, c1data)
+        c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound5Message2")
+        Handle(key, c1data)
+        c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound6Message")
+        Handle(key, c1data)
 }
 
 // HandleSign Process pre-save msg for sign 
