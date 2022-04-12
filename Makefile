@@ -6,7 +6,6 @@
 
 all:
 	./build.sh gsmpc bootnode gsmpc-client
-	cp cmd/conf.toml ./ 
 	@echo "Done building."
 
 gsmpc:
