@@ -28,6 +28,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"github.com/anyswap/FastMulThreshold-DSA/rpc"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 func listenSignal(exit chan int) {
@@ -759,12 +760,12 @@ func startRPCServer() error {
 		go func() {
 		    err2 := rpc.NewHTTPServer(cors, vhosts, rpc.DefaultHTTPTimeouts, server).Serve(listener)
 		    if err2 != nil {
-			fmt.Printf("new http server fail, err = %v\n",err2)
+			log.Error("============== new http server fail ==============","err",err2)
 			return
 		    }
 		}()
-		rpcstring := "\n==================== RPC Service Start! url = " + fmt.Sprintf("http://%s", endpoint) + " =====================\n"
-		fmt.Println(rpcstring)
+		rpcstring := "==================== RPC Service Start! url = " + fmt.Sprintf("http://%s", endpoint) + " ====================="
+		log.Info(rpcstring)
 
 		exit := make(chan int)
 		<-exit

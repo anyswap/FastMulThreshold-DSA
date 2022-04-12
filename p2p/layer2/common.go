@@ -98,22 +98,22 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 		p := emitter.peers[node.ID]
 		if p != nil {
 			if err = p2p.Send(p.ws, msgCode, msg); err != nil {
-				common.Debug("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "send", "fail waitting resend")
+				common.Error("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "send", "fail waitting resend")
 				//emitter.Unlock()
 				//return err
 			} else {
 				emitter.Unlock()
-				common.Debug("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "countSend", countSendFail, "msg", msg[:cdLen], "send", "success")
+				common.Info("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "countSend", countSendFail, "msg", msg[:cdLen], "send", "success")
 				return nil
 			}
 		} else {
-			common.Debug("==== p2pSendMsg() ==== p2pBroatcast", "nodeID", node.ID, "peer", "not exist p2perror continue")
+			common.Error("==== p2pSendMsg() ==== p2pBroatcast", "nodeID", node.ID, "peer", "not exist p2perror continue")
 		}
 		emitter.Unlock()
 
 		countSendFail += 1
 		if countSendFail >= 30 {
-			common.Debug("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "send", "fail p2perror", "sendCount", countSendFail)
+			common.Error("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "terminal send", "fail p2perror", "sendCount", countSendFail)
 			break
 		}
 		if countSendFail == 1 || countSendFail%5 == 0 {
@@ -191,7 +191,7 @@ func NewEmitter() *Emitter {
 func (e *Emitter) addPeer(p *p2p.Peer, ws p2p.MsgReadWriter) {
 	e.Lock()
 	defer e.Unlock()
-	common.Debug("==== addPeer() ====", "id", p.ID().String()[:8])
+	common.Info("=============== addPeer() ================", "id", p.ID().String()[:8])
 	discover.RemoveSequenceDoneRecv(p.ID().String())
 	e.peers[p.ID()] = &peer{ws: ws, peer: p, peerInfo: &peerInfo{int(ProtocolVersion)}, knownTxs: mapset.NewSet()}
 	enode := fmt.Sprintf("enode://%v@%v", p.ID().String(), p.RemoteAddr())
@@ -205,7 +205,7 @@ func (e *Emitter) removePeer(p *p2p.Peer) {
 	e.Lock()
 	defer e.Unlock()
 	discover.UpdateOnLine(p.ID(), false)
-	common.Debug("==== removePeer() ====", "id", p.ID().String()[:8])
+	common.Info("=============== removePeer() ================", "id", p.ID().String()[:8])
 	return
 	//enode := fmt.Sprintf("enode://%v@%v", p.ID().String(), p.RemoteAddr())
 	//node, _ := discover.ParseNode(enode)
@@ -337,7 +337,7 @@ func getGroup(gid discover.NodeID, p2pType int) (int, string) {
 }
 
 func recvGroupInfo(gid discover.NodeID, mode string, req interface{}, p2pType int, Type string) {
-	common.Debug("==== recvGroupInfo() ====", "gid", gid, "req", req)
+	common.Info("================ recvGroupInfo() =================", "gid", gid, "req", req)
 	discover.GroupSDK.Lock()
 	defer discover.GroupSDK.Unlock()
 	var xvcGroup *discover.Group

@@ -1362,7 +1362,7 @@ func updateRemoteIP(ip net.IP, port uint16) {
 
 func updateIPPort(ip net.IP, port uint16) {
 	//fmt.Printf("updateRemoteIP, IP:port = %v:%v\n\n", ip, port)
-	common.Debug("updateRemoteIP() ====", "IP", ip, "port", port)
+	common.Info("============= updateRemoteIP() ============", "IP", ip, "port", port)
 	RemoteIP = ip
 	RemotePort = port
 	SelfEnode = fmt.Sprintf("enode://%v@%v:%v", GetLocalID(), RemoteIP, RemotePort)
@@ -1442,7 +1442,7 @@ func StoreGroupToDb(groupInfo *Group) error { //nooo
 		return err
 	}
 
-	common.Debug("==== StoreGroupInfo() ==== new", "ac", ac)
+	common.Info("================ StoreGroupInfo() ================ new", "ac", ac)
 	err = db.Put([]byte(key), []byte(ss), nil)
 	if err != nil {
 	    db.Close()
