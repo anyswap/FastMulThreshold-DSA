@@ -19,7 +19,6 @@ package main
 
 import (
 	"crypto/ecdsa"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -197,20 +196,22 @@ func getConfig() error {
 		fmt.Printf("Options -nodekey and -nodekeyhex are mutually exclusive\n")
 		keyfilehex = ""
 	}
-	if common.FileExist(path) != true {
-		return errors.New("no configuration file used")
-	}
+	nkey := ""
+	bnodes := ""
+	pt := 0
+	rport := 0
+	if common.FileExist(path) {
+		if _, err := toml.DecodeFile(path, &cf); err != nil {
+			fmt.Printf("DecodeFile %v: %v\n", path, err)
+			return err
+		}
+		fmt.Printf("config file: %v\n", path)
 
-	if _, err := toml.DecodeFile(path, &cf); err != nil {
-		fmt.Printf("DecodeFile %v: %v\n", path, err)
-		return err
+		nkey = cf.Gsmpc.Nodekey
+		bnodes = cf.Gsmpc.Bootnodes
+		pt = cf.Gsmpc.Port
+		rport = cf.Gsmpc.Rpcport
 	}
-	fmt.Printf("config file: %v\n", path)
-
-	nkey := cf.Gsmpc.Nodekey
-	bnodes := cf.Gsmpc.Bootnodes
-	pt := cf.Gsmpc.Port
-	rport := cf.Gsmpc.Rpcport
 	if nkey != "" && keyfile == "" {
 		keyfile = nkey
 	}
@@ -243,7 +244,7 @@ func startP2pNode() error {
 		rpcport = 4449
 	}
 	if !privateNet && bootnodes == "" {
-		bootnodes = "enode://4dbed736b0d918eb607382e4e50cd85683c4592e32f666cac03c822b2762f2209a51b3ed513adfa28c7fa2be4ca003135a5734cfc1e82161873debb0cff732c8@104.210.49.28:36231"
+		bootnodes = "enode://c189b1fd3c7377ad705266017a2d6d2b649b83db31475705a97940d6e228cd92df9500f5dcc3723f81ef08a7910fcda66463827b89341c30c4c9015861e082c7@101.32.97.27:11920"
 	}
 	if genKey != "" {
 		nodeKey, err := crypto.GenerateKey()
