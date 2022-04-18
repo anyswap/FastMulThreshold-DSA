@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"time"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common/math/random"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
@@ -107,7 +108,7 @@ func NewLocalDNode(
 
 	uid := random.GetRandomIntFromZn(secp256k1.S256().N)
 	p.ID = fmt.Sprintf("%v", uid)
-	fmt.Printf("=========== NewLocalDNode, uid = %v, p.ID = %v =============\n", uid, p.ID)
+	//fmt.Printf("=========== NewLocalDNode, uid = %v, p.ID = %v =============\n", uid, p.ID)
 
 	p.DNodeCountInGroup = DNodeCountInGroup
 	p.ThresHold = threshold
@@ -228,7 +229,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		    }
 
 		    if len(p.temp.kgRound0Messages) == p.DNodeCountInGroup {
-			    fmt.Printf("================ StoreMessage,get all ec keygen 0 messages ==============\n")
+			    log.Info("================ StoreMessage,get all ec keygen 0 messages ==============")
 			    time.Sleep(time.Duration(1000000)) //tmp code
 			    return true, nil
 		    }
@@ -240,7 +241,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		m := msg.(*KGRound1Message)
 		p.data.U1PaillierPk[index] = m.U1PaillierPk
 		if len(p.temp.kgRound1Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound1Messages) {
-			fmt.Printf("================ StoreMessage,get all ec keygen 1 messages ==============\n")
+			log.Info("================ StoreMessage,get all ec keygen 1 messages ==============")
 			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
@@ -248,7 +249,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		index := msg.GetFromIndex()
 		p.temp.kgRound2Messages[index] = msg
 		if len(p.temp.kgRound2Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound2Messages) {
-			fmt.Printf("================ StoreMessage,get all ec keygen 2 messages ==============\n")
+			log.Info("================ StoreMessage,get all ec keygen 2 messages ==============")
 			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
@@ -256,7 +257,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		index := msg.GetFromIndex()
 		p.temp.kgRound2Messages1[index] = msg
 		if len(p.temp.kgRound2Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound2Messages1) {
-			fmt.Printf("================ StoreMessage,get all ec keygen 2-1 messages ==============\n")
+			log.Info("================ StoreMessage,get all ec keygen 2-1 messages ==============")
 			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
@@ -264,7 +265,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		index := msg.GetFromIndex()
 		p.temp.kgRound2Messages2[index] = msg
 		if len(p.temp.kgRound2Messages2) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound2Messages2) {
-			fmt.Printf("================ StoreMessage,get all ec keygen 2-2 messages ==============\n")
+			log.Info("================ StoreMessage,get all ec keygen 2-2 messages ==============")
 			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
@@ -272,7 +273,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		index := msg.GetFromIndex()
 		p.temp.kgRound3Messages[index] = msg
 		if len(p.temp.kgRound3Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound3Messages) {
-			fmt.Printf("================ StoreMessage,get all ec keygen 3 messages ==============\n")
+			log.Info("================ StoreMessage,get all ec keygen 3 messages ==============")
 			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
@@ -280,7 +281,7 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		index := msg.GetFromIndex()
 		p.temp.kgRound3Messages1[index] = msg
 		if len(p.temp.kgRound3Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound3Messages1) {
-			fmt.Printf("================ StoreMessage,get all ec keygen 3-1 messages ==============\n")
+			log.Info("================ StoreMessage,get all ec keygen 3-1 messages ==============")
 			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
@@ -307,29 +308,29 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		h1modn := new(big.Int).Mod(H1,Ntilde)
 		h2modn := new(big.Int).Mod(H2,Ntilde)
 		if h1modn.Cmp(zero) == 0 || h2modn.Cmp(zero) == 0 {
-			fmt.Printf("=========================keygen StoreMessage, message 4, h1 or h2 is equal 0 mod ntilde.from index = %v, msg = %v, ===========================\n", index, m)
+		    log.Error("=========================keygen StoreMessage, message 4, h1 or h2 is equal 0 mod ntilde.===========================")
 		    return false,errors.New("h1 or h2 is equal 0 mod Ntilde")
 		}
 		if h1modn.Cmp(one) == 0 || h2modn.Cmp(one) == 0 {
-			fmt.Printf("=========================keygen StoreMessage, message 4, h1 or h2 is equal 1 mod ntilde.from index = %v, msg = %v, ===========================\n", index, m)
+		    log.Error("=========================keygen StoreMessage, message 4, h1 or h2 is equal 1 mod ntilde.===========================")
 		    return false,errors.New("h1 or h2 is equal 1 mod Ntilde")
 		}
 
 		if h1modn.Cmp(h2modn) == 0 {
-			fmt.Printf("=========================keygen StoreMessage, message 4, h1 and h2 were equal mod ntilde.from index = %v, msg = %v, ===========================\n", index, m)
+		    log.Error("=========================keygen StoreMessage, message 4, h1 and h2 were equal mod ntilde.===========================")
 			return false, errors.New("h1 and h2 were equal mod Ntilde")
 		}
 		
 		if !pf1.Verify(H1, H2, Ntilde) || !pf2.Verify(H2, H1, Ntilde) {
-			fmt.Printf("=========================keygen StoreMessage, message 4, ntilde zk proof check fail.from index = %v, msg = %v, ===========================\n", index, m)
+		    log.Error("=========================keygen StoreMessage, message 4, ntilde zk proof check fail. ===========================")
 			return false, errors.New("ntilde zk proof check fail")
 		}
 
 		p.data.U1NtildeH1H2[index] = m.U1NtildeH1H2
 		p.temp.kgRound4Messages[index] = msg
-		fmt.Printf("=========================keygen StoreMessage, message 4, msg len = %v,from index = %v, msg = %v, ===========================\n", getFullCount(p.temp.kgRound4Messages),index, m)
+		log.Info("=========================keygen StoreMessage, message 4 ====================","received msg counts", getFullCount(p.temp.kgRound4Messages))
 		if len(p.temp.kgRound4Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound4Messages) {
-			fmt.Printf("================ StoreMessage,get all ec keygen 4 messages ==============\n")
+			log.Info("================ StoreMessage,get all ec keygen 4 messages ==============")
 			time.Sleep(time.Duration(1000000))
 			return true, nil
 		}
@@ -338,15 +339,14 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			if len(p.temp.kgRound5Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages) {
 				return true, nil
 			}
-			//fmt.Printf("================ StoreMessage,msg 5,the msg have exsit already,msg = %v,len = %v ==============\n",msg,getFullCount(p.temp.kgRound5Messages))
 			return false,nil
 		}
 
 		index := msg.GetFromIndex()
 		p.temp.kgRound5Messages[index] = msg
-		fmt.Printf("=========================keygen StoreMessage, message 5, msg len = %v,from index = %v, msg = %v, ===========================\n", getFullCount(p.temp.kgRound5Messages),index, msg)
+		log.Info("=========================keygen StoreMessage, message 5 =====================","received msg counts", getFullCount(p.temp.kgRound5Messages))
 		if len(p.temp.kgRound5Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages) {
-			fmt.Printf("================ StoreMessage,get all ec keygen 5 messages ==============\n")
+			log.Info("================ StoreMessage,get all ec keygen 5 messages ==============")
 			time.Sleep(time.Duration(1000000))
 			return true, nil
 		}
@@ -355,15 +355,14 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			if len(p.temp.kgRound5Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages1) {
 				return true, nil
 			}
-			//fmt.Printf("================ StoreMessage,msg 5-1,the msg have exsit already,msg = %v,len = %v ==============\n",msg,getFullCount(p.temp.kgRound5Messages1))
 			return false,nil
 		}
 
 		index := msg.GetFromIndex()
 		p.temp.kgRound5Messages1[index] = msg
-		fmt.Printf("=========================keygen StoreMessage, message 5-1, msg len = %v,from index = %v, msg = %v, ===========================\n", getFullCount(p.temp.kgRound5Messages1),index, msg)
+		log.Info("=========================keygen StoreMessage, message 5-1 ======================","received msg counts", getFullCount(p.temp.kgRound5Messages1))
 		if len(p.temp.kgRound5Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages1) {
-			fmt.Printf("================ StoreMessage,get all ec keygen 5-1 messages ==============\n")
+			log.Info("================ StoreMessage,get all ec keygen 5-1 messages ==============")
 			time.Sleep(time.Duration(1000000))
 			return true, nil
 		}
@@ -372,15 +371,14 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			if len(p.temp.kgRound5Messages2) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages2) {
 				return true, nil
 			}
-			//fmt.Printf("================ StoreMessage,msg 5-2,the msg have exsit already,msg = %v,len = %v ==============\n",msg,getFullCount(p.temp.kgRound5Messages2))
 			return false,nil
 		}
 
 		index := msg.GetFromIndex()
 		p.temp.kgRound5Messages2[index] = msg
-		fmt.Printf("=========================keygen StoreMessage, message 5-2, msg len = %v,from index = %v, msg = %v, ===========================\n", getFullCount(p.temp.kgRound5Messages2),index, msg)
+		log.Info("=========================keygen StoreMessage, message 5-2========================","received msg counts", getFullCount(p.temp.kgRound5Messages2))
 		if len(p.temp.kgRound5Messages2) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages2) {
-			fmt.Printf("================ StoreMessage,get all ec keygen 5-2 messages ==============\n")
+			log.Info("================ StoreMessage,get all ec keygen 5-2 messages ==============")
 			time.Sleep(time.Duration(1000000))
 			return true, nil
 		}
@@ -389,21 +387,20 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			if len(p.temp.kgRound6Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound6Messages) {
 				return true, nil
 			}
-			//fmt.Printf("================ StoreMessage,msg 6,the msg have exsit already,msg = %v,len = %v ==============\n",msg,getFullCount(p.temp.kgRound6Messages))
 			return false,nil
 		}
 
 		index := msg.GetFromIndex()
 		p.temp.kgRound6Messages[index] = msg
-		fmt.Printf("=========================keygen StoreMessage, message 6, msg len = %v,from index = %v, msg = %v, ===========================\n", getFullCount(p.temp.kgRound6Messages),index, msg)
+		log.Info("=========================keygen StoreMessage, message 6=========================","received msg counts", getFullCount(p.temp.kgRound6Messages))
 		if len(p.temp.kgRound6Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound6Messages) {
-			fmt.Printf("================ StoreMessage,get all ec keygen 6 messages ==============\n")
+			log.Info("================ StoreMessage,get all ec keygen 6 messages ==============")
 			time.Sleep(time.Duration(1000000))
 			return true, nil
 		}
 	default: // unrecognised message, just ignore!
-		fmt.Printf("storemessage,unrecognised message ignored: %v\n", msg)
-		return false, nil
+	log.Info("storemessage,unrecognised message ignored","msg", msg)	
+	return false, nil
 	}
 
 	return false, nil

@@ -602,7 +602,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 	rk := Keccak256Hash([]byte(strings.ToLower(account + ":" + cointype + ":" + wk.groupid + ":" + nonce + ":" + wk.limitnum + ":" + mode))).Hex()
 
 	pubkeyhex := hex.EncodeToString(ys)
-	fmt.Printf("================ smpc_genpubkey,pubkey generated successfully ,pkx = %v,pky = %v,pubkeyhex = %v ==================\n", pkx, pky, pubkeyhex)
+	common.Info("================ smpc_genpubkey,pubkey generated successfully ===================","pkx",pkx,"pky",pky,"pubkey hex",pubkeyhex)
 
 	pubs := &PubKeyData{Key: msgprex, Account: account, Pub: string(ys), Save: save, Nonce: nonce, GroupID: wk.groupid, LimitNum: wk.limitnum, Mode: mode, KeyGenTime: tt}
 	epubs, err := Encode2(pubs)

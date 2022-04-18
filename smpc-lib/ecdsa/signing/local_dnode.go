@@ -25,6 +25,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/ecdsa/keygen"
 	"math/big"
 	"encoding/hex"
+	//"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 // LocalDNode current local node

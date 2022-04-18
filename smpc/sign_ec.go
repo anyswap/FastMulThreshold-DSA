@@ -24,6 +24,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/ecdsa/signing"
 	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 	"math/big"
 	"strconv"
 	"strings"
@@ -41,7 +42,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 	    return
 	}
 
-	fmt.Printf("start sign processing inbound messages\n")
+	//log.Info("start sign processing inbound messages")
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
 		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to sign process inbound messages")}
@@ -49,7 +50,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 		return
 	}
 
-	defer fmt.Printf("stop sign processing inbound messages\n")
+	defer log.Info("stop sign processing inbound messages","key",msgprex)
 	for {
 		select {
 		case <-finishChan:
@@ -155,7 +156,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 
 			_, err = w.DNode.Update(mm)
 			if err != nil {
-				fmt.Printf("========== SignProcessInboundMessages, dnode update fail, receiv smpc msg = %v, err = %v ============\n", m, err)
+				log.Error("========== SignProcessInboundMessages, dnode update fail===========","receiv smpc msg",m,"err",err)
 				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
@@ -504,16 +505,16 @@ func processSign(msgprex string, msgtoenode map[string]string, errChan chan stru
 	for {
 		select {
 		case <-errChan:
-			fmt.Printf("=========== processSign,error channel closed fail to start local smpc node, key = %v ===========\n", msgprex)
+			log.Error("=========== processSign,error channel closed fail to start local smpc node=========","key", msgprex)
 			return nil, errors.New("error channel closed fail to start local smpc node")
 
 		case <-time.After(time.Second * time.Duration(EcSignTimeout)):
-			fmt.Printf("========================== processSign,sign timeout, key = %v ========================\n", msgprex)
+			log.Error("========================== processSign,sign timeout=======================","key",msgprex)
 			return nil, errors.New("sign timeout")
 		case msg := <-outCh:
 			err := SignProcessOutCh(msgprex, msgtoenode, msg, "")
 			if err != nil {
-				fmt.Printf("============================= processSign, sign process outch err = %v, key = %v =======================\n", err, msgprex)
+				log.Error("============================= processSign, sign process outch fail =======================","err",err,"key",msgprex)
 				return nil, err
 			}
 		case msg := <-endCh:
@@ -533,16 +534,16 @@ func processSignFinalize(msgprex string, msgtoenode map[string]string, errChan c
 	for {
 		select {
 		case <-errChan:
-			fmt.Printf("=========== processSign,error channel closed fail to start local smpc node, key = %v ===========\n", msgprex)
+			log.Error("=========== processSign,error channel closed fail to start local smpc node ============","key", msgprex)
 			return nil, errors.New("error channel closed fail to start local smpc node")
 
 		case <-time.After(time.Second * time.Duration(EcSignTimeout)):
-			fmt.Printf("========================== processSignFinalize,sign timeout, key = %v =========================\n", msgprex)
+			log.Error("========================== processSignFinalize,sign timeout =====================","key", msgprex)
 			return nil, errors.New("sign timeout")
 		case msg := <-outCh:
 			err := SignProcessOutCh(msgprex, msgtoenode, msg, gid)
 			if err != nil {
-				fmt.Printf("================================= processSignFinalize, sign process outch err = %v, key = %v ==========================\n", err, msgprex)
+				log.Error("================================= processSignFinalize, sign process outch fail ==============================","err",err,"key",msgprex)
 				return nil, err
 			}
 		case msg := <-endCh:

@@ -24,6 +24,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/ecdsa/keygen"
 	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 	"math/big"
 	"strconv"
 	"strings"
@@ -41,7 +42,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 	}
 
 	defer wg.Done()
-	fmt.Printf("start processing inbound messages\n")
+	//log.Info("start processing inbound messages")
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
 		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to process inbound messages")}
@@ -49,7 +50,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 		return
 	}
 
-	defer fmt.Printf("stop processing inbound messages\n")
+	defer log.Info("stop processing inbound messages","key",msgprex)
 	for {
 		select {
 		case <-finishChan:
@@ -65,7 +66,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			msgmap := make(map[string]string)
 			err := json.Unmarshal([]byte(m), &msgmap)
 			if err != nil {
-				fmt.Printf("======================ProcessInboundMessages,unmarshal msg error,key = %v,msg = %v,err = %v=============\n",msgprex,m,err)
+				log.Error("======================ProcessInboundMessages,unmarshal msg error===============","key",msgprex,"msg",m,"err",err)
 				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
@@ -78,7 +79,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 
 			mm := GetRealMessage(msgmap)
 			if mm == nil {
-				fmt.Printf("======================ProcessInboundMessages,get msg error,key = %v,msg = %v,err = %v=============\n",msgprex,m,err)
+				log.Error("======================ProcessInboundMessages,get msg error=================","key",msgprex,"msg",m,"err",err)
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to process inbound messages")}
 				ch <- res
 				return
@@ -86,14 +87,14 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			
 			//check sig
 			if msgmap["Sig"] == "" {
-				fmt.Printf("======================ProcessInboundMessages,verify sig fail,sig data error,key = %v,msg = %v,err = %v=============\n",msgprex,m,err)
+				log.Error("======================ProcessInboundMessages,verify sig fail=====================","key",msgprex,"msg",m,"err",err)
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail,sig data error")}
 				ch <- res
 				return
 			}
 
 			if msgmap["ENode"] == "" {
-				fmt.Printf("======================ProcessInboundMessages,verify sig fail,enode info error,key = %v,msg = %v,err = %v=============\n",msgprex,m,err)
+				log.Error("======================ProcessInboundMessages,verify sig fail=====================","key",msgprex,"msg",m,"err",err)
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail,enode info error")}
 				ch <- res
 				return
@@ -151,6 +152,8 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 				ch <- res
 				return
 			}
+
+			//log.Debug("================ProcessInboundMessages,update msg success=====================","msg type    ",mm.GetMsgType(),"key",msgprex)
 		}
 	}
 }
@@ -510,16 +513,16 @@ func processKeyGen(msgprex string, errChan chan struct{}, outCh <-chan smpclib.M
 	for {
 		select {
 		case <-errChan: // when keyGenParty return
-			fmt.Printf("=========== processKeyGen,error channel closed fail to start local smpc node, key = %v ===========\n", msgprex)
+			log.Error("=========== processKeyGen,error channel closed fail to start local smpc node ===========","key", msgprex)
 			return errors.New("error channel closed fail to start local smpc node")
 
 		case <-time.After(time.Second * time.Duration(EcKeygenTimeout)):
-			fmt.Printf("=========== processKeyGen,keygen timeout, key = %v ===========\n", msgprex)
+			log.Error("=========== processKeyGen,keygen timeout ============","key", msgprex)
 			return errors.New("keygen timeout")
 		case msg := <-outCh:
 			err := ProcessOutCh(msgprex, msg)
 			if err != nil {
-				fmt.Printf("================ processKeyGen,process outch err = %v, key = %v ================\n", err, msgprex)
+				log.Error("================ processKeyGen,process outch fail ================","err",err,"key",msgprex)
 				return err
 			}
 		case msg := <-endCh:
@@ -626,7 +629,7 @@ func ProcessOutCh(msgprex string, msg smpclib.Message) error {
 	msgmap["Sig"] = hex.EncodeToString(sig)
 	s, err := json.Marshal(msgmap)
 	if err != nil {
-		fmt.Printf("====================ProcessOutCh, marshal err = %v, key = %v ========================\n", err, msgprex)
+		log.Error("====================ProcessOutCh, marshal fail=================","err",err,"key",msgprex)
 		return err
 	}
 
