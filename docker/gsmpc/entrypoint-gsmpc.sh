@@ -13,4 +13,4 @@ chmod -R o-rwx $CONFDIR $DATADIR $LOGDIR
 touch $LOGDIR/gsmpc.log
 chmod 640 $LOGDIR/gsmpc.log
 
-exec gsmpc --nodekey $CONFDIR/node.key --datadir $DATADIR --log $LOGDIR/gsmpc.log $@
+exec gsmpc --nodekey $CONFDIR/node.key --datadir $DATADIR --log $LOGDIR/gsmpc.log --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1  --presignnum 10 $@
