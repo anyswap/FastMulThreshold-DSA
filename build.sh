@@ -9,7 +9,6 @@ fi
 
 mod1=gsmpc-test
 mod2=gsmpc-test-clean
-mod3=gsmpc-test-short
 if [ $1 = $mod2 ]; then
 	rm -rf test/bin/gsmpctest
 	rm -rf test/bin/bootnodetest
@@ -24,14 +23,6 @@ if [ $1 = $mod2 ]; then
             rm -rf test/tmp/$i;
         fi;
         done;
-    exit
-fi
-
-if [ $1 = $mod3 ]; then
-	chmod a+x ./gsmpc-test-short.sh
-    chmod a+x ./bootnode-test.sh
-    ./gsmpc-test-short.sh $(pwd) 5871 "" EC256K1
-    
     exit
 fi
 

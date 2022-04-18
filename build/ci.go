@@ -23,6 +23,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"path"
 	"strings"
 
 	"github.com/anyswap/FastMulThreshold-DSA/internal/build"
@@ -116,7 +117,7 @@ var (
 	}
 )
 
-var GOBIN, _ = filepath.Abs(filepath.Join("bin", "cmd"))
+var GOBIN, _ = filepath.Abs(filepath.Join("build", "bin"))
 
 func executablePath(name string) string {
 	if runtime.GOOS == "windows" {
@@ -178,14 +179,24 @@ func doInstall(cmdline []string) {
 	}
 
 	if *arch == "" || *arch == runtime.GOARCH {
-		goinstall := goTool("install", buildFlags(env)...)
+		goinstall := goTool("build", buildFlags(env)...)
 		if runtime.GOARCH == "arm64" {
 			goinstall.Args = append(goinstall.Args, "-p", "1")
 		}
 		goinstall.Args = append(goinstall.Args, "-trimpath")
 		goinstall.Args = append(goinstall.Args, "-v")
-		goinstall.Args = append(goinstall.Args, packages...)
-		build.MustRun(goinstall)
+		//goinstall.Args = append(goinstall.Args, packages...)
+		//build.MustRun(goinstall)
+		// Do the build!
+               for _, pkg := range packages {
+                     args := make([]string, len(goinstall.Args))
+                     copy(args, goinstall.Args)
+                     cmd := path.Base(pkg)
+                     args = append(args, "-o", executablePath(cmd))
+                     args = append(args, pkg)
+                     build.MustRun(&exec.Cmd{Path: goinstall.Path, Args: args, Env: goinstall.Env})
+                }
+               //
 		return
 	}
 
@@ -194,8 +205,17 @@ func doInstall(cmdline []string) {
 	goinstall.Args = append(goinstall.Args, "-trimpath")
 	goinstall.Args = append(goinstall.Args, "-v")
 	goinstall.Args = append(goinstall.Args, []string{"-buildmode", "archive"}...)
-	goinstall.Args = append(goinstall.Args, packages...)
-	build.MustRun(goinstall)
+	//goinstall.Args = append(goinstall.Args, packages...)
+	//build.MustRun(goinstall)
+	// Do the build!
+       for _, pkg := range packages {
+             args := make([]string, len(goinstall.Args))
+             copy(args, goinstall.Args)
+             args = append(args, "-o", executablePath(path.Base(pkg)))
+             args = append(args, pkg)
+             build.MustRun(&exec.Cmd{Path: goinstall.Path, Args: args, Env: goinstall.Env})
+        }
+       //
 
 	if cmds, err := ioutil.ReadDir("cmd"); err == nil {
 		for _, cmd := range cmds {
