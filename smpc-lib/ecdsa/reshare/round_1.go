@@ -33,7 +33,7 @@ func (round *round1) Start() error {
 	}
 	round.number = 1
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 
 	if !round.oldnode {
 		return nil

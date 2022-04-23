@@ -29,6 +29,7 @@ type DNode interface {
 	FirstRound() Round
 	DNodeID() string
 	StoreMessage(msg Message) (bool, error)
+	DulMessage(msg Message) bool
 	SetDNodeID(id string)
 	Finalize() bool
 	FinalizeRound() Round
@@ -112,7 +113,7 @@ func BaseUpdate(p DNode, msg Message) (ok bool, err error) {
 	if p.Round() != nil {
 		ok, err := p.StoreMessage(msg)
 		if err != nil || !ok {
-			fmt.Printf("==========================BaseUpdate,store msg fail,msg = %v,err = %v=====================\n",msg,err)
+			//fmt.Printf("==========================BaseUpdate,store msg fail,msg = %v,err = %v=====================\n",msg,err)
 			p.unlock()
 			return false, err
 		}
@@ -129,6 +130,20 @@ func BaseUpdate(p DNode, msg Message) (ok bool, err error) {
 					p.unlock() // recursive so can't defer after return
 					return false, err
 				}
+				////fix bug: if the msg is the last one arrive,it must update
+				_,err = p.Round().Update()
+				if err == nil {
+				    if p.Round().CanProceed() {
+					if p.advance(); p.Round() != nil {
+					    if err := p.Round().Start(); err != nil {
+						    p.unlock() // recursive so can't defer after return
+						    return false, err
+					    }
+					}
+				    }
+				}
+				p.Round().ResetOK()  //reset the Update
+				////
 			}
 			
 			p.unlock()

@@ -218,6 +218,66 @@ func find(l []smpc.Message,msg smpc.Message) bool {
     return false
 }
 
+// DulMessage check whether the msg already exists in the list.
+func (p *LocalDNode) DulMessage(msg smpc.Message) bool {
+	switch msg.(type) {
+	case *KGRound0Message:
+	    	if find(p.temp.kgRound0Messages,msg) {
+		    return true
+		}
+
+	case *KGRound1Message:
+	    	if find(p.temp.kgRound1Messages,msg) {
+		    return true
+		}
+	case *KGRound2Message:
+	    	if find(p.temp.kgRound2Messages,msg) {
+		    return true
+		}
+	case *KGRound2Message1:
+	    	if find(p.temp.kgRound2Messages1,msg) {
+		    return true
+		}
+	case *KGRound2Message2:
+	    	if find(p.temp.kgRound2Messages2,msg) {
+		    return true
+		}
+	case *KGRound3Message:
+	    	if find(p.temp.kgRound3Messages,msg) {
+		    return true
+		}
+	case *KGRound3Message1:
+	    	if find(p.temp.kgRound3Messages1,msg) {
+		    return true
+		}
+	case *KGRound4Message:
+	    	if find(p.temp.kgRound4Messages,msg) {
+		    return true
+		}
+	case *KGRound5Message:
+	    	if find(p.temp.kgRound5Messages,msg) {
+		    return true
+		}
+	case *KGRound5Message1:
+	    	if find(p.temp.kgRound5Messages1,msg) {
+		    return true
+		}
+	case *KGRound5Message2:
+	    	if find(p.temp.kgRound5Messages2,msg) {
+		    return true
+		}
+	case *KGRound6Message:
+	    	if find(p.temp.kgRound6Messages,msg) {
+		    return true
+		}
+	default: // unrecognised message, just ignore!
+		log.Info("storemessage,unrecognised message ignored","msg", msg)
+		return true
+	}
+
+	return false
+}
+
 // StoreMessage Collect data from other nodes
 func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 	switch msg.(type) {
@@ -236,6 +296,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		}
 
 	case *KGRound1Message:
+	    	if find(p.temp.kgRound1Messages,msg) {
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.kgRound1Messages[index] = msg
 		m := msg.(*KGRound1Message)
@@ -246,6 +310,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return true, nil
 		}
 	case *KGRound2Message:
+	    	if find(p.temp.kgRound2Messages,msg) {
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.kgRound2Messages[index] = msg
 		if len(p.temp.kgRound2Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound2Messages) {
@@ -254,6 +322,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return true, nil
 		}
 	case *KGRound2Message1:
+	    	if find(p.temp.kgRound2Messages1,msg) {
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.kgRound2Messages1[index] = msg
 		if len(p.temp.kgRound2Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound2Messages1) {
@@ -262,6 +334,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return true, nil
 		}
 	case *KGRound2Message2:
+	    	if find(p.temp.kgRound2Messages2,msg) {
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.kgRound2Messages2[index] = msg
 		if len(p.temp.kgRound2Messages2) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound2Messages2) {
@@ -270,6 +346,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return true, nil
 		}
 	case *KGRound3Message:
+	    	if find(p.temp.kgRound3Messages,msg) {
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.kgRound3Messages[index] = msg
 		if len(p.temp.kgRound3Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound3Messages) {
@@ -278,6 +358,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return true, nil
 		}
 	case *KGRound3Message1:
+	    	if find(p.temp.kgRound3Messages1,msg) {
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.kgRound3Messages1[index] = msg
 		if len(p.temp.kgRound3Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound3Messages1) {
@@ -287,9 +371,9 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		}
 	case *KGRound4Message:
 	    	if find(p.temp.kgRound4Messages,msg) {
-			if len(p.temp.kgRound4Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound4Messages) {
-				return true, nil
-			}
+			//if len(p.temp.kgRound4Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound4Messages) {
+				//return true, nil
+			//}
 			//fmt.Printf("================ StoreMessage,the msg 4 have exsit already,msg = %v,len = %v ==============\n",msg,getFullCount(p.temp.kgRound4Messages))
 			return false,nil
 		}
@@ -336,9 +420,9 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		}
 	case *KGRound5Message:
 	    	if find(p.temp.kgRound5Messages,msg) {
-			if len(p.temp.kgRound5Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages) {
-				return true, nil
-			}
+			//if len(p.temp.kgRound5Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages) {
+			//	return true, nil
+			//}
 			return false,nil
 		}
 
@@ -352,9 +436,9 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		}
 	case *KGRound5Message1:
 	    	if find(p.temp.kgRound5Messages1,msg) {
-			if len(p.temp.kgRound5Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages1) {
-				return true, nil
-			}
+			//if len(p.temp.kgRound5Messages1) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages1) {
+			//	return true, nil
+			//}
 			return false,nil
 		}
 
@@ -368,9 +452,9 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		}
 	case *KGRound5Message2:
 	    	if find(p.temp.kgRound5Messages2,msg) {
-			if len(p.temp.kgRound5Messages2) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages2) {
-				return true, nil
-			}
+			//if len(p.temp.kgRound5Messages2) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages2) {
+			//	return true, nil
+			//}
 			return false,nil
 		}
 
@@ -384,9 +468,9 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		}
 	case *KGRound6Message:
 	    	if find(p.temp.kgRound6Messages,msg) {
-			if len(p.temp.kgRound6Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound6Messages) {
-				return true, nil
-			}
+			//if len(p.temp.kgRound6Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound6Messages) {
+			//	return true, nil
+			//}
 			return false,nil
 		}
 

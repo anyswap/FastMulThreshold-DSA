@@ -32,7 +32,7 @@ func (round *round3) Start() error {
 	}
 	round.number = 3
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 
 	// use round.temp.reshareRound1Messages replace round.idreshare,because round.idreshare == nil when oldnode == false
 	for k := range round.temp.reshareRound1Messages {

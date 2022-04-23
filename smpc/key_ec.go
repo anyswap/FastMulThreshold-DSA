@@ -45,6 +45,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 	//log.Info("start processing inbound messages")
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
+		log.Error("====================ProcessInboundMessages,not found worker by key===============","key",msgprex)
 		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to process inbound messages")}
 		ch <- res
 		return
@@ -63,6 +64,14 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 				return
 			}
 			
+			///dul?
+			hexs := Keccak256Hash([]byte(strings.ToLower(m))).Hex()
+			_, exist2 := w.Msg56[hexs]
+			if exist2 {
+			   break 
+			}
+			///
+
 			msgmap := make(map[string]string)
 			err := json.Unmarshal([]byte(m), &msgmap)
 			if err != nil {
@@ -84,6 +93,13 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 				ch <- res
 				return
 			}
+			
+			/////check whether the msg already exists in the msg list before update the msg list.
+			//dul := w.DNode.DulMessage(mm)
+			//if dul {
+			//   break 
+			//}
+			/////
 			
 			//check sig
 			if msgmap["Sig"] == "" {
@@ -154,7 +170,24 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			}
 
 			//log.Debug("================ProcessInboundMessages,update msg success=====================","msg type    ",mm.GetMsgType(),"key",msgprex)
-		}
+
+			//w.Msg56.WriteMap(hexs,true)
+			w.Msg56[hexs] = true
+
+		       //if !dul {
+		       //////also broacast to group for msg
+		       if mm.IsBroadcast() {
+			   go func(msg string,gid string) {
+			       for i:=0;i<1;i++ {
+				   //log.Debug("================ProcessInboundMessages,also broacast to group for msg===================","msg type",mm.GetMsgType(),"key",msgprex)
+				   SendMsgToSmpcGroup(msg,gid)
+				   time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
+			       }
+			   }(m,w.groupid)
+		       //}
+		       //////
+		   }
+	       }
 	}
 }
 
@@ -643,7 +676,8 @@ func ProcessOutCh(msgprex string, msg smpclib.Message) error {
 			for _, node := range nodes {
 				node2 := ParseNode(node)
 				if strings.EqualFold(enode, node2) {
-					SendMsgToPeer(node, string(s))
+					//SendMsgToPeer(node, string(s))
+					SendMsgToPeerWithBrodcast(msgprex,node,string(s),w.groupid)
 					break
 				}
 			}

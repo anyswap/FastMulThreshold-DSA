@@ -33,7 +33,7 @@ func (round *round1) Start() error {
 	}
 	round.number = 1
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 
 	//1.1-1.2 generate 32-bits privatekey', then bit calculation to privatekey
 	rand := cryptorand.Reader

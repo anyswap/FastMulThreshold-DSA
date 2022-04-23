@@ -202,7 +202,7 @@ func CalcRoh(n *big.Int,num *big.Int) []*big.Int {
 	    rohs[rd.Index] = rd.Roh 
 	}
 
-	fmt.Printf("====================CalcRoh,get rohs success, n = %v,m = %v,num = %v======================\n",n,m,num)
+	//fmt.Printf("====================CalcRoh,get rohs success, n = %v,m = %v,num = %v======================\n",n,m,num)
 	return rohs 
 }
 

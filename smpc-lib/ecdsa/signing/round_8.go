@@ -23,6 +23,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
 	"math/big"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 // Start broacast current node s to other nodes
@@ -33,7 +34,7 @@ func (round *round8) Start() error {
 	}
 	round.number = 8
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 
 	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
@@ -80,7 +81,7 @@ func (round *round8) Start() error {
 	    }
 
 	    if !ec2.PDLwSlackVerify(pdlWSlackStatement,msg7.PdlwSlackPf) {
-		fmt.Printf("=======================signing round 8,failed to verify ZK proof of consistency between R_i and E_i(k_i) for Uid %v,k = %v=========================\n",v,k)
+		log.Error("=======================signing round 8,failed to verify ZK proof of consistency between R_i and E_i(k_i) for Uid=========================","Uid",v)
 		return fmt.Errorf("failed to verify ZK proof of consistency between R_i and E_i(k_i) for Uid %v,k = %v", v,k)
 	    }
 
@@ -94,14 +95,14 @@ func (round *round8) Start() error {
 	}
 
 	if K1Rx.Cmp(secp256k1.S256().Gx) != 0 || K1Ry.Cmp(secp256k1.S256().Gy) != 0 {
-	    fmt.Printf("==============================signing round 8,consistency check failed: g != R products==================================\n")
+	    log.Error("==============================signing round 8,consistency check failed: g != R products==================================")
 	    return fmt.Errorf("consistency check failed: g != R products")
 	}
 
 	S1X,S1Y := secp256k1.S256().ScalarMult(round.temp.deltaGammaGx,round.temp.deltaGammaGy,round.temp.sigma1.Bytes())
 	hx,hy,err := ec2.CalcHPoint()
 	if err != nil {
-	    fmt.Printf("calc h point fail, err = %v",err)
+	    log.Error("=====================calc h point fail===================","err",err)
 	    return err 
 	}
 

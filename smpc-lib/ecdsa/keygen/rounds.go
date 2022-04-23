@@ -136,8 +136,9 @@ func (round *base) GetDNodeIDIndex(id string) (int, error) {
 	return -1, errors.New("get dnode index fail,no found in kgRound0Messages")
 }
 
-func (round *base) resetOK() {
+func (round *base) ResetOK() {
 	for j := range round.ok {
 		round.ok[j] = false
 	}
 }
+

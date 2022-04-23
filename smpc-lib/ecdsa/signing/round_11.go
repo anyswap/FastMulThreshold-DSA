@@ -33,7 +33,7 @@ func (round *round11) Start() error {
 	
 	round.number = 11
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 
 	msg9, _ := round.temp.signRound9Messages[0].(*SignRound9Message)
 	s := msg9.Us1

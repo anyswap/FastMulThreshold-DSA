@@ -41,7 +41,7 @@ func (round *round0) Start() error {
 	}
 	round.number = 0
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 
 	re := &ReRound0Message{
 		ReRoundMessage: new(ReRoundMessage),

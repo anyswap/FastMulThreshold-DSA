@@ -91,6 +91,9 @@ var (
 
 	// GetEosAccount p2p callback
 	GetEosAccount          func() (string, string, string)
+	
+	// Msg2Peer save the msg that send to special peer
+	Msg2Peer        = common.NewSafeMap(10)
 )
 
 //----------------------------------------------------------------------------------
@@ -305,6 +308,34 @@ func SendMsgToPeer(enodes string, msg string) {
 	}
 }
 
+// SendMsgToPeerWithBrodcast send msg to special peer with brodcast
+func SendMsgToPeerWithBrodcast(key string,enodes string, msg string,groupid string) {
+    	if key == "" || enodes == "" || msg == "" || groupid == "" {
+	    return
+	}
+
+	en := strings.Split(string(enodes[8:]), "@")
+	cm, err := EncryptMsg(msg, en[0])
+	if err != nil {
+		return
+	}
+
+	/////
+	tmp := hex.EncodeToString([]byte(cm))
+	m := make(map[string]string)
+	m["Key"] = key
+	m["MsgType"] = "MSG2PEER"
+	m["Gid"] = groupid
+	m["Msg"] = tmp 
+	s, err := json.Marshal(m)
+	if err != nil {
+		return
+	}
+	/////
+
+	SendMsgToSmpcGroup(string(s),groupid)
+}
+
 //-------------------------------------------------------------
 
 // IsReshareCmd Judge whether it is Reshare command data 
@@ -401,6 +432,52 @@ func IsSignDataCmd(raw string) (string, bool) {
 	return "", false
 }
 
+func findmsg2peer(list []string,msg string) bool {
+    if msg == "" {
+	return true
+    }
+
+    for _,v := range list {
+	if strings.EqualFold(v,msg) {
+	    return true
+	}
+    }
+
+    return false
+}
+
+// IsMsg2Peer Judge whether it is the msg that send to special peer
+func IsMsg2Peer(msgmap map[string]string) (bool,string,string,string) {
+    val, ok := msgmap["MsgType"]
+    if ok && val == "MSG2PEER" {
+	gid, ok := msgmap["Gid"]
+	if ok && gid != "" {
+	    s, ok := msgmap["Msg"]
+	    if ok && s != "" {
+		key, ok := msgmap["Key"]
+		if ok && key != "" {
+		    tmp, err := hex.DecodeString(s)
+		    if err == nil {
+			msgdata, errdec := DecryptMsg(string(tmp)) //for SendMsgToPeer
+			if errdec == nil {
+			    s = msgdata
+			} else {
+			    s = ""
+			}
+			
+			return true,key,gid,s 
+		    }
+
+		}
+	    }
+	}
+
+	return true,"","",""
+    }
+
+    return false,"","",""
+}
+
 // GetCmdKey get the key of various of command datas
 func GetCmdKey(msg string) string {
 	if msg == "" {
@@ -444,18 +521,79 @@ func Call(msg interface{}, enode string) {
 	if s == "" {
 		return
 	}
+
 	raw, err := UnCompress(s)
 	if err == nil {
 		s = raw
 	}
-	msgdata, errdec := DecryptMsg(s) //for SendMsgToPeer
-	if errdec == nil {
-		s = msgdata
-	}
+
+	//check msg2peer
+	/*ok,keytmp,gidtmp,ss := IsMsg2Peer(s)
+	if ok {
+	    w, werr := FindWorker(keytmp)
+	    if werr != nil {
+		return
+	    }
+
+	    if findmsg2peer(w.Msg2Peer,msg.(string)) {
+		return
+	    }
+
+	    w.Msg2Peer = append(w.Msg2Peer,msg.(string))
+	    if ss == "" {
+		go func(msg2 string,gid string) {
+		    for i:=0;i<1;i++ {
+			SendMsgToSmpcGroup(msg2,gid)
+			time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
+		    }
+		}(msg.(string),gidtmp)
+		
+		return
+	    }
+
+	    s = ss
+	}*/
+	//
+
+	//msgdata, errdec := DecryptMsg(s) //for SendMsgToPeer
+	//if errdec == nil {
+	//	s = msgdata
+	//}
 
 	msgmap := make(map[string]string)
 	err = json.Unmarshal([]byte(s), &msgmap)
 	if err == nil {
+	    ok,keytmp,gidtmp,ss := IsMsg2Peer(msgmap)
+	    if ok {
+		w, werr := FindWorker(keytmp)
+		if werr != nil {
+		    return
+		}
+
+		if findmsg2peer(w.Msg2Peer,msg.(string)) {
+		    return
+		}
+
+		w.Msg2Peer = append(w.Msg2Peer,msg.(string))
+		if ss == "" {
+		    go func(msg2 string,gid string) {
+			for i:=0;i<1;i++ {
+			    SendMsgToSmpcGroup(msg2,gid)
+			    time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
+			}
+		    }(msg.(string),gidtmp)
+		    
+		    return
+		}
+
+		s = ss
+		msgmap = make(map[string]string)
+		err = json.Unmarshal([]byte(s), &msgmap)
+		if err != nil {
+		    return
+		}
+	    }
+	    
 	    val, ok := msgmap["Key"]
 	    if ok {
 		    w, err := FindWorker(val)
@@ -468,7 +606,6 @@ func Call(msg interface{}, enode string) {
 				    msgtype := msgmap["Type"]
 				    key := strings.ToLower(val + "-" + from + "-" + msgtype)
 				    C1Data.WriteMap(key, s)
-				    //fmt.Printf("===============================Call, pre-save p2p msg, worker found, key = %v,fromID = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
 				    //log.Debug("===============================Call, pre-save p2p msg, worker found=============", "key",val,"fromID",from,"msgtype",msgtype,"c1data key",key,"c1data value",s)
 			    }
 		    } else {
@@ -476,7 +613,6 @@ func Call(msg interface{}, enode string) {
 			    msgtype := msgmap["Type"]
 			    key := strings.ToLower(val + "-" + from + "-" + msgtype)
 			    C1Data.WriteMap(key, s)
-			    //fmt.Printf("===============================Call, pre-save p2p msg, worker not found, key = %v,fromID = %v,msgtype = %v, c1data key = %v, c1data value = %v========================\n", val, from, msgtype, key, s)
 			    log.Debug("===============================Call, pre-save p2p msg, worker not found============","key",val,"fromID",from,"msgtype",msgtype,"c1data key",key,"c1data value",s)
 		    }
 
@@ -502,6 +638,43 @@ func Call(msg interface{}, enode string) {
 		    return
 	    }
 	}
+
+	////
+	_, from,_, txdata, err := CheckRaw(s)
+	if err == nil {
+	    req, ok := txdata.(*TxDataAcceptReqAddr)
+	    if ok {
+		exsit, da := GetReqAddrInfoData([]byte(req.Key))
+		if !exsit {
+		    return
+		}
+
+		ac, ok := da.(*AcceptReqAddrData)
+		if !ok || ac == nil {
+		    return
+		}
+		
+		go ExecApproveKeyGen(s,from,req,ac,true)
+		return
+	    }
+	    
+	    sig, ok := txdata.(*TxDataAcceptSign)
+	    if ok {
+		exsit, da := GetSignInfoData([]byte(sig.Key))
+		if !exsit {
+		    return
+		}
+
+		ac, ok := da.(*AcceptSignData)
+		if !ok || ac == nil {
+		    return
+		}
+		
+		go ExecApproveSigning(s,from,sig,ac,true)
+		return
+	    }
+	}
+	////
 
 	SetUpMsgList(s, enode)
 }
@@ -599,8 +772,26 @@ func HandleKG(key string, uid *big.Int) {
 	Handle(key, c1data)
 	c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound1Message")
 	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound2Message")
+	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound2Message1")
+	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound2Message2")
+	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound3Message")
+	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound3Message1")
+	Handle(key, c1data)
 	c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound4Message")
 	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound5Message")
+        Handle(key, c1data)
+        c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound5Message1")
+        Handle(key, c1data)
+        c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound5Message2")
+        Handle(key, c1data)
+        c1data = strings.ToLower(key + "-" + tmp + "-" + "KGRound6Message")
+        Handle(key, c1data)
 }
 
 // HandleSign Process pre-save msg for sign 
@@ -608,6 +799,22 @@ func HandleSign(key string, uid *big.Int) {
     	uidtmp := fmt.Sprintf("%v", uid)
 	tmp := hex.EncodeToString([]byte(uidtmp))
 	c1data := strings.ToLower(key + "-" + tmp + "-" + "SignRound1Message")
+	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "SignRound2Message")
+	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "SignRound3Message")
+	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "SignRound4Message")
+	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "SignRound4Message1")
+	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "SignRound5Message")
+	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "SignRound6Message")
+	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "SignRound7Message")
+	Handle(key, c1data)
+	c1data = strings.ToLower(key + "-" + tmp + "-" + "SignRound8Message")
 	Handle(key, c1data)
 	c1data = strings.ToLower(key + "-" + tmp + "-" + "SignRound9Message")
 	Handle(key, c1data)
@@ -701,6 +908,48 @@ func HandleC1Data(ac *AcceptReqAddrData, key string) {
 		c1data := strings.ToLower(key + "-" + from)
 		c1, exist := C1Data.ReadMap(c1data)
 		if exist {
+			//DisAcceptMsg(c1.(string), w.id)
+			_, from,_, txdata, err := CheckRaw(c1.(string))
+			if err == nil {
+			    req, ok := txdata.(*TxDataAcceptReqAddr)
+			    if ok {
+				exsit, da := GetReqAddrInfoData([]byte(req.Key))
+				if !exsit {
+				    go C1Data.DeleteMap(c1data)
+				    return
+				}
+
+				ac, ok := da.(*AcceptReqAddrData)
+				if !ok || ac == nil {
+				    go C1Data.DeleteMap(c1data)
+				    return
+				}
+				
+				go ExecApproveKeyGen(c1.(string),from,req,ac,false)
+				go C1Data.DeleteMap(c1data)
+				return
+			    }
+			    
+			    sig, ok := txdata.(*TxDataAcceptSign)
+			    if ok {
+				exsit, da := GetSignInfoData([]byte(sig.Key))
+				if !exsit {
+				    go C1Data.DeleteMap(c1data)
+				    return
+				}
+
+				ac, ok := da.(*AcceptSignData)
+				if !ok || ac == nil {
+				    go C1Data.DeleteMap(c1data)
+				    return
+				}
+				
+				go ExecApproveSigning(c1.(string),from,sig,ac,false)
+				go C1Data.DeleteMap(c1data)
+				return
+			    }
+			}
+			    
 			DisAcceptMsg(c1.(string), w.id)
 			go C1Data.DeleteMap(c1data)
 		}

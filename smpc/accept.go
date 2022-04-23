@@ -22,6 +22,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 	"strings"
 )
 
@@ -95,6 +96,31 @@ func GetAllReplyFromGroup(wid int, gid string, rt RPCType, initiator string) []N
 	}
 
 	return req.GetReplyFromGroup(wid, gid, initiator)
+}
+
+// GetAllReplyFromGroup2 get all accept reply from group node 
+func GetAllReplyFromGroup2(wid int,initiator string) []NodeReply {
+	if wid < 0 || wid >= len(workers) {
+	    return nil
+	}
+
+	w := workers[wid]
+	if w == nil {
+		return nil
+	}
+
+	var ars []NodeReply
+	for _, v := range w.ApprovReplys {
+		in := "0"
+		if strings.EqualFold(initiator, v.ENode) {
+			in = "1"
+		}
+
+		nr := NodeReply{Enode: v.ENode, Status: v.Accept, TimeStamp: v.TimeStamp, Initiator: in}
+		ars = append(ars, nr)
+	}
+
+	return ars
 }
 
 //---------------------------------------------------------------------------
@@ -680,6 +706,14 @@ func AcceptReShare(initiator string, account string, groupid string, tsgroupid s
 
 //---------------------------------------------------------------------
 
+// ApprovReply the reply of node,including enode,accept or reject the keygen/sign/reshare cmd request
+type ApprovReply struct {
+	ENode      string
+	From      string
+	Accept    string
+	TimeStamp string
+}
+
 // RawReply the reply of node,accept or reject the keygen/sign/reshare cmd request
 type RawReply struct {
 	From      string
@@ -716,6 +750,7 @@ func GetRawReply(l *list.List) *common.SafeMap {
 		raw := s
 		keytmp, from, _, txdata, err := CheckRaw(raw)
 		if err != nil {
+		    log.Error("=====================GetRawReply,check raw err======================","err",err,"key",keytmp,"from",from)
 			continue
 		}
 
@@ -731,7 +766,6 @@ func GetRawReply(l *list.List) *common.SafeMap {
 
 		sig, ok := txdata.(*TxDataSign)
 		if ok {
-			common.Debug("=================GetRawReply,the list item is TxDataSign=================", "key", keytmp, "from", from, "sig", sig)
 			reply := &RawReply{From: from, Accept: "true", TimeStamp: sig.TimeStamp}
 			req2 = &ReqSmpcSign{}
 			req2.GetRawReply(ret, reply)
@@ -762,7 +796,6 @@ func GetRawReply(l *list.List) *common.SafeMap {
 
 		acceptsig, ok := txdata.(*TxDataAcceptSign)
 		if ok {
-			common.Debug("=================GetRawReply,the list item is TxDataAcceptSign================", "key", keytmp, "from", from, "accept", acceptsig.Accept, "raw", raw)
 			accept := "false"
 			if acceptsig.Accept == "AGREE" {
 				accept = "true"

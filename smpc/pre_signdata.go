@@ -822,7 +822,7 @@ func ExcutePreSignData(pre *TxDataPreSignData) {
 						reply := false
 						timeout := make(chan bool, 1)
 						go func() {
-							syncWaitTime := 40 * time.Second
+							syncWaitTime := 180 * time.Second
 							syncWaitTimeOut := time.NewTicker(syncWaitTime)
 
 							for {

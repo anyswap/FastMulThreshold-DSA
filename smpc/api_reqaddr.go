@@ -214,8 +214,8 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 
 		ars := GetAllReplyFromGroup(workid, req2.GroupID, RPCREQADDR, sender)
 		sigs, err := GetGroupSigsDataByRaw(raw)
-		common.Debug("=================DoReq================", "get group sigs ", sigs, "err ", err, "key ", key)
 		if err != nil {
+			common.Debug("=================DoReq================", "get group sigs ", sigs, "err ", err, "key ", key)
 			res := RPCSmpcRes{Ret: "", Tip: err.Error(), Err: err}
 			ch <- res
 			return false
@@ -297,7 +297,8 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 					select {
 					case account := <-wtmp2.acceptReqAddrChan:
 						common.Debug("(self *RecvMsg) Run(),", "account= ", account, "key = ", key)
-						ars := GetAllReplyFromGroup(w.id, req2.GroupID, RPCREQADDR, sender)
+						//ars := GetAllReplyFromGroup(w.id, req2.GroupID, RPCREQADDR, sender)
+						ars := GetAllReplyFromGroup2(w.id,sender)
 						common.Info("================== DoReq,get all AcceptReqAddrRes====================", "raw ", raw, "result ", ars, "key ", key)
 
 						//bug
@@ -420,14 +421,23 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 	acceptreq, ok := txdata.(*TxDataAcceptReqAddr)
 	if ok {
 		common.Debug("===============DoReq, check accept reqaddr raw success======================", "raw ", raw, "key ", acceptreq.Key, "from ", from, "txdata ", acceptreq)
+
 		w, err := FindWorker(acceptreq.Key)
 		if err != nil || w == nil {
 			c1data := strings.ToLower(acceptreq.Key + "-" + from)
-			C1Data.WriteMap(c1data, raw)
+			C1Data.WriteMap(c1data, raw) // save the lastest accept msg??
 			res := RPCSmpcRes{Ret: "Failure", Tip: "get reqaddr accept data fail from db", Err: fmt.Errorf("get reqaddr accept data fail from db when no find worker")}
 			ch <- res
 			return false
 		}
+
+		/////fix bug: miss accept msg for 7-11 test
+		if !strings.EqualFold(sender, curEnode) && Find(w.msgacceptreqaddrres, raw) {
+			res := RPCSmpcRes{Ret: "Success", Tip: "dul accept msg,but return success", Err: nil}
+			ch <- res
+			return true
+		}
+		////
 
 		exsit, da := GetReqAddrInfoData([]byte(acceptreq.Key))
 		if !exsit {
@@ -708,25 +718,30 @@ func (req *ReqSmpcAddr) DisAcceptMsg(raw string, workid int, key string) {
 		return
 	}
 
+	exsit, da := GetReqAddrInfoData([]byte(key))
+	if !exsit {
+	    return
+	}
+
+	ac, ok := da.(*AcceptReqAddrData)
+	if !ok || ac == nil {
+	    return
+	}
+
 	w.msgacceptreqaddrres.PushBack(raw)
+	
+	/////fix bug: miss accept msg for 7-11 test
+	SendMsgToSmpcGroup(raw, ac.GroupID)
+	/////
+
 	if w.msgacceptreqaddrres.Len() >= w.NodeCnt {
-		if !CheckReply(w.msgacceptreqaddrres, RPCREQADDR, key) {
-			return
-		}
+	    if !CheckReply(w.msgacceptreqaddrres, RPCREQADDR, key) {
+		    return
+	    }
 
-		//common.Debug("=====================ReqSmpcAddr.DisAcceptMsg,receive one msg,all accept data has been received===================", "raw", raw, "key", key)
-		w.bacceptreqaddrres <- true
-		exsit, da := GetReqAddrInfoData([]byte(key))
-		if !exsit {
-			return
-		}
-
-		ac, ok := da.(*AcceptReqAddrData)
-		if !ok || ac == nil {
-			return
-		}
-
-		workers[ac.WorkID].acceptReqAddrChan <- "go on"
+	    //common.Debug("=====================ReqSmpcAddr.DisAcceptMsg,receive one msg,all accept data has been received===================", "raw", raw, "key", key)
+	    w.bacceptreqaddrres <- true
+	    workers[ac.WorkID].acceptReqAddrChan <- "go on"
 	}
 }
 

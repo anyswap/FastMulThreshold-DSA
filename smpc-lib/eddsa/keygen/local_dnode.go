@@ -184,6 +184,41 @@ func find(l []smpc.Message,msg smpc.Message) bool {
     return false
 }
 
+// DulMessage check whether the msg already exists in the list.
+func (p *LocalDNode) DulMessage(msg smpc.Message) bool {
+	switch msg.(type) {
+	case *KGRound0Message:
+	    	if find(p.temp.kgRound0Messages,msg) {
+		    return true
+		}
+	case *KGRound1Message:
+	    	if find(p.temp.kgRound1Messages,msg) {
+		    return true
+		}
+	case *KGRound2Message:
+	    	if find(p.temp.kgRound2Messages,msg) {
+		    return true
+		}
+	case *KGRound3Message:
+	    	if find(p.temp.kgRound3Messages,msg) {
+		    return true
+		}
+	case *KGRound4Message:
+	    	if find(p.temp.kgRound4Messages,msg) {
+		    return true
+		}
+	case *KGRound5Message:
+	    	if find(p.temp.kgRound5Messages,msg) {
+		    return true
+		}
+	default: // unrecognised message, just ignore!
+		fmt.Printf("storemessage,unrecognised message ignored: %v\n", msg)
+		return true 
+	}
+
+	return false
+}
+
 // StoreMessage Collect data from other nodes
 func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 	switch msg.(type) {
@@ -200,6 +235,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		    }
 		}
 	case *KGRound1Message:
+	    	if find(p.temp.kgRound1Messages,msg) {
+		    return false,nil 
+		}
+		
 		index := msg.GetFromIndex()
 		p.temp.kgRound1Messages[index] = msg
 		//m := msg.(*KGRound1Message)
@@ -210,6 +249,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return true, nil
 		}
 	case *KGRound2Message:
+	    	if find(p.temp.kgRound2Messages,msg) {
+		    return false,nil 
+		}
+		
 		index := msg.GetFromIndex()
 		p.temp.kgRound2Messages[index] = msg
 		if len(p.temp.kgRound2Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound2Messages) {
@@ -218,6 +261,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return true, nil
 		}
 	case *KGRound3Message:
+	    	if find(p.temp.kgRound3Messages,msg) {
+		    return false,nil 
+		}
+		
 		index := msg.GetFromIndex()
 		p.temp.kgRound3Messages[index] = msg
 		if len(p.temp.kgRound3Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound3Messages) {
@@ -226,6 +273,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return true, nil
 		}
 	case *KGRound4Message:
+	    	if find(p.temp.kgRound4Messages,msg) {
+		    return false,nil 
+		}
+		
 		index := msg.GetFromIndex()
 		//m := msg.(*KGRound4Message)
 		//p.data.U1NtildeH1H2[index] = m.U1NtildeH1H2
@@ -236,6 +287,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return true, nil
 		}
 	case *KGRound5Message:
+	    	if find(p.temp.kgRound5Messages,msg) {
+		    return false,nil 
+		}
+		
 		index := msg.GetFromIndex()
 		p.temp.kgRound5Messages[index] = msg
 		if len(p.temp.kgRound5Messages) == p.DNodeCountInGroup && CheckFull(p.temp.kgRound5Messages) {

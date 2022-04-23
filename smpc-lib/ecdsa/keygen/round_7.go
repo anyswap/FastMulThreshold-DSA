@@ -30,7 +30,7 @@ func (round *round7) Start() error {
 	}
 	round.number = 7
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 	
 	ids, err := round.GetIDs()
 	if err != nil {

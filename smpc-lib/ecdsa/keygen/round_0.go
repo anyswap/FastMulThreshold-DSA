@@ -40,7 +40,7 @@ func (round *round0) Start() error {
 	}
 	round.number = 0
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 
 	kg := &KGRound0Message{
 		KGRoundMessage: new(KGRoundMessage),

@@ -177,10 +177,67 @@ func CheckFull(msg []smpc.Message) bool {
 	return true
 }
 
+func find(l []smpc.Message,msg smpc.Message) bool {
+    if msg == nil || l == nil {
+	return true
+    }
+
+    for _,v := range l {
+	    if v == nil {
+		    continue
+	    }
+
+	if v.GetMsgType() == msg.GetMsgType() && v.GetFromID() == msg.GetFromID() {
+	    return true
+	}
+    }
+
+    return false
+}
+
+// DulMessage check whether the msg already exists in the list.
+func (p *LocalDNode) DulMessage(msg smpc.Message) bool {
+	switch msg.(type) {
+	case *SignRound1Message:
+	    if find(p.temp.signRound1Messages,msg) {
+		return true
+	    }
+	case *SignRound2Message:
+	    if find(p.temp.signRound2Messages,msg) {
+		return true
+	    }
+	case *SignRound3Message:
+	    if find(p.temp.signRound3Messages,msg) {
+		return true
+	    }
+	case *SignRound4Message:
+	    if find(p.temp.signRound4Messages,msg) {
+		return true
+	    }
+	case *SignRound5Message:
+	    if find(p.temp.signRound5Messages,msg) {
+		return true
+	    }
+	case *SignRound6Message:
+	    if find(p.temp.signRound6Messages,msg) {
+		return true
+	    }
+	default: // unrecognised message, just ignore!
+		fmt.Printf("storemessage,unrecognised message ignored: %v\n", msg)
+		return true 
+	}
+
+	return false
+}
+
 // StoreMessage Collect data from other nodes
 func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 	switch msg.(type) {
 	case *SignRound1Message:
+		if find(p.temp.signRound1Messages,msg) {
+		    return false,nil
+		}
+		
 		index := msg.GetFromIndex()
 		p.temp.signRound1Messages[index] = msg
 		if len(p.temp.signRound1Messages) == p.ThresHold && CheckFull(p.temp.signRound1Messages) {
@@ -189,6 +246,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return true, nil
 		}
 	case *SignRound2Message:
+		if find(p.temp.signRound2Messages,msg) {
+		    return false,nil
+		}
+		
 		index := msg.GetFromIndex()
 		//fmt.Printf("================ StoreMessage,get 2 messages,index = %v ============\n", index)
 		p.temp.signRound2Messages[index] = msg
@@ -198,6 +259,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return true, nil
 		}
 	case *SignRound3Message:
+		if find(p.temp.signRound3Messages,msg) {
+		    return false,nil
+		}
+		
 		index := msg.GetFromIndex()
 		//fmt.Printf("================ StoreMessage,get 3 messages,index = %v ============\n", index)
 		p.temp.signRound3Messages[index] = msg
@@ -207,6 +272,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return true, nil
 		}
 	case *SignRound4Message:
+		if find(p.temp.signRound4Messages,msg) {
+		    return false,nil
+		}
+		
 		index := msg.GetFromIndex()
 		p.temp.signRound4Messages[index] = msg
 		if len(p.temp.signRound4Messages) == p.ThresHold && CheckFull(p.temp.signRound4Messages) {
@@ -215,6 +284,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return true, nil
 		}
 	case *SignRound5Message:
+		if find(p.temp.signRound5Messages,msg) {
+		    return false,nil
+		}
+		
 		index := msg.GetFromIndex()
 		p.temp.signRound5Messages[index] = msg
 		if len(p.temp.signRound5Messages) == p.ThresHold && CheckFull(p.temp.signRound5Messages) {
@@ -223,6 +296,10 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 			return true, nil
 		}
 	case *SignRound6Message:
+		if find(p.temp.signRound6Messages,msg) {
+		    return false,nil
+		}
+		
 		index := msg.GetFromIndex()
 		p.temp.signRound6Messages[index] = msg
 		if len(p.temp.signRound6Messages) == p.ThresHold && CheckFull(p.temp.signRound6Messages) {

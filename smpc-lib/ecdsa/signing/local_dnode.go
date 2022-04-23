@@ -25,7 +25,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/ecdsa/keygen"
 	"math/big"
 	"encoding/hex"
-	//"github.com/anyswap/FastMulThreshold-DSA/log"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 // LocalDNode current local node
@@ -201,52 +201,143 @@ func CheckFull(msg []smpc.Message) bool {
 	return true
 }
 
+func find(l []smpc.Message,msg smpc.Message) bool {
+    if msg == nil || l == nil {
+	return true
+    }
+
+    for _,v := range l {
+	    if v == nil {
+		    continue
+	    }
+
+	if v.GetMsgType() == msg.GetMsgType() && v.GetFromID() == msg.GetFromID() {
+	    return true
+	}
+    }
+
+    return false
+}
+
+// DulMessage check whether the msg already exists in the list.
+func (p *LocalDNode) DulMessage(msg smpc.Message) bool {
+	switch msg.(type) {
+	case *SignRound1Message:
+	    if find(p.temp.signRound1Messages,msg) {
+		return true
+	    }
+	case *SignRound2Message:
+	    if find(p.temp.signRound2Messages,msg) {
+		return true
+	    }
+	case *SignRound3Message:
+	    if find(p.temp.signRound3Messages,msg) {
+		return true
+	    }
+	case *SignRound4Message:
+	    if find(p.temp.signRound4Messages,msg) {
+		return true
+	    }
+	case *SignRound4Message1:
+	    if find(p.temp.signRound4Messages1,msg) {
+		return true
+	    }
+	case *SignRound5Message:
+	    if find(p.temp.signRound5Messages,msg) {
+		return true
+	    }
+	case *SignRound6Message:
+	    if find(p.temp.signRound6Messages,msg) {
+		return true
+	    }
+	case *SignRound7Message:
+	    if find(p.temp.signRound7Messages,msg) {
+		return true
+	    }
+	case *SignRound8Message:
+	    if find(p.temp.signRound8Messages,msg) {
+		return true
+	    }
+	case *SignRound9Message:
+	    if find(p.temp.signRound9Messages,msg) {
+		return true
+	    }
+	default: // unrecognised message, just ignore!
+		fmt.Printf("storemessage,unrecognised message ignored: %v\n", msg)
+		return true 
+	}
+
+	return false
+}
+
 // StoreMessage Collect data from other nodes
 func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 	switch msg.(type) {
 	case *SignRound1Message:
+	    	if find(p.temp.signRound1Messages,msg) {
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.signRound1Messages[index] = msg
 		if len(p.temp.signRound1Messages) == p.ThresHold && CheckFull(p.temp.signRound1Messages) {
-			//fmt.Printf("================ StoreMessage,get all ec sign 1 messages ==============\n")
+			log.Debug("================ StoreMessage,get all ec sign 1 messages ==============")
 			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *SignRound2Message:
+	    	if find(p.temp.signRound2Messages,msg) {
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
-		//fmt.Printf("================ StoreMessage,get 2 messages,index = %v ============\n", index)
 		p.temp.signRound2Messages[index] = msg
 		if len(p.temp.signRound2Messages) == p.ThresHold && CheckFull(p.temp.signRound2Messages) {
-			//fmt.Printf("================ StoreMessage,get all ec sign 2 messages ==============\n")
+			log.Debug("================ StoreMessage,get all ec sign 2 messages ==============")
 			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *SignRound3Message:
+	    	if find(p.temp.signRound3Messages,msg) {
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
-		//fmt.Printf("================ StoreMessage,get 3 messages,index = %v ============\n", index)
 		p.temp.signRound3Messages[index] = msg
 		if len(p.temp.signRound3Messages) == p.ThresHold && CheckFull(p.temp.signRound3Messages) {
-			//fmt.Printf("================ StoreMessage,get all ec sign 3 messages ==============\n")
+			log.Debug("================ StoreMessage,get all ec sign 3 messages ==============")
 			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *SignRound4Message:
+	    	if find(p.temp.signRound4Messages,msg) {
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.signRound4Messages[index] = msg
 		if len(p.temp.signRound4Messages) == p.ThresHold && CheckFull(p.temp.signRound4Messages) {
-			//fmt.Printf("================ StoreMessage,get all ec sign 4 messages ==============\n")
+			log.Debug("================ StoreMessage,get all ec sign 4 messages ==============")
 			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *SignRound4Message1:
+	    	if find(p.temp.signRound4Messages1,msg) {
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.signRound4Messages1[index] = msg
 		if len(p.temp.signRound4Messages1) == p.ThresHold && CheckFull(p.temp.signRound4Messages1) {
-			//fmt.Printf("================ StoreMessage,get all ec sign 4-1 messages ==============\n")
+			log.Debug("================ StoreMessage,get all ec sign 4-1 messages ==============")
 			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *SignRound5Message:
+	    	if find(p.temp.signRound5Messages,msg) {
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		m := msg.(*SignRound5Message)
 
@@ -264,49 +355,58 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 
 		p.temp.signRound5Messages[index] = msg
 		if len(p.temp.signRound5Messages) == p.ThresHold && CheckFull(p.temp.signRound5Messages) {
-			//fmt.Printf("================ StoreMessage,get all ec sign 5 messages ==============\n")
+			log.Debug("================ StoreMessage,get all ec sign 5 messages ==============")
 			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *SignRound6Message:
+	    	if find(p.temp.signRound6Messages,msg) {
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.signRound6Messages[index] = msg
 		if len(p.temp.signRound6Messages) == p.ThresHold && CheckFull(p.temp.signRound6Messages) {
-			//fmt.Printf("================ StoreMessage,get all ec sign 6 messages ==============\n")
+			log.Debug("================ StoreMessage,get all ec sign 6 messages ==============")
 			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *SignRound7Message:
+	    	if find(p.temp.signRound7Messages,msg) {
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.signRound7Messages[index] = msg
 		if len(p.temp.signRound7Messages) == p.ThresHold && CheckFull(p.temp.signRound7Messages) {
-			//fmt.Printf("================ StoreMessage,get all ec sign 7 messages ==============\n")
+			log.Debug("================ StoreMessage,get all ec sign 7 messages ==============")
 			time.Sleep(time.Duration(1000000)) //tmp code
 			return true, nil
 		}
 	case *SignRound8Message:
+	    	if find(p.temp.signRound8Messages,msg) {
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.signRound8Messages[index] = msg
 		if len(p.temp.signRound8Messages) == p.ThresHold && CheckFull(p.temp.signRound8Messages) {
-		    //fmt.Printf("================ StoreMessage,get all ec sign 8 messages ==============\n")
+		    log.Debug("================ StoreMessage,get all ec sign 8 messages ==============")
 		    time.Sleep(time.Duration(1000000)) //tmp code
 		    return true,nil
 		}
 	case *SignRound9Message:
+	    	if find(p.temp.signRound9Messages,msg) {
+			return false,nil
+		}
+
 		index := msg.GetFromIndex()
 		p.temp.signRound9Messages[index] = msg
 		if len(p.temp.signRound9Messages) == p.ThresHold && CheckFull(p.temp.signRound9Messages) {
-		    //fmt.Printf("================ StoreMessage,get all ec sign 9 messages ==============\n")
+		    log.Debug("================ StoreMessage,get all ec sign 9 messages ==============")
 		    time.Sleep(time.Duration(1000000)) //tmp code
 		    return true,nil
 		}
-	/*case *smpc.SignRound10Message:
-		index := msg.GetFromIndex()
-		p.temp.signRound10Messages[index] = msg
-		if len(p.temp.signRound10Messages) == p.ThresHold && CheckFull(p.temp.signRound10Messages) {
-		    fmt.Printf("================ StoreMessage,get all 10 messages ==============\n")
-		    return true,nil
-		}*/
 	default: // unrecognised message, just ignore!
 		fmt.Printf("storemessage,unrecognised message ignored: %v\n", msg)
 		return false, nil

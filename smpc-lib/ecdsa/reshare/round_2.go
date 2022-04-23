@@ -32,7 +32,7 @@ func (round *round2) Start() error {
 	}
 	round.number = 2
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 
 	if !round.oldnode {
 		ids, err := round.GetIDs()

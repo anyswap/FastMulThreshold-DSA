@@ -28,7 +28,7 @@ func (round *round3) Start() error {
 	}
 	round.number = 3
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 
 	curIndex, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {

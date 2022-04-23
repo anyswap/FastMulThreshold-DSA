@@ -23,6 +23,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
 	"math/big"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 // Start start round 9 
@@ -34,7 +35,7 @@ func (round *round9) Start() error {
 	
 	round.number = 9
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 	
 	hx,hy,err := ec2.CalcHPoint()
 	if err != nil {
@@ -62,13 +63,13 @@ func (round *round9) Start() error {
 	}
 
 	if s1x.Cmp(round.save.Pkx) != 0 || s1y.Cmp(round.save.Pky) != 0 {
-	    fmt.Printf("==============================signing round 9,consistency check failed; pubkey != products==================================\n")
+	    log.Error("==============================signing round 9,consistency check failed; pubkey != products==================================")
 	    return fmt.Errorf("consistency check failed; pubkey != products")
 	}
 
 	round.end <- PrePubData{K1: round.temp.u1K, R: round.temp.deltaGammaGx, Ry: round.temp.deltaGammaGy, Sigma1: round.temp.sigma1}
 
-	//fmt.Printf("============= round9.start success, current node id = %v =======\n", round.kgid)
+	log.Debug("============= presign last round round9.start success ================")
 	return nil
 }
 

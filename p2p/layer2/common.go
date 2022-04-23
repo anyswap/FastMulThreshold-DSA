@@ -112,7 +112,7 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 		emitter.Unlock()
 
 		countSendFail += 1
-		if countSendFail >= 30 {
+		if countSendFail >= 20 {
 			common.Error("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "terminal send", "fail p2perror", "sendCount", countSendFail)
 			break
 		}

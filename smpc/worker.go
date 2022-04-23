@@ -30,10 +30,10 @@ var (
 	RPCReqQueueCache = make(chan RPCReq, RPCMaxQueue)
 
 	// RPCMaxWorker  max worker nums
-	RPCMaxWorker = 2000
+	RPCMaxWorker = 10000
 
 	// RPCMaxQueue max counts of RPCReq in queue
-	RPCMaxQueue  = 2000
+	RPCMaxQueue  = 10000
 
 	// RPCReqQueue the channel of RPCReq
 	RPCReqQueue  chan RPCReq
@@ -118,6 +118,7 @@ type RPCReqWorker struct {
 	NodeCnt          int
 	ThresHold        int
 	sid              string //save the key
+	approved         bool
 	//
 	msgacceptreqaddrres *list.List
 	msgacceptreshareres *list.List
@@ -217,6 +218,9 @@ type RPCReqWorker struct {
 	DNode          smpclib.DNode
 	MsgToEnode     map[string]string
 	PreSaveSmpcMsg []string
+	Msg2Peer []string
+	ApprovReplys []*ApprovReply
+	Msg56     map[string]bool
 }
 
 // NewRPCReqWorker new a RPCReqWorker
@@ -310,6 +314,7 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		msgeds:      list.New(),
 
 		sid:       "",
+		approved:      false,
 		NodeCnt:   5,
 		ThresHold: 5,
 
@@ -324,6 +329,9 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		SmpcMsg:        make(chan string, 100),
 		MsgToEnode:     make(map[string]string),
 		PreSaveSmpcMsg: make([]string, 0),
+		Msg2Peer: make([]string, 0),
+		ApprovReplys: make([]*ApprovReply, 0),
+		Msg56:     make(map[string]bool),
 	}
 }
 
@@ -333,6 +341,7 @@ func (w *RPCReqWorker) Clear() {
 	common.Debug("======================RpcReqWorker.Clear======================", "w.id", w.id, "w.groupid", w.groupid, "key", w.sid)
 
 	w.sid = ""
+	w.approved = false
 	w.groupid = ""
 	w.limitnum = ""
 	w.SmpcFrom = ""
@@ -678,6 +687,9 @@ func (w *RPCReqWorker) Clear() {
 	w.DNode = nil
 	w.MsgToEnode = make(map[string]string)
 	w.PreSaveSmpcMsg = make([]string, 0)
+	w.Msg2Peer = make([]string, 0)
+	w.ApprovReplys = make([]*ApprovReply, 0)
+	w.Msg56 = make(map[string]bool)
 }
 
 // Clear2  reset RPCReqWorker object in some elements 
@@ -1023,6 +1035,9 @@ func (w *RPCReqWorker) Clear2() {
 	w.DNode = nil
 	w.MsgToEnode = make(map[string]string)
 	w.PreSaveSmpcMsg = make([]string, 0)
+	w.Msg2Peer = make([]string, 0)
+	w.ApprovReplys = make([]*ApprovReply, 0)
+	w.Msg56 = make(map[string]bool)
 }
 
 // Start start the worker
@@ -1057,6 +1072,94 @@ func (w *RPCReqWorker) Stop() {
 
 //----------------------------------------------------------------------------
 
+// [start,end)
+
+// mid := (end - start) / 2
+// left = [start,start + mid)
+// right = [start + mid,end)
+func find(sid string,start int,end int) int {
+
+    if end - start == 1 {
+	w := workers[start]
+	if w.sid != "" {
+	    if strings.EqualFold(w.sid, sid) {
+		   return start
+	    }
+	}
+
+	return -1
+    }
+
+    mid := (end - start) / 2
+    
+    id := find(sid,start,start + mid)
+    if id != -1 {
+	return id
+    }
+
+    return find(sid,start + mid,end)
+}
+
+// FindWorker find worker by sid(key) that uniquely identifies the keygen/sign/reshare command 
+func FindWorker(sid string) (*RPCReqWorker, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Errorf("FindWorker Runtime error: %v\n%v", r, string(debug.Stack()))
+			return
+		}
+	}()
+
+	if sid == "" {
+		return nil, fmt.Errorf("input worker id error")
+	}
+
+	id := find(sid,0,RPCMaxWorker)
+	if id == -1 {
+	    return nil,fmt.Errorf("not found worker by key = %v",sid)
+	}
+
+	return workers[id],nil
+
+}
+
+/*// FindWorker find worker by sid(key) that uniquely identifies the keygen/sign/reshare command 
+func FindWorker(sid string) (*RPCReqWorker, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Errorf("FindWorker Runtime error: %v\n%v", r, string(debug.Stack()))
+			return
+		}
+	}()
+
+	if sid == "" {
+		return nil, fmt.Errorf("input worker id error")
+	}
+
+	wid := make(chan int, 1)
+	var wg sync.WaitGroup
+	for i := 0; i < RPCMaxWorker; i++ {
+	    wg.Add(1)
+	    go func(id int) {
+		defer wg.Done()
+
+		w := workers[id]
+		if w.sid != "" {
+		    if strings.EqualFold(w.sid, sid) {
+			   wid <- id 
+		    }
+		}
+	    }(i)
+	}
+	wg.Wait()
+
+	select {
+	    case id := <-wid:
+		return workers[id],nil
+	    default:
+		return nil,fmt.Errorf("not found worker by key = %v",sid)
+	}
+}
+
 // FindWorker find worker by sid(key) that uniquely identifies the keygen/sign/reshare command 
 func FindWorker(sid string) (*RPCReqWorker, error) {
 	defer func() {
@@ -1084,6 +1187,7 @@ func FindWorker(sid string) (*RPCReqWorker, error) {
 
 	return nil, fmt.Errorf(" The worker with the specified worker id was not found")
 }
+*/
 
 //---------------------------------------------------------------------------------------------
 

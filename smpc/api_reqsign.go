@@ -758,11 +758,19 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 	if err != nil || w == nil {
 		common.Info("===============DoReq, worker was not found.=====================", "accept sign key ", acceptsig.Key, "from ", from)
 		c1data := strings.ToLower(acceptsig.Key + "-" + from)
-		C1Data.WriteMap(c1data, raw)
+		C1Data.WriteMap(c1data, raw) // save the lastest accept msg??
 		res := RPCSmpcRes{Ret: "Failure", Tip: "get sign accept data fail from db when no find worker.", Err: fmt.Errorf("get sign accept data fail from db when no find worker")}
 		ch <- res
 		return false
 	}
+
+	/////fix bug: miss accept msg for 7-11 test
+	if !strings.EqualFold(sender, curEnode) && Find(w.msgacceptsignres, raw) {
+		res := RPCSmpcRes{Ret: "Success", Tip: "dul accept msg,but return success", Err: nil}
+		ch <- res
+		return true
+	}
+	////
 
 	exsit, da := GetSignInfoData([]byte(acceptsig.Key))
 	if !exsit {
@@ -1132,26 +1140,30 @@ func (req *ReqSmpcSign) DisAcceptMsg(raw string, workid int, key string) {
 		return
 	}
 
+	exsit, da := GetSignInfoData([]byte(key))
+	if !exsit {
+		return
+	}
+
+	ac, ok := da.(*AcceptSignData)
+	if !ok || ac == nil {
+		return
+	}
+
 	w.msgacceptsignres.PushBack(raw)
+	/////fix bug: miss accept msg for 7-11 test
+	SendMsgToSmpcGroup(raw, ac.GroupID)
+	/////
+
 	if w.msgacceptsignres.Len() >= w.ThresHold {
 		if !CheckReply(w.msgacceptsignres, RPCSIGN, key) {
 			common.Debug("=====================ReqSmpcSign.DisAcceptMsg,receive one msg, but Not all accept data has been received ===================", "raw", raw, "key", key)
 			return
 		}
 
-		common.Debug("=====================ReqSmpcSign.DisAcceptMsg,receive one msg,all accept data has been received===================", "raw", raw, "key", key)
+		//common.Debug("=====================ReqSmpcSign.DisAcceptMsg,receive one msg,all accept data has been received===================", "raw", raw, "key", key)
 		w.bacceptsignres <- true
-		exsit, da := GetSignInfoData([]byte(key))
-		if !exsit {
-			return
-		}
-
-		ac, ok := da.(*AcceptSignData)
-		if !ok || ac == nil {
-			return
-		}
-
-		common.Debug("=====================ReqSmpcSign.DisAcceptMsg,receive one msg,all accept data has been received,set acceptSignChan ===================", "raw", raw, "key", key)
+		//common.Debug("=====================ReqSmpcSign.DisAcceptMsg,receive one msg,all accept data has been received,set acceptSignChan ===================", "raw", raw, "key", key)
 		workers[ac.WorkID].acceptSignChan <- "go on"
 	}
 }

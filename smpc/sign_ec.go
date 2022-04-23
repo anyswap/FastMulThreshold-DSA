@@ -57,6 +57,15 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 			return
 		case m := <-w.SmpcMsg:
 
+		    log.Debug("========================SignProcessInboundMessages,get msg====================","msg",m,"key",msgprex)
+			///dul?
+			hexs := Keccak256Hash([]byte(strings.ToLower(m))).Hex()
+			_, exist2 := w.Msg56[hexs]
+			if exist2 {
+			   break 
+			}
+			///
+
 			msgmap := make(map[string]string)
 			err := json.Unmarshal([]byte(m), &msgmap)
 			if err != nil {
@@ -71,6 +80,13 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 				ch <- res
 				return
 			}
+
+			/////check whether the msg already exists in the msg list before update the msg list.
+			//dul := w.DNode.DulMessage(mm)
+			//if dul {
+			//    break
+			//}
+			/////
 
 			//check sig
 			if msgmap["Sig"] == "" {
@@ -93,7 +109,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 			    return
 			}
 			
-			common.Debug("===============sign,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
+			//common.Debug("===============sign,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			if !checkP2pSig(sig,mm,msgmap["ENode"]) {
 			    common.Error("===============sign,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
@@ -161,6 +177,24 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 				ch <- res
 				return
 			}
+			
+			//log.Debug("========================SignProcessInboundMessages,update msg success====================","msg",m,"key",msgprex)
+			
+			w.Msg56[hexs] = true
+			
+			//if !dul {
+			    //////also broacast to group for msg
+			    if mm.IsBroadcast() {
+				go func(msg string,gid string) {
+				    for i:=0;i<1;i++ {
+					//log.Debug("================ProcessInboundMessages,also broacast to group for msg=====================","msg type",mm.GetMsgType(),"key",msgprex)
+					SendMsgToSmpcGroup(msg,gid)
+					time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
+				    }
+				}(m,w.groupid)
+			    }
+			    //////
+			//}	
 		}
 	}
 }
@@ -517,13 +551,18 @@ func processSign(msgprex string, msgtoenode map[string]string, errChan chan stru
 				log.Error("============================= processSign, sign process outch fail =======================","err",err,"key",msgprex)
 				return nil, err
 			}
+
+			w, err := FindWorker(msgprex)
+			if w == nil || err != nil {
+				return nil, fmt.Errorf("get worker fail")
+			}
 		case msg := <-endCh:
 			w, err := FindWorker(msgprex)
 			if w == nil || err != nil {
 				return nil, fmt.Errorf("get worker fail")
 			}
 
-			//fmt.Printf("\n=========================sign finished successfully,sig data = %v, key = %v ===========================\n", msg, msgprex)
+			log.Debug("=========================presign finished successfully ===========================","msg",msg,"key",msgprex)
 			return &msg, nil
 		}
 	}
@@ -552,7 +591,7 @@ func processSignFinalize(msgprex string, msgtoenode map[string]string, errChan c
 				return nil, fmt.Errorf("get worker fail")
 			}
 
-			//fmt.Printf("\n=======================sign finished successfully, s = %v, key = %v =======================\n", msg, msgprex)
+			log.Info("=======================signing finished successfully=======================\n","key",msgprex)
 			return msg, nil
 		}
 	}
@@ -599,7 +638,8 @@ func SignProcessOutCh(msgprex string, msgtoenode map[string]string, msg smpclib.
 			for _, node := range nodes {
 				node2 := ParseNode(node)
 				if strings.EqualFold(enode, node2) {
-					SendMsgToPeer(node, string(s))
+					//SendMsgToPeer(node, string(s))
+					SendMsgToPeerWithBrodcast(msgprex,node,string(s),gid)
 					break
 				}
 			}

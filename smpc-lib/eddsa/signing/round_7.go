@@ -33,7 +33,7 @@ func (round *round7) Start() error {
 	}
 	round.number = 7
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 
 	var FinalS [32]byte
 	for k := range round.idsign {

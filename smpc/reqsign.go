@@ -183,7 +183,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 				select {
 				case account := <-wtmp2.acceptSignChan:
 					common.Debug("InitAcceptData,", "account= ", account, "key = ", key)
-					ars := GetAllReplyFromGroup(w.id, sig.GroupID, RPCSIGN, sender)
+					ars := GetAllReplyFromGroup2(w.id,sender)
 					common.Info("================== DoSign, get all AcceptSignRes===============", "result ", ars, "key ", key)
 
 					reply = true
@@ -337,12 +337,115 @@ func RPCAcceptSign(raw string) (string, string, error) {
 		ac, ok := da.(*AcceptSignData)
 		if ok && ac != nil {
 			SendMsgToSmpcGroup(raw, ac.GroupID)
-			SetUpMsgList(raw, curEnode)
+			//SetUpMsgList(raw, curEnode)
+			go ExecApproveSigning(raw,from,acceptsig,ac,true)
 			return "Success", "", nil
 		}
 	}
 
 	return "Failure", "accept fail", fmt.Errorf("accept fail")
+}
+
+func ExecApproveSigning(raw string,from string,sig *TxDataAcceptSign,ac *AcceptSignData,check bool) {
+	w, err := FindWorker(sig.Key)
+	if err != nil || w == nil {
+		common.Info("===============ExecApproveSigning, worker was not found.=====================", "accept sign key ", sig.Key, "from ", from)
+		c1data := strings.ToLower(sig.Key + "-" + from)
+		C1Data.WriteMap(c1data, raw) // save the lastest accept msg??
+		return
+	}
+
+	if w.approved {
+	    return
+	}
+
+	if ac.Deal == "true" || ac.Status == "Success" || ac.Status == "Failure" || ac.Status == "Timeout" {
+		common.Info("===============ExecApproveSigning,sign has handled before=====================", "key ", sig.Key, "from ", from)
+		return
+	}
+
+	reqaddrkey := GetReqAddrKeyByOtherKey(sig.Key, RPCSIGN)
+	exsit, da := GetPubKeyData([]byte(reqaddrkey))
+	if !exsit {
+		common.Error("===============ExecApproveSigning, get reqaddr sigs data fail=====================", "key ",sig.Key, "from ", from)
+		return
+	}
+
+	acceptreqdata, ok := da.(*AcceptReqAddrData)
+	if !ok || acceptreqdata == nil {
+		common.Error("===============ExecApproveSigning, get reqaddr sigs data fail =====================", "key ",sig.Key, "from ", from)
+		return
+	}
+
+	/////fix bug: miss accept msg for 7-11 test
+	if Find(w.msgacceptsignres, raw) {
+		return
+	}
+	////
+
+	if !IsValidAccept(ac.GroupID,from,acceptreqdata) {
+	    return
+	}
+
+	if !CheckSignDulpRawReply(raw, w.msgacceptsignres) {
+		return
+	}
+
+	if check {
+	    HandleC1Data(acceptreqdata, sig.Key)
+	}
+
+	status := "Pending"
+	accept := sig.Accept
+	if accept == "" {
+	    accept = "DISAGREE"
+	}
+
+	if sig.Accept != "AGREE" {
+		status = "Failure"
+	}
+
+	AcceptSign(ac.Initiator, ac.Account, ac.PubKey, ac.MsgHash, ac.Keytype, ac.GroupID, ac.Nonce, ac.LimitNum, ac.Mode, "false", accept, status, "", "", "", nil, ac.WorkID)
+	
+	w.msgacceptsignres.PushBack(raw)
+	/////fix bug: miss accept msg for 7-11 test
+	SendMsgToSmpcGroup(raw, ac.GroupID)
+	/////
+
+	index := -1
+	for k,vv := range w.ApprovReplys {
+	    if vv == nil {
+		continue
+	    }
+
+	    if strings.EqualFold(vv.From,from) {
+		index = k
+		break
+	    }
+	}
+
+	enode := GetENodeByFrom(from,acceptreqdata)
+	if enode == "" {
+	    return
+	}
+
+	reply := &ApprovReply{ENode:enode,From: from, Accept: accept, TimeStamp: sig.TimeStamp}
+	if index != -1 {
+	    w.ApprovReplys[index] = reply
+	} else {
+	    w.ApprovReplys = append(w.ApprovReplys,reply)
+	}
+
+	if w.msgacceptsignres.Len() >= w.ThresHold {
+		//if !CheckReply(w.msgacceptsignres, RPCSIGN, sig.Key) {
+		//	common.Debug("=====================ExecApproveSigning,receive one msg, but Not all accept data has been received ===================", "raw", raw, "key", sig.Key)
+		//	return
+		//}
+
+		w.approved = true
+		w.bacceptsignres <- true
+		workers[ac.WorkID].acceptSignChan <- "go on"
+	}
 }
 
 //------------------------------------------------------------------------------------------
@@ -1276,7 +1379,7 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 	go func() {
 		defer signWg.Done()
 		if err := signDNode.Start(); nil != err {
-			fmt.Printf("==========PreSignEC3, node start, key = %v, err = %v ==========\n", msgprex,err)
+			common.Error("==========PreSignEC3, node start fail=======","key",msgprex,"err",err)
 			close(errChan)
 		}
 

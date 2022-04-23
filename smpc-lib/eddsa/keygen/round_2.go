@@ -28,7 +28,7 @@ func (round *round2) Start() error {
 	}
 	round.number = 2
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 
 	ids, err := round.GetIDs()
 	if err != nil {

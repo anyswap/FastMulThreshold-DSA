@@ -29,7 +29,7 @@ func (round *round6) Start() error {
 	}
 	round.number = 6
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 
 	idtmp, ok := new(big.Int).SetString(round.dnodeid, 10)
 	if !ok {

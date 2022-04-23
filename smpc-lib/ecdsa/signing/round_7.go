@@ -33,7 +33,7 @@ func (round *round7) Start() error {
 	}
 	round.number = 7
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 
 	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {

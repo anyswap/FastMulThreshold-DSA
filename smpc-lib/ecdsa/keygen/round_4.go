@@ -41,7 +41,7 @@ func (round *round4) Start() error {
 	}
 	round.number = 4
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 
 	curIndex, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {

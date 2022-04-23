@@ -26,4 +26,5 @@ type Round interface {
 	CanProceed() bool
 	GetIDs() (SortableIDSSlice, error)
 	GetDNodeIDIndex(id string) (int, error)
+	ResetOK()
 }

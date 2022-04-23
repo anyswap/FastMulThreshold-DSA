@@ -29,6 +29,7 @@ import (
 	"math/big"
 	"sort"
 	"strings"
+	"strconv"
 	"sync"
 	"time"
 	"errors"
@@ -164,7 +165,7 @@ func RPCAcceptReqAddr(raw string) (string, string, error) {
 	    return "","",errors.New("param error")
 	}
 
-	_, _, _, txdata, err := CheckRaw(raw)
+	_, from, _, txdata, err := CheckRaw(raw)
 	if err != nil {
 		common.Error("=====================RPCAcceptReqAddr,check raw data error ================", "raw", raw, "err", err)
 		return "Failure", err.Error(), err
@@ -181,12 +182,171 @@ func RPCAcceptReqAddr(raw string) (string, string, error) {
 		if ok && ac != nil {
 			common.Debug("=====================RPCAcceptReqAddr, SendMsgToSmpcGroup ================", "raw", raw, "gid", ac.GroupID, "key", acceptreq.Key)
 			SendMsgToSmpcGroup(raw, ac.GroupID)
-			SetUpMsgList(raw, curEnode)
+			//SetUpMsgList(raw, curEnode)
+			go ExecApproveKeyGen(raw,from,acceptreq,ac,true)
 			return "Success", "", nil
 		}
 	}
 
 	return "Failure", "accept fail", fmt.Errorf("accept fail")
+}
+
+func IsValidAccept(gid string,from string,ac *AcceptReqAddrData) bool {
+    if gid == "" || from == "" || ac == nil || ac.Sigs == "" {
+	return false
+    }
+    
+    mms := strings.Split(ac.Sigs, common.Sep)
+    if len(mms) < 3 {
+	return false
+    }
+
+    nums := strings.Split(ac.LimitNum, "/")
+    if len(nums) != 2 {
+	    return false
+    }
+
+    nodecnt, err := strconv.Atoi(nums[1])
+    if err != nil {
+	    return false
+    }
+
+    if len(mms) != (2*nodecnt + 1) {
+	return false
+    }
+
+    _, nodes := GetGroup(gid)
+    others := strings.Split(nodes, common.Sep2)
+    for _, v := range others {
+	node2 := ParseNode(v)
+	for k,vv := range mms {
+	    if strings.EqualFold(vv,node2) {
+		if (k+1) < len(mms) && strings.EqualFold(mms[k+1],from) {
+		    return true
+		}
+	    }
+	}
+    }
+
+    return false
+}
+
+func GetENodeByFrom(from string,ac *AcceptReqAddrData) string {
+    if from == "" || ac == nil {
+	return ""
+    }
+    
+    mms := strings.Split(ac.Sigs, common.Sep)
+    if len(mms) < 3 {
+	return ""
+    }
+
+    nums := strings.Split(ac.LimitNum, "/")
+    if len(nums) != 2 {
+	    return ""
+    }
+
+    nodecnt, err := strconv.Atoi(nums[1])
+    if err != nil {
+	    return ""
+    }
+
+    if len(mms) != (2*nodecnt + 1) {
+	return ""
+    }
+
+    for k,_ := range mms {
+	if k < len(mms) && strings.EqualFold(mms[k],from) {
+	    return mms[k-1]
+	}
+    }
+
+    return ""
+}
+
+func ExecApproveKeyGen(raw string,from string,req *TxDataAcceptReqAddr,ac *AcceptReqAddrData,check bool) {
+    common.Debug("===============ExecApproveKeyGen, check accept reqaddr raw success======================", "raw ", raw, "key ", req.Key, "from ", from, "txdata ",req)
+
+    w, err := FindWorker(req.Key)
+    if err != nil || w == nil {
+	    c1data := strings.ToLower(req.Key + "-" + from)
+	    C1Data.WriteMap(c1data, raw) // save the lastest accept msg??
+	    return
+    }
+
+    if w.approved {
+	return
+    }
+
+    /////fix bug: miss accept msg for 7-11 test
+    if Find(w.msgacceptreqaddrres, raw) {
+	    return
+    }
+    ////
+
+    if !IsValidAccept(ac.GroupID,from,ac) {
+	return
+    }
+
+    if !CheckReqAddrDulpRawReply(raw, w.msgacceptreqaddrres) {
+	    return
+    }
+
+    if check {
+	HandleC1Data(ac, req.Key)
+    }
+    
+    status := "Pending"
+    accept := req.Accept
+    if accept == "" {
+	accept = "DISAGREE"
+    }
+
+    if req.Accept != "AGREE" {
+	    status = "Failure"
+    }
+
+    AcceptReqAddr(ac.Initiator, ac.Account, ac.Cointype, ac.GroupID, ac.Nonce, ac.LimitNum, ac.Mode, "false", accept, status, "", "", "", nil, ac.WorkID, "")
+    
+    w.msgacceptreqaddrres.PushBack(raw)
+    
+    /////fix bug: miss accept msg for 7-11 test
+    SendMsgToSmpcGroup(raw, ac.GroupID)
+    /////
+
+    index := -1
+    for k,vv := range w.ApprovReplys {
+	if vv == nil {
+	    continue
+	}
+
+	if strings.EqualFold(vv.From,from) {
+	    index = k
+	    break
+	}
+    }
+
+    enode := GetENodeByFrom(from,ac)
+    if enode == "" {
+	return
+    }
+
+    reply := &ApprovReply{ENode:enode,From: from, Accept: accept, TimeStamp: req.TimeStamp}
+    if index != -1 {
+	w.ApprovReplys[index] = reply
+    } else {
+	w.ApprovReplys = append(w.ApprovReplys,reply)
+    }
+
+    if w.msgacceptreqaddrres.Len() >= w.NodeCnt {
+	//if !CheckReply(w.msgacceptreqaddrres, RPCREQADDR, req.Key) {
+	//	return
+	//}
+
+	w.approved = true
+	w.bacceptreqaddrres <- true
+	workers[ac.WorkID].acceptReqAddrChan <- "go on"
+    }
 }
 
 //--------------------------------------------------------------------------------

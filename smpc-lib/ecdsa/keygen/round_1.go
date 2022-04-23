@@ -34,7 +34,7 @@ func (round *round1) Start() error {
 	}
 	round.number = 1
 	round.started = true
-	round.resetOK()
+	round.ResetOK()
 
 	u1 := random.GetRandomIntFromZn(secp256k1.S256().N)
 	c1 := random.GetRandomIntFromZn(secp256k1.S256().N)
