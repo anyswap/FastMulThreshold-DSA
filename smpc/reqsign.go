@@ -134,7 +134,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 	}
 
 	ars := GetAllReplyFromGroup(workid, sig.GroupID, RPCSIGN, sender)
-	ac := &AcceptSignData{Initiator: sender, Account: from, GroupID: sig.GroupID, Nonce: nonce, PubKey: sig.PubKey, MsgHash: sig.MsgHash, MsgContext: sig.MsgContext, Keytype: sig.Keytype, LimitNum: sig.ThresHold, Mode: sig.Mode, TimeStamp: sig.TimeStamp, Deal: "false", Accept: "false", Status: "Pending", Rsv: "", Tip: "", Error: "", AllReply: ars, WorkID: workid}
+	ac := &AcceptSignData{Raw:sbd.Raw,Initiator: sender, Account: from, GroupID: sig.GroupID, Nonce: nonce, PubKey: sig.PubKey, MsgHash: sig.MsgHash, MsgContext: sig.MsgContext, Keytype: sig.Keytype, LimitNum: sig.ThresHold, Mode: sig.Mode, TimeStamp: sig.TimeStamp, Deal: "false", Accept: "false", Status: "Pending", Rsv: "", Tip: "", Error: "", AllReply: ars, WorkID: workid}
 	err = SaveAcceptSignData(ac)
 	if err != nil {
 		res := RPCSmpcRes{Ret: "", Tip:"save sign accept data fail", Err: fmt.Errorf("save sign accept data fail")}
@@ -690,6 +690,7 @@ func GetSignStatus(key string) (string, string, error) {
 
 // SignCurNodeInfo the info of the current node's approve list
 type SignCurNodeInfo struct {
+    	Raw	string
 	Key        string
 	Account    string
 	PubKey     string
@@ -780,7 +781,8 @@ func GetCurNodeSignInfo(geteracc string) ([]*SignCurNodeInfo, string, error) {
 				return
 			}
 
-			los := &SignCurNodeInfo{Key: key, Account: vv.Account, PubKey: vv.PubKey, MsgHash: vv.MsgHash, MsgContext: vv.MsgContext, KeyType: vv.Keytype, GroupID: vv.GroupID, Nonce: vv.Nonce, ThresHold: vv.LimitNum, Mode: vv.Mode, TimeStamp: vv.TimeStamp}
+			//los := &SignCurNodeInfo{Key: key, Account: vv.Account, PubKey: vv.PubKey, MsgHash: vv.MsgHash, MsgContext: vv.MsgContext, KeyType: vv.Keytype, GroupID: vv.GroupID, Nonce: vv.Nonce, ThresHold: vv.LimitNum, Mode: vv.Mode, TimeStamp: vv.TimeStamp}
+			los := &SignCurNodeInfo{Raw:vv.Raw,Key: key, Account: vv.Account, PubKey: vv.PubKey, MsgHash: vv.MsgHash, MsgContext: vv.MsgContext, KeyType: vv.Keytype, GroupID: vv.GroupID, Nonce: vv.Nonce, ThresHold: vv.LimitNum, Mode: vv.Mode, TimeStamp: vv.TimeStamp}
 			if los == nil {
 				common.Error("=========================GetCurNodeSignInfo,current info is nil========================", "key", key)
 				return

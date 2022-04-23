@@ -358,6 +358,7 @@ func AcceptReqAddr(initiator string, account string, cointype string, groupid st
 
 // AcceptSignData the data of sign cmd,include:weather initiator,from accout,gid,sign sub-gid,pubkey,threshold,accept or reject the sign .. and so on. 
 type AcceptSignData struct {
+    	Raw string
 	Initiator  string //enode id
 	Account    string
 	GroupID    string
@@ -496,7 +497,7 @@ func AcceptSign(initiator string, account string, pubkey string, msghash []strin
 		wid = workid
 	}
 
-	ac2 := &AcceptSignData{Initiator: in, Account: ac.Account, GroupID: ac.GroupID, Nonce: ac.Nonce, PubKey: ac.PubKey, MsgHash: ac.MsgHash, MsgContext: ac.MsgContext, Keytype: ac.Keytype, LimitNum: ac.LimitNum, Mode: ac.Mode, TimeStamp: ac.TimeStamp, Deal: de, Accept: acp, Status: sts, Rsv: ah, Tip: ttip, Error: eif, AllReply: arl, WorkID: wid}
+	ac2 := &AcceptSignData{Raw:ac.Raw,Initiator: in, Account: ac.Account, GroupID: ac.GroupID, Nonce: ac.Nonce, PubKey: ac.PubKey, MsgHash: ac.MsgHash, MsgContext: ac.MsgContext, Keytype: ac.Keytype, LimitNum: ac.LimitNum, Mode: ac.Mode, TimeStamp: ac.TimeStamp, Deal: de, Accept: acp, Status: sts, Rsv: ah, Tip: ttip, Error: eif, AllReply: arl, WorkID: wid}
 
 	e, err := Encode2(ac2)
 	if err != nil {
