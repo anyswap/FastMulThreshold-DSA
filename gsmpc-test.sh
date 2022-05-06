@@ -296,14 +296,22 @@ echo
 $1/test/reqaddr.sh &
 sleep 30
 
+kttmp=EC256K1
 val=$(cat $1/test/tmp/fff)
 val=`echo ${val##*PubKey}`
+if [ "$kt" = "$kttmp" ];then
 pubkey=`echo ${val:5:130}`
+else
+pubkey=`echo ${val:5:64}`
+fi
+
 echo
 echo ------------------------------------------------------------------ pubkey : $pubkey ------------------------------------------------------------
 
+if [ "$kt" = "$kttmp" ];then
 $1/test/bin/gsmpc-client-test -cmd PRESIGNDATA --keystore $keyfile1 --passwdfile $pf1 -pubkey $pubkey -subgid $subgid  -url  http://127.0.0.1:$port --keytype $kt &
 sleep 100
+fi
 
 rm -rf $1/test/tmp/ggg
 
@@ -349,7 +357,12 @@ sleep 30
 
 val=$(cat $1/test/tmp/hhh)
 val=`echo ${val##*Rsv}`
+if [ "$kt" = "$kttmp" ];then
 rsv=`echo ${val:6:130}`
+else
+rsv=`echo ${val:6:64}`
+fi
+
 echo
 echo ---------------------------------------------------------------------- sign rsv : $rsv --------------------------------------------------------------------------------
 

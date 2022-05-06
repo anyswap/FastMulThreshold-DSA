@@ -50,7 +50,7 @@ func (round *round7) Start() error {
 	inputVerify := InputVerify{FinalR: round.temp.FinalRBytes, FinalS: FinalS, Message: []byte(round.temp.message), FinalPk: round.temp.pkfinal}
 
 	var pass = EdVerify(inputVerify)
-	fmt.Printf("===========ed verify, pass = %v============\n", pass)
+	//fmt.Printf("===========ed verify, pass = %v============\n", pass)
 	if !pass {
 	    return errors.New("ed verify (r,s) fail")
 	}
@@ -58,7 +58,7 @@ func (round *round7) Start() error {
 	//r
 	rx := hex.EncodeToString(round.temp.FinalRBytes[:])
 	sx := hex.EncodeToString(FinalS[:])
-	fmt.Printf("===========ed sign, round7.start, rx = %v, sx = %v============\n", rx, sx)
+	//fmt.Printf("===========ed sign, round7.start, rx = %v, sx = %v============\n", rx, sx)
 
 	//////test
 	signature := new([64]byte)
@@ -66,7 +66,7 @@ func (round *round7) Start() error {
 	copy(signature[32:], FinalS[:])
 
 	suss := ed25519.Verify(&round.temp.pkfinal, []byte(round.temp.message), signature)
-	fmt.Printf("===========ed verify, success = %v============\n", suss)
+	//fmt.Printf("===========ed verify, success = %v============\n", suss)
 	if !suss {
 	    return errors.New("ed verify (r,s) fail")
 	}
@@ -80,8 +80,7 @@ func (round *round7) Start() error {
 	/////////solana
 
 	round.end <- EdSignData{Rx: round.temp.FinalRBytes, Sx: FinalS}
-
-	//fmt.Printf("============= round7.start success, current node id = %v =============\n", round.kgid)
+	fmt.Printf("===========ed sign success, rx = %v, sx = %v============\n", rx, sx)
 
 	return nil
 }

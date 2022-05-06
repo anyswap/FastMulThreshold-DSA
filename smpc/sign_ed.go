@@ -57,7 +57,7 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *
 			msgmap := make(map[string]string)
 			err := json.Unmarshal([]byte(m), &msgmap)
 
-			fmt.Printf("=================== EdSignProcessInboundMessages, msg = %v, err = %v, key = %v ====================\n", m, err, msgprex)
+			//fmt.Printf("=================== EdSignProcessInboundMessages, msg = %v, err = %v, key = %v ====================\n", m, err, msgprex)
 			if err != nil {
 				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res

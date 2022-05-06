@@ -1862,7 +1862,6 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 
 	w := workers[id]
 	GroupID := w.groupid
-	fmt.Println("========SignED============", "GroupID", GroupID)
 	if GroupID == "" {
 		res := RPCSmpcRes{Ret: "", Tip: "get group id fail", Err: fmt.Errorf("get group id fail")}
 		ch <- res
@@ -1944,8 +1943,14 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 
 	idsign := GetGroupNodeUIDs(cointype,pubs.GroupID,w.groupid)
 
-	mMtA, _ := new(big.Int).SetString(message, 16)
-	fmt.Printf("==============SignED, w.groupid = %v, message = %v ==============\n", w.groupid, message)
+	//mMtA, _ := new(big.Int).SetString(message, 16)
+	mMtA := new(big.Int).SetBytes(common.FromHex(message))
+	if mMtA == nil {
+	    fmt.Errorf("==============SignED, w.groupid = %v, message = %v, message to []byte fail ==============\n", w.groupid, message)
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("message to []byte fail")}
+	    ch <- res
+	    return ""
+	}
 
 	commStopChan := make(chan struct{})
 	outCh := make(chan smpclib.Message, w.ThresHold)

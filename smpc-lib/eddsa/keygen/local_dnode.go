@@ -99,7 +99,7 @@ func NewLocalDNode(
 	p.ID = hex.EncodeToString(id[:])
 	//uid := smpc.GetRandomIntFromZn(secp256k1.S256().N)
 	//p.ID = fmt.Sprintf("%v",uid)
-	fmt.Printf("=========== ed,NewLocalDNode, id = %v, p.ID = %v =============\n", id, p.ID)
+	//fmt.Printf("=========== ed,NewLocalDNode, id = %v, p.ID = %v =============\n", id, p.ID)
 
 	p.DNodeCountInGroup = DNodeCountInGroup
 	p.ThresHold = threshold

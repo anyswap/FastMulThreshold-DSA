@@ -22,7 +22,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/eddsa/keygen"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
-	"encoding/hex"
+	//"encoding/hex"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
 	cryptorand "crypto/rand"
 	"io"
@@ -83,9 +83,9 @@ func (round *round1) Start() error {
 		return errors.New("no unsign hash")
 	}
 
-	tmpstr := hex.EncodeToString(round.txhash.Bytes())
-	round.temp.message, _ = hex.DecodeString(tmpstr)
-	fmt.Printf("===============ed sign,round1.start, message = %v, msg str = %v ======================\n", round.temp.message, tmpstr)
+	//tmpstr := hex.EncodeToString(round.txhash.Bytes())
+	//round.temp.message, _ = hex.DecodeString(tmpstr)
+	round.temp.message = round.txhash.Bytes() 
 
 	// [Notes]
 	// 1. calculate R
