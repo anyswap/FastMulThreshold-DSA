@@ -25,7 +25,10 @@ import (
 	"strings"
 	"time"
 
-	"compress/zlib"
+	//"compress/zlib"
+	"compress/gzip"
+	"encoding/base64"
+	"io/ioutil"
 	"container/list"
 	"encoding/gob"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto/sha3"
@@ -35,7 +38,7 @@ import (
 	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"github.com/fsn-dev/cryptoCoins/coins/types"
 	"github.com/fsn-dev/cryptoCoins/tools/rlp"
-	"io"
+	//"io"
 	"errors"
 	"sort"
 )
@@ -245,7 +248,7 @@ func Compress(c []byte) (string, error) {
 		return "", fmt.Errorf("compress fail")
 	}
 
-	var in bytes.Buffer
+	/*var in bytes.Buffer
 	w, err := zlib.NewWriterLevel(&in, zlib.BestCompression-1)
 	if err != nil {
 		return "", err
@@ -259,7 +262,25 @@ func Compress(c []byte) (string, error) {
 	w.Close()
 
 	s := in.String()
-	return s, nil
+	return s, nil*/
+
+	var b bytes.Buffer
+	gz := gzip.NewWriter(&b)
+	if _, err := gz.Write(c[:]); err != nil {
+		common.Error("====================Compress,write err=====================","orig str",string(c[:]),"err",err)
+		return "", err
+	}
+	if err := gz.Flush(); err != nil {
+		common.Error("====================Compress,flush err=====================","orig str",string(c[:]),"err",err)
+		return "", err
+	}
+	if err := gz.Close(); err != nil {
+		common.Error("====================Compress,close err=====================","orig str",string(c[:]),"err",err)
+		return "", err
+	}
+	str := base64.StdEncoding.EncodeToString(b.Bytes())
+	common.Debug("====================Compress=====================","orig str",string(c[:]),"compress str",str)
+	return str,nil
 }
 
 // UnCompress uncompress the string
@@ -269,7 +290,7 @@ func UnCompress(s string) (string, error) {
 		return "", fmt.Errorf("param error")
 	}
 
-	var data bytes.Buffer
+	/*var data bytes.Buffer
 	data.Write([]byte(s))
 
 	r, err := zlib.NewReader(&data)
@@ -283,7 +304,29 @@ func UnCompress(s string) (string, error) {
 		return "", err
 	}
 
-	return out.String(), nil
+	return out.String(), nil*/
+
+	data, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+	    common.Error("===========================UnCompress,decode err==============================","compress str",s,"err",err)
+	    return "",err
+	}
+
+	rdata := bytes.NewReader(data)
+	r, err := gzip.NewReader(rdata)
+	if err != nil {
+	    common.Error("===========================UnCompress,new reader err==============================","compress str",s,"err",err)
+	    return "",err
+	}
+
+	ss, err := ioutil.ReadAll(r)
+	if err != nil {
+	    common.Error("===========================UnCompress,read all err==============================","compress str",s,"err",err)
+	    return "",err
+	}
+
+	common.Debug("===========================UnCompress==============================","compress str",s,"orig str",string(ss))
+	return string(ss),nil
 }
 
 //---------------------------------------------------------------------------------------
@@ -426,11 +469,15 @@ func GetGroupNodeUIDs(keytype string,gid string,subgid string) smpclib.SortableI
 	    node2 := ParseNode(v) //bug??
 	    id := DoubleHash(node2, keytype)
 	    for kk,vv := range allids {
-		if vv.Cmp(id) == 0 {
+		if vv != nil && id != nil && vv.Cmp(id) == 0 {
 		    ids = append(ids,big.NewInt(int64(kk+1)))
 		    break
 		}
 	    }
+    }
+
+    if len(ids) == 0 {
+	return nil
     }
 
     sort.Sort(ids)

@@ -40,6 +40,7 @@ import (
 	"github.com/astaxie/beego/logs"
 	"runtime/debug"
 	"sync"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 var (
@@ -336,7 +337,9 @@ func RPCAcceptSign(raw string) (string, string, error) {
 	if exsit {
 		ac, ok := da.(*AcceptSignData)
 		if ok && ac != nil {
-			SendMsgToSmpcGroup(raw, ac.GroupID)
+			//SendMsgToSmpcGroup(raw, ac.GroupID)
+			gid2 := GetKeyGenGid(ac.PubKey)
+			SendMsgToSmpcGroupUsingEncryption(acceptsig.Key,raw,gid2,ac.GroupID)
 			//SetUpMsgList(raw, curEnode)
 			go ExecApproveSigning(raw,from,acceptsig,ac,true)
 			return "Success", "", nil
@@ -409,7 +412,7 @@ func ExecApproveSigning(raw string,from string,sig *TxDataAcceptSign,ac *AcceptS
 	
 	w.msgacceptsignres.PushBack(raw)
 	/////fix bug: miss accept msg for 7-11 test
-	SendMsgToSmpcGroup(raw, ac.GroupID)
+	//SendMsgToSmpcGroup(raw, ac.GroupID)
 	/////
 
 	index := -1
@@ -511,7 +514,9 @@ func Sign(raw string) (string, string, error) {
 		    return "", "",err 
 		}
 
-		SendMsgToSmpcGroup(string(val), sig.GroupID)
+		//SendMsgToSmpcGroup(string(val), sig.GroupID)
+		gid2 := GetKeyGenGid(sig.PubKey)
+		SendMsgToSmpcGroupUsingEncryption(key,string(val),gid2,sig.GroupID)
 
 		m2 := make(map[string]string)
 		selfsend, err := CompressSignData(raw, pickdata)
@@ -606,7 +611,9 @@ func HandleRPCSign() {
 					continue
 				}
 
-				SendMsgToSmpcGroup(string(val), rsd.GroupID)
+				//SendMsgToSmpcGroup(string(val), rsd.GroupID)
+				//gid := GetKeyGenGid(rsd.PubKey)
+				SendMsgToSmpcGroupUsingEncryption(rsd.Key,string(val),(da.(*PubKeyData)).GroupID,rsd.GroupID)
 
 				m2 := make(map[string]string)
 				selfsend, err := CompressSignData(rsd.Raw, pickdata)
@@ -1366,6 +1373,13 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 	// [Notes]
 	// 1. assume the nodes who take part in the signature generation as follows
 	idsign := GetGroupNodeUIDs(cointype,pubs.GroupID,w.groupid)
+	log.Debug("=======================PreSignEC3,presign get group node uids========================","keygen gid",pubs.GroupID,"signing gid",w.groupid,"idsign",idsign)
+	if idsign == nil {
+	    log.Error("=======================PreSignEC3,presign get group node uids fail========================")
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("presign get group node uids fail")}
+	    ch <- res
+	    return nil
+	}
 
 	commStopChan := make(chan struct{})
 	outCh := make(chan smpclib.Message, w.ThresHold)

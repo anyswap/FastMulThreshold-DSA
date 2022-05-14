@@ -46,7 +46,7 @@ var (
 	cht            = 300
 
 	//ec keygen timeout
-	EcKeygenTimeout = 1200
+	EcKeygenTimeout = 2400 
 
 	//ed keygen timeout
 	EdKeygenTimeout = 1200
@@ -234,7 +234,7 @@ func SendMsgToSmpcGroup(msg string, groupid string) {
 	common.Debug("=========SendMsgToSmpcGroup=============", "msg", msg, "groupid", groupid)
 	_, err := BroadcastInGroupOthers(groupid, msg)
 	if err != nil {
-		common.Debug("=========SendMsgToSmpcGroup,send msg to smpc group=============", "msg", msg, "groupid", groupid, "err", err)
+		common.Debug("=========SendMsgToSmpcGroup,send msg to smpc group fail=============", "msg", msg, "groupid", groupid, "err", err)
 	}
 }
 
@@ -317,7 +317,8 @@ func SendMsgToPeerWithBrodcast(key string,enodes string, msg string,groupid stri
 	en := strings.Split(string(enodes[8:]), "@")
 	cm, err := EncryptMsg(msg, en[0])
 	if err != nil {
-		return
+	    common.Error("=========SendMsgToPeerWithBrodcast,encry msg fail=============", "key",key,"enode", enodes, "groupid", groupid,"err",err)
+	    return
 	}
 
 	/////
@@ -333,7 +334,39 @@ func SendMsgToPeerWithBrodcast(key string,enodes string, msg string,groupid stri
 	}
 	/////
 
-	SendMsgToSmpcGroup(string(s),groupid)
+	send,err := Compress(s)
+	if err != nil {
+	    common.Error("=========SendMsgToPeerWithBrodcast,compress msg fail=============", "key",key,"msg2peer msg", string(s), "groupid", groupid,"err",err)
+	    return
+	}
+
+	common.Debug("============================SendMsgToPeerWithBrodcast==========================","orig msg",msg,"keygen gid",groupid,"key",key)
+	SendMsgToSmpcGroup(send,groupid)
+}
+
+func SendMsgToSmpcGroupUsingEncryption(key string,msg string,keygengid string,signgid string) {
+    if msg == "" || keygengid == "" || signgid == "" {
+	return
+    }
+    
+    if key == "" {
+	key = "CMD"
+    }
+
+    _, enodes := GetGroup(signgid)
+    nodes := strings.Split(enodes, common.Sep2)
+    for _, node := range nodes {
+	if node == "" {
+	    continue
+	}
+
+	node2 := ParseNode(node)
+	if strings.EqualFold(curEnode,node2) {
+	    continue
+	}
+
+	SendMsgToPeerWithBrodcast(key,node,msg,keygengid)
+    }
 }
 
 //-------------------------------------------------------------
@@ -432,30 +465,16 @@ func IsSignDataCmd(raw string) (string, bool) {
 	return "", false
 }
 
-func findmsg2peer(list []string,msg string) bool {
-    if msg == "" {
-	return true
-    }
-
-    for _,v := range list {
-	if strings.EqualFold(v,msg) {
-	    return true
-	}
-    }
-
-    return false
-}
-
 // IsMsg2Peer Judge whether it is the msg that send to special peer
 func IsMsg2Peer(msgmap map[string]string) (bool,string,string,string) {
     val, ok := msgmap["MsgType"]
     if ok && val == "MSG2PEER" {
-	gid, ok := msgmap["Gid"]
-	if ok && gid != "" {
+	key, ok := msgmap["Key"]
+	if ok && key != "" {
 	    s, ok := msgmap["Msg"]
 	    if ok && s != "" {
-		key, ok := msgmap["Key"]
-		if ok && key != "" {
+		gid, ok := msgmap["Gid"]
+		if ok && gid != "" {
 		    tmp, err := hex.DecodeString(s)
 		    if err == nil {
 			msgdata, errdec := DecryptMsg(string(tmp)) //for SendMsgToPeer
@@ -470,6 +489,8 @@ func IsMsg2Peer(msgmap map[string]string) (bool,string,string,string) {
 
 		}
 	    }
+
+	    return true,key,"",""
 	}
 
 	return true,"","",""
@@ -512,6 +533,116 @@ func GetCmdKey(msg string) string {
 	return ""
 }
 
+func FindMsg2Peer(key string,msg string) bool {
+    if key == "" || msg == "" {
+	log.Debug("==================FindMsg2Peer,data error,no treatment=====================","key",key)
+	return true
+    }
+
+    indb := false
+    exist, da := GetPubKeyData([]byte(key))
+    if exist {
+	switch ch := da.(type) {
+	case *AcceptReqAddrData:
+	    if ch.Status != "Pending" {
+		log.Debug("==================FindMsg2Peer,the cmd have finished,no treatment=====================","key",key)
+		return true
+	    }
+	    break
+	case *AcceptSignData:
+	    if ch.Status != "Pending" {
+		log.Debug("==================FindMsg2Peer,the cmd have finished,no treatment=====================","key",key)
+		return true
+	    }
+	    break
+	case *AcceptReShareData:
+	    if ch.Status != "Pending" {
+		log.Debug("==================FindMsg2Peer,the cmd have finished,no treatment=====================","key",key)
+		return true
+	    }
+	    break
+	default:
+		return true 
+	}
+
+	indb = true
+    }
+    
+    val,exist := Msg2Peer.ReadMap(key)
+    if indb {
+	if !exist {
+	    log.Debug("==================FindMsg2Peer,map data error,no treatment=====================","key",key)
+	    return true 
+	}
+    }
+
+    if !exist {
+	log.Debug("==================FindMsg2Peer,not exist the key=====================","key",key)
+	return false 
+    }
+    
+    msgmap,ok := val.(*common.SafeMap)
+    if !ok {
+	log.Debug("==================FindMsg2Peer,map data error,no treatment=====================","key",key)
+	return true
+    }
+
+    hexs := Keccak256Hash([]byte(strings.ToLower(msg))).Hex()
+    _, exist = msgmap.ReadMap(hexs)
+    if exist {
+	log.Debug("==================FindMsg2Peer,get map data =====================","key",key)
+       return true 
+    }
+
+    log.Debug("==================FindMsg2Peer,not exist the map data=====================","key",key)
+    return false
+}
+
+func WriteMsg2Peer(key string,msg string) {
+    if key == "" || msg == "" {
+	return
+    }
+
+    hexs := Keccak256Hash([]byte(strings.ToLower(msg))).Hex()
+    val,exist := Msg2Peer.ReadMap(key)
+    if !exist {
+	msgmap := common.NewSafeMap(10)
+	msgmap.WriteMap(hexs,true)
+	Msg2Peer.WriteMap(key,msgmap)
+	return
+    }
+
+    msgmap,ok := val.(*common.SafeMap)
+    if !ok {
+	msgmap := common.NewSafeMap(10)
+	msgmap.WriteMap(hexs,true)
+	Msg2Peer.WriteMap(key,msgmap)
+	return
+    }
+    
+    msgmap.WriteMap(hexs,true)
+    Msg2Peer.WriteMap(key,msgmap)
+}
+
+func GetKeyGenGid(pubkey string) string {
+    smpcpks, err := hex.DecodeString(pubkey)
+    if err != nil {
+	return "" 
+    }
+
+    exsit, da := GetPubKeyData(smpcpks[:])
+    if !exsit || da == nil {
+	    return "" 
+    }
+
+    pubs, ok := da.(*PubKeyData)
+    if !ok || pubs.GroupID == "" {
+	    return "" 
+    }
+
+    return pubs.GroupID
+}
+
 //----------------------------------------------------------------------------------------
 
 // Call receive msg from p2p
@@ -524,159 +655,132 @@ func Call(msg interface{}, enode string) {
 
 	raw, err := UnCompress(s)
 	if err == nil {
-		s = raw
-	}
-
-	//check msg2peer
-	/*ok,keytmp,gidtmp,ss := IsMsg2Peer(s)
-	if ok {
-	    w, werr := FindWorker(keytmp)
-	    if werr != nil {
-		return
-	    }
-
-	    if findmsg2peer(w.Msg2Peer,msg.(string)) {
-		return
-	    }
-
-	    w.Msg2Peer = append(w.Msg2Peer,msg.(string))
-	    if ss == "" {
-		go func(msg2 string,gid string) {
-		    for i:=0;i<1;i++ {
-			SendMsgToSmpcGroup(msg2,gid)
-			time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
+	    s = raw
+	    msgmap := make(map[string]string)
+	    err = json.Unmarshal([]byte(s), &msgmap)
+	    common.Debug("====================Call===================","p2p msg after uncompress",s,"err",err)
+	    if err == nil {
+		ok,keytmp,gidtmp,ss := IsMsg2Peer(msgmap)
+		common.Debug("====================Call,read msg2peer===================","ok",ok,"keytmp",keytmp,"gidtmp",gidtmp,"ss",ss)
+		if ok && keytmp != "" {
+		    if FindMsg2Peer(keytmp,msg.(string)) {
+			common.Debug("====================Call,find msg2peer success===================","keytmp",keytmp,"ss",ss)
+			return
 		    }
-		}(msg.(string),gidtmp)
-		
-		return
-	    }
 
-	    s = ss
-	}*/
-	//
+		    WriteMsg2Peer(keytmp,msg.(string))
 
-	//msgdata, errdec := DecryptMsg(s) //for SendMsgToPeer
-	//if errdec == nil {
-	//	s = msgdata
-	//}
+		    if ss == "" {
+			go func(msg2 string,gid string) {
+			    for i:=0;i<1;i++ {
+				SendMsgToSmpcGroup(msg2,gid)
+			    }
+			}(msg.(string),gidtmp)
+			
+			return
+		    }
 
-	msgmap := make(map[string]string)
-	err = json.Unmarshal([]byte(s), &msgmap)
-	if err == nil {
-	    ok,keytmp,gidtmp,ss := IsMsg2Peer(msgmap)
-	    if ok {
-		w, werr := FindWorker(keytmp)
-		if werr != nil {
-		    return
-		}
+		    common.Debug("=================================Call,get msg2peer send to me=========================","orig msg",ss)
 
-		if findmsg2peer(w.Msg2Peer,msg.(string)) {
-		    return
-		}
-
-		w.Msg2Peer = append(w.Msg2Peer,msg.(string))
-		if ss == "" {
-		    go func(msg2 string,gid string) {
-			for i:=0;i<1;i++ {
-			    SendMsgToSmpcGroup(msg2,gid)
-			    time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
-			}
-		    }(msg.(string),gidtmp)
-		    
-		    return
-		}
-
-		s = ss
-		msgmap = make(map[string]string)
-		err = json.Unmarshal([]byte(s), &msgmap)
-		if err != nil {
-		    return
-		}
-	    }
-	    
-	    val, ok := msgmap["Key"]
-	    if ok {
-		    w, err := FindWorker(val)
+		    s = ss
+		    msgmap = make(map[string]string)
+		    err = json.Unmarshal([]byte(s), &msgmap)
 		    if err == nil {
-			    if w.DNode != nil && w.DNode.Round() != nil {
-				    //common.Debug("====================Call, get smpc msg,worker found.===================", "key", val, "msg", msg, "sender node", enode)
-				    w.SmpcMsg <- s
-			    } else {
-				    from := msgmap["FromID"]
-				    msgtype := msgmap["Type"]
-				    key := strings.ToLower(val + "-" + from + "-" + msgtype)
-				    C1Data.WriteMap(key, s)
-				    //log.Debug("===============================Call, pre-save p2p msg, worker found=============", "key",val,"fromID",from,"msgtype",msgtype,"c1data key",key,"c1data value",s)
+			val, ok := msgmap["Key"]
+			if ok {
+				w, err := FindWorker(val)
+				if err == nil {
+					if w.DNode != nil && w.DNode.Round() != nil {
+						//common.Debug("====================Call, get smpc msg,worker found.===================", "key", val, "msg", msg, "sender node", enode)
+						w.SmpcMsg <- s
+					} else {
+						from := msgmap["FromID"]
+						msgtype := msgmap["Type"]
+						key := strings.ToLower(val + "-" + from + "-" + msgtype)
+						C1Data.WriteMap(key, s)
+						//log.Debug("===============================Call, pre-save p2p msg, worker found=============", "key",val,"fromID",from,"msgtype",msgtype,"c1data key",key,"c1data value",s)
+					}
+				} else {
+
+					exsit, _ := GetReqAddrInfoData([]byte(val))
+					if exsit {
+					    return
+					}
+
+					exsit, _ = GetSignInfoData([]byte(val))
+					if exsit {
+					    return
+					}
+
+					from := msgmap["FromID"]
+					msgtype := msgmap["Type"]
+					key := strings.ToLower(val + "-" + from + "-" + msgtype)
+					C1Data.WriteMap(key, s)
+					log.Debug("===============================Call, pre-save p2p msg, worker not found============","key",val,"fromID",from,"msgtype",msgtype,"c1data key",key,"c1data value",s)
+				}
+
+				return
+			}
+
+			if msgmap["Type"] == "SyncPreSign" {
+				sps := &SyncPreSign{}
+				if err = sps.UnmarshalJSON([]byte(msgmap["SyncPreSign"])); err == nil {
+					w, err := FindWorker(sps.MsgPrex)
+					if err == nil {
+						if w.msgsyncpresign.Len() < w.ThresHold {
+							if !Find(w.msgsyncpresign, s) {
+								w.msgsyncpresign.PushBack(s)
+								if w.msgsyncpresign.Len() == w.ThresHold {
+									w.bsyncpresign <- true
+								}
+							}
+						}
+					}
+				}
+
+				return
 			    }
-		    } else {
-			    from := msgmap["FromID"]
-			    msgtype := msgmap["Type"]
-			    key := strings.ToLower(val + "-" + from + "-" + msgtype)
-			    C1Data.WriteMap(key, s)
-			    log.Debug("===============================Call, pre-save p2p msg, worker not found============","key",val,"fromID",from,"msgtype",msgtype,"c1data key",key,"c1data value",s)
 		    }
 
-		    return
-	    }
+		_, from,_, txdata, err := CheckRaw(s)
+		if err == nil {
+		    req, ok := txdata.(*TxDataAcceptReqAddr)
+		    if ok {
+			exsit, da := GetReqAddrInfoData([]byte(req.Key))
+			if !exsit {
+			    return
+			}
 
-	    if msgmap["Type"] == "SyncPreSign" {
-		    sps := &SyncPreSign{}
-		    if err = sps.UnmarshalJSON([]byte(msgmap["SyncPreSign"])); err == nil {
-			    w, err := FindWorker(sps.MsgPrex)
-			    if err == nil {
-				    if w.msgsyncpresign.Len() < w.ThresHold {
-					    if !Find(w.msgsyncpresign, s) {
-						    w.msgsyncpresign.PushBack(s)
-						    if w.msgsyncpresign.Len() == w.ThresHold {
-							    w.bsyncpresign <- true
-						    }
-					    }
-				    }
-			    }
+			ac, ok := da.(*AcceptReqAddrData)
+			if !ok || ac == nil {
+			    return
+			}
+			
+			go ExecApproveKeyGen(s,from,req,ac,true)
+			return
 		    }
+		    
+		    sig, ok := txdata.(*TxDataAcceptSign)
+		    if ok {
+			exsit, da := GetSignInfoData([]byte(sig.Key))
+			if !exsit {
+			    return
+			}
 
-		    return
+			ac, ok := da.(*AcceptSignData)
+			if !ok || ac == nil {
+			    return
+			}
+			
+			go ExecApproveSigning(s,from,sig,ac,true)
+			return
+		    }
+		}
+
+		SetUpMsgList(s, enode)
 	    }
 	}
-
-	////
-	_, from,_, txdata, err := CheckRaw(s)
-	if err == nil {
-	    req, ok := txdata.(*TxDataAcceptReqAddr)
-	    if ok {
-		exsit, da := GetReqAddrInfoData([]byte(req.Key))
-		if !exsit {
-		    return
-		}
-
-		ac, ok := da.(*AcceptReqAddrData)
-		if !ok || ac == nil {
-		    return
-		}
-		
-		go ExecApproveKeyGen(s,from,req,ac,true)
-		return
-	    }
-	    
-	    sig, ok := txdata.(*TxDataAcceptSign)
-	    if ok {
-		exsit, da := GetSignInfoData([]byte(sig.Key))
-		if !exsit {
-		    return
-		}
-
-		ac, ok := da.(*AcceptSignData)
-		if !ok || ac == nil {
-		    return
-		}
-		
-		go ExecApproveSigning(s,from,sig,ac,true)
-		return
-	    }
-	}
-	////
-
-	SetUpMsgList(s, enode)
+    }
 }
 
 // SetUpMsgList set RecvMsg data to RPCReqQueue
@@ -726,11 +830,11 @@ func (recv *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		return false
 	}
 
-	msgdata, errdec := DecryptMsg(res) //for SendMsgToPeer
-	if errdec == nil {
-		common.Debug("================RecvMsg.Run, decrypt msg success=================", "msg", msgdata)
-		res = msgdata
-	}
+	//msgdata, errdec := DecryptMsg(res) //for SendMsgToPeer
+	//if errdec == nil {
+	//	common.Debug("================RecvMsg.Run, decrypt msg success=================", "msg", msgdata)
+	//	res = msgdata
+	//}
 
 	var req CmdReq
 	msgmap := make(map[string]string)

@@ -33,6 +33,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 //----------------------------------------------------ECDSA start----------------------------------------------------------
@@ -641,22 +642,23 @@ func ReshareProcessOutCh(msgprex string, groupid string, msg smpclib.Message) er
 	}
 
 	if msg.IsBroadcast() {
-		fmt.Printf("=========== ReshareProcessOutCh,broacast msg = %v, group id = %v ===========\n", string(s), groupid)
-
-		SendMsgToSmpcGroup(string(s), groupid)
+		//SendMsgToSmpcGroup(string(s), groupid)
+		SendMsgToSmpcGroupUsingEncryption(msgprex,string(s),groupid,groupid)
 	} else {
 		for _, v := range msg.GetToID() {
-			fmt.Printf("===============ReshareProcessOutCh, to id = %v,groupid = %v ==============\n", v, groupid)
 			enode := w.MsgToEnode[v]
+			if enode == "" {
+			    log.Error("========================ReshareProcessOutCh,not found enode by UID======================","key",msgprex,"gid",groupid)
+			    return errors.New("not found enode by UID")
+			}
+
 			_, enodes := GetGroup(groupid)
 			nodes := strings.Split(enodes, common.Sep2)
 			for _, node := range nodes {
 				node2 := ParseNode(node)
-				//fmt.Printf("===============ReshareProcessOutCh, enode = %v,node2 = %v ==============\n",enode,node2)
-
 				if strings.EqualFold(enode, node2) {
-					fmt.Printf("=========== ReshareProcessOutCh,send msg = %v, group id = %v,send to peer = %v ===========\n", string(s), groupid, node)
-					SendMsgToPeer(node, string(s))
+					//SendMsgToPeer(node, string(s))
+					SendMsgToPeerWithBrodcast(msgprex,node,string(s),groupid)
 					break
 				}
 			}

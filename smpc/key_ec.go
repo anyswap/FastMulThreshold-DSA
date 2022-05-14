@@ -65,11 +65,11 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			}
 			
 			///dul?
-			hexs := Keccak256Hash([]byte(strings.ToLower(m))).Hex()
-			_, exist2 := w.Msg56[hexs]
-			if exist2 {
-			   break 
-			}
+			//hexs := Keccak256Hash([]byte(strings.ToLower(m))).Hex()
+			//_, exist2 := w.Msg56[hexs]
+			//if exist2 {
+			//   break 
+			//}
 			///
 
 			msgmap := make(map[string]string)
@@ -171,22 +171,24 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 
 			//log.Debug("================ProcessInboundMessages,update msg success=====================","msg type    ",mm.GetMsgType(),"key",msgprex)
 
-			//w.Msg56.WriteMap(hexs,true)
-			w.Msg56[hexs] = true
+			//w.Msg56[hexs] = true
 
 		       //if !dul {
+		       //if ok {
 		       //////also broacast to group for msg
-		       if mm.IsBroadcast() {
+		       /*if mm.IsBroadcast() {
 			   go func(msg string,gid string) {
 			       for i:=0;i<1;i++ {
 				   //log.Debug("================ProcessInboundMessages,also broacast to group for msg===================","msg type",mm.GetMsgType(),"key",msgprex)
-				   SendMsgToSmpcGroup(msg,gid)
-				   time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
+				    send,err := Compress([]byte(msg))
+				    if err == nil {
+				       SendMsgToSmpcGroup(send,gid)
+				    }
 			       }
 			   }(m,w.groupid)
-		       //}
+		       }*/
 		       //////
-		   }
+		   //}
 	       }
 	}
 }
@@ -667,13 +669,23 @@ func ProcessOutCh(msgprex string, msg smpclib.Message) error {
 	}
 
 	if msg.IsBroadcast() {
-		SendMsgToSmpcGroup(string(s), w.groupid)
+	    SendMsgToSmpcGroupUsingEncryption(msgprex,string(s),w.groupid,w.groupid)
+		//send,err := Compress(s)
+		//if err == nil {
+		//    SendMsgToSmpcGroup(send,w.groupid)
+		//}
 	} else {
 		for _, v := range msg.GetToID() {
 			enode := w.MsgToEnode[v]
+			if enode == "" {
+			    log.Error("========================ProcessOutCh,not found enode by UID======================","key",msgprex,"gid",w.groupid)
+			    return errors.New("not found enode by UID")
+			}
+
 			_, enodes := GetGroup(w.groupid)
 			nodes := strings.Split(enodes, common.Sep2)
 			for _, node := range nodes {
+				log.Debug("===========================ProcessOutCh,send msg to peer with brodcast=====================","enode",node,"to enode ID",enode,"key",msgprex,"gid",w.groupid)
 				node2 := ParseNode(node)
 				if strings.EqualFold(enode, node2) {
 					//SendMsgToPeer(node, string(s))

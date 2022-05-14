@@ -278,7 +278,9 @@ func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 	if err != nil {
 		return false
 	}
-	SendMsgToSmpcGroup(string(val), w.groupid)
+	//SendMsgToSmpcGroup(string(val), w.groupid)
+	gid2 := GetKeyGenGid(w.SmpcFrom)
+	SendMsgToSmpcGroupUsingEncryption(msgprex,string(val),gid2,w.groupid)
 
 	if w.msgsyncpresign.Len() < w.ThresHold {
 		if !Find(w.msgsyncpresign, string(val)) {
@@ -1152,7 +1154,7 @@ func (req *ReqSmpcSign) DisAcceptMsg(raw string, workid int, key string) {
 
 	w.msgacceptsignres.PushBack(raw)
 	/////fix bug: miss accept msg for 7-11 test
-	SendMsgToSmpcGroup(raw, ac.GroupID)
+	//SendMsgToSmpcGroup(raw, ac.GroupID)
 	/////
 
 	if w.msgacceptsignres.Len() >= w.ThresHold {

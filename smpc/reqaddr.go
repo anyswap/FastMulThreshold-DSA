@@ -151,7 +151,8 @@ func ReqKeyGen(raw string) (string, string, error) {
 	}
 
 	common.Debug("============ReqKeyGen,SendMsgToSmpcGroup===============", "raw ", raw, "gid ", req.GroupID, "key ", key)
-	SendMsgToSmpcGroup(raw, req.GroupID)
+	//SendMsgToSmpcGroup(raw, req.GroupID)
+	SendMsgToSmpcGroupUsingEncryption(key,raw,req.GroupID,req.GroupID)
 	SetUpMsgList(raw, curEnode)
 	return key, "", nil
 }
@@ -181,7 +182,8 @@ func RPCAcceptReqAddr(raw string) (string, string, error) {
 		ac, ok := da.(*AcceptReqAddrData)
 		if ok && ac != nil {
 			common.Debug("=====================RPCAcceptReqAddr, SendMsgToSmpcGroup ================", "raw", raw, "gid", ac.GroupID, "key", acceptreq.Key)
-			SendMsgToSmpcGroup(raw, ac.GroupID)
+			//SendMsgToSmpcGroup(raw, ac.GroupID)
+			SendMsgToSmpcGroupUsingEncryption(acceptreq.Key,raw,ac.GroupID,ac.GroupID)
 			//SetUpMsgList(raw, curEnode)
 			go ExecApproveKeyGen(raw,from,acceptreq,ac,true)
 			return "Success", "", nil
@@ -311,7 +313,7 @@ func ExecApproveKeyGen(raw string,from string,req *TxDataAcceptReqAddr,ac *Accep
     w.msgacceptreqaddrres.PushBack(raw)
     
     /////fix bug: miss accept msg for 7-11 test
-    SendMsgToSmpcGroup(raw, ac.GroupID)
+    //SendMsgToSmpcGroup(raw, ac.GroupID)
     /////
 
     index := -1

@@ -26,6 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/discv5"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/event"
@@ -704,6 +705,7 @@ running:
 		case pd := <-srv.delpeer:
 			// A peer disconnected.
 			//d := common.PrettyDuration(mclock.Now() - pd.created)
+			log.Debug("===========================p2p server.run, a peer disconnected==============================","peer id",pd.ID())
 			delete(peers, pd.ID())
 			if pd.Inbound() {
 				inboundCount--

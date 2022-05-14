@@ -19,6 +19,7 @@ package smpc
 import (
 	"container/list"
 	"fmt"
+	"sync"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"runtime/debug"
@@ -30,10 +31,10 @@ var (
 	RPCReqQueueCache = make(chan RPCReq, RPCMaxQueue)
 
 	// RPCMaxWorker  max worker nums
-	RPCMaxWorker = 10000
+	RPCMaxWorker = 200 
 
 	// RPCMaxQueue max counts of RPCReq in queue
-	RPCMaxQueue  = 10000
+	RPCMaxQueue  = 1000
 
 	// RPCReqQueue the channel of RPCReq
 	RPCReqQueue  chan RPCReq
@@ -1072,34 +1073,6 @@ func (w *RPCReqWorker) Stop() {
 
 //----------------------------------------------------------------------------
 
-// [start,end)
-
-// mid := (end - start) / 2
-// left = [start,start + mid)
-// right = [start + mid,end)
-func find(sid string,start int,end int) int {
-
-    if end - start == 1 {
-	w := workers[start]
-	if w.sid != "" {
-	    if strings.EqualFold(w.sid, sid) {
-		   return start
-	    }
-	}
-
-	return -1
-    }
-
-    mid := (end - start) / 2
-    
-    id := find(sid,start,start + mid)
-    if id != -1 {
-	return id
-    }
-
-    return find(sid,start + mid,end)
-}
-
 // FindWorker find worker by sid(key) that uniquely identifies the keygen/sign/reshare command 
 func FindWorker(sid string) (*RPCReqWorker, error) {
 	defer func() {
@@ -1113,29 +1086,7 @@ func FindWorker(sid string) (*RPCReqWorker, error) {
 		return nil, fmt.Errorf("input worker id error")
 	}
 
-	id := find(sid,0,RPCMaxWorker)
-	if id == -1 {
-	    return nil,fmt.Errorf("not found worker by key = %v",sid)
-	}
-
-	return workers[id],nil
-
-}
-
-/*// FindWorker find worker by sid(key) that uniquely identifies the keygen/sign/reshare command 
-func FindWorker(sid string) (*RPCReqWorker, error) {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Errorf("FindWorker Runtime error: %v\n%v", r, string(debug.Stack()))
-			return
-		}
-	}()
-
-	if sid == "" {
-		return nil, fmt.Errorf("input worker id error")
-	}
-
-	wid := make(chan int, 1)
+	wid := -1
 	var wg sync.WaitGroup
 	for i := 0; i < RPCMaxWorker; i++ {
 	    wg.Add(1)
@@ -1145,49 +1096,19 @@ func FindWorker(sid string) (*RPCReqWorker, error) {
 		w := workers[id]
 		if w.sid != "" {
 		    if strings.EqualFold(w.sid, sid) {
-			   wid <- id 
+			wid = id 
 		    }
 		}
 	    }(i)
 	}
 	wg.Wait()
 
-	select {
-	    case id := <-wid:
-		return workers[id],nil
-	    default:
-		return nil,fmt.Errorf("not found worker by key = %v",sid)
+	if wid >= 0 {
+	    return workers[wid],nil
 	}
+
+	return nil, fmt.Errorf("input worker id error")
 }
-
-// FindWorker find worker by sid(key) that uniquely identifies the keygen/sign/reshare command 
-func FindWorker(sid string) (*RPCReqWorker, error) {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Errorf("FindWorker Runtime error: %v\n%v", r, string(debug.Stack()))
-			return
-		}
-	}()
-
-	if sid == "" {
-		return nil, fmt.Errorf("input worker id error")
-	}
-
-	for i := 0; i < RPCMaxWorker; i++ {
-		w := workers[i]
-
-		if w.sid == "" {
-			continue
-		}
-
-		if strings.EqualFold(w.sid, sid) {
-			return w, nil
-		}
-	}
-
-	return nil, fmt.Errorf(" The worker with the specified worker id was not found")
-}
-*/
 
 //---------------------------------------------------------------------------------------------
 

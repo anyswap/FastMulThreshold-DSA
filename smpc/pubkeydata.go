@@ -472,7 +472,9 @@ func GetBip32ChildKey(rootpubkey string, inputcode string) (string, string, erro
 						time.Sleep(time.Duration(10000000))
 						continue
 					}
-					SendMsgToSmpcGroup(string(val), gg)
+					//SendMsgToSmpcGroup(string(val), gg)
+					gid2 := GetKeyGenGid(ps.Pub)
+					SendMsgToSmpcGroupUsingEncryption(nonce,string(val),gid2,gg)
 
 					rch := make(chan interface{}, 1)
 					SetUpMsgList3(string(val), curEnode, rch)

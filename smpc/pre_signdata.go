@@ -814,7 +814,9 @@ func ExcutePreSignData(pre *TxDataPreSignData) {
 							time.Sleep(time.Duration(10000000))
 							continue
 						}
-						SendMsgToSmpcGroup(string(val), gg)
+						//SendMsgToSmpcGroup(string(val), gg)
+						gid2 := GetKeyGenGid(ps.Pub)
+						SendMsgToSmpcGroupUsingEncryption(nonce,string(val),gid2,gg)
 
 						rch := make(chan interface{}, 1)
 						SetUpMsgList3(string(val), curEnode, rch)
@@ -822,7 +824,7 @@ func ExcutePreSignData(pre *TxDataPreSignData) {
 						reply := false
 						timeout := make(chan bool, 1)
 						go func() {
-							syncWaitTime := 180 * time.Second
+							syncWaitTime := 240 * time.Second
 							syncWaitTimeOut := time.NewTicker(syncWaitTime)
 
 							for {

@@ -138,7 +138,8 @@ func ReShare(raw string) (string, string, error) {
 	}
 
 	common.Debug("=====================ReShare, SendMsgToSmpcGroup ================", "raw", raw, "gid", rh.GroupID, "key", key)
-	SendMsgToSmpcGroup(raw, rh.GroupID)
+	//SendMsgToSmpcGroup(raw, rh.GroupID)
+	SendMsgToSmpcGroupUsingEncryption(key,raw,rh.GroupID,rh.GroupID)
 	SetUpMsgList(raw, curEnode)
 	return key, "", nil
 }
@@ -168,7 +169,8 @@ func RPCAcceptReShare(raw string) (string, string, error) {
 		ac, ok := da.(*AcceptReShareData)
 		if ok && ac != nil {
 			common.Debug("=====================RPCAcceptReShare, SendMsgToSmpcGroup ================", "raw", raw, "gid", ac.GroupID, "key", acceptrh.Key)
-			SendMsgToSmpcGroup(raw, ac.GroupID)
+			//SendMsgToSmpcGroup(raw, ac.GroupID)
+			SendMsgToSmpcGroupUsingEncryption(acceptrh.Key,raw,ac.GroupID,ac.GroupID)
 			SetUpMsgList(raw, curEnode)
 			return "Success", "", nil
 		}
@@ -324,7 +326,8 @@ func _reshare(wsid string, initator string, groupid string, pubkey string, accou
 		s1 := "Success"
 		s2 := ret
 		ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep + s2
-		SendMsgToSmpcGroup(ss, groupid)
+		//SendMsgToSmpcGroup(ss, groupid)
+		SendMsgToSmpcGroupUsingEncryption(w.sid,ss,groupid,groupid)
 
 		tip, reply := AcceptReShare("", initator, groupid, w.groupid, pubkey, w.limitnum, mode, "true", "true", "Success", ret, "", "", nil, w.id)
 		if reply != nil {

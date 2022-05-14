@@ -338,11 +338,15 @@ func AcceptReqAddr(initiator string, account string, cointype string, groupid st
 		return err.Error(), err
 	    }
 
-		err = PutPubKeyData([]byte(key), []byte(es))
-		if err != nil {
-			common.Error("===================================AcceptReqAddr,put reqaddr accept data to pubkey data db fail===========================", "err", err, "key", key)
-			return err.Error(), err
-		}
+	    err = PutPubKeyData([]byte(key), []byte(es))
+	    if err != nil {
+		    common.Error("===================================AcceptReqAddr,put reqaddr accept data to pubkey data db fail===========================", "err", err, "key", key)
+		    return err.Error(), err
+	    }
+
+	    //add for msg2peer
+	    go Msg2Peer.DeleteMap(key)
+	    //
 	} else {
 		err = PutReqAddrInfoData([]byte(key), []byte(es))
 		if err != nil {
@@ -516,11 +520,14 @@ func AcceptSign(initiator string, account string, pubkey string, msghash []strin
 	    if err != nil {
 		return err.Error(), err
 	    }
-		err = PutPubKeyData([]byte(key), []byte(es))
-		if err != nil {
-			common.Error("========================AcceptSign,put sign accept data to pubkey data db fail.=======================", "key", key, "err", err)
-			return err.Error(), err
-		}
+	    err = PutPubKeyData([]byte(key), []byte(es))
+	    if err != nil {
+		    common.Error("========================AcceptSign,put sign accept data to pubkey data db fail.=======================", "key", key, "err", err)
+		    return err.Error(), err
+	    }
+	    //add for msg2peer
+	    go Msg2Peer.DeleteMap(key)
+	    //
 	} else {
 		err = PutSignInfoData([]byte(key), []byte(es))
 		if err != nil {
@@ -685,15 +692,18 @@ func AcceptReShare(initiator string, account string, groupid string, tsgroupid s
 	}
 
 	if ac2.Status != "Pending" {
-		err = DeleteReShareInfoData([]byte(key))
-		if err != nil {
-			return err.Error(), err
-		}
-		err = PutPubKeyData([]byte(key), []byte(es))
-		if err != nil {
-			common.Error("=====================AcceptReShare, put reshare accept data to pubkey data db fail======================", "err", err, "key", key)
-			return err.Error(), err
-		}
+	    err = DeleteReShareInfoData([]byte(key))
+	    if err != nil {
+		    return err.Error(), err
+	    }
+	    err = PutPubKeyData([]byte(key), []byte(es))
+	    if err != nil {
+		    common.Error("=====================AcceptReShare, put reshare accept data to pubkey data db fail======================", "err", err, "key", key)
+		    return err.Error(), err
+	    }
+	    //add for msg2peer
+	    go Msg2Peer.DeleteMap(key)
+	    //
 	} else {
 		err = PutReShareInfoData([]byte(key), []byte(es))
 		if err != nil {
