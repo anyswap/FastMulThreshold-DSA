@@ -28,6 +28,18 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/rlp"
 	mapset "github.com/deckarep/golang-set"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"github.com/onrik/ethrpc"
+	"path/filepath"
+	"os"
+	"strings"
+	"io/ioutil"
+	"strconv"
+	"encoding/json"
+)
+
+var (
+	statDir = "stat"
 )
 
 func BroadcastToGroup(gid discover.NodeID, msg string, p2pType int, myself bool) (string, error) {
@@ -42,6 +54,191 @@ func BroadcastToGroup(gid discover.NodeID, msg string, p2pType int, myself bool)
 	groupTmp := *xvcGroup
 	go p2pBroatcast(&groupTmp, msg, msgCode, myself)
 	return "BroadcastToGroup send end", nil
+}
+
+// StoreRPCPort save rpc port
+func StoreRPCPort(pubdir string, rpcport int) {
+	UpdateRPCPort(pubdir, fmt.Sprintf("%v", rpcport))
+}
+
+// DeleteRPCPort delete rpc port
+func DeleteRPCPort(pubdir string) {
+	UpdateRPCPort(pubdir, "")
+}
+
+// UpdateRPCPort update rpc port
+func UpdateRPCPort(pubdir, rpcport string) {
+	portDir := common.DefaultDataDir()
+	dir := filepath.Join(portDir, statDir, pubdir)
+	if common.FileExist(dir) != true {
+	    err := os.MkdirAll(dir, os.ModePerm)
+	    if err != nil {
+		return
+	    }
+	}
+	rpcfile := filepath.Join(dir, "rpcport")
+	fmt.Printf("==== updateRPCPort() ====, rpcfile: %v, rpcport: %v\n", rpcfile, rpcport)
+	f, err := os.Create(rpcfile)
+	defer f.Close()
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		_, err = f.Write([]byte(rpcport))
+		if err != nil {
+		    return
+		}
+	}
+}
+
+// GetRPCPort get rpc port
+func GetRPCPort(pubdir string) int {
+	fmt.Printf("==== GetRPCPort() ====, pubdir: %v\n", pubdir)
+	portDir := common.DefaultDataDir()
+	dir := filepath.Join(portDir, statDir, pubdir)
+	if common.FileExist(dir) != true {
+		return 0
+	}
+	rpcfile := filepath.Join(dir, "rpcport")
+	if common.FileExist(rpcfile) != true {
+		return 0
+	}
+
+	port, err := ioutil.ReadFile(rpcfile)
+	if err == nil {
+		pp := strings.Split(string(port), "\n")
+		p, err := strconv.Atoi(pp[0])
+		fmt.Printf("==== GetRPCPort() ====, p: %v, err: %v\n", p, err)
+		if err == nil {
+			return p
+		}
+	}
+	return 0
+}
+
+type response struct {
+	Status string      `json:"Status"`
+	Tip    string      `json:"Tip"`
+	Error  string      `json:"Error"`
+	Data   interface{} `json:"Data"`
+}
+type dataResult struct {
+	Result string `json:"result"`
+}
+type dataEnode struct {
+	Enode string `json:"Enode"`
+}
+
+// getJSONResult parse result from rpc return data
+func getJSONResult(successResponse json.RawMessage) (string, error) {
+	var data dataResult
+	repData, err := getJSONData(successResponse)
+	if err != nil {
+		return "", err
+	}
+	if err := json.Unmarshal(repData, &data); err != nil {
+		fmt.Println("getJSONResult Unmarshal json fail:", err)
+		return "", err
+	}
+	return data.Result, nil
+}
+
+func getJSONData(successResponse json.RawMessage) ([]byte, error) {
+	var rep response
+	if err := json.Unmarshal(successResponse, &rep); err != nil {
+		fmt.Println("getJSONData Unmarshal json fail:", err)
+		return nil, err
+	}
+	if rep.Status != "Success" {
+		return nil, errors.New(rep.Error)
+	}
+	repData, err := json.Marshal(rep.Data)
+	if err != nil {
+		fmt.Println("getJSONData Marshal json fail:", err)
+		return nil, err
+	}
+	return repData, nil
+}
+
+func GetEnodeList(url []string) []string {
+    if len(url) == 0 {
+	return nil
+    }
+
+    enodeList := make([]string, len(url))
+    for i := 0; i < len(url); i++ {
+	    client := ethrpc.New(url[i])
+	    if client == nil {
+		return nil
+	    }
+
+	    enodeRep, err := client.Call("smpc_getEnode")
+	    if err != nil {
+		log.Error("==================GetEnodeList,call error,try again====================", "i",i,"url",url[i],"err",err)
+		vv := strings.Split(url[i],":")
+		if len(vv) < 3 {
+		    return nil
+		}
+
+		_,err = strconv.Atoi(vv[2])
+		if err != nil {
+		    log.Error("==================GetEnodeList====================", "i",i,"url",url[i],"err",err)
+		   return nil 
+		}
+
+		tmpurl := "http://127.0.0.1:" + vv[2] 
+		client = ethrpc.New(tmpurl)
+		if client == nil {
+		    return nil
+		}
+		
+		enodeRep, err = client.Call("smpc_getEnode")
+		if err != nil {
+		    log.Error("==================GetEnodeList====================", "i",i,"url",url[i],"err",err)
+		    return nil
+		}
+	    }
+
+	    var enodeJSON dataEnode
+	    enodeData, _ := getJSONData(enodeRep)
+	    if err := json.Unmarshal(enodeData, &enodeJSON); err != nil {
+		log.Error("==================GetEnodeList,unmarshal fail====================", "i",i,"url",url[i],"err",err)
+		return nil
+	    }
+
+	    enodeList[i] = enodeJSON.Enode
+	    log.Info("==================GetEnodeList====================", "i",i,"url",url[i],"enode",enodeList[i])
+    }
+
+    return enodeList
+}
+
+func SaveGroupRPCPort(url []string) {
+    enodes := GetEnodeList(url)
+    
+    //save the rpc port
+    // http://IP:RPCPORT
+    for k,v := range url {
+	vv := strings.Split(v,":")
+	if len(vv) < 3 {
+	    continue
+	}
+
+	rpcport,err := strconv.Atoi(vv[2])
+	if err != nil {
+	    log.Error("==================SaveGroupRPCPort====================", "k",k,"url",v,"err",err)
+	    continue
+	}
+
+	nodeid, err := discover.ParseNode(enodes[k])
+	if err != nil {
+	    log.Error("==================SaveGroupRPCPort====================", "k",k,"url",v,"err",err)
+		continue
+	}
+
+	log.Info("==================SaveGroupRPCPort====================", "k",k,"url",v,"enodeID",nodeid.ID.String(),"rpcport",rpcport)
+	StoreRPCPort(nodeid.ID.String(), rpcport)
+    }
+    //
 }
 
 func p2pBroatcast(dccpGroup *discover.Group, msg string, msgCode int, myself bool) int {
@@ -75,6 +272,45 @@ func p2pBroatcast(dccpGroup *discover.Group, msg string, msgCode int, myself boo
 		discover.PrintBucketNodeInfo(node.ID)
 		err := p2pSendMsg(node, uint64(msgCode), msg)
 		if err != nil {
+			//
+			self := fmt.Sprintf("%v",selfid)
+			enodeID := fmt.Sprintf("%v",node.ID)
+			nodeIP := fmt.Sprintf("%v",node.IP)
+			nodePort := fmt.Sprintf("%v",node.UDP)
+			rpc := GetRPCPort(enodeID)
+			if rpc == 0 {
+				log.Error("=====================p2pBroatcast,send fail,get rpc port fail==================","enodeID",enodeID,"IP",nodeIP,"Port",nodePort)
+			    continue
+			}
+
+			rpcstr := strconv.Itoa(rpc)
+			if rpcstr == "" {
+				log.Error("=====================p2pBroatcast,send fail,get rpc port fail==================","enodeID",enodeID,"IP",nodeIP,"Port",nodePort,"rpcport",rpc)
+			    continue
+			}
+
+			log.Debug("=====================p2pBroatcast,send fail,resend with rpc==================","enodeID",enodeID,"IP",nodeIP,"Port",nodePort,"Rpc",rpcstr)
+			url := "http://" + nodeIP + ":" + rpcstr
+			client := ethrpc.New(url)
+			if client != nil {
+				_, err = client.Call("smpc_callPeer", msg, self)
+				if err != nil {
+					log.Error("=====================p2pBroatcast,send fail,resend with rpc==================","err",err)
+					url = "http://127.0.0.1:" + rpcstr
+					client = ethrpc.New(url)
+					if client != nil {
+						_, err = client.Call("smpc_callPeer", msg, self)
+						if err != nil {
+							log.Error("=====================p2pBroatcast,try again send fail,resend with rpc==================","err",err)
+							continue
+						}
+					}
+
+					continue
+				}
+			}
+			//
+
 			continue
 		}
 		//}(node)
@@ -109,6 +345,16 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 		} else {
 			common.Error("==== p2pSendMsg() ==== p2pBroatcast", "nodeID", node.ID, "peer", "not exist p2perror continue")
 		}
+
+		/*ipa := &net.UDPAddr{IP: node.IP, Port: int(node.UDP)}
+		err := discover.SendMsgToNode(node.ID, ipa, msg)
+		if err == nil {
+		    emitter.Unlock()
+		    common.Info("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "countSend", countSendFail, "msg", msg[:cdLen], "send", "success")
+		    return nil
+		}
+		common.Error("====================p2pSendMsg()=================","send msg to node error",err)*/
+
 		emitter.Unlock()
 
 		countSendFail += 1
@@ -448,7 +694,7 @@ func SendMsgToPeer(enode string, msg string) error {
 		if p != nil {
 			if err := p2p.Send(p.ws, peerMsgCode, msg); err != nil {
 				common.Debug("==== SendMsgToPeer() ====", "send to node", node.ID, "msg", msg, "p2perror", err, "countSend", countSendFail)
-				return err
+				//return err
 			} else {
 				common.Debug("==== SendMsgToPeer() ====", "send to node", node.ID, "msg", msg, "SUCCESS, countSend", countSendFail)
 				emitter.Unlock()
@@ -467,6 +713,54 @@ func SendMsgToPeer(enode string, msg string) error {
 		}
 		time.Sleep(time.Duration(100) * time.Millisecond)
 	}
+
+	//
+	self := fmt.Sprintf("%v",selfid)
+	enodeID := fmt.Sprintf("%v",node.ID)
+	nodeIP := fmt.Sprintf("%v",node.IP)
+	nodePort := fmt.Sprintf("%v",node.UDP)
+	rpc := GetRPCPort(enodeID)
+	if rpc == 0 {
+	    log.Error("=====================SendMsgToPeer,send fail,get rpc port fail==================","enodeID",enodeID,"IP",nodeIP,"Port",nodePort)
+	    retMsg := fmt.Sprintf("==== SendMsgToPeer() ====, send msg: %v to node: %v timeout err", msg, node.ID)
+	    return errors.New(retMsg)
+	}
+
+	rpcstr := strconv.Itoa(rpc)
+	if rpcstr == "" {
+	    log.Error("=====================SendMsgToPeer,send fail,get rpc port fail==================","enodeID",enodeID,"IP",nodeIP,"Port",nodePort,"rpcport",rpc)
+	    retMsg := fmt.Sprintf("==== SendMsgToPeer() ====, send msg: %v to node: %v timeout err", msg, node.ID)
+	    return errors.New(retMsg)
+	}
+
+	log.Debug("=====================SendMsgToPeer,send fail,resend with rpc==================","enodeID",enodeID,"IP",nodeIP,"Port",nodePort,"Rpc",rpcstr)
+	url := "http://" + nodeIP + ":" + rpcstr
+	client := ethrpc.New(url)
+	if client != nil {
+	    _, err := client.Call("smpc_callPeer", msg, self)
+		if err != nil {
+			log.Error("=====================SendMsgToPeer,send fail,resend with rpc==================","err",err)
+			url = "http://127.0.0.1:" + rpcstr
+			client = ethrpc.New(url)
+			if client != nil {
+				_, err = client.Call("smpc_callPeer", msg, self)
+				if err != nil {
+				    log.Error("=====================SendMsgToPeer,try again send fail,resend with rpc==================","err",err)
+				    retMsg := fmt.Sprintf("==== SendMsgToPeer() ====, send msg: %v to node: %v timeout err", msg, node.ID)
+				    return errors.New(retMsg)
+				}
+
+				return nil
+			}
+			
+			retMsg := fmt.Sprintf("==== SendMsgToPeer() ====, send msg: %v to node: %v timeout err", msg, node.ID)
+			return errors.New(retMsg)
+		}
+
+		return nil
+	}
+	//
+	
 	retMsg := fmt.Sprintf("==== SendMsgToPeer() ====, send msg: %v to node: %v timeout err", msg, node.ID)
 	return errors.New(retMsg)
 }

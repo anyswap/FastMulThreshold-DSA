@@ -23,6 +23,8 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/internal/params"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/layer2"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
+	"github.com/onrik/ethrpc"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 // RPCTEST test
@@ -145,11 +147,17 @@ func (service *Service) ReshareGroup(threshold string, enodes []string) map[stri
 }
 
 // CreateGroup create group 
-func (service *Service) CreateGroup(threshold string, enodes []string) map[string]interface{} {
-	return service.CreateSDKGroup(threshold, enodes, false)
+//func (service *Service) CreateGroup(threshold string, enodes []string) map[string]interface{} {
+//	return service.CreateSDKGroup(threshold, enodes, false)
+//}
+
+// CreateGroup create group 
+func (service *Service) CreateGroup(threshold string, url []string) map[string]interface{} {
+	return service.CreateSDKGroup(threshold, url, false)
 }
 
 // CreateSDKGroup create group
+/*
 func (service *Service) CreateSDKGroup(threshold string, enodes []string, subGroup bool) map[string]interface{} {
 	//fmt.Printf("==== CreateSDKGroup() ====\n")
 	_, err := layer2.CheckAddPeer(threshold, enodes, subGroup)
@@ -171,6 +179,59 @@ func (service *Service) CreateSDKGroup(threshold string, enodes []string, subGro
 	//fmt.Printf("==== CreateSDKGroup() ====, gid: %v, count: %v\n", gid, count)
 	ret := &GroupID{Gid: gid}
 	return packageResult(SUCCESS, "", "", ret)
+}
+*/
+
+// CreateSDKGroup create group
+func (service *Service) CreateSDKGroup(threshold string, url []string, subGroup bool) map[string]interface{} {
+	//fmt.Printf("==== CreateSDKGroup() ====\n")
+	enodes := layer2.GetEnodeList(url)
+	_, err := layer2.CheckAddPeer(threshold, enodes, subGroup)
+	if err != nil {
+		ret := &GroupID{}
+		common.Debug("==== CreateSDKGroup() ====","CheckAddPeer err",err)
+		//fmt.Printf("==== CreateSDKGroup() ====, CheckAddPeer err: %v\n", err)
+		return packageResult(FAIL, err.Error(), err.Error(), ret)
+	}
+	gid, count, retErr := layer2.CreateSDKGroup(threshold, enodes, subGroup)
+	if retErr != "" {
+		status := FAIL
+		common.Debug("==== CreateSDKGroup() ====","CreateSDKGroup tip",retErr,"err",retErr)
+		//fmt.Printf("==== CreateSDKGroup() ====, CreateSDKGroup tip: %v, err: %v\n", retErr, retErr)
+		ret := &GroupID{Gid: gid}
+		return packageResult(status, retErr, retErr, ret)
+	}
+	common.Debug("==== CreateSDKGroup() ====","gid",gid,"count",count)
+	//fmt.Printf("==== CreateSDKGroup() ====, gid: %v, count: %v\n", gid, count)
+
+	layer2.SaveGroupRPCPort(url)
+	for _,v := range url {
+	    client := ethrpc.New(v)
+	    if client != nil {
+		_, err = client.Call("smpc_saveGroupRPCPort", url)
+		if err != nil {
+			log.Error("=====================CreateSDKGroup==================","err",err)
+			continue
+		}
+	    }
+	}
+
+	ret := &GroupID{Gid: gid}
+	return packageResult(SUCCESS, "", "", ret)
+}
+
+// SaveGroupRPCPort
+func (service *Service) SaveGroupRPCPort(url []string) map[string]interface{} {
+	common.Debug("===============SaveGroupRPCPort================", "url",url)
+	data := make(map[string]interface{})
+	layer2.SaveGroupRPCPort(url)
+	data["result"] = "Done" 
+	return map[string]interface{}{
+		"Status": "Success",
+		"Tip":    "",
+		"Error":  "",
+		"Data":   data,
+	}
 }
 
 type sdkGroupInfo struct {

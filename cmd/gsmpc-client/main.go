@@ -317,7 +317,7 @@ func enodeSig() {
 
 // setGroup set group info
 func setGroup() {
-	var enodeList []string
+	/*var enodeList []string
 	// get enodes from enodesSig by arg -sig
 	if len(enodesSig) > 0 {
 		enodeList = make([]string, len(enodesSig))
@@ -344,8 +344,10 @@ func setGroup() {
 			fmt.Printf("enode[%d] = %s\n", i, enodeList[i])
 		}
 	}
+	*/
 	// get gid by send createGroup
-	groupRep, err := client.Call("smpc_createGroup", *ts, enodeList)
+	//groupRep, err := client.Call("smpc_createGroup", *ts, enodeList)
+	groupRep, err := client.Call("smpc_createGroup", *ts, nodes)
 	if err != nil {
 		panic(err)
 	}

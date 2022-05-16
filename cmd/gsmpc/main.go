@@ -20,7 +20,7 @@ package main
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"io/ioutil"
+	//"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -28,7 +28,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
-	"strconv"
+	//"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -136,7 +136,7 @@ var (
 	bip32pre     uint64
 	syncpresign string
 
-	statDir = "stat"
+	//statDir = "stat"
 
 	stopLock   sync.Mutex
 	signalChan = make(chan os.Signal, 1)
@@ -315,13 +315,13 @@ func startP2pNode() error {
 	}
 	if privateNet {
 		port = getPort(port)
-		rp := getRPCPort(pubdir)
-		fmt.Printf("getRPCPort, rp: %v\n", rp)
+		rp := layer2.GetRPCPort(pubdir)
+		fmt.Printf("GetRPCPort, rp: %v\n", rp)
 		if rp != 0 {
 			rpcport = rp
 		}
 		rpcport = getPort(rpcport)
-		storeRPCPort(pubdir, rpcport)
+		layer2.StoreRPCPort(pubdir, rpcport)
 	}
 	comlog.Info("start gsmpc","port",port,"rpcport",rpcport)
 	layer2.InitSelfNodeID(nodeidString)
@@ -363,7 +363,7 @@ func startP2pNode() error {
 				signalChan := make(chan os.Signal, 1)
 				signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 				<-signalChan
-				deleteRPCPort(pubdir)
+				layer2.DeleteRPCPort(pubdir)
 				os.Exit(1)
 			}()
 		}
@@ -427,6 +427,7 @@ func PortInUse(port int) bool {
 	return false
 }
 
+/*
 // storeRPCPort save rpc port
 func storeRPCPort(pubdir string, rpcport int) {
 	updateRPCPort(pubdir, fmt.Sprintf("%v", rpcport))
@@ -462,8 +463,8 @@ func updateRPCPort(pubdir, rpcport string) {
 }
 
 // getRPCPort get rpc port
-func getRPCPort(pubdir string) int {
-	fmt.Printf("==== getRPCPort() ====, pubdir: %v\n", pubdir)
+func GetRPCPort(pubdir string) int {
+	fmt.Printf("==== GetRPCPort() ====, pubdir: %v\n", pubdir)
 	portDir := common.DefaultDataDir()
 	dir := filepath.Join(portDir, statDir, pubdir)
 	if common.FileExist(dir) != true {
@@ -478,10 +479,12 @@ func getRPCPort(pubdir string) int {
 	if err == nil {
 		pp := strings.Split(string(port), "\n")
 		p, err := strconv.Atoi(pp[0])
-		fmt.Printf("==== getRPCPort() ====, p: %v, err: %v\n", p, err)
+		fmt.Printf("==== GetRPCPort() ====, p: %v, err: %v\n", p, err)
 		if err == nil {
 			return p
 		}
 	}
 	return 0
 }
+*/
+

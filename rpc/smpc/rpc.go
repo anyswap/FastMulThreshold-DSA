@@ -44,6 +44,21 @@ func listenSignal(exit chan int) {
 // Service RPC service,include interface
 type Service struct{}
 
+// CallPeer  
+func (service *Service) CallPeer(msg string,enode string) map[string]interface{} {
+
+	common.Debug("===============CallPeer================", "msg", msg,"enode",enode)
+	data := make(map[string]interface{})
+	smpc.Call(msg,enode)
+	data["result"] = "Done" 
+	return map[string]interface{}{
+		"Status": "Success",
+		"Tip":    "",
+		"Error":  "",
+		"Data":   data,
+	}
+}
+
 // ReqSmpcAddr this will be called by smpc_reqSmpcAddr
 // raw: tx raw data
 //return pubkey and coins addr

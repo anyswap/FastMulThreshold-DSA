@@ -46,7 +46,7 @@ var (
 	cht            = 300
 
 	//ec keygen timeout
-	EcKeygenTimeout = 1200
+	EcKeygenTimeout = 1500 
 
 	//ed keygen timeout
 	EdKeygenTimeout = 1200
