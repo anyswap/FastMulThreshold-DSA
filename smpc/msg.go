@@ -228,10 +228,11 @@ func SendMsgToSmpcGroup(msg string, groupid string) {
 	    return
 	}
 
-	common.Debug("=========SendMsgToSmpcGroup=============", "msg", msg, "groupid", groupid)
-	_, err := BroadcastInGroupOthers(groupid, msg)
+	tmp := hex.EncodeToString([]byte(msg))
+	common.Debug("=========SendMsgToSmpcGroup=============", "orig msg", msg, "hex msg",tmp,"groupid", groupid)
+	_, err := BroadcastInGroupOthers(groupid, tmp)
 	if err != nil {
-		common.Debug("=========SendMsgToSmpcGroup,send msg to smpc group=============", "msg", msg, "groupid", groupid, "err", err)
+		common.Debug("=========SendMsgToSmpcGroup,send msg to smpc group=============", "orig msg", msg,"hex msg",tmp, "groupid", groupid, "err", err)
 	}
 }
 
@@ -299,9 +300,12 @@ func SendMsgToPeer(enodes string, msg string) {
 		return
 	}
 
-	err = SendToPeer(enodes, cm)
+	tmp := hex.EncodeToString([]byte(cm))
+	common.Debug("============SendMsgToPeer=============", "orig msg", msg, "hex msg",tmp,"enode", enodes)
+	err = SendToPeer(enodes, tmp)
 	if err != nil {
-		return
+	    common.Debug("============SendMsgToPeer,send fail=============", "orig msg", msg, "hex msg",tmp,"enode", enodes,"err",err)
+	    return
 	}
 }
 
@@ -448,6 +452,12 @@ func Call(msg interface{}, enode string) {
 	if err == nil {
 		s = raw
 	}
+	
+	hexstr,err := hex.DecodeString(s)
+	if err == nil {
+	    s = string(hexstr)
+	}
+
 	msgdata, errdec := DecryptMsg(s) //for SendMsgToPeer
 	if errdec == nil {
 		s = msgdata
