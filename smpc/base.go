@@ -52,6 +52,7 @@ type CmdReq interface {
 	GetGroupSigs(txdata []byte) (string, string, string, string)
 	CheckTxData(txdata []byte, from string, nonce uint64) (string, string, string, interface{}, error)
 	DisAcceptMsg(raw string, workid int, key string)
+	SetCmdRaw(raw string)
 }
 
 //-----------------------------------------------------------------------
@@ -529,6 +530,7 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 		return "", "", "", nil, fmt.Errorf("Unsupported request type")
 	}
 
+	smpcreq.SetCmdRaw(raw)
 	return smpcreq.CheckTxData(tx.Data(), from.Hex(), tx.Nonce())
 }
 

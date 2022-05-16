@@ -32,9 +32,15 @@ import (
 
 // ReqSmpcAddr keygen cmd request
 type ReqSmpcAddr struct {
+    Raw string
 }
 
 //-------------------------------------------------------------------------------------------------
+
+// SetCmdRaw(raw string)
+func (req *ReqSmpcAddr) SetCmdRaw(raw string) {
+	req.Raw = raw
+}
 
 // GetReplyFromGroup  Get the current reply status of the nodes in the group. About this command request 
 func (req *ReqSmpcAddr) GetReplyFromGroup(wid int, gid string, initiator string) []NodeReply {
@@ -577,6 +583,15 @@ func (req *ReqSmpcAddr) CheckTxData(txdata []byte, from string, nonce uint64) (s
 		if acceptreq.Accept != "AGREE" && acceptreq.Accept != "DISAGREE" {
 			return "", "", "", nil, fmt.Errorf("transaction data format error,the lastest segment is not AGREE or DISAGREE")
 		}
+
+		///
+		w, err := FindWorker(acceptreq.Key)
+		 if err != nil || w == nil {
+			 c1data := strings.ToLower(acceptreq.Key + "-" + from)
+			 C1Data.WriteMap(c1data, req.Raw) // save the lastest accept msg??
+			return "", "", "", nil, fmt.Errorf("not found worker")
+		 }
+		///
 
 		exsit, da := GetReqAddrInfoData([]byte(acceptreq.Key))
 		if !exsit {

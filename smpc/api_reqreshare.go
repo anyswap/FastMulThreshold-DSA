@@ -34,9 +34,15 @@ import (
 
 // ReqSmpcReshare reshare cmd request
 type ReqSmpcReshare struct {
+    Raw string
 }
 
 //---------------------------------------------------------------------------------------------------
+
+// SetCmdRaw()
+func (req *ReqSmpcReshare) SetCmdRaw(raw string) {
+    req.Raw = raw
+}
 
 // GetReplyFromGroup  Get the current reply status of the nodes in the group. About this command request 
 func (req *ReqSmpcReshare) GetReplyFromGroup(wid int, gid string, initiator string) []NodeReply {
@@ -521,6 +527,13 @@ func (req *ReqSmpcReshare) CheckTxData(txdata []byte, from string, nonce uint64)
 		if acceptrh.Accept != "AGREE" && acceptrh.Accept != "DISAGREE" {
 			return "", "", "", nil, fmt.Errorf("transaction data format error,the lastest segment is not AGREE or DISAGREE")
 		}
+
+		w, err := FindWorker(acceptrh.Key)
+		 if err != nil || w == nil {
+			 c1data := strings.ToLower(acceptrh.Key + "-" + from)
+			 C1Data.WriteMap(c1data, req.Raw) // save the lastest accept msg??
+			return "", "", "", nil, fmt.Errorf("not found worker")
+		 }
 
 		exsit, da := GetReShareInfoData([]byte(acceptrh.Key))
 		if !exsit {

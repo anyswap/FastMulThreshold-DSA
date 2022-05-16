@@ -37,9 +37,15 @@ import (
 
 // ReqSmpcSign sign cmd request
 type ReqSmpcSign struct {
+    Raw string
 }
 
 //--------------------------------------------------------------------------------------------------
+
+// SetCmdRaw()
+func (req *ReqSmpcSign) SetCmdRaw(raw string) {
+    req.Raw = raw
+}
 
 // GetReplyFromGroup  Get the current reply status of the nodes in the group. About this command request 
 func (req *ReqSmpcSign) GetReplyFromGroup(wid int, gid string, initiator string) []NodeReply {
@@ -995,7 +1001,14 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 			return "", "", "", nil, fmt.Errorf("transaction data format error,the lastest segment is not AGREE or DISAGREE")
 		}
 
-		exsit, da := GetSignInfoData([]byte(acceptsig.Key))
+		w, err := FindWorker(acceptsig.Key)
+		 if err != nil || w == nil {
+			 c1data := strings.ToLower(acceptsig.Key + "-" + from)
+			 C1Data.WriteMap(c1data, req.Raw) // save the lastest accept msg??
+			return "", "", "", nil, fmt.Errorf("not found worker")
+		 }
+		
+		 exsit, da := GetSignInfoData([]byte(acceptsig.Key))
 		if !exsit {
 			return "", "", "", nil, fmt.Errorf("get accept result from db fail")
 		}
