@@ -103,7 +103,7 @@ func (round *base) GetIDs() (smpc.SortableIDSSlice, error) {
 }
 
 func (round *base) GetDNodeIDIndex(id string) (int, error) {
-	if id == "" || round.dnodecount < 3 || len(round.temp.kgRound0Messages) != round.dnodecount {
+	if id == "" || len(round.temp.kgRound0Messages) != round.dnodecount {
 		return -1, nil
 	}
 
