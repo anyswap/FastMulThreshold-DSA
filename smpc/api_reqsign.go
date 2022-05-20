@@ -1092,13 +1092,13 @@ func CheckSignDulpRawReply(raw string, l *list.List) bool {
 		next = e.Next()
 
 		if e.Value == nil {
-			continue
+			return false //error
 		}
 
 		s := e.Value.(string)
 
 		if s == "" {
-			continue
+			return false //error
 		}
 
 		if strings.EqualFold(raw, s) {
@@ -1106,7 +1106,11 @@ func CheckSignDulpRawReply(raw string, l *list.List) bool {
 		}
 
 		from2, txtype2, timestamp2 := GetSignRawValue(s)
-		if strings.EqualFold(from, from2) && strings.EqualFold(txtype, txtype2) {
+		if from2 == "" || txtype2 == "" || timestamp2 == "" {
+			return false //error
+		}
+
+		if strings.EqualFold(from, from2) {
 			t1, _ := new(big.Int).SetString(timestamp, 10)
 			t2, _ := new(big.Int).SetString(timestamp2, 10)
 			if t1.Cmp(t2) > 0 {

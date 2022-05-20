@@ -299,7 +299,7 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 						common.Debug("(self *RecvMsg) Run(),", "account= ", account, "key = ", key)
 						//ars := GetAllReplyFromGroup(w.id, req2.GroupID, RPCREQADDR, sender)
 						ars := GetAllReplyFromGroup2(w.id,sender)
-						common.Info("================== DoReq,get all AcceptReqAddrRes====================", "raw ", raw, "result ", ars, "key ", key)
+						common.Info("==================get all keygen approve results====================", "raw ", raw, "result ", ars, "key ", key)
 
 						//bug
 						reply = true
@@ -671,13 +671,13 @@ func CheckReqAddrDulpRawReply(raw string, l *list.List) bool {
 		next = e.Next()
 
 		if e.Value == nil {
-			continue
+			return false //error
 		}
 
 		s := e.Value.(string)
 
 		if s == "" {
-			continue
+			return false //error
 		}
 
 		if strings.EqualFold(raw, s) {
@@ -685,7 +685,11 @@ func CheckReqAddrDulpRawReply(raw string, l *list.List) bool {
 		}
 
 		from2, txtype2, timestamp2 := GetReqAddrRawValue(s)
-		if strings.EqualFold(from, from2) && strings.EqualFold(txtype, txtype2) {
+		if from2 == "" || txtype2 == "" || timestamp2 == "" {
+			return false //error
+		}
+
+		if strings.EqualFold(from, from2) {
 			t1, _ := new(big.Int).SetString(timestamp, 10)
 			t2, _ := new(big.Int).SetString(timestamp2, 10)
 			if t1.Cmp(t2) > 0 {
