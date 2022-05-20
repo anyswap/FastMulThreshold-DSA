@@ -7,6 +7,7 @@ if [ ! -f "build.sh" ]; then
 	    exit 2
 fi
 
+mod3=gsmpc-test-2-2
 mod1=gsmpc-test
 mod2=gsmpc-test-clean
 if [ $1 = $mod2 ]; then
@@ -23,6 +24,14 @@ if [ $1 = $mod2 ]; then
             rm -rf test/tmp/$i;
         fi;
         done;
+    exit
+fi
+
+#2-2 test
+if [ $1 = $mod3 ]; then
+    chmod a+x ./gsmpc-test-2-2.sh
+    chmod a+x ./bootnode-test.sh
+    ./gsmpc-test-2-2.sh $(pwd) 5871 "" EC256K1
     exit
 fi
 

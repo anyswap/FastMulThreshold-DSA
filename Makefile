@@ -27,6 +27,11 @@ clean:
 fmt:
 	./gofmt.sh
 
+#3-5
 gsmpc-test:
 	./build.sh gsmpc-test
+
+#2-2
+2-2-test:
+	./build.sh gsmpc-test-2-2
 
