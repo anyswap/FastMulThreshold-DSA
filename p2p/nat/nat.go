@@ -102,7 +102,7 @@ func Map(m Interface, c chan struct{}, protocol string, extport, intport int, na
 		refresh.Stop()
 		err := m.DeleteMapping(protocol, extport, intport)
 		if err != nil {
-		    fmt.Printf("====================Map,delete map fail, err = %v====================\n",err)
+		    //fmt.Printf("====================Map,delete map fail, err = %v====================\n",err)
 			return
 		}
 	}()

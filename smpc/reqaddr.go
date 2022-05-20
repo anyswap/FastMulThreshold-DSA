@@ -33,6 +33,7 @@ import (
 	"sync"
 	"time"
 	"errors"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 var (
@@ -896,7 +897,7 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 	w.DNode = keyGenDNode
 	_,UID := GetNodeUID(curEnode, "EC256K1",w.groupid)
 	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", UID))
-	fmt.Printf("=========== KeyGenerateDECDSA, current node uid = %v ===========\n", keyGenDNode.DNodeID())
+	//fmt.Printf("=========== KeyGenerateDECDSA, current node uid = %v ===========\n", keyGenDNode.DNodeID())
 
 	w.MsgToEnode[w.DNode.DNodeID()] = curEnode
 
@@ -905,7 +906,7 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 	go func() {
 		defer keyGenWg.Done()
 		if err := keyGenDNode.Start(); nil != err {
-			fmt.Printf("==========KeyGenerateDECDSA, node start, key = %v, err = %v ==========\n", msgprex,err)
+			log.Error("==========KeyGenerateDECDSA, node start error============","key",msgprex,"err",err)
 			close(errChan)
 		}
 
@@ -922,7 +923,7 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 	go ProcessInboundMessages(msgprex, commStopChan, &keyGenWg, ch)
 	err := processKeyGen(msgprex, errChan, outCh, endCh)
 	if err != nil {
-		fmt.Printf("==========KeyGenerateDECDSA,process keygen, key = %v,err = %v ==========\n", msgprex,err)
+		log.Error("==========KeyGenerateDECDSA,process keygen error============","key",msgprex,"err",err)
 		close(commStopChan)
 		res := RPCSmpcRes{Ret: "", Err: err}
 		ch <- res
@@ -978,7 +979,7 @@ func KeyGenerateDEDDSA(msgprex string, ch chan interface{}, id int, cointype str
 	go func() {
 		defer keyGenWg.Done()
 		if err := keyGenDNode.Start(); nil != err {
-			fmt.Printf("==========KeyGenerateDEDDSA,node start, key = %v, err = %v ==========\n", msgprex,err)
+			log.Error("==========KeyGenerateDEDDSA,node start error==========","key",msgprex,"err",err)
 			close(errChan)
 		}
 
@@ -995,7 +996,7 @@ func KeyGenerateDEDDSA(msgprex string, ch chan interface{}, id int, cointype str
 	go ProcessInboundMessagesEDDSA(msgprex, commStopChan, &keyGenWg, ch)
 	err := processKeyGenEDDSA(msgprex, errChan, outCh, endCh)
 	if err != nil {
-		fmt.Printf("==========KeyGenerateDEDDSA,process ed keygen, err = %v, key = %v ==========\n", err, msgprex)
+		log.Error("==========KeyGenerateDEDDSA,process ed keygen error==========","key",msgprex,"err",err)
 		close(commStopChan)
 		res := RPCSmpcRes{Ret: "", Err: err}
 		ch <- res

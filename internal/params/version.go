@@ -18,6 +18,7 @@ package params
 
 import (
 	"fmt"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 const (
@@ -73,9 +74,9 @@ var (
 )
 
 func SetVersion(version, commit, date string) {
-	fmt.Printf("gitVersion: %v\n", version)
-	fmt.Printf("gitCommit: %v\n", commit)
-	fmt.Printf("gitDate: %v\n", date)
+	log.Info("","gitVersion",version)
+	log.Info("","gitCommit",commit)
+	log.Info("","gitDate",date)
 	gitVersion = version
 	gitCommit = commit
 	gitDate = date

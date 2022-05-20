@@ -184,7 +184,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 				case account := <-wtmp2.acceptSignChan:
 					common.Debug("InitAcceptData,", "account= ", account, "key = ", key)
 					ars := GetAllReplyFromGroup2(w.id,sender)
-					common.Info("================== DoSign, get all AcceptSignRes===============", "result ", ars, "key ", key)
+					common.Info("==================get all signing approve results===============", "result ", ars, "key ", key)
 
 					reply = true
 					for _, nr := range ars {

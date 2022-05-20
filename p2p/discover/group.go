@@ -1833,7 +1833,6 @@ func InitIP(ip string, port uint16) {
 	RemoteIP = parseIP(ip)
 	RemotePort = port
 	SelfEnode = fmt.Sprintf("enode://%v@%v:%v", GetLocalID(), RemoteIP, RemotePort)
-	fmt.Printf("==== InitIP() ====, IP: %v\n", RemoteIP)
 	common.Info("==== InitIP() ====", "IP", RemoteIP)
 	go func(enode string) {
 		n, _ := ParseNode(enode)

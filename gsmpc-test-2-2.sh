@@ -59,16 +59,12 @@ else
   keyfile1=$5
 fi
 
-#echo node1 keystore file: $keyfile1
-
 keyfile2=
 if [ ! $7 ]; then
   keyfile2=$1/test/keystore/UTC--2019-03-11T08-42-59.809814178Z--a0f15f85b7a24b66f1d682b7244242093ec4430d
 else
   keyfile2=$7
 fi
-
-#echo node2 keystore file: $keyfile2
 
 pf1=
 if [ ! $6 ]; then
@@ -77,16 +73,12 @@ else
   pf1=$6
 fi
 
-#echo node1 password file: $pf1
-
 pf2=
 if [ ! $8 ]; then
   pf2=$1/test/passwdfile/passwdfile2
 else
   pf2=$8
 fi
-
-#echo node2 password file: $pf2
 
 gsmpc=$1/test/bin/gsmpctest
 $gsmpc --rpcport $port --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node1 --port 48541 --nodekey "$1/test/nodekey/node1.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 3 --verbosity 5 --log $1/test/log/node1.log &
@@ -208,6 +200,10 @@ sleep 1
 
 echo keytype: $kt
 echo keygen cmd key: $key
+echo node1 keystore file: $keyfile1
+echo node1 password file: $pf1
+echo node2 keystore file: $keyfile2
+echo node2 password file: $pf2
 echo node1 datadir: $datadir/node1
 echo node2 datadir: $datadir/node2
 echo node1 rpc port: $port
