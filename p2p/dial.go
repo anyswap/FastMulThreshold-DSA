@@ -144,6 +144,12 @@ func newDialState(static []*discover.Node, bootnodes []*discover.Node, ntab disc
 	}
 	return s
 }
+func (s *dialstate) getStaticNode(nodeid discover.NodeID) *discover.Node {
+	if s.static[nodeid] != nil {
+		return s.static[nodeid].dest
+	}
+	return nil
+}
 
 func (s *dialstate) addStatic(n *discover.Node) {
 	// This overwrites the task instead of updating an existing

@@ -306,6 +306,7 @@ func checkExistGroup(gid discover.NodeID) bool {
 // recv from broadcastInGroup...
 func SdkProtocol_registerBroadcastInGroupCallback(recvSdkFunc func(interface{}, string)) {
 	Sdk_callback = recvSdkFunc
+	discover.RegisterBroadcastNodeCallback(recvSdkFunc) // udp
 }
 
 // recv from sendToGroup...

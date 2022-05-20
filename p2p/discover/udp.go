@@ -562,7 +562,7 @@ func (t *udp) readLoop(unhandled chan<- ReadPacket) {
 	// Discovery packets are defined to be no larger than 1280 bytes.
 	// Packets larger than this size will be cut at the end and treated
 	// as invalid because their hash won't match.
-	buf := make([]byte, 2560)
+	buf := make([]byte, 5000)
 	for {
 		nbytes, from, err := t.conn.ReadFromUDP(buf)
 		if netutil.IsTemporaryError(err) {
@@ -641,6 +641,8 @@ func decodePacket(buf []byte) (packet, NodeID, []byte, error) {
 		req = new(smpcmessage)
 	case gotXpPacket:
 		req = new(smpcmessage)
+	case msgBroadcastPacket:
+		req = new(messageBroadcast)
 	case Ack_Packet:
 		req = new(Ack)
 	default:
