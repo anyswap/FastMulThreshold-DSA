@@ -1223,22 +1223,21 @@ func (t *udp) sendMsgToBroadcastNode(toid NodeID, toaddr *net.UDPAddr, msg strin
 	})
 	_, errs := t.send(toaddr, msgBroadcastPacket, &messageBroadcast{
 		Msg:        msg,
-		Expiration: uint64(time.Now().Add(expiration).Unix()),
+		Expiration: uint64(time.Now().Add(expirationBroadcast).Unix()),
 	})
 	if errs != nil {
-		common.Debug("==== (t *udp) sendMsgToBroadcastNode ====", "errs", errs)
+		common.Debug("==== (t *udp) sendMsgToBroadcastNode ====", "errs", errs, "toid",toid,"toaddr",toaddr,"msgHash",msgHash, "len", len(msg))
 		return errs
 	}
 	err := <-errc
-	common.Debug("sendMsgToBroadcastNode return","toid",toid,"toaddr",toaddr,"msgHash",msgHash)
+	common.Debug("sendMsgToBroadcastNode success","toid",toid,"toaddr",toaddr,"msgHash",msgHash)
 	return err
 }
 func (req *messageBroadcast) name() string { return "MESSAGEBROADCAST/v4" }
 
 func (req *messageBroadcast) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
-	common.Debug("====  (req *messageBroadcast) handle()  ====", "from", from, "fromID", fromID)
 	msgHash := crypto.Keccak256Hash([]byte(strings.ToLower(req.Msg))).Hex()
-	common.Debug("====  (req *messageBroadcast) handle()  ====", "from", from, "fromID", fromID, "msgHash", msgHash, "len", req.Msg)
+	common.Debug("(sendMsgToBroadcastNode) handle()", "from", from, "fromID", fromID, "msgHash", msgHash, "len", len(req.Msg))
 	if expired(req.Expiration) {
 		return errExpired
 	}
