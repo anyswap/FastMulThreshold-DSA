@@ -33,6 +33,8 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/netutil"
 )
 
+var Dialer dialer
+
 const (
 	defaultDialTimeout = 15 * time.Second
 
@@ -565,9 +567,15 @@ type dialer interface {
 	taskDone(task, time.Time)
 	addStatic(*discover.Node)
 	removeStatic(*discover.Node)
+	getStaticNode(discover.NodeID) *discover.Node
+}
+
+func GetStaticNode(nodeid discover.NodeID) *discover.Node {
+	return Dialer.getStaticNode(nodeid)
 }
 
 func (srv *Server) run(dialstate dialer) {
+	Dialer = dialstate
 	defer srv.loopWG.Done()
 	var (
 		peers        = make(map[discover.NodeID]*Peer)

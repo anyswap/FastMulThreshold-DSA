@@ -111,6 +111,11 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 		}
 		emitter.Unlock()
 
+		err = sendMsgToBroadcastNode(node.ID, msg)
+		if err == nil {
+			return nil
+		}
+
 		countSendFail += 1
 		if countSendFail >= 20 {
 			common.Error("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "terminal send", "fail p2perror", "sendCount", countSendFail)
@@ -124,6 +129,16 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 	return err
 }
 
+func sendMsgToBroadcastNode(nid discover.NodeID, msg string) error {
+	node := p2p.GetStaticNode(nid)
+	if node == nil {
+		common.Warn("sendMsgToBroadcastNode p2p.GetStaticNode node not exist","nodeid", nid)
+		return  errors.New("GetStaticNode node not exist")
+	}
+	common.Debug("sendMsgToBroadcastNode","nodeid", nid, "node", node)
+	return discover.SendMsgToBroadcastNode(node, msg)
+
+}
 func getGroupAndCode(gid discover.NodeID, p2pType int) (*discover.Group, int) {
 	msgCode := peerMsgCode
 	var xvcGroup *discover.Group = nil

@@ -111,6 +111,7 @@ const (
 	gotSmpcPacket
 	gotSdkPacket
 	gotXpPacket
+	msgBroadcastPacket // use udp.send when peer.send failed
 
 	Ack_Packet
 )
@@ -155,6 +156,14 @@ type (
 		//sync.Mutex
 		Msg        string
 		Expiration uint64
+	}
+
+	messageBroadcast struct {
+		//sync.Mutex
+		Msg        string
+		Expiration uint64
+		// Ignore additional fields (for forward compatibility).
+		Rest []rlp.RawValue `rlp:"tail"`
 	}
 
 	getsmpcmessage struct {
@@ -1183,6 +1192,60 @@ func (req *message) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte)
 	go callPriKeyEvent(req.Msg)
 	return nil
 }
+
+//send msg to broadcast node after peer.send failed
+var broadcastNodeCallback func(interface{}, string)
+
+func RegisterBroadcastNodeCallback(callbackfunc func(interface{}, string)) {
+	broadcastNodeCallback = callbackfunc
+}
+
+func callMsgBroadcastEvent(msg string, fromID string) {
+	if broadcastNodeCallback != nil {
+		broadcastNodeCallback(msg, fromID)
+	}
+}
+
+func SendMsgToBroadcastNode(node *Node, msg string) error {
+	if msg == "" {
+		return nil
+	}
+	toid := node.ID
+	toaddr := &net.UDPAddr{IP: node.IP, Port: int(node.UDP)}
+	return Table4group.net.sendMsgToBroadcastNode(toid, toaddr, msg)
+}
+
+func (t *udp) sendMsgToBroadcastNode(toid NodeID, toaddr *net.UDPAddr, msg string) error {
+	msgHash := crypto.Keccak256Hash([]byte(strings.ToLower(msg))).Hex()
+	common.Debug("sendMsgToBroadcastNode","toid",toid,"toaddr",toaddr,"msgHash",msgHash, "len", len(msg))
+	errc := t.pending(toid, msgBroadcastPacket, func(r interface{}) bool {
+		return true
+	})
+	_, errs := t.send(toaddr, msgBroadcastPacket, &messageBroadcast{
+		Msg:        msg,
+		Expiration: uint64(time.Now().Add(expiration).Unix()),
+	})
+	if errs != nil {
+		common.Debug("==== (t *udp) sendMsgToBroadcastNode ====", "errs", errs)
+		return errs
+	}
+	err := <-errc
+	common.Debug("sendMsgToBroadcastNode return","toid",toid,"toaddr",toaddr,"msgHash",msgHash)
+	return err
+}
+func (req *messageBroadcast) name() string { return "MESSAGEBROADCAST/v4" }
+
+func (req *messageBroadcast) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
+	common.Debug("====  (req *messageBroadcast) handle()  ====", "from", from, "fromID", fromID)
+	msgHash := crypto.Keccak256Hash([]byte(strings.ToLower(req.Msg))).Hex()
+	common.Debug("====  (req *messageBroadcast) handle()  ====", "from", from, "fromID", fromID, "msgHash", msgHash, "len", req.Msg)
+	if expired(req.Expiration) {
+		return errExpired
+	}
+	go callMsgBroadcastEvent(req.Msg, fromID.String())
+	return nil
+}
+//end
 
 var groupcallback func(NodeID, string, interface{}, int, string)
 
