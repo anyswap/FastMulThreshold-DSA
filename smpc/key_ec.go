@@ -66,6 +66,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			
 			///dul?
 			hexs := Keccak256Hash([]byte(strings.ToLower(m))).Hex()
+			log.Debug("========================ProcessInboundMessages,get msg====================","msg",m,"key",msgprex)
 			_, exist2 := w.Msg56[hexs]
 			if exist2 {
 			   break 
@@ -179,9 +180,9 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 		       if mm.IsBroadcast() {
 			   go func(msg string,gid string) {
 			       for i:=0;i<1;i++ {
-				   //log.Debug("================ProcessInboundMessages,also broacast to group for msg===================","msg type",mm.GetMsgType(),"key",msgprex)
+				   log.Debug("================ProcessInboundMessages,also broacast to group for msg===================","msg type",mm.GetMsgType(),"key",msgprex,"msg",msg,"gid",gid)
 				   SendMsgToSmpcGroup(msg,gid)
-				   time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
+				   //time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 			       }
 			   }(m,w.groupid)
 		       //}

@@ -231,10 +231,11 @@ func SendMsgToSmpcGroup(msg string, groupid string) {
 	    return
 	}
 
-	common.Debug("=========SendMsgToSmpcGroup=============", "msg", msg, "groupid", groupid)
+	msghash := Keccak256Hash([]byte(strings.ToLower(msg))).Hex()
+	common.Debug("=========SendMsgToSmpcGroup=============", "msghash",msghash,"msg",msg,"groupid",groupid)
 	_, err := BroadcastInGroupOthers(groupid, msg)
 	if err != nil {
-		common.Debug("=========SendMsgToSmpcGroup,send msg to smpc group=============", "msg", msg, "groupid", groupid, "err", err)
+		common.Debug("=========SendMsgToSmpcGroup,send msg to smpc group=============", "msghash",msghash,"msg", msg, "groupid", groupid, "err", err)
 	}
 }
 
@@ -333,6 +334,8 @@ func SendMsgToPeerWithBrodcast(key string,enodes string, msg string,groupid stri
 	}
 	/////
 
+	msghash := Keccak256Hash([]byte(strings.ToLower(string(s)))).Hex()
+	log.Debug("====================SendMsgToPeerWithBrodcast=====================","orig msg",msg,"msg",string(s),"msg hash",msghash,"gid",groupid)
 	SendMsgToSmpcGroup(string(s),groupid)
 }
 
@@ -516,12 +519,13 @@ func GetCmdKey(msg string) string {
 
 // Call receive msg from p2p
 func Call(msg interface{}, enode string) {
-	common.Debug("====================Call===================", "get p2p msg ", msg, "sender node", enode)
 	s := msg.(string)
 	if s == "" {
 		return
 	}
 
+	msghash := Keccak256Hash([]byte(strings.ToLower(s))).Hex()
+	common.Debug("====================Call===================", "get p2p msg ", msg,"msg hash",msghash,"sender node", enode)
 	raw, err := UnCompress(s)
 	if err == nil {
 		s = raw
@@ -578,8 +582,9 @@ func Call(msg interface{}, enode string) {
 		if ss == "" {
 		    go func(msg2 string,gid string) {
 			for i:=0;i<1;i++ {
+			   log.Debug("================Call,also broacast to group for msg===================","key",keytmp,"msg",msg2,"gid",gid,"msg hash",msghash)
 			    SendMsgToSmpcGroup(msg2,gid)
-			    time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
+			    //time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 			}
 		    }(msg.(string),gidtmp)
 		    
@@ -599,21 +604,21 @@ func Call(msg interface{}, enode string) {
 		    w, err := FindWorker(val)
 		    if err == nil {
 			    if w.DNode != nil && w.DNode.Round() != nil {
-				    //common.Debug("====================Call, get smpc msg,worker found.===================", "key", val, "msg", msg, "sender node", enode)
+				    common.Debug("====================Call, get smpc msg,worker found.===================", "key", val, "msg", msg, "msg hash",msghash,"orig msg",s,"sender node", enode)
 				    w.SmpcMsg <- s
 			    } else {
 				    from := msgmap["FromID"]
 				    msgtype := msgmap["Type"]
 				    key := strings.ToLower(val + "-" + from + "-" + msgtype)
 				    C1Data.WriteMap(key, s)
-				    //log.Debug("===============================Call, pre-save p2p msg, worker found=============", "key",val,"fromID",from,"msgtype",msgtype,"c1data key",key,"c1data value",s)
+				    log.Debug("===============================Call, pre-save p2p msg, worker found=============", "key",val,"fromID",from,"msgtype",msgtype,"c1data key",key,"msg",msg,"msg hash",msghash,"orig msg",s)
 			    }
 		    } else {
 			    from := msgmap["FromID"]
 			    msgtype := msgmap["Type"]
 			    key := strings.ToLower(val + "-" + from + "-" + msgtype)
 			    C1Data.WriteMap(key, s)
-			    log.Debug("===============================Call, pre-save p2p msg, worker not found============","key",val,"fromID",from,"msgtype",msgtype,"c1data key",key,"c1data value",s)
+			    log.Debug("===============================Call, pre-save p2p msg, worker not found============","key",val,"fromID",from,"msgtype",msgtype,"c1data key",key,"msg",msg,"msg hash",msghash,"orig msg",s)
 		    }
 
 		    return

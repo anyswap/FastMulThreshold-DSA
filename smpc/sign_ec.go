@@ -57,9 +57,9 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 			return
 		case m := <-w.SmpcMsg:
 
-		    log.Debug("========================SignProcessInboundMessages,get msg====================","msg",m,"key",msgprex)
 			///dul?
 			hexs := Keccak256Hash([]byte(strings.ToLower(m))).Hex()
+			log.Debug("========================SignProcessInboundMessages,get msg====================","msg",m,"key",msgprex)
 			_, exist2 := w.Msg56[hexs]
 			if exist2 {
 			   break 
@@ -187,7 +187,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 			    if mm.IsBroadcast() {
 				go func(msg string,gid string) {
 				    for i:=0;i<1;i++ {
-					//log.Debug("================ProcessInboundMessages,also broacast to group for msg=====================","msg type",mm.GetMsgType(),"key",msgprex)
+					log.Debug("================SignProcessInboundMessages,also broacast to group for msg=====================","msg type",mm.GetMsgType(),"key",msgprex,"msg",msg,"gid",gid)
 					SendMsgToSmpcGroup(msg,gid)
 					time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 				    }
