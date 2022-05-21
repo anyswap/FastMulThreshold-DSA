@@ -47,6 +47,7 @@ var (
 const (
 	respTimeout = 500 * time.Millisecond
 	expiration  = 20 * time.Second
+	expirationBroadcast  = 10 * time.Second
 
 	ntpFailureThreshold = 32               // Continuous timeouts after which to check NTP
 	ntpWarningCooldown  = 10 * time.Minute // Minimum amount of time to pass before repeating NTP warning
@@ -562,7 +563,7 @@ func (t *udp) readLoop(unhandled chan<- ReadPacket) {
 	// Discovery packets are defined to be no larger than 1280 bytes.
 	// Packets larger than this size will be cut at the end and treated
 	// as invalid because their hash won't match.
-	buf := make([]byte, 5000)
+	buf := make([]byte, 12800)
 	for {
 		nbytes, from, err := t.conn.ReadFromUDP(buf)
 		if netutil.IsTemporaryError(err) {
