@@ -48,11 +48,12 @@ var (
 	LocalIP        string
 	RemoteIP       net.IP
 	RemotePort     = uint16(0)
-	RemoteUpdate   = true
+	RemoteUpdate   = false
 	SelfEnode      = ""
 	SelfIPPort     = ""
 	changed        = 0
 	Xp_changed     = 0
+	connectOk bool = false
 
 	SDK_groupList map[NodeID]*Group = make(map[NodeID]*Group)
 	GroupSDK      sync.Mutex
@@ -74,7 +75,7 @@ var (
 	addNodesLock      sync.Mutex
 	loadedSeeds       map[NodeID]int = make(map[NodeID]int)
 	loadedDone        bool           = false
-	SDK_groupListChan chan int       = make(chan int, 1)
+	checkNetworkChan  chan int       = make(chan int, 1)
 )
 var (
 	Smpc_groupMemNum = 0
@@ -89,6 +90,7 @@ type OnLineStatus struct {
 
 const (
 	SendWaitTime = 1 * time.Minute
+	checkNetworkConnectTime = 10 * time.Second
 	pingCount    = 10
 
 	Smpcprotocol_type = iota + 1
@@ -1412,14 +1414,45 @@ func GetEnode() string {
 	return SelfEnode
 }
 
+func CheckNetwokConnect() {
+	go func() {
+		<-checkNetworkChan
+		connectOk = true
+	}()
+	go func() {
+		for {
+			SendWaitTimeOut := time.NewTicker(checkNetworkConnectTime)
+			select {
+			case <-SendWaitTimeOut.C:
+				if connectOk {
+					common.Info("CheckNetworkConnect success", "ip", RemoteIP, "port", RemotePort)
+					return
+				} else {
+					common.Info("CheckNetwokConnect failed, Please check network: port or bootnode")
+				}
+			}
+		}
+	}()
+}
+
 func updateRemoteIP(ip net.IP, port uint16) {
 	if setgroup == 0 && RemoteUpdate == false {
 		RemoteUpdate = true
-		enode := fmt.Sprintf("enode://%v@%v:%v", GetLocalID(), RemoteIP, RemotePort)
-		n, _ := ParseNode(enode)
-		setGroup(n, "add")
 		updateIPPort(ip, port)
+		checkNetworkChan <- 1
 	}
+}
+
+func UpdateMyselfIP() {
+	for {
+		if connectOk {
+			break
+		}
+		time.Sleep(time.Duration(1) * time.Second)
+	}
+	enode := fmt.Sprintf("enode://%v@%v:%v", GetLocalID(), RemoteIP, RemotePort)
+	n, _ := ParseNode(enode)
+	setGroup(n, "add")
 }
 
 func updateIPPort(ip net.IP, port uint16) {
@@ -1429,6 +1462,7 @@ func updateIPPort(ip net.IP, port uint16) {
 	RemotePort = port
 	SelfEnode = fmt.Sprintf("enode://%v@%v:%v", GetLocalID(), RemoteIP, RemotePort)
 	SelfIPPort = fmt.Sprintf("%v:%v", RemoteIP, RemotePort)
+	common.Info("updateRemoteIP", "myselfEnode", SelfEnode)
 }
 
 func SendToMyselfAndReturn(selfID, msg string, p2pType int) {
@@ -1895,14 +1929,7 @@ func InitIP(ip string, port uint16) {
 	RemoteIP = parseIP(ip)
 	RemotePort = port
 	SelfEnode = fmt.Sprintf("enode://%v@%v:%v", GetLocalID(), RemoteIP, RemotePort)
-	fmt.Printf("==== InitIP() ====, IP: %v\n", RemoteIP)
 	common.Info("==== InitIP() ====", "IP", RemoteIP)
-	go func(enode string) {
-		n, _ := ParseNode(enode)
-		<-SDK_groupListChan
-		setGroup(n, "add")
-		RemoteUpdate = false
-	}(SelfEnode)
 }
 
 func parseIP(s string) net.IP {

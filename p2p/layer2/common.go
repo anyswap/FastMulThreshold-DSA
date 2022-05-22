@@ -633,7 +633,8 @@ func InitServer(nodeserv interface{}) {
 	if err != nil {
 	    return
 	}
-	discover.SDK_groupListChan <- 1
+	common.Debug("InitServer", "init Group info", "finished")
+	go discover.UpdateMyselfIP()
 }
 
 func getCDLen(msg string) int {
