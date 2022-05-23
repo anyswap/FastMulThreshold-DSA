@@ -52,21 +52,28 @@ var (
 // GetReqAddrNonce get keygen special tx nonce
 func GetReqAddrNonce(account string) (string, string, error) {
     	if account == "" {
-	    return "","",errors.New("param error")
+	    log.Debug("==================GetReqAddrNonce,get nonce fail,please provide an account===================","account",account)
+	    return "","",errors.New("get nonce fail,please provide an account")
 	}
 
 	key2 := Keccak256Hash([]byte(strings.ToLower(account))).Hex()
 	var da []byte
 	exsit, datmp := GetPubKeyData([]byte(key2))
-	if !exsit {
+	if !exsit || datmp == nil {
 		return "0", "", nil
 	}
 
-	da = datmp.([]byte)
+	da,ok := datmp.([]byte)
+	if !ok {
+	    log.Debug("==================GetReqAddrNonce,get nonce fail,please provide an right account===================","account",account)
+	    return "","",errors.New("get nonce fail,please provide an right account")
+	}
+
 	nonce, _ := new(big.Int).SetString(string(da), 10)
 	one, _ := new(big.Int).SetString("1", 10)
 	nonce = new(big.Int).Add(nonce, one)
 
+	log.Debug("==================GetReqAddrNonce===================","nonce",nonce,"account",account)
 	return fmt.Sprintf("%v", nonce), "", nil
 }
 
@@ -75,15 +82,18 @@ func GetReqAddrNonce(account string) (string, string, error) {
 // SetReqAddrNonce set keygen special tx nonce
 func SetReqAddrNonce(account string, nonce string) (string, error) {
     	if account == "" || nonce == "" {
-	    return "",errors.New("param error")
+	    log.Debug("==================SetReqAddrNonce,param error===================","nonce",nonce,"account",account)
+	    return "",errors.New("set nonce fail,param error")
 	}
 
 	key := Keccak256Hash([]byte(strings.ToLower(account))).Hex()
 	err := PutPubKeyData([]byte(key), []byte(nonce))
 	if err != nil {
+		log.Debug("==================SetReqAddrNonce,set nonce error===================","nonce",nonce,"account",account,"err",err)
 		return err.Error(), err
 	}
 
+	log.Debug("==================SetReqAddrNonce,set nonce success===================","nonce",nonce,"account",account)
 	return "", nil
 }
 

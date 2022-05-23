@@ -191,6 +191,7 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 	if ok {
 		exsit, _ := GetReqAddrInfoData([]byte(key))
 		if exsit {
+		    common.Error("===============DoReq,the pubkey requestion has already exsit===================", "key", key)
 		    res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("the pubkey requestion has already exsit")}
 		    ch <- res
 		    return false
@@ -199,14 +200,16 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 		curnonce, _, _ := GetReqAddrNonce(from)
 		curnoncenum, _ := new(big.Int).SetString(curnonce, 10)
 		newnoncenum, _ := new(big.Int).SetString(nonce, 10)
-		if newnoncenum.Cmp(curnoncenum) < 0 {
-		    res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("nonce error")}
+		if newnoncenum.Cmp(curnoncenum) != 0 {
+		    common.Error("===============DoReq,check nonce fail===================", "key", key,"account",from,"current nonce in db",curnoncenum,"keygen nonce",newnoncenum)
+		    res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("check nonce fail,account = %v,current nonce in db = %v,keygen nonce = %v",from,curnoncenum,newnoncenum)}
 		    ch <- res
 		    return false
 		}
 
 		_, err := SetReqAddrNonce(from, nonce)
 		if err != nil {
+		    common.Error("===============DoReq,set nonce fail===================", "key", key,"from",from,"nonce",nonce,"err",err)
 		    res := RPCSmpcRes{Ret: "", Tip:"", Err: err}
 		    ch <- res
 		    return false

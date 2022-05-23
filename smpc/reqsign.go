@@ -40,6 +40,7 @@ import (
 	"github.com/astaxie/beego/logs"
 	"runtime/debug"
 	"sync"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 var (
@@ -56,43 +57,45 @@ func GetSignNonce(account string) (string, string, error) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	if account == "" {
-		return "", "", fmt.Errorf("invalid account")
+	    log.Debug("==================GetSignNonce,get nonce fail,invalid account=================","account",account)
+		return "", "", fmt.Errorf("invalid account,account = %v",account)
 	}
 
 	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + "Sign"))).Hex()
-	exsit, da := GetPubKeyData([]byte(key))
-	if !exsit {
-		nonce := "0"
-		err := PutPubKeyData([]byte(key), []byte(nonce))
-		if err != nil {
-		    return "", "", err 
-		}
-
+	exsit, datmp := GetPubKeyData([]byte(key))
+	if !exsit || datmp == nil {
 		return "0", "", nil
 	}
 
-	nonce, _ := new(big.Int).SetString(string(da.([]byte)), 10)
+	da,ok := datmp.([]byte)
+	if !ok {
+	    log.Debug("==================GetSignNonce,get nonce fail,please provide an right account===================","account",account)
+	    return "","",errors.New("get nonce fail,please provide an right account")
+	}
+
+	nonce, _ := new(big.Int).SetString(string(da), 10)
 	one, _ := new(big.Int).SetString("1", 10)
 	nonce = new(big.Int).Add(nonce, one)
-	err := PutPubKeyData([]byte(key), []byte(fmt.Sprintf("%v", nonce)))
-	if err != nil {
-	    return "", "", err 
-	}
+	
+	log.Debug("==================GetSignNonce,get nonce success=================","account",account,"nonce",nonce)
 	return fmt.Sprintf("%v", nonce), "", nil
 }
 
 // SetSignNonce set sign special tx nonce
 func SetSignNonce(account string, nonce string) (string, error) {
     	if account == "" || nonce == "" {
-	    return "",errors.New("param error")
+	    log.Debug("=====================SetSignNonce,set nonce fail===================","account",account,"nonce",nonce)
+	    return "",errors.New("set nonce fail,param error")
 	}
 
 	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + "Sign"))).Hex()
 	err := PutPubKeyData([]byte(key), []byte(nonce))
 	if err != nil {
+		log.Debug("=====================SetSignNonce,set nonce fail===================","account",account,"nonce",nonce,"err",err)
 		return err.Error(), err
 	}
 
+	log.Debug("=====================SetSignNonce,set nonce success===================","account",account,"nonce",nonce)
 	return "", nil
 }
 
@@ -121,6 +124,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 
 	sig, ok := txdata.(*TxDataSign)
 	if !ok {
+		common.Error("===============DoSign,sign data error===================", "key", key, "from", from, "raw", sbd.Raw)
 		res := RPCSmpcRes{Ret: "", Tip:"sign data error", Err: fmt.Errorf("sign data error")}
 		ch <- res
 		return fmt.Errorf("sign data error") 
@@ -128,9 +132,28 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 
 	exsit, _ := GetSignInfoData([]byte(key))
 	if exsit {
-		res := RPCSmpcRes{Ret: "", Tip:"the sign cmd has handled before", Err: fmt.Errorf("the sign cmd has handled before")}
+		common.Error("===============DoSign,the sign cmd has handled before===================", "key", key, "from", from, "raw", sbd.Raw)
+		res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("the sign cmd has handled before")}
 		ch <- res
 		return fmt.Errorf("the sign cmd has handled before")
+	}
+
+	curnonce, _, _ := GetSignNonce(from)
+	curnoncenum, _ := new(big.Int).SetString(curnonce, 10)
+	newnoncenum, _ := new(big.Int).SetString(nonce, 10)
+	if newnoncenum.Cmp(curnoncenum) != 0 {
+	    common.Error("===============DoSign,check nonce fail===================", "key", key, "account", from, "raw", sbd.Raw,"current nonce in db",curnoncenum,"sign nonce",newnoncenum)
+	    res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("check nonce fail,account = %v,current nonce in db = %v,keygen nonce = %v",from,curnoncenum,newnoncenum)}
+	    ch <- res
+	    return fmt.Errorf("check nonce fail,account = %v,current nonce in db = %v,sign nonce = %v",from,curnoncenum,newnoncenum)
+	}
+
+	_, err = SetSignNonce(from, nonce)
+	if err != nil {
+	    common.Error("===============DoSign,set nonce fail===================", "key", key, "account", from, "raw", sbd.Raw,"nonce",nonce,"err",err)
+	    res := RPCSmpcRes{Ret: "", Tip:"", Err: err}
+	    ch <- res
+	    return err
 	}
 
 	ars := GetAllReplyFromGroup(workid, sig.GroupID, RPCSIGN, sender)
@@ -490,7 +513,7 @@ func Sign(raw string) (string, string, error) {
 
 	sig, ok := txdata.(*TxDataSign)
 	if !ok {
-		return "", "check raw fail,it is not *TxDataSign", fmt.Errorf("check raw fail,it is not *TxDataSign")
+		return "", "", fmt.Errorf("check raw fail,it is not *TxDataSign")
 	}
 
 	common.Debug("=====================Sign================", "key", key, "from", from, "raw", raw)

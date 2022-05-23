@@ -5,11 +5,11 @@
 echo pwd: $(pwd)
 
 #clean up
-killall -9 gsmpctest bootnodetest
+killall -9 gsmpctest bootnodetest gsmpc-client-test
 rm -rf $1/test/bin/gsmpctest
 rm -rf $1/test/bin/bootnodetest
 rm -rf $1/test/bin/gsmpc-client-test
-rm -rf $1/test/log/*.log
+rm -rf $1/test/log/*.log*
 rm -rf $1/test/nodedata/node*
 rm -rf $1/test/nodekey/*.key
 rm -rf test/reqaddr.sh
@@ -184,7 +184,7 @@ pubkey=`echo ${val:5:64}`
 fi
 
 echo
-echo ================================== KeyGen successfully =======================================
+echo ================================== KeyGen finish =======================================
 echo
 sleep 3
 

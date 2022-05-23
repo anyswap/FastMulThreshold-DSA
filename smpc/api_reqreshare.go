@@ -671,3 +671,5 @@ func (req *ReqSmpcReshare) DisAcceptMsg(raw string, workid int, key string) {
 		workers[ac.WorkID].acceptReShareChan <- "go on"
 	}
 }
+
+

@@ -366,7 +366,7 @@ fi
 echo
 echo ---------------------------------------------------------------------- sign rsv : $rsv --------------------------------------------------------------------------------
 
-killall -9 gsmpctest bootnodetest
+killall -9 gsmpctest bootnodetest gsmpc-client-test
 
 rm -rf $1/test/bin/gsmpctest
 rm -rf $1/test/bin/bootnodetest
