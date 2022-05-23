@@ -349,6 +349,7 @@ func startP2pNode() error {
 	comlog.Info("=========== startP2pNode() ==========","bootnodes", bootNodes)
 	nodeserv.Config.BootstrapNodes = []*discover.Node{bootNodes}
 
+	discover.CheckNetwokConnect()
 	go func() {
 		if err := nodeserv.Start(); err != nil {
 			comlog.Error("==== startP2pNode() ====","nodeserv.Start err", err)
