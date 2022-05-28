@@ -24,6 +24,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common/math/random"
 	"math/big"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 // Start verify MtAZK2Proof,paillier Decrypt,calc delta1
@@ -66,6 +67,7 @@ func (round *round5) Start() error {
 		msg4, _ := round.temp.signRound4Messages[k].(*SignRound4Message)
 		rlt111 := msg4.U1u1MtAZK2Proof.MtARespZKProofVerify(round.temp.ukc, msg4.U1KGamma1Cipher, u1PaillierPk, u1nt)
 		if !rlt111 {
+			log.Error("=====================round5.start,verify mkg fail================","msg4",*msg4,"index",index,"oldindex",oldindex,"idsign",round.idsign,"save.IDs",round.save.IDs,"curIndex",curIndex,"k",k)
 			return errors.New("verify mkg fail")
 		}
 
@@ -78,6 +80,7 @@ func (round *round5) Start() error {
 		msg41, _ := round.temp.signRound4Messages1[k].(*SignRound4Message1)
 		rlt112 := msg41.U1u1MtAZK3Proof.MtAwcRespZKProofVefify(xG,round.temp.ukc, msg41.U1Kw1Cipher, u1PaillierPk, u1nt)
 		if !rlt112 {
+			log.Error("=====================round5.start,verify mkw fail================","msg41",*msg41,"index",index,"oldindex",oldindex,"idsign",round.idsign,"save.IDs",round.save.IDs,"curIndex",curIndex,"k",k)
 			return errors.New("verify mkw fail")
 		}
 

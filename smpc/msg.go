@@ -531,34 +531,6 @@ func Call(msg interface{}, enode string) {
 		s = raw
 	}
 
-	//check msg2peer
-	/*ok,keytmp,gidtmp,ss := IsMsg2Peer(s)
-	if ok {
-	    w, werr := FindWorker(keytmp)
-	    if werr != nil {
-		return
-	    }
-
-	    if findmsg2peer(w.Msg2Peer,msg.(string)) {
-		return
-	    }
-
-	    w.Msg2Peer = append(w.Msg2Peer,msg.(string))
-	    if ss == "" {
-		go func(msg2 string,gid string) {
-		    for i:=0;i<1;i++ {
-			SendMsgToSmpcGroup(msg2,gid)
-			time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
-		    }
-		}(msg.(string),gidtmp)
-		
-		return
-	    }
-
-	    s = ss
-	}*/
-	//
-
 	//msgdata, errdec := DecryptMsg(s) //for SendMsgToPeer
 	//if errdec == nil {
 	//	s = msgdata

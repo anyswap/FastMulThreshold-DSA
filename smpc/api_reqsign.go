@@ -33,6 +33,7 @@ import (
 	"github.com/fsn-dev/cryptoCoins/coins/types"
 	"github.com/fsn-dev/cryptoCoins/tools/rlp"
 	"time"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 // ReqSmpcSign sign cmd request
@@ -257,6 +258,7 @@ func (sps *SyncPreSign) UnmarshalJSON(raw []byte) error {
 func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 	w := workers[wid]
 	if w == nil {
+		log.Error("=============================SynchronizePreSignData,not found worker==========================","key",msgprex,"wid",wid,"success",success)
 		return false
 	}
 
@@ -269,6 +271,7 @@ func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 	m := make(map[string]string)
 	spsjson, err := sps.MarshalJSON()
 	if err != nil {
+		log.Error("=============================SynchronizePreSignData,marshal json fail==========================","key",msgprex,"wid",wid,"success",success,"err",err)
 		return false
 	}
 	
@@ -276,6 +279,7 @@ func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 	m["Type"] = "SyncPreSign"
 	val, err := json.Marshal(m)
 	if err != nil {
+		log.Error("=============================SynchronizePreSignData,marshal json fail==========================","key",msgprex,"wid",wid,"success",success,"err",err)
 		return false
 	}
 	SendMsgToSmpcGroup(string(val), w.groupid)
@@ -292,7 +296,7 @@ func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 	reply := false
 	timeout := make(chan bool, 1)
 	go func() {
-		syncWaitTime := 20 * time.Second
+		syncWaitTime := 300 * time.Second
 		syncWaitTimeOut := time.NewTicker(syncWaitTime)
 
 		for {
@@ -302,6 +306,7 @@ func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 				for iter != nil {
 					val := iter.Value.(string)
 					if val == "" {
+						log.Error("=============================SynchronizePreSignData,msgsyncpresign value error==========================","key",msgprex,"wid",wid,"success",success)
 						reply = false
 						timeout <- false
 						return
@@ -310,6 +315,7 @@ func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 					msgmap := make(map[string]string)
 					err = json.Unmarshal([]byte(val), &msgmap)
 					if err != nil {
+						log.Error("=============================SynchronizePreSignData,unmarsh msgsyncpresign value error==========================","key",msgprex,"wid",wid,"success",success,"err",err)
 						reply = false
 						timeout <- false
 						return
@@ -317,12 +323,14 @@ func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 
 					sps := &SyncPreSign{}
 					if err = sps.UnmarshalJSON([]byte(msgmap["SyncPreSign"])); err != nil {
+						log.Error("=============================SynchronizePreSignData,unmarsh msgsyncpresign value error==========================","key",msgprex,"wid",wid,"success",success,"err",err)
 						reply = false
 						timeout <- false
 						return
 					}
 
 					if strings.EqualFold(sps.Msg, "fail") {
+						log.Error("=============================SynchronizePreSignData,status is fail==========================","key",msgprex,"wid",wid,"success",success)
 						reply = false
 						timeout <- false
 						return
@@ -335,6 +343,7 @@ func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 				timeout <- false
 				return
 			case <-syncWaitTimeOut.C:
+				log.Error("=============================SynchronizePreSignData,wait time out==========================","key",msgprex,"wid",wid,"success",success)
 				reply = false
 				timeout <- true
 				return
