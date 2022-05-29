@@ -59,13 +59,13 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 
 			///dul?
 			hexs := Keccak256Hash([]byte(strings.ToLower(m))).Hex()
-			log.Debug("========================SignProcessInboundMessages,get msg====================","msg",m,"key",msgprex)
 			_, exist2 := w.Msg56[hexs]
 			if exist2 {
 			   break 
 			}
 			///
 
+			log.Debug("========================SignProcessInboundMessages,get msg====================","msg",m,"key",msgprex,"orig msg hash",hexs)
 			msgmap := make(map[string]string)
 			err := json.Unmarshal([]byte(m), &msgmap)
 			if err != nil {
@@ -111,7 +111,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 			
 			//common.Debug("===============sign,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			if !checkP2pSig(sig,mm,msgmap["ENode"]) {
-			    common.Error("===============sign,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
+			    common.Error("===============sign,check msg sig fail===============","sender",msgmap["ENode"],"orig msg hash",hexs,"key",msgprex)
 			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
 			    ch <- res
 			    return
@@ -141,10 +141,16 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 			}
 
 			_,ID := GetNodeUID(msgmap["ENode"], "EC256K1",pubs.GroupID)
+			if ID == nil {
+			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get node uid fail")}
+			    ch <- res
+			    return
+			}
+
 			id := fmt.Sprintf("%v", ID)
 			uid := hex.EncodeToString([]byte(id))
 			if !strings.EqualFold(uid,mm.GetFromID()) {
-			    common.Error("===============sign,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"],"err","check from ID fail")
+			    common.Error("===============sign,check from ID fail===============","sender",msgmap["ENode"],"orig msg hash",hexs)
 			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check from ID fail")}
 			    ch <- res
 			    return
@@ -163,7 +169,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 			}
 
 			if !succ {
-				common.Error("===============sign,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
+				common.Error("===============sign,check msg sig fail===============","sender",msgmap["ENode"],"orig msg hash",hexs,"key",msgprex)
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
 				ch <- res
 				return
@@ -172,7 +178,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 
 			_, err = w.DNode.Update(mm)
 			if err != nil {
-				log.Error("========== SignProcessInboundMessages, dnode update fail===========","receiv smpc msg",m,"err",err)
+				log.Error("========== SignProcessInboundMessages, dnode update fail===========","orig msg hash",hexs,"err",err,"key",msgprex)
 				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
@@ -187,7 +193,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 			    if mm.IsBroadcast() {
 				go func(msg string,gid string) {
 				    for i:=0;i<1;i++ {
-					log.Debug("================SignProcessInboundMessages,also broacast to group for msg=====================","msg type",mm.GetMsgType(),"key",msgprex,"msg",msg,"gid",gid)
+					log.Debug("================SignProcessInboundMessages,also broacast to group for msg=====================","orig msg hash",hexs,"key",msgprex,"gid",gid)
 					SendMsgToSmpcGroup(msg,gid)
 					time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 				    }

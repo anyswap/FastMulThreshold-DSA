@@ -1212,7 +1212,14 @@ func GetCurNodeIndex(gid string,subgid string,keytype string) int {
 	}
 
 	_,uid := GetNodeUID(curEnode, keytype,gid)
+	if uid == nil {
+	    return -1
+	}
+
 	ids := GetGroupNodeUIDs(keytype, gid,subgid)
+	if ids == nil {
+		return 1
+	}
 
 	for k, v := range ids {
 		if v.Cmp(uid) == 0 {
@@ -1311,6 +1318,10 @@ func GetMsgToEnode(keytype string, gid string,groupid string) map[string]string 
     for _, v := range others {
 	    node2 := ParseNode(v)
 	    _,uid := GetNodeUID(node2, keytype,gid)
+	    if uid == nil {
+		return nil
+	    }
+
 	    tmp := fmt.Sprintf("%v",uid)
 	    msgtoenode[hex.EncodeToString([]byte(tmp))] = node2
     }
@@ -1370,18 +1381,45 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 	}
 
 	sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, pubs.GroupID, cointype)
+	if sd.U1PaillierSk == nil {
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get paillier sk fail")}
+		ch <- res
+		return nil
+	}
 
 	U1PaillierPk := make([]*ec2.PublicKey, w.NodeCnt)
 	U1NtildeH1H2 := make([]*ec2.NtildeH1H2, w.NodeCnt)
 	for i := 0; i < w.NodeCnt; i++ {
 		U1PaillierPk[i] = GetPaillierPkByIndexFromSaveData(save, i)
+		if U1PaillierPk[i] == nil {
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get paillier pk fail")}
+			ch <- res
+			return nil
+		}
+
 		U1NtildeH1H2[i] = GetNtildeByIndexFromSaveData(save, i, w.NodeCnt)
+		if U1NtildeH1H2[i] == nil {
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get ntilde h1/h2 fail")}
+			ch <- res
+			return nil
+		}
+
 	}
 	sd.U1PaillierPk = U1PaillierPk
 	sd.U1NtildeH1H2 = U1NtildeH1H2
 
 	sd.IDs = GetGroupNodeUIDs(cointype,pubs.GroupID,pubs.GroupID)
+	if sd.IDs == nil {
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uids fail")}
+		ch <- res
+		return nil
+	}
 	_,sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
+	if sd.CurDNodeID == nil {
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uid fail")}
+		ch <- res
+		return nil
+	}
 
 	msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
 	kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
@@ -1389,6 +1427,11 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 	// [Notes]
 	// 1. assume the nodes who take part in the signature generation as follows
 	idsign := GetGroupNodeUIDs(cointype,pubs.GroupID,w.groupid)
+	if idsign == nil {
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uids fail")}
+		ch <- res
+		return nil
+	}
 
 	commStopChan := make(chan struct{})
 	outCh := make(chan smpclib.Message, w.ThresHold)
@@ -1506,23 +1549,55 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 	sd.SkU1 = sku1
 
 	sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, pubs.GroupID, cointype)
+	if sd.U1PaillierSk == nil {
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get paillier sk fail")}
+		ch <- res
+		return "" 
+	}
 
 	U1PaillierPk := make([]*ec2.PublicKey, w.NodeCnt)
 	U1NtildeH1H2 := make([]*ec2.NtildeH1H2, w.NodeCnt)
 	for i := 0; i < w.NodeCnt; i++ {
 		U1PaillierPk[i] = GetPaillierPkByIndexFromSaveData(save, i)
+		if U1PaillierPk[i] == nil {
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get paillier pk fail")}
+			ch <- res
+			return ""
+		}
+
 		U1NtildeH1H2[i] = GetNtildeByIndexFromSaveData(save, i, w.NodeCnt)
+		if U1NtildeH1H2[i] == nil {
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get ntilde h1/h2 fail")}
+			ch <- res
+			return ""
+		}
+
 	}
 	sd.U1PaillierPk = U1PaillierPk
 	sd.U1NtildeH1H2 = U1NtildeH1H2
 
 	sd.IDs = GetGroupNodeUIDs(cointype, pubs.GroupID,pubs.GroupID)
+	if sd.IDs == nil {
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uids fail")}
+		ch <- res
+		return ""
+	}
 	_,sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
+	if sd.CurDNodeID == nil {
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uid fail")}
+		ch <- res
+		return ""
+	}
 
 	msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
 	kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
 
 	idsign := GetGroupNodeUIDs(cointype,pubs.GroupID,w.groupid)
+	if idsign == nil {
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uids fail")}
+		ch <- res
+		return ""
+	}
 
 	commStopChan := make(chan struct{})
 	outCh := make(chan smpclib.Message, w.ThresHold)
@@ -1533,6 +1608,12 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 	signDNode := signing.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, true, predata, mMtA, finalizeendCh)
 	w.DNode = signDNode
 	_,UID := GetNodeUID(curEnode, "EC256K1",pubs.GroupID)
+	if UID == nil {
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uid fail")}
+		ch <- res
+		return ""
+	}
+
 	signDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 
 	var signWg sync.WaitGroup
@@ -1959,12 +2040,27 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 	sd.TSk = tsk
 	sd.FinalPkBytes = pkfinal
 	sd.IDs = GetGroupNodeUIDs(cointype, pubs.GroupID,pubs.GroupID)
+	if sd.IDs == nil {
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uids fail")}
+		ch <- res
+		return "" 
+	}
 	_,sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
+	if sd.CurDNodeID == nil {
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uid fail")}
+		ch <- res
+		return ""
+	}
 
 	msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
 	kgsave := &KGLocalDBSaveDataED{Save: sd, MsgToEnode: msgtoenode}
 
 	idsign := GetGroupNodeUIDs(cointype,pubs.GroupID,w.groupid)
+	if idsign == nil {
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uids fail")}
+		ch <- res
+		return ""
+	}
 
 	//mMtA, _ := new(big.Int).SetString(message, 16)
 	mMtA := new(big.Int).SetBytes(common.FromHex(message))
@@ -1983,6 +2079,12 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 	signDNode := edsigning.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, mMtA, finalizeendCh)
 	w.DNode = signDNode
 	_,UID := GetNodeUID(curEnode, "ED25519",pubs.GroupID)
+	if UID == nil {
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uid fail")}
+		ch <- res
+		return "" 
+	}
+
 	signDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 
 	var signWg sync.WaitGroup

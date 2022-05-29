@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 // DNode base interface of local dnode
@@ -126,7 +127,7 @@ func BaseUpdate(p DNode, msg Message) (ok bool, err error) {
 		if p.Round().CanProceed() {
 			if p.advance(); p.Round() != nil {
 				if err := p.Round().Start(); err != nil {
-					fmt.Printf("==========================BaseUpdate,round start fail,msg,err = %v=====================\n",msg,err)
+					log.Error("==========================BaseUpdate,round start fail=====================","err",err)
 					p.unlock() // recursive so can't defer after return
 					return false, err
 				}
@@ -136,6 +137,7 @@ func BaseUpdate(p DNode, msg Message) (ok bool, err error) {
 				    if p.Round().CanProceed() {
 					if p.advance(); p.Round() != nil {
 					    if err := p.Round().Start(); err != nil {
+						    log.Error("==========================BaseUpdate,round start fail=====================","err",err)
 						    p.unlock() // recursive so can't defer after return
 						    return false, err
 					    }

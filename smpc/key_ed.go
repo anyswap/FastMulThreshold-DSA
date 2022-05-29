@@ -105,6 +105,12 @@ func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, wg *s
 			
 			// check fromID
 			_,UID := GetNodeUID(msgmap["ENode"], "ED25519",w.groupid)
+			if UID == nil {
+			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get node uid fail")}
+			    ch <- res
+			    return
+			}
+
 			id := fmt.Sprintf("%v", UID)
 			uid := hex.EncodeToString([]byte(id))
 			if !strings.EqualFold(uid,mm.GetFromID()) {

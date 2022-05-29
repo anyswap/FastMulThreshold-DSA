@@ -40,6 +40,10 @@ import (
 	"time"
 	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"errors"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common/math"
+	//"github.com/golang/protobuf/proto"
+	//"github.com/gogo/protobuf/proto"
+	//"github.com/anyswap/FastMulThreshold-DSA/protobuf"
 )
 
 var (
@@ -232,10 +236,26 @@ func SendMsgToSmpcGroup(msg string, groupid string) {
 	}
 
 	msghash := Keccak256Hash([]byte(strings.ToLower(msg))).Hex()
-	common.Debug("=========SendMsgToSmpcGroup=============", "msghash",msghash,"msg",msg,"groupid",groupid)
-	_, err := BroadcastInGroupOthers(groupid, msg)
+
+	 /*msginfo := &protobuf.P2PMsg{
+	    MsgInfo: msg,
+	}
+
+	send, err := proto.Marshal(msginfo)
 	if err != nil {
-		common.Debug("=========SendMsgToSmpcGroup,send msg to smpc group=============", "msghash",msghash,"msg", msg, "groupid", groupid, "err", err)
+	    log.Error("==================SendMsgToSmpcGroup,proto marshal msg error====================","err",err,"msg",msg,"msg hash",msghash)
+	    return
+	}
+
+	msghash2 := Keccak256Hash([]byte(strings.ToLower(string(send)))).Hex()
+	common.Debug("=========SendMsgToSmpcGroup=============", "msg hash",msghash,"msg",msg,"send msg",string(send),"send msg hash",msghash2,"groupid",groupid,"send msg size",len(string(send)),"msg size",len(msg))
+	*/
+	
+	common.Debug("=========SendMsgToSmpcGroup=============", "send msg hash",msghash,"send msg",msg,"groupid",groupid)
+	_, err := BroadcastInGroupOthers(groupid,msg)
+	if err != nil {
+		//common.Error("=========SendMsgToSmpcGroup,send msg to smpc group fail=============", "msg hash",msghash,"msg",msg,"send msg",string(send),"send msg hash",msghash2,"groupid",groupid,"err",err)
+		common.Error("=========SendMsgToSmpcGroup,send msg to smpc group fail=============", "send msg hash",msghash,"send msg",msg,"groupid",groupid,"err",err)
 	}
 }
 
@@ -335,7 +355,7 @@ func SendMsgToPeerWithBrodcast(key string,enodes string, msg string,groupid stri
 	/////
 
 	msghash := Keccak256Hash([]byte(strings.ToLower(string(s)))).Hex()
-	log.Debug("====================SendMsgToPeerWithBrodcast=====================","orig msg",msg,"msg",string(s),"msg hash",msghash,"gid",groupid)
+	log.Debug("====================SendMsgToPeerWithBrodcast=====================","orig msg",msg,"send msg",string(s),"send msg hash",msghash,"gid",groupid)
 	SendMsgToSmpcGroup(string(s),groupid)
 }
 
@@ -517,6 +537,51 @@ func GetCmdKey(msg string) string {
 
 //----------------------------------------------------------------------------------------
 
+var expiredInterval = int64(900) // seconds
+
+// NowMilliStr returns now timestamp in miliseconds of string format.
+func NowMilliStr() string {
+         return strconv.FormatInt((time.Now().UnixNano() / 1e6), 10)
+}
+
+// GetUint64FromStr get uint64 from string.
+func GetUint64FromStr(str string) (uint64, error) {
+    res, ok := math.ParseUint64(str)
+    if !ok {
+	    return 0, errors.New("invalid unsigned 64 bit integer: " + str)
+     }
+
+     return res, nil
+}
+
+func CleanUpMsg2Peer() {
+    for {
+	key,value := Msg2Peer.ListMap()
+	l := len(key)
+	if l != len(value) {
+	    time.Sleep(time.Duration(60) * time.Second) //1000 == 1s
+	    continue
+	}
+
+	for i:=0;i<l;i++ {
+	    k := key[i]
+	    val := value[i]
+	    tt,ok := val.(string)
+	    if !ok {
+		continue
+	    }
+
+	    timestamp, _ := GetUint64FromStr(tt)
+	    if expiredInterval > 0 && int64(timestamp/1000) + expiredInterval < time.Now().Unix() {
+		log.Debug("======================CleanUpMsg2Peer======================","key",k,"value",tt)
+		Msg2Peer.DeleteMap(k)
+	    }
+	}
+
+	time.Sleep(time.Duration(60) * time.Second) //1000 == 1s
+    }
+}
+
 // Call receive msg from p2p
 func Call(msg interface{}, enode string) {
 	s := msg.(string)
@@ -525,7 +590,29 @@ func Call(msg interface{}, enode string) {
 	}
 
 	msghash := Keccak256Hash([]byte(strings.ToLower(s))).Hex()
-	common.Debug("====================Call===================", "get p2p msg ", msg,"msg hash",msghash,"sender node", enode)
+	common.Debug("====================Call===================", "get p2p send msg ", msg,"send msg hash",msghash,"sender node", enode)
+
+	/*msginfo := &protobuf.P2PMsg{}
+	errbuf := proto.Unmarshal([]byte(s), msginfo)
+	if errbuf != nil {
+	    common.Error("====================Call,proto unmarshal error===================", "get p2p send msg ", msg,"send msg hash",msghash,"sender node", enode,"err",errbuf)
+	    return
+	}
+
+	s = msginfo.MsgInfo
+	msghash2 := Keccak256Hash([]byte(strings.ToLower(s))).Hex()
+	common.Debug("====================Call===================", "get p2p send msg ",msg,"send msg hash",msghash,"sender node", enode,"get p2p orig msg",s,"orig msg hash",msghash2)
+	*/
+
+	//check msg
+	_,exist := Msg2Peer.ReadMap(msghash)
+	if exist {
+	    return
+	}
+	Msg2Peer.WriteMap(msghash,NowMilliStr())
+	go p2psmpc.P2pBroatcastPeers(s,false)
+	//
+
 	raw, err := UnCompress(s)
 	if err == nil {
 		s = raw
@@ -554,7 +641,7 @@ func Call(msg interface{}, enode string) {
 		if ss == "" {
 		    go func(msg2 string,gid string) {
 			for i:=0;i<1;i++ {
-			   log.Debug("================Call,also broacast to group for msg===================","key",keytmp,"msg",msg2,"gid",gid,"msg hash",msghash)
+			   log.Debug("================Call,also broacast to group for msg===================","key",keytmp,"send msg",msg2,"gid",gid,"send msg hash",msghash)
 			    SendMsgToSmpcGroup(msg2,gid)
 			    //time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 			}
@@ -576,21 +663,26 @@ func Call(msg interface{}, enode string) {
 		    w, err := FindWorker(val)
 		    if err == nil {
 			    if w.DNode != nil && w.DNode.Round() != nil {
-				    common.Debug("====================Call, get smpc msg,worker found.===================", "key", val, "msg", msg, "msg hash",msghash,"orig msg",s,"sender node", enode)
+				    common.Debug("====================Call, get smpc msg,worker found.===================", "key", val, "send msg hash",msghash,"orig msg",s,"sender node", enode)
 				    w.SmpcMsg <- s
 			    } else {
 				    from := msgmap["FromID"]
 				    msgtype := msgmap["Type"]
 				    key := strings.ToLower(val + "-" + from + "-" + msgtype)
 				    C1Data.WriteMap(key, s)
-				    log.Debug("===============================Call, pre-save p2p msg, worker found=============", "key",val,"fromID",from,"msgtype",msgtype,"c1data key",key,"msg",msg,"msg hash",msghash,"orig msg",s)
+				    log.Debug("===============================Call, pre-save p2p msg, worker found=============", "key",val,"fromID",from,"send msg hash",msghash,"orig msg",s)
 			    }
 		    } else {
 			    from := msgmap["FromID"]
 			    msgtype := msgmap["Type"]
+			    exsit,_ := GetPubKeyData([]byte(val))
+			    if exsit {
+				return
+			    }
+
 			    key := strings.ToLower(val + "-" + from + "-" + msgtype)
 			    C1Data.WriteMap(key, s)
-			    log.Debug("===============================Call, pre-save p2p msg, worker not found============","key",val,"fromID",from,"msgtype",msgtype,"c1data key",key,"msg",msg,"msg hash",msghash,"orig msg",s)
+			    log.Debug("===============================Call, pre-save p2p msg, worker not found============","key",val,"fromID",from,"send msg hash",msghash,"orig msg",s)
 		    }
 
 		    return
@@ -856,9 +948,17 @@ func HandleC1Data(ac *AcceptReqAddrData, key string) {
 	for _, node := range nodes {
 		node2 := ParseNode(node)
 		_,uid := GetNodeUID(node2, "EC256K1",ac.GroupID)
+		if uid == nil {
+			continue	
+		}
+
 		HandleKG(key, uid)
 		HandleSign(key, uid)
 		_,uid = GetNodeUID(node2, "ED25519",ac.GroupID)
+		if uid == nil {
+			continue	
+		}
+
 		HandleKG(key, uid)
 		HandleSign(key, uid)
 	}

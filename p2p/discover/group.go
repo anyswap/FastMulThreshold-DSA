@@ -1229,10 +1229,12 @@ func (t *udp) sendMsgToBroadcastNode(toid NodeID, toaddr *net.UDPAddr, msg strin
 	})
 	if errs != nil {
 		common.Debug("==== (t *udp) sendMsgToBroadcastNode ====", "errs", errs, "toid",toid,"toaddr",toaddr,"msgHash",msgHash, "len", len(msg))
+		//common.Debug("======================== sendMsgToBroadcastNode,send fail with udp ==================", "err", errs, "toid",toid,"toaddr",toaddr,"msgHash",msgHash)
 		return errs
 	}
 	err := <-errc
-	common.Debug("sendMsgToBroadcastNode success","toid",toid,"toaddr",toaddr,"msgHash",msgHash)
+	common.Debug("sendMsgToBroadcastNode success","toid",toid,"toaddr",toaddr,"msgHash",msgHash,"err",err)
+	//common.Debug("======================== sendMsgToBroadcastNode,send finish with udp ==================", "err", err, "toid",toid,"toaddr",toaddr,"msgHash",msgHash)
 	return err
 }
 func (req *messageBroadcast) name() string { return "MESSAGEBROADCAST/v4" }

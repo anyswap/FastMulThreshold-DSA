@@ -401,7 +401,7 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 	}
 
 	ns, _ := GetGroup(groupid)
-	if ns != w.NodeCnt {
+	if ns != w.NodeCnt || ns == 0 {
 		res := RPCSmpcRes{Ret: "", Err: GetRetErr(ErrGroupNotReady)}
 		ch <- res
 		return
@@ -457,25 +457,61 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 		sd.Pky = pky
 
 		sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, (da.(*PubKeyData)).GroupID, "EC256K1")
+		if sd.U1PaillierSk == nil {
+			res := RPCSmpcRes{Ret: "", Tip: "reshare get sku1 fail", Err: fmt.Errorf("reshare get paillier sk fail")}
+			ch <- res
+			return
+		}
 
 		U1PaillierPk := make([]*ec2.PublicKey, w.NodeCnt)
 		U1NtildeH1H2 := make([]*ec2.NtildeH1H2, w.NodeCnt)
 		for i := 0; i < w.NodeCnt; i++ {
 			U1PaillierPk[i] = GetPaillierPkByIndexFromSaveData(save, i)
+			if U1PaillierPk[i] == nil {
+				res := RPCSmpcRes{Ret: "", Tip: "reshare get sku1 fail", Err: fmt.Errorf("reshare get paillier pk fail")}
+				ch <- res
+				return
+			}
 			U1NtildeH1H2[i] = GetNtildeByIndexFromSaveData(save, i, w.NodeCnt)
+			if U1NtildeH1H2[i] == nil {
+				res := RPCSmpcRes{Ret: "", Tip: "reshare get sku1 fail", Err: fmt.Errorf("reshare get ntilde h1/h2 fail")}
+				ch <- res
+				return
+			}
 		}
 		sd.U1PaillierPk = U1PaillierPk
 		sd.U1NtildeH1H2 = U1NtildeH1H2
 
 		sd.IDs = GetGroupNodeUIDs("EC256K1",groupid,groupid) // 1,2,3,4,6
-		_,sd.CurDNodeID = GetNodeUID(curEnode,"EC256K1",groupid) 
+		if sd.IDs == nil {
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uids fail")}
+			ch <- res
+			return
+		}
+		_,sd.CurDNodeID = GetNodeUID(curEnode,"EC256K1",groupid)
+		if sd.CurDNodeID == nil {
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uid fail")}
+			ch <- res
+			return
+		}
 
 		//msgtoenode := GetMsgToEnode("EC256K1",(da.(*PubKeyData)).GroupID,(da.(*PubKeyData)).GroupID)
 		//kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
 
 		found := false
 		ids := GetGroupNodeUIDs("EC256K1",groupid,w.groupid)
+		if ids == nil {
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uids fail")}
+			ch <- res
+			return
+		}
 		_,uid := GetNodeUID(curEnode,"EC256K1",groupid)
+		if uid == nil {
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uid fail")}
+			ch <- res
+			return
+		}
+
 		for _,v := range ids {
 		    if v.Cmp(uid) == 0 {
 			found = true
@@ -490,7 +526,13 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 
 		if oldnode {
 		
-			oldindex,_ := GetNodeUID(curEnode,"EC256K1",(da.(*PubKeyData)).GroupID)
+			oldindex,tmp := GetNodeUID(curEnode,"EC256K1",(da.(*PubKeyData)).GroupID)
+			if tmp == nil {
+				res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uid fail")}
+				ch <- res
+				return
+			}
+
 			sd.U1NtildePrivData = GetNtildePrivDataByIndexFromSaveData(save,w.NodeCnt)
 			if sd.U1NtildePrivData == nil {
 				res := RPCSmpcRes{Ret: "", Tip: "get ntilde priv data fail", Err: fmt.Errorf("get ntilde priv data fail")}
@@ -506,6 +548,12 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 			reshareDNode := reshare.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048, sd, true,oldindex)
 			w.DNode = reshareDNode
 			_,UID := GetNodeUID(curEnode,"EC256K1",groupid)
+			if UID == nil {
+				res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uid fail")}
+				ch <- res
+				return
+			}
+
 			reshareDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 
 			uid, _ := new(big.Int).SetString(w.DNode.DNodeID(), 10)
@@ -548,6 +596,12 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 	reshareDNode := reshare.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048, nil, false,-1)
 	w.DNode = reshareDNode
 	_,UID := GetNodeUID(curEnode,"EC256K1",groupid)
+	if UID == nil {
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uid fail")}
+		ch <- res
+		return
+	}
+
 	reshareDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 
 	uid, _ := new(big.Int).SetString(w.DNode.DNodeID(), 10)

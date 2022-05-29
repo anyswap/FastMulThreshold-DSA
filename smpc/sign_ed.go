@@ -124,6 +124,12 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *
 			}
 
 			_,ID := GetNodeUID(msgmap["ENode"], "ED25519",pubs.GroupID)
+			if ID == nil {
+				res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get node uid fail")}
+				ch <- res
+				return
+			}
+
 			id := fmt.Sprintf("%v",ID)
 			uid := hex.EncodeToString([]byte(id))
 			if !strings.EqualFold(uid,mm.GetFromID()) {

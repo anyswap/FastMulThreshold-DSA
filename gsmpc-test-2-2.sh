@@ -98,14 +98,14 @@ sleep 300
 echo ====================== Generation of 4 LARGE PRIME NUMBERS completed ========================
 
 $1/test/bin/gsmpc-client-test -cmd SetGroup -url http://127.0.0.1:$port -ts 2/2 -node http://127.0.0.1:$port -node http://127.0.0.1:$port2 > $1/test/tmp/bbb &
-sleep 15
+sleep 30 
 
 val=$(cat $1/test/tmp/bbb)
 gid=`echo ${val:0-128:128}`
 echo
 
 $1/test/bin/gsmpc-client-test -cmd SetGroup -url http://127.0.0.1:$port -ts 2/2 -node http://127.0.0.1:$port -node http://127.0.0.1:$port2 > $1/test/tmp/ccc &
-sleep 15
+sleep 30
 
 val=$(cat $1/test/tmp/ccc)
 subgid=`echo ${val:0-128:128}`
@@ -147,12 +147,12 @@ val=`echo ${val##*=}`
 key=`echo ${val:0:66}`
 
 $1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port --keystore $keyfile1 --passwdfile $pf1 -key $key &
-sleep 3 
+sleep 5 
 
 $1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port2 --keystore $keyfile2 --passwdfile $pf2 -key $key &
-sleep 3
+sleep 5
 
-sleep 240
+sleep 300 
 
 touch test/reqaddr.sh
 sleep 2
@@ -172,7 +172,7 @@ echo $str | tee $1/test/reqaddr.sh
 echo 
 
 $1/test/reqaddr.sh &
-sleep 20
+sleep 30
 
 kttmp=EC256K1
 val=$(cat $1/test/tmp/fff)

@@ -893,7 +893,7 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 	}
 
 	ns, _ := GetGroup(w.groupid)
-	if ns != w.NodeCnt {
+	if ns != w.NodeCnt || ns == 0 {
 		res := RPCSmpcRes{Ret: "", Err: GetRetErr(ErrGroupNotReady)}
 		ch <- res
 		return false
@@ -906,6 +906,12 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 	keyGenDNode := keygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048)
 	w.DNode = keyGenDNode
 	_,UID := GetNodeUID(curEnode, "EC256K1",w.groupid)
+	if UID == nil {
+		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get node uid fail")}
+		ch <- res
+		return false
+	}
+
 	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 	//fmt.Printf("=========== KeyGenerateDECDSA, current node uid = %v ===========\n", keyGenDNode.DNodeID())
 
@@ -968,7 +974,7 @@ func KeyGenerateDEDDSA(msgprex string, ch chan interface{}, id int, cointype str
 	}
 
 	ns, _ := GetGroup(GroupID)
-	if ns != w.NodeCnt {
+	if ns != w.NodeCnt || ns == 0 {
 		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:the group is not ready", Err: GetRetErr(ErrGroupNotReady)}
 		ch <- res
 		return false
@@ -981,6 +987,11 @@ func KeyGenerateDEDDSA(msgprex string, ch chan interface{}, id int, cointype str
 	keyGenDNode := edkeygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold)
 	w.DNode = keyGenDNode
 	_,UID := GetNodeUID(curEnode, "ED25519",w.groupid)
+	if UID == nil {
+		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get node uid fail")}
+		ch <- res
+		return false
+	}
 	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 	w.MsgToEnode[w.DNode.DNodeID()] = curEnode
 

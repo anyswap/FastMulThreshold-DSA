@@ -375,6 +375,11 @@ func GetIDs(keytype string, groupid string) smpclib.SortableIDSSlice {
 		uid := DoubleHash(node2, keytype)
 		ids = append(ids, uid)
 	}
+
+	if len(ids) == 0 {
+	    return nil
+	}
+
 	sort.Sort(ids)
 	return ids
 }
@@ -395,7 +400,7 @@ func GetNodeUID(EnodeID string,keytype string,gid string) (int,*big.Int) {
     others := strings.Split(nodes, common.Sep2)
     
     ids := GetIDs(keytype,gid)
-    if len(ids) == 0 {
+    if ids == nil {
 	return -1,nil
     }
 
@@ -418,6 +423,9 @@ func GetGroupNodeUIDs(keytype string,gid string,subgid string) smpclib.SortableI
     }
 
     allids := GetIDs(keytype,gid)
+    if allids == nil {
+	return nil
+    }
 
     var ids smpclib.SortableIDSSlice
     _, nodes := GetGroup(subgid)
@@ -426,11 +434,15 @@ func GetGroupNodeUIDs(keytype string,gid string,subgid string) smpclib.SortableI
 	    node2 := ParseNode(v) //bug??
 	    id := DoubleHash(node2, keytype)
 	    for kk,vv := range allids {
-		if vv.Cmp(id) == 0 {
+		if vv != nil && id != nil && vv.Cmp(id) == 0 {
 		    ids = append(ids,big.NewInt(int64(kk+1)))
 		    break
 		}
 	    }
+    }
+
+    if len(ids) == 0 {
+	return nil
     }
 
     sort.Sort(ids)
