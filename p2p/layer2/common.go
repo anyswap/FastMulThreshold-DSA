@@ -19,6 +19,7 @@ package layer2
 import (
 	"errors"
 	"fmt"
+	//"sync"
 	"strings"
 	"net"
 	"time"
@@ -30,6 +31,8 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/rlp"
 	mapset "github.com/deckarep/golang-set"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"encoding/json"
 )
 
 func BroadcastToGroup(gid discover.NodeID, msg string, p2pType int, myself bool) (string, error) {
@@ -41,16 +44,247 @@ func BroadcastToGroup(gid discover.NodeID, msg string, p2pType int, myself bool)
 		common.Debug("==== BroadcastToGroup ====", "p2pType", p2pType, "is not exist", "")
 		return "", errors.New(e)
 	}
-	//groupTmp := *xvcGroup
+	groupTmp := *xvcGroup
 	go func() {
-	    p2pBroatcastPeers(msg,msgCode,myself)
+	    //p2pBroatcastPeers(msg,msgCode,myself)
 	    //p2pBroatcast(&groupTmp, msg, msgCode, myself)
+	    p2pBroatcastMsg(&groupTmp, msg, msgCode)
 	}()
 	
 	return "BroadcastToGroup send end", nil
 }
 
 //------------------------------------------------------
+
+var (
+    MsgAckMap  = common.NewSafeMap(10)
+    resend = 30
+    splitlen = 1200
+)
+
+type MsgSend struct {
+   MsgHash string
+   Pos int
+   Num int
+   SplitMsg string
+}
+
+type MsgAck struct {
+    MsgHash string
+    Flag string
+}
+
+func SendMsgAck(msghash string,eID string) {
+    if eID == "" || msghash == "" {
+	return
+    }
+
+    enode := "0x" + eID
+    nodeid,err := discover.HexID(enode)
+    if err != nil {
+	return
+    }
+    
+    ma := &MsgAck{}
+    ma.MsgHash = msghash
+    ma.Flag = "Msg Ack"
+    s, err := json.Marshal(ma)
+    if err != nil {
+	return
+    }
+
+    log.Debug("=================SendMsgAck==================","send msg ack to node.ID",eID,"orig msg hash",msghash)
+    sendMsgToBroadcastNode(nodeid,string(s))
+}
+
+func SetMsgStatus(msghash string,eid string) {
+    msghash2 := crypto.Keccak256Hash([]byte(strings.ToLower(msghash + ":" + eid))).Hex()
+    tmp,exist := MsgAckMap.ReadMap(msghash2)
+    if !exist {
+	return
+    }
+
+    ack,ok := tmp.(chan bool)
+    if !ok {
+	return
+    }
+
+    log.Debug("================SetMsgStatus,get msg ack=================","orig msg hash",msghash,"eid",eid,"hash(msghash:eid)",msghash2)
+    ack <-true
+}
+
+func checkMsgStatus(msghash string,msg string,nodeid discover.NodeID,msgCode uint64) {
+    ack := make(chan bool, 1)
+    msghash2 := crypto.Keccak256Hash([]byte(strings.ToLower(msghash + ":" + nodeid.String()))).Hex()
+    MsgAckMap.WriteMap(msghash2,ack)
+
+    for i:=0;i<resend;i++ {
+	ackWaitTime := 5 * time.Second
+	ackWaitTimeOut := time.NewTicker(ackWaitTime)
+
+	select {
+	case <-ack:
+	    log.Debug("=================checkMsgStatus,get msg ack success===========================","orig msg hash",msghash,"send to node.ID",nodeid.String(),"hash(msghash:eid)",msghash2)
+		MsgAckMap.DeleteMap(msghash2)
+		return
+	case <-ackWaitTimeOut.C:
+	    log.Debug("=================checkMsgStatus,get msg ack timeout===========================","i",i,"orig msg hash",msghash,"send to node.ID",nodeid.String(),"hash(msghash:eid)",msghash2)
+		SplitMsg(msg,nodeid,int(msgCode))
+		break	
+	}
+    }
+    
+    log.Debug("=================checkMsgStatus,get msg ack fail===========================","orig msg hash",msghash,"send to node.ID",nodeid.String(),"hash(msghash:eid)",msghash2)
+    MsgAckMap.DeleteMap(msghash2)
+}
+
+func getSplitMsgNum(msg string,tcp bool) int {
+    if tcp {
+	return 1
+    }
+
+    //else udp
+    l := len(msg)
+    a := l%splitlen
+    b := l/splitlen
+    if a != 0 {
+	b++
+    }
+
+    return b
+}
+
+func sendSplitMsg(tcp bool,msg string,nodeid discover.NodeID,msgCode int) error {
+
+    if msg == "" {
+	return errors.New("param error")
+    }
+
+    num := getSplitMsgNum(msg,tcp)
+    if num <= 0 {
+	return errors.New("split msg num error")
+    }
+
+    msghash := crypto.Keccak256Hash([]byte(strings.ToLower(msg))).Hex()
+    log.Debug("==============sendSplitMsg,broadcast msg to group===================","orig msg",msg,"orig msg hash",msghash,"send to node.ID",nodeid.String(),"split len",splitlen,"orig msg len",len(msg),"split msg num",num,"tcp",tcp)
+   
+    var s []byte
+    var err error
+    msgs := []rune(msg)
+    for i:=0;i<num;i++ {
+	ms := &MsgSend{}
+	ms.MsgHash = msghash
+	ms.Pos = i
+	ms.Num = num
+
+	if i == (num-1) {
+	    ms.SplitMsg = string(msgs[splitlen*i:])
+	} else {
+	    ms.SplitMsg = string(msgs[splitlen*i:(i+1)*splitlen])
+	}
+	
+	s, err = json.Marshal(ms)
+	if err != nil {
+		log.Debug("=========sendSplitMsg,marshal error=============", "err",err)
+		return err
+	}
+	
+	splitmsghash := crypto.Keccak256Hash([]byte(strings.ToLower(string(s)))).Hex()
+	if !tcp {
+	    log.Debug("=========sendSplitMsg,send split msg to node=============","pos",i,"node.ID",nodeid.String(),"split msg hash",splitmsghash,"orig msg hash",msghash,"split msg num",num)
+	} else {
+	    log.Debug("=========sendSplitMsg,send split msg to node=============","node.ID",nodeid.String(),"orig msg hash",msghash)
+	}
+
+	if tcp {
+	    emitter.Lock()
+	    p := emitter.peers[nodeid]
+	    emitter.Unlock()
+	    if p != nil {
+		//p2p.Send(p.ws, uint64(msgCode),string(s))
+		p2p.Send(p.ws, uint64(msgCode),msg)
+	    }
+	} else {
+	    sendMsgToBroadcastNode(nodeid,string(s))
+	}
+
+	time.Sleep(time.Duration(20) * time.Millisecond)
+    }
+
+    return nil
+}
+
+func SplitMsg(msg string,nodeid discover.NodeID,msgCode int) error {
+    if msg == "" {
+	return errors.New("msg error")
+    }
+
+    emitter.Lock()
+    p := emitter.peers[nodeid]
+    emitter.Unlock()
+    if p != nil {
+	sendSplitMsg(true,msg,nodeid,msgCode)
+    }
+
+    return sendSplitMsg(false,msg,nodeid,msgCode)
+}
+
+func getBroadcastList(dccpGroup *discover.Group) []discover.NodeID {
+    var ret []discover.NodeID
+
+    for eID,p := range emitter.peers {
+	if eID.String() == "" || p == nil {
+	    continue
+	}
+	
+	if selfid == eID {
+	    continue
+	}
+
+	ret = append(ret,eID)
+    }
+
+    if dccpGroup == nil {
+	    return ret 
+    }
+
+    for _, node := range dccpGroup.Nodes {
+	if selfid == node.ID {
+	    continue
+	}
+	
+	emitter.Lock()
+	p := emitter.peers[node.ID]
+	emitter.Unlock()
+	if p != nil {
+	    continue
+	}
+    
+	ret = append(ret,node.ID)
+    }
+
+    return ret
+}
+
+func p2pBroatcastMsg(dccpGroup *discover.Group, msg string, msgCode int) int {
+    	if msg == "" {
+	    return 0
+	}
+
+	msghash := crypto.Keccak256Hash([]byte(strings.ToLower(msg))).Hex()
+	nodelist := getBroadcastList(dccpGroup)
+
+	for _,eID := range nodelist {
+	    discover.PrintBucketNodeInfo(eID)
+	    SplitMsg(msg,eID,msgCode)
+	    go checkMsgStatus(msghash,msg,eID,uint64(msgCode))
+	    time.Sleep(time.Duration(100) * time.Millisecond)
+	}
+
+	return 1 
+}
+
+//-----------------------------------------------------------------------------
 
 func P2pBroatcastPeers(msg string,myself bool) int {
     return p2pBroatcastPeers(msg,Sdk_msgCode,false)
@@ -78,7 +312,6 @@ func p2pBroatcastPeers(msg string, msgCode int, myself bool) int {
 	for i:=0;i<20;i++ {
 	    emitter.Lock()
 	    if err := p2p.Send(p.ws, uint64(msgCode), msg); err != nil {
-		//common.Error("============ p2pBroatcastPeers =============", "i",i,"send to peer eID", eID.String(), "msg hash", msghash,"err",err)
 		if i == 19 {
 			common.Error("============ p2pBroatcastPeers,send msg to peer terminal fail =============", "i",i,"send to peer eID", eID.String(), "send msg hash", msghash,"err",err)
 		}
@@ -91,12 +324,6 @@ func p2pBroatcastPeers(msg string, msgCode int, myself bool) int {
 	    
 	    emitter.Unlock()
 
-	    //err = sendMsgToBroadcastNode(node.ID, msg)
-	    //if err == nil {
-		//break
-	    //}
-
-	    //time.Sleep(time.Duration(1) * time.Second)
 	    time.Sleep(time.Duration(1000) * time.Millisecond)
 	}
 	
@@ -112,24 +339,26 @@ func p2pBroatcast(dccpGroup *discover.Group, msg string, msgCode int, myself boo
     	if msg == "" {
 	    return 0
 	}
+
 	msghash := crypto.Keccak256Hash([]byte(strings.ToLower(msg))).Hex()
 
 	cdLen := getCDLen(msg)
-	//common.Debug("==== p2pBroatcast() ====", "group", dccpGroup, "msg", msg[:cdLen])
+	common.Debug("==== p2pBroatcast() ====", "group", dccpGroup, "msg", msg[:cdLen])
 	if dccpGroup == nil {
-		//common.Debug("==== p2pBroatcast() ====", "group", "nil", "msg", msg[:cdLen])
-		common.Error("============== p2pBroatcast,get group fail ================", "msg hash", msghash)
+		common.Debug("==== p2pBroatcast() ====", "group", "nil", "msg", msg[:cdLen])
 		return 0
 	}
-	/*pi := p2pServer.PeersInfo()
+
+	pi := p2pServer.PeersInfo()
 	for _, pinfo := range pi {
 		common.Debug("==== p2pBroatcast() ====", "peers.Info", pinfo)
-	}*/
+	}
+
 	var ret int = 0
 	//wg := &sync.WaitGroup{}
 	//wg.Add(len(dccpGroup.Nodes))
 	for _, node := range dccpGroup.Nodes {
-		//common.Debug("==== p2pBroatcast() ====", "nodeID", node.ID, "len", len(msg), "group", dccpGroup, "msg", msg[:cdLen])
+		common.Debug("==== p2pBroatcast() ====", "nodeID", node.ID, "len", len(msg), "group", dccpGroup, "msg", msg[:cdLen])
 		if selfid == node.ID {
 			if myself == true {
 				common.Debug("==== p2pBroatcast() ====", "myself, group", dccpGroup, "msg", msg[:cdLen])
@@ -145,15 +374,16 @@ func p2pBroatcast(dccpGroup *discover.Group, msg string, msgCode int, myself boo
 		discover.PrintBucketNodeInfo(node.ID)
 		err := p2pSendMsg(node, uint64(msgCode), msg)
 		if err != nil {
-			common.Error("============== p2pBroatcast,send msg to group node terminal fail ================", "msg hash", msghash,"node.IP",node.IP,"node.UDP",node.UDP,"node.ID",node.ID,"err",err)
+			common.Error("============== p2pBroatcast,send msg to group node terminal fail ================", "send msg hash", msghash,"send to node.IP",node.IP,"send to node.UDP",node.UDP,"send to node.ID",node.ID,"err",err,"msg len",len(msg))
 			continue
 		}
-		
-		common.Info("============== p2pBroatcast,send msg to group node terminal success ================", "msg hash", msghash,"node.IP",node.IP,"node.UDP",node.UDP,"node.ID",node.ID)
+	
+		common.Debug("============== p2pBroatcast,send msg to group node terminal success ================", "send msg hash", msghash,"send to node.IP",node.IP,"send to node.UDP",node.UDP,"send to node.ID",node.ID,"msg len",len(msg))
 		//}(node)
 		time.Sleep(time.Duration(100) * time.Millisecond)
 	}
 	//wg.Wait()
+
 	return ret
 }
 
@@ -164,8 +394,8 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 		return errors.New("p2pSendMsg msg is nil")
 	}
 	
-	//msghash := crypto.Keccak256Hash([]byte(strings.ToLower(msg))).Hex()
-	//common.Debug("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen])
+	msghash := crypto.Keccak256Hash([]byte(strings.ToLower(msg))).Hex()
+	common.Debug("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen])
 	err := errors.New("p2pSendMsg err")
 	countSendFail := 0
 	for {
@@ -174,31 +404,28 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 		if p != nil {
 			if err = p2p.Send(p.ws, msgCode, msg); err != nil {
 				common.Error("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen],"send", "fail waitting resend")
-				//common.Error("================== p2pSendMsg,send fail =================", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash",msghash,"err",err)
 				//emitter.Unlock()
 				//return err
 			} else {
 				emitter.Unlock()
-				//common.Debug("================== p2pSendMsg,send success with tcp =================", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash",msghash)
 				//common.Info("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "countSend", countSendFail, "msg", msg[:cdLen], "send", "success")
 				return nil
 			}
 		} else {
 			common.Error("==== p2pSendMsg() ==== p2pBroatcast", "nodeID", node.ID,"peer", "not exist p2perror continue")
-			//common.Error("================== p2pSendMsg,not exist peer =================", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash",msghash)
 		}
 
 		emitter.Unlock()
 
 		err = sendMsgToBroadcastNode(node.ID, msg)
 		if err == nil {
-			//common.Debug("================== p2pSendMsg,send success with udp =================", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash",msghash)
+			common.Debug("================== p2pSendMsg,send success with udp =================", "send to node.IP", node.IP, "send to node.UDP", node.UDP, "send to node.ID", node.ID, "send msg hash",msghash,"msg len",len(msg))
 			return nil
 		}
 
 		countSendFail += 1
 		if countSendFail >= 20 {
-			//common.Error("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "terminal send", "fail p2perror", "sendCount", countSendFail)
+			common.Error("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "terminal send", "fail p2perror", "sendCount", countSendFail)
 			break
 		}
 		if countSendFail == 1 || countSendFail%5 == 0 {

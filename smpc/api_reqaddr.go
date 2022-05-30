@@ -196,6 +196,14 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 		    ch <- res
 		    return false
 		}
+
+		exsit,_ = GetPubKeyData([]byte(key))
+               if exsit {
+                   common.Error("===============DoReq,the pubkey requestion has already exsit===================","key",key)
+                   res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("the pubkey requestion has already exsit")}
+                   ch <- res
+                   return false
+               }
 		
 		curnonce, _, _ := GetReqAddrNonce(from)
 		curnoncenum, _ := new(big.Int).SetString(curnonce, 10)
