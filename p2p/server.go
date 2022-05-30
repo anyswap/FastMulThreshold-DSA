@@ -26,6 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/discv5"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/event"
@@ -40,6 +41,7 @@ const (
 
 	// Connectivity defaults.
 	maxActiveDialTasks     = 16
+	maxActiveDialTasksStatic = 1000
 	defaultMaxPendingPeers = 50
 	defaultDialRatio       = 3
 
@@ -564,6 +566,7 @@ func (srv *Server) startListening() error {
 
 type dialer interface {
 	newTasks(running int, peers map[discover.NodeID]*Peer, now time.Time) []task
+	newTasksStatic(running int, peers map[discover.NodeID]*Peer, now time.Time) []task
 	taskDone(task, time.Time)
 	addStatic(*discover.Node)
 	removeStatic(*discover.Node)
@@ -584,6 +587,8 @@ func (srv *Server) run(dialstate dialer) {
 		taskdone     = make(chan task, maxActiveDialTasks)
 		runningTasks []task
 		queuedTasks  []task // tasks that can't run yet
+		runningTasksStatic []task
+		queuedTasksStatic  []task // tasks that can't run yet
 	)
 	// Put trusted nodes into a map to speed up checks.
 	// Trusted peers are loaded on startup or added via AddTrustedPeer RPC.
@@ -600,6 +605,14 @@ func (srv *Server) run(dialstate dialer) {
 			}
 		}
 	}
+	delTaskStatic := func(t task) {
+		for i := range runningTasksStatic {
+			if runningTasksStatic[i] == t {
+				runningTasksStatic = append(runningTasksStatic[:i], runningTasksStatic[i+1:]...)
+				break
+			}
+		}
+	}
 	// starts until max number of active tasks is satisfied
 	startTasks := func(ts []task) (rest []task) {
 		i := 0
@@ -607,6 +620,15 @@ func (srv *Server) run(dialstate dialer) {
 			t := ts[i]
 			go func() { t.Do(srv); taskdone <- t }()
 			runningTasks = append(runningTasks, t)
+		}
+		return ts[i:]
+	}
+	startTasksStatic := func(ts []task) (rest []task) {
+		i := 0
+		for ; len(runningTasksStatic) < maxActiveDialTasksStatic && i < len(ts); i++ {
+			t := ts[i]
+			go func() { t.Do(srv); taskdone <- t }()
+			runningTasksStatic = append(runningTasksStatic, t)
 		}
 		return ts[i:]
 	}
@@ -619,10 +641,21 @@ func (srv *Server) run(dialstate dialer) {
 			queuedTasks = append(queuedTasks, startTasks(nt)...)
 		}
 	}
+	scheduleTasksStatic := func() {
+		// Start from queue first.
+		queuedTasksStatic = append(queuedTasksStatic[:0], startTasksStatic(queuedTasksStatic)...)
+		// Query dialer for new tasks and start as many as possible now.
+		common.Warn("p2ptest srv run", "len(runningTasks)", len(runningTasksStatic), "maxActiveDialTasksStatic", maxActiveDialTasksStatic, "peers",peers)
+		if len(runningTasksStatic) < maxActiveDialTasksStatic {
+			nt := dialstate.newTasksStatic(len(runningTasksStatic)+len(queuedTasksStatic), peers, time.Now())
+			queuedTasksStatic = append(queuedTasksStatic, startTasksStatic(nt)...)
+		}
+	}
 
 running:
 	for {
 		scheduleTasks()
+		scheduleTasksStatic() // static node especially for group
 
 		select {
 		case <-srv.quit:
@@ -669,6 +702,7 @@ running:
 			// tasks list.
 			dialstate.taskDone(t, time.Now())
 			delTask(t)
+			delTaskStatic(t)
 		case c := <-srv.posthandshake:
 			// A connection has passed the encryption handshake so
 			// the remote identity is known (but hasn't been verified yet).

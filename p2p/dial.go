@@ -200,17 +200,6 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 	// Expire the dial history on every invocation.
 	s.hist.expire(now)
 
-	// Create dials for static nodes if they are not connected.
-	for id, t := range s.static {
-		err := s.checkDial(t.dest, peers)
-		switch err {
-		case errNotWhitelisted, errSelf:
-			delete(s.static, t.dest.ID)
-		case nil:
-			s.dialing[id] = t.flags
-			newtasks = append(newtasks, t)
-		}
-	}
 	// If we don't have any peers whatsoever, try to dial a random bootnode. This
 	// scenario is useful for the testnet (and private networks) where the discovery
 	// table might be full of mostly bad peers, making it hard to find good ones.
@@ -249,6 +238,39 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 		newtasks = append(newtasks, &discoverTask{})
 	}
 
+	// Launch a timer to wait for the next node to expire if all
+	// candidates have been tried and no task is currently active.
+	// This should prevent cases where the dialer logic is not ticked
+	// because there are no pending events.
+	if nRunning == 0 && len(newtasks) == 0 && s.hist.Len() > 0 {
+		t := &waitExpireTask{s.hist.min().exp.Sub(now)}
+		newtasks = append(newtasks, t)
+	}
+	return newtasks
+}
+
+func (s *dialstate) newTasksStatic(nRunning int, peers map[discover.NodeID]*Peer, now time.Time) []task {
+	if s.start.IsZero() {
+		s.start = now
+	}
+
+	var newtasks []task
+
+	// Expire the dial history on every invocation.
+	s.hist.expire(now)
+
+	// Create dials for static nodes if they are not connected.
+	for id, t := range s.static {
+		common.Info("(s *dialstate) newTasks static", "t.dest", t.dest)
+		err := s.checkDial(t.dest, peers)
+		switch err {
+		case errNotWhitelisted, errSelf:
+			delete(s.static, t.dest.ID)
+		case nil:
+			s.dialing[id] = t.flags
+			newtasks = append(newtasks, t)
+		}
+	}
 	// Launch a timer to wait for the next node to expire if all
 	// candidates have been tried and no task is currently active.
 	// This should prevent cases where the dialer logic is not ticked
