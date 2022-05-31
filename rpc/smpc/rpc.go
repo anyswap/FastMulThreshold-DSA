@@ -235,7 +235,7 @@ func (service *Service) AcceptSign(raw string) map[string]interface{} {
 }
 
 // Sign  Execute the sign command 
-// Raw is a special signed transaction. The nonce of the transaction is through DCRM_ Getsignnonce function. The data format is:
+// Raw is a special signed transaction. The nonce of the transaction is through SMPC_ Getsignnonce function. The data format is:
 // {
 // "TxType":"SIGN",
 // "PubKey":"XXX",

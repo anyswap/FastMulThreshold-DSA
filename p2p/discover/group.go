@@ -1219,7 +1219,7 @@ func SendMsgToBroadcastNode(node *Node, msg string) error {
 
 func (t *udp) sendMsgToBroadcastNode(toid NodeID, toaddr *net.UDPAddr, msg string) error {
 	msgHash := crypto.Keccak256Hash([]byte(strings.ToLower(msg))).Hex()
-	common.Debug("sendMsgToBroadcastNode","toid",toid,"toaddr",toaddr,"msgHash",msgHash, "len", len(msg))
+	//common.Debug("sendMsgToBroadcastNode","toid",toid,"toaddr",toaddr,"msgHash",msgHash, "len", len(msg))
 	errc := t.pending(toid, msgBroadcastPacket, func(r interface{}) bool {
 		return true
 	})
@@ -1228,13 +1228,13 @@ func (t *udp) sendMsgToBroadcastNode(toid NodeID, toaddr *net.UDPAddr, msg strin
 		Expiration: uint64(time.Now().Add(expirationBroadcast).Unix()),
 	})
 	if errs != nil {
-		common.Debug("==== (t *udp) sendMsgToBroadcastNode ====", "errs", errs, "toid",toid,"toaddr",toaddr,"msgHash",msgHash, "len", len(msg))
-		//common.Debug("======================== sendMsgToBroadcastNode,send fail with udp ==================", "err", errs, "toid",toid,"toaddr",toaddr,"msgHash",msgHash)
+		//common.Error("==== (t *udp) sendMsgToBroadcastNode ====", "errs", errs, "toid",toid,"toaddr",toaddr,"msgHash",msgHash, "len", len(msg))
+		common.Error("======================== sendMsgToBroadcastNode,send fail with udp ==================", "err", errs, "toid",toid,"toaddr",toaddr,"split msg Hash",msgHash)
 		return errs
 	}
 	err := <-errc
-	common.Debug("sendMsgToBroadcastNode success","toid",toid,"toaddr",toaddr,"msgHash",msgHash,"err",err)
-	//common.Debug("======================== sendMsgToBroadcastNode,send finish with udp ==================", "err", err, "toid",toid,"toaddr",toaddr,"msgHash",msgHash)
+	//common.Debug("sendMsgToBroadcastNode success","toid",toid,"toaddr",toaddr,"msgHash",msgHash,"err",err)
+	//common.Debug("======================== sendMsgToBroadcastNode,send finish with udp ==================", "err", err, "toid",toid,"toaddr",toaddr,"split msg Hash",msgHash)
 	return err
 }
 func (req *messageBroadcast) name() string { return "MESSAGEBROADCAST/v4" }

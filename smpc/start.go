@@ -115,7 +115,7 @@ func Start(params *LunchParams) {
 	CleanUpAllSignInfo()
 	CleanUpAllReshareInfo()
 
-	go CleanUpMsg2Peer()
+	go CleanUpMsgReceiv()
 
 	common.Info("================================smpc.Start,init finish.========================", "curEnode", curEnode, "waitmsg", WaitMsgTimeGG20, "trytimes", recalcTimes, "presignnum", PrePubDataCount, "bip32pre", PreBip32DataCount)
 }

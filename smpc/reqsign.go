@@ -138,6 +138,14 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 		return fmt.Errorf("the sign cmd has handled before")
 	}
 
+	exsit,_ = GetPubKeyData([]byte(key))
+       if exsit {
+           common.Info("===============DoSign,the sign cmd has handled before===================", "key", key, "from", from    , "raw", sbd.Raw)
+           res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("the sign cmd has handled before")}
+           ch <- res
+           return fmt.Errorf("the sign cmd has handled before")
+       }
+
 	curnonce, _, _ := GetSignNonce(from)
 	curnoncenum, _ := new(big.Int).SetString(curnonce, 10)
 	newnoncenum, _ := new(big.Int).SetString(nonce, 10)

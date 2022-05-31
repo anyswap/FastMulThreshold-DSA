@@ -72,7 +72,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			}
 			///
 
-			log.Debug("========================ProcessInboundMessages,get msg====================","orig msg",m,"key",msgprex,"orig msg hash",hexs)
+			log.Debug("========================ProcessInboundMessages,get msg====================","key",msgprex,"orig msg hash",hexs)
 			msgmap := make(map[string]string)
 			err := json.Unmarshal([]byte(m), &msgmap)
 			if err != nil {
@@ -104,14 +104,14 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			
 			//check sig
 			if msgmap["Sig"] == "" {
-				log.Error("======================ProcessInboundMessages,verify sig fail=====================","key",msgprex,"orig msg hash",hexs,"err",err)
+				log.Error("======================ProcessInboundMessages,verify sig fail,sig data error=====================","key",msgprex,"orig msg hash",hexs)
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail,sig data error")}
 				ch <- res
 				return
 			}
 
 			if msgmap["ENode"] == "" {
-				log.Error("======================ProcessInboundMessages,verify sig fail=====================","key",msgprex,"orig msg hash",hexs,"err",err)
+				log.Error("======================ProcessInboundMessages,verify sig fail,enode info error=====================","key",msgprex,"orig msg hash",hexs)
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail,enode info error")}
 				ch <- res
 				return
@@ -119,7 +119,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 
 			sig, err := hex.DecodeString(msgmap["Sig"])
 			if err != nil {
-			    common.Error("[KEYGEN] decode msg sig data error","err",err,"key",msgprex,"orig msg hash",hexs)
+			    common.Error("[KEYGEN] decode msg sig data error","err",err,"key",msgprex,"orig msg hash",hexs,"err",err)
 			    res := RPCSmpcRes{Ret: "", Err: err}
 			    ch <- res
 			    return
