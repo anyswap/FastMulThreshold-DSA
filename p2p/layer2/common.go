@@ -111,13 +111,13 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 		}
 		emitter.Unlock()
 
-		err = sendMsgToBroadcastNode(node.ID, msg)
-		if err == nil {
-			return nil
-		}
+		//err = sendMsgToBroadcastNode(node.ID, msg)
+		//if err == nil {
+		//	return nil
+		//}
 
 		countSendFail += 1
-		if countSendFail >= 20 {
+		if countSendFail >= 60 {
 			common.Error("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "terminal send", "fail p2perror", "sendCount", countSendFail)
 			break
 		}
@@ -235,7 +235,7 @@ func HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 	for {
 		msg, err := rw.ReadMsg()
 		if err != nil {
-			common.Debug("==== handle() ====", "peerID", peer.ID(), "w.ReadMsg err", err)
+			common.Debug("==== HandlePeer() ====", "peerID", peer.ID(), "w.ReadMsg err", err)
 			rw = emitter.peers[peer.ID()].ws
 			time.Sleep(time.Duration(1) * time.Second)
 			//continue
