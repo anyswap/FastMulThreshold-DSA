@@ -689,6 +689,7 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 func (req *ping) name() string { return "PING/v4" }
 
 func (req *pong) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
+	go updateRemoteIP(req.To.IP, req.To.UDP)
 	if expired(req.Expiration) {
 		return errExpired
 	}
