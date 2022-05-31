@@ -645,7 +645,7 @@ func (srv *Server) run(dialstate dialer) {
 		// Start from queue first.
 		queuedTasksStatic = append(queuedTasksStatic[:0], startTasksStatic(queuedTasksStatic)...)
 		// Query dialer for new tasks and start as many as possible now.
-		common.Warn("p2ptest srv run", "len(runningTasks)", len(runningTasksStatic), "maxActiveDialTasksStatic", maxActiveDialTasksStatic, "peers",peers)
+		common.Debug("p2ptest srv run static", "len(runningTasksStatic)", len(runningTasksStatic), "maxActiveDialTasksStatic", maxActiveDialTasksStatic, "peers",peers)
 		if len(runningTasksStatic) < maxActiveDialTasksStatic {
 			nt := dialstate.newTasksStatic(len(runningTasksStatic)+len(queuedTasksStatic), peers, time.Now())
 			queuedTasksStatic = append(queuedTasksStatic, startTasksStatic(nt)...)
@@ -703,6 +703,7 @@ running:
 			dialstate.taskDone(t, time.Now())
 			delTask(t)
 			delTaskStatic(t)
+			common.Debug("done", "t", t)
 		case c := <-srv.posthandshake:
 			// A connection has passed the encryption handshake so
 			// the remote identity is known (but hasn't been verified yet).
