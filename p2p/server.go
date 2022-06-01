@@ -876,14 +876,17 @@ func (srv *Server) listenLoop() {
 func (srv *Server) SetupConn(fd net.Conn, flags connFlag, dialDest *discover.Node) error {
 	self := srv.Self()
 	if self == nil {
+		common.Debug("SetupConn shutdown", "dialDest", dialDest)
 		return errors.New("shutdown")
 	}
 	c := &conn{fd: fd, transport: srv.newTransport(fd), flags: flags, cont: make(chan error)}
 	err := srv.setupConn(c, flags, dialDest)
 	if err != nil {
+		common.Debug("SetupConn close", "dialDest", dialDest)
 		c.close(err)
 		return err
 	}
+	common.Debug("SetupConn success", "dialDest", dialDest)
 	return nil
 }
 
@@ -893,34 +896,42 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 	running := srv.running
 	srv.lock.Unlock()
 	if !running {
+		common.Debug("setupConn running", "err errServerStopped", errServerStopped, "dialDest", dialDest)
 		return errServerStopped
 	}
 	// Run the encryption handshake.
 	var err error
 	if c.id, err = c.doEncHandshake(srv.PrivateKey, dialDest); err != nil {
+		common.Debug("setupConn c.doEncHandshake", "err", err, "dialDest", dialDest)
 		return err
 	}
 	// For dialed connections, check that the remote public key matches.
 	if dialDest != nil && c.id != dialDest.ID {
+		common.Debug("setupConn dialDest.ID", "err DiscUnexpectedIdentity", DiscUnexpectedIdentity, "dialDest", dialDest)
 		return DiscUnexpectedIdentity
 	}
 	err = srv.checkpoint(c, srv.posthandshake)
 	if err != nil {
+		common.Debug("setupConn srv.checkpoint srv.posthandshake", "err", err, "dialDest", dialDest)
 		return err
 	}
 	// Run the protocol handshake
 	phs, err := c.doProtoHandshake(srv.ourHandshake)
 	if err != nil {
+		common.Debug("setupConn c.doProtoHandshake", "err", err, "dialDest", dialDest)
 		return err
 	}
 	if phs.ID != c.id {
+		common.Debug("setupConn", "err DiscUnexpectedIdentity", DiscUnexpectedIdentity, "dialDest", dialDest)
 		return DiscUnexpectedIdentity
 	}
 	c.caps, c.name = phs.Caps, phs.Name
 	err = srv.checkpoint(c, srv.addpeer)
 	if err != nil {
+		common.Debug("setupConn srv.checkpoint srv.addpeer", "err DiscUnexpectedIdentity", DiscUnexpectedIdentity, "dialDest", dialDest)
 		return err
 	}
+	common.Debug("setupConn success", "dialDest", dialDest)
 	// If the checks completed successfully, runPeer has now been
 	// launched by run.
 	return nil

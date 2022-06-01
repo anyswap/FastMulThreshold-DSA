@@ -339,7 +339,11 @@ func (t *dialTask) Do(srv *Server) {
 			    } else {
 				common.Debug("dial 2st success", "t.dest", t.dest)
 			    }
+			} else {
+				common.Debug("dial 2st check failed resolve", "t.dest", t.dest, "t.flags", t.flags, "staticDialedConn", staticDialedConn)
 			}
+		} else {
+			common.Debug("dial 2st check failed dialError", "t.dest", t.dest, "t.flags", t.flags, "staticDialedConn", staticDialedConn)
 		}
 	}else {
 		common.Debug("dial 1st success", "t.dest", t.dest)
@@ -385,7 +389,7 @@ type dialError struct {
 func (t *dialTask) dial(srv *Server, dest *discover.Node) error {
 	fd, err := srv.Dialer.Dial(dest)
 	if err != nil {
-		common.Debug("dial", "dest", dest, "err", err)
+		common.Debug("(*dialTask)dial", "dest", dest, "err", err)
 		return &dialError{err}
 	}
 	mfd := newMeteredConn(fd, false)
