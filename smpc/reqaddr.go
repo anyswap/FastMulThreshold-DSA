@@ -312,7 +312,7 @@ func ExecApproveKeyGen(raw string,from string,req *TxDataAcceptReqAddr,ac *Accep
     w.msgacceptreqaddrres.PushBack(raw)
     
     /////fix bug: miss accept msg for 7-11 test
-    SendMsgToSmpcGroup(raw, ac.GroupID)
+    //SendMsgToSmpcGroup(raw, ac.GroupID)
     /////
 
     index := -1

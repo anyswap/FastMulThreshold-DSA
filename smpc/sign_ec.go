@@ -184,7 +184,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 			
 			//if !dul {
 			    //////also broacast to group for msg
-			    if mm.IsBroadcast() {
+			    /*if mm.IsBroadcast() {
 				go func(msg string,gid string) {
 				    for i:=0;i<1;i++ {
 					log.Debug("================SignProcessInboundMessages,also broacast to group for msg=====================","msg type",mm.GetMsgType(),"key",msgprex,"msg",msg,"gid",gid)
@@ -192,7 +192,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 					time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 				    }
 				}(m,w.groupid)
-			    }
+			    }*/
 			    //////
 			//}	
 		}

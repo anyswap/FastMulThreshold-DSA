@@ -409,7 +409,7 @@ func ExecApproveSigning(raw string,from string,sig *TxDataAcceptSign,ac *AcceptS
 	
 	w.msgacceptsignres.PushBack(raw)
 	/////fix bug: miss accept msg for 7-11 test
-	SendMsgToSmpcGroup(raw, ac.GroupID)
+	//SendMsgToSmpcGroup(raw, ac.GroupID)
 	/////
 
 	index := -1

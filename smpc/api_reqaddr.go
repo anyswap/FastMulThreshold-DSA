@@ -735,7 +735,7 @@ func (req *ReqSmpcAddr) DisAcceptMsg(raw string, workid int, key string) {
 	w.msgacceptreqaddrres.PushBack(raw)
 	
 	/////fix bug: miss accept msg for 7-11 test
-	SendMsgToSmpcGroup(raw, ac.GroupID)
+	//SendMsgToSmpcGroup(raw, ac.GroupID)
 	/////
 
 	if w.msgacceptreqaddrres.Len() >= w.NodeCnt {

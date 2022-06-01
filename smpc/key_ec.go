@@ -177,7 +177,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 
 		       //if !dul {
 		       //////also broacast to group for msg
-		       if mm.IsBroadcast() {
+		       /*if mm.IsBroadcast() {
 			   go func(msg string,gid string) {
 			       for i:=0;i<1;i++ {
 				   log.Debug("================ProcessInboundMessages,also broacast to group for msg===================","msg type",mm.GetMsgType(),"key",msgprex,"msg",msg,"gid",gid)
@@ -187,7 +187,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			   }(m,w.groupid)
 		       //}
 		       //////
-		   }
+		   }*/
 	       }
 	}
 }

@@ -567,7 +567,8 @@ func Call(msg interface{}, enode string) {
 	msgmap := make(map[string]string)
 	err = json.Unmarshal([]byte(s), &msgmap)
 	if err == nil {
-	    ok,keytmp,gidtmp,ss := IsMsg2Peer(msgmap)
+	    //ok,keytmp,gidtmp,ss := IsMsg2Peer(msgmap)
+	    ok,keytmp,_,ss := IsMsg2Peer(msgmap)
 	    if ok {
 		w, werr := FindWorker(keytmp)
 		if werr != nil {
@@ -580,13 +581,13 @@ func Call(msg interface{}, enode string) {
 
 		w.Msg2Peer = append(w.Msg2Peer,msg.(string))
 		if ss == "" {
-		    go func(msg2 string,gid string) {
+		    /*go func(msg2 string,gid string) {
 			for i:=0;i<1;i++ {
 			   log.Debug("================Call,also broacast to group for msg===================","key",keytmp,"msg",msg2,"gid",gid,"msg hash",msghash)
 			    SendMsgToSmpcGroup(msg2,gid)
 			    //time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 			}
-		    }(msg.(string),gidtmp)
+		    }(msg.(string),gidtmp)*/
 		    
 		    return
 		}
