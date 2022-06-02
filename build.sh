@@ -47,7 +47,7 @@ else
     export GOPROXY=https://gocenter.io
     export GOPROXY=https://proxy.golang.org
     export GOPROXY=https://goproxy.cn
-    export GOPROXY=https://mirrors.aliyun.com/goproxy/
+    #export GOPROXY=https://mirrors.aliyun.com/goproxy/
 
     for mod in $@; do
         go run build/ci.go install ./cmd/$mod
