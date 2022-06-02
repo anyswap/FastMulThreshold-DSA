@@ -519,7 +519,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			exsit, da := GetPubKeyData(smpcpks[:])
 			if !exsit {
 				common.Debug("============================PreSign at ReqSmpcSign.DoReq,not exist presign data===========================", "pubkey", ps.Pub)
-				res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get presign data from db fail", Err: fmt.Errorf("get presign data from db fail")}
+				res := RPCSmpcRes{Ret: "", Tip: "get pubkey data from db fail", Err: fmt.Errorf("get pubkey data from db fail")}
 				ch <- res
 				return false
 			}

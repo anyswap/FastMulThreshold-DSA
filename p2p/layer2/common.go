@@ -109,7 +109,7 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 		p := emitter.peers[node.ID]
 		if p != nil {
 			if err = p2p.Send(p.ws, msgCode, msg); err != nil {
-				common.Error("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash",msghash, "send", "fail waitting resend")
+				common.Error("=====================p2pSendMsg,send fail waitting resend=================", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash",msghash, "err",err)
 				//emitter.Unlock()
 				//return err
 			} else {
@@ -118,7 +118,7 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 				return nil
 			}
 		} else {
-			common.Error("==== p2pSendMsg() ==== p2pBroatcast", "nodeID", node.ID,"msg hash",msghash, "peer", "not exist p2perror continue")
+			common.Error("==================p2pSendMsg,peer not exist p2perror continue==================", "node.ID", node.ID,"node.IP",node.IP,"node.UDP",node.UDP,"msg hash",msghash)
 		}
 		emitter.Unlock()
 
@@ -129,7 +129,7 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 
 		countSendFail += 1
 		if countSendFail >= 60 {
-			common.Error("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash", msghash, "terminal send", "fail p2perror", "sendCount", countSendFail)
+			common.Error("======================p2pSendMsg,terminal send fail p2perror======================", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash", msghash,"sendCount", countSendFail)
 			break
 		}
 		if countSendFail == 1 || countSendFail%5 == 0 {

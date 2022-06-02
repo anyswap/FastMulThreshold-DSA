@@ -546,82 +546,142 @@ func HandleRPCSign() {
 
 		exsit, da := GetPubKeyData(smpcpks[:])
 		common.Debug("=========================HandleRpcSign======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit)
-		if exsit {
-			_, ok := da.(*PubKeyData)
-			common.Debug("=========================HandleRpcSign======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok)
-			if ok {
-				var pub string
-				if rsd.InputCode != "" {
-					pub = Keccak256Hash([]byte(strings.ToLower(rsd.PubKey + ":" + rsd.InputCode + ":" + rsd.GroupID))).Hex()
-				} else {
-					pub = Keccak256Hash([]byte(strings.ToLower(rsd.PubKey + ":" + rsd.GroupID))).Hex()
-				}
-
-				bret := false
-				pickdata := make([]*PickHashData, 0)
-				pickhash := make([]*PickHashKey, 0)
-				for _, vv := range rsd.MsgHash {
-					pick := PickPreSignData(rsd.PubKey, rsd.InputCode, rsd.GroupID)
-					if pick == nil {
-						bret = true
-						break
-					}
-					common.Info("========================HandleRpcSign,choose pickkey==================", "txhash", vv, "pickkey", pick.Key, "key", rsd.Key)
-
-					ph := &PickHashKey{Hash: vv, PickKey: pick.Key}
-					pickhash = append(pickhash, ph)
-					phd := &PickHashData{Hash: vv, Pre: pick}
-					pickdata = append(pickdata, phd)
-
-					//check pre sigal
-					if rsd.InputCode != "" {
-						if GetTotalCount(rsd.PubKey, rsd.InputCode, rsd.GroupID) >= (PreBip32DataCount/2) && GetTotalCount(rsd.PubKey, rsd.InputCode, rsd.GroupID) <= PreBip32DataCount {
-							PutPreSigal(pub, false)
-						} else {
-							PutPreSigal(pub, true)
-						}
-					} else {
-						if GetTotalCount(rsd.PubKey, "", rsd.GroupID) >= (PrePubDataCount*3/4) && GetTotalCount(rsd.PubKey, "", rsd.GroupID) <= PrePubDataCount {
-							PutPreSigal(pub, false)
-						} else {
-							PutPreSigal(pub, true)
-						}
-					}
-					//
-				}
-
-				if bret {
-					continue
-				}
-
-				m := make(map[string]string)
-				send, err := CompressSignBrocastData(rsd.Raw, pickhash)
-				if err == nil {
-					m["ComSignBrocastData"] = send
-				}
-				m["Type"] = "ComSignBrocastData"
-				val, err := json.Marshal(m)
-				if err != nil {
-					common.Error("=========================HandleRpcSign======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok, "bret", bret, "err", err)
-					continue
-				}
-
-				SendMsgToSmpcGroup(string(val), rsd.GroupID)
-
-				m2 := make(map[string]string)
-				selfsend, err := CompressSignData(rsd.Raw, pickdata)
-				if err == nil {
-					m2["ComSignData"] = selfsend
-				}
-				m2["Type"] = "ComSignData"
-				val2, err := json.Marshal(m2)
-				if err != nil {
-					common.Error("=========================HandleRpcSign,compress hash data.======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok, "bret", bret, "err", err)
-					continue
-				}
-				SetUpMsgList(string(val2), curEnode)
-			}
+		if !exsit {
+		    continue
 		}
+		
+		_, ok := da.(*PubKeyData)
+		common.Debug("=========================HandleRpcSign======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok)
+		if !ok {
+		    continue
+		}
+		
+		var pub string
+		if rsd.InputCode != "" {
+			pub = Keccak256Hash([]byte(strings.ToLower(rsd.PubKey + ":" + rsd.InputCode + ":" + rsd.GroupID))).Hex()
+		} else {
+			pub = Keccak256Hash([]byte(strings.ToLower(rsd.PubKey + ":" + rsd.GroupID))).Hex()
+		}
+
+		bret := false
+		pickdata := make([]*PickHashData, 0)
+		pickhash := make([]*PickHashKey, 0)
+		//var wg sync.WaitGroup
+		for kk, vv := range rsd.MsgHash {
+			//wg.Add(1)
+			//go func(hash string) {
+			    //wg.Done()
+			    pick := PickPreSignData(rsd.PubKey, rsd.InputCode, rsd.GroupID)
+			    if pick == nil && kk == 0 {
+				//common.Debug("=========================HandleRpcSign,pick pre-sign data fail and excute pre-sign cmd======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID)
+				subgid := make([]string,0)
+				subgid = append(subgid,rsd.GroupID)
+				pre := &TxDataPreSignData{TxType: "PRESIGNDATA", PubKey: rsd.PubKey, SubGid: subgid}
+				ExcutePreSignData(pre)
+			    }
+				
+			    timeout := make(chan bool, 1)
+			    rch := make(chan bool, 1)
+			    go func() {
+				for {
+				    if bret {
+					common.Debug("=========================HandleRpcSign,pick pre-sign data fail======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID)
+					return
+				    }
+
+				    pick = PickPreSignData(rsd.PubKey, rsd.InputCode, rsd.GroupID)
+				    if pick != nil {
+					common.Debug("=========================HandleRpcSign,pick pre-sign data successfully======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID,"pick key",pick.Key)
+					rch <-true
+					bret = false
+					return
+				    }
+				    
+				    time.Sleep(time.Duration(3) * time.Second)
+				}
+			    }()
+
+			    go func() {
+				    syncWaitTime := 180 * time.Second
+				    syncWaitTimeOut := time.NewTicker(syncWaitTime)
+
+				    for {
+					    select {
+					    case <-rch:
+						    //common.Debug("=========================HandleRpcSign,pick pre-sign data finish======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID,"pick key",pick.Key)
+						    bret = false
+						    timeout <-false
+						    return
+					    case <-syncWaitTimeOut.C:
+						    common.Debug("=========================HandleRpcSign,pick pre-sign data timeout======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID)
+						    bret = true
+						    timeout <- true
+						    return
+					    }
+				    }
+			    }()
+			    <-timeout
+
+			    if bret {
+				break
+			    }
+
+			    common.Info("========================HandleRpcSign,choose pickkey==================", "txhash", vv, "pickkey", pick.Key, "key", rsd.Key)
+
+			    ph := &PickHashKey{Hash: vv, PickKey: pick.Key}
+			    pickhash = append(pickhash, ph)
+			    phd := &PickHashData{Hash: vv, Pre: pick}
+			    pickdata = append(pickdata, phd)
+
+			    //check pre sigal
+			    if rsd.InputCode != "" {
+				    if GetTotalCount(rsd.PubKey, rsd.InputCode, rsd.GroupID) >= (PreBip32DataCount/2) && GetTotalCount(rsd.PubKey, rsd.InputCode, rsd.GroupID) <= PreBip32DataCount {
+					    PutPreSigal(pub, false)
+				    } else {
+					    PutPreSigal(pub, true)
+				    }
+			    } else {
+				    if GetTotalCount(rsd.PubKey, "", rsd.GroupID) >= (PrePubDataCount*3/4) && GetTotalCount(rsd.PubKey, "", rsd.GroupID) <= PrePubDataCount {
+					    PutPreSigal(pub, false)
+				    } else {
+					    PutPreSigal(pub, true)
+				    }
+			    }
+			    //
+			//}(vv)
+		}
+		//wg.Wait()
+
+		if bret {
+			continue
+		}
+
+		m := make(map[string]string)
+		send, err := CompressSignBrocastData(rsd.Raw, pickhash)
+		if err == nil {
+			m["ComSignBrocastData"] = send
+		}
+		m["Type"] = "ComSignBrocastData"
+		val, err := json.Marshal(m)
+		if err != nil {
+			common.Error("=========================HandleRpcSign======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok, "bret", bret, "err", err)
+			continue
+		}
+
+		SendMsgToSmpcGroup(string(val), rsd.GroupID)
+
+		m2 := make(map[string]string)
+		selfsend, err := CompressSignData(rsd.Raw, pickdata)
+		if err == nil {
+			m2["ComSignData"] = selfsend
+		}
+		m2["Type"] = "ComSignData"
+		val2, err := json.Marshal(m2)
+		if err != nil {
+			common.Error("=========================HandleRpcSign,compress hash data.======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok, "bret", bret, "err", err)
+			continue
+		}
+		SetUpMsgList(string(val2), curEnode)
 	}
 }
 
