@@ -1120,7 +1120,7 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 	//SigN = enode://xxxxxxxx@ip:portxxxxxxxxxxxxxxxxxxxxxx
 	_, enodes := GetGroup(groupid)
 	nodes := strings.Split(enodes, common.Sep2)
-	if nodecnt != len(sigs) {
+	if nodecnt != len(sigs) || len(sigs) != len(nodes) {
 		log.Error("============================GetGroupSigsDataByRaw,group sigs error.======================")
 		return "", fmt.Errorf("group sigs error")
 	}
@@ -1143,7 +1143,22 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 					return "", fmt.Errorf("group sigs error")
 				}
 
-				sig := enodesigs[len(node):]
+				po := strings.Split(node,":")
+				if len(po) < 3 {
+					return "", fmt.Errorf("group sigs error")
+				}
+
+				port := po[2]
+				po2 := strings.Split(sigs[j],":")
+				if len(po2) < 3 {
+					return "", fmt.Errorf("group sigs error")
+				}
+
+				tmp := po2[2]
+				sigtmp := []rune(tmp)
+				sig := sigtmp[len(port):]
+				//sig := enodesigs[len(node):]
+				log.Debug("==================GetGroupSigsDataByRaw=================","node",node,"node2",node2,"sig",string(sig[:]))
 				//sigbit, _ := hex.DecodeString(string(sig[:]))
 				sigbit := common.FromHex(string(sig[:]))
 				if sigbit == nil {
