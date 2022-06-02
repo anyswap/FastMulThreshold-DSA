@@ -84,7 +84,7 @@ func GetChannelValue(t int, obj interface{}) (string, string, error) {
 				return ret.Ret, ret.Tip, ret.Err
 			}
 		case <-timeout:
-			return "", "", fmt.Errorf("get RpcDcrmRes result fail")
+			return "", "", fmt.Errorf("get RpcSmpcRes result fail")
 		}
 	case chan string:
 		select {

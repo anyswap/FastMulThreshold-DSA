@@ -825,7 +825,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 
 		err = PutPubKeyData([]byte(key), []byte(ss))
 		if err != nil {
-			common.Error("================================dcrm_genPubKey,put pubkey data to localdb fail=========================", "err", err, "key", msgprex)
+			common.Error("================================smpc_genPubKey,put pubkey data to localdb fail=========================", "err", err, "key", msgprex)
 			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error: put pubkey data fail", Err: err}
 			ch <- res
 			return

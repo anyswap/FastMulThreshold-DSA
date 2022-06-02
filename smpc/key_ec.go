@@ -66,17 +66,17 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			
 			///dul?
 			hexs := Keccak256Hash([]byte(strings.ToLower(m))).Hex()
-			log.Debug("========================ProcessInboundMessages,get msg====================","msg",m,"key",msgprex)
 			_, exist2 := w.Msg56[hexs]
 			if exist2 {
 			   break 
 			}
 			///
 
+			log.Debug("========================ProcessInboundMessages,get msg====================","msg hash",hexs,"key",msgprex)
 			msgmap := make(map[string]string)
 			err := json.Unmarshal([]byte(m), &msgmap)
 			if err != nil {
-				log.Error("======================ProcessInboundMessages,unmarshal msg error===============","key",msgprex,"msg",m,"err",err)
+				log.Error("======================ProcessInboundMessages,unmarshal msg error===============","key",msgprex,"msg hash",hexs,"err",err)
 				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return
@@ -89,7 +89,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 
 			mm := GetRealMessage(msgmap)
 			if mm == nil {
-				log.Error("======================ProcessInboundMessages,get msg error=================","key",msgprex,"msg",m,"err",err)
+				log.Error("======================ProcessInboundMessages,get msg error=================","key",msgprex,"msg hash",hexs)
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to process inbound messages")}
 				ch <- res
 				return
@@ -104,14 +104,14 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			
 			//check sig
 			if msgmap["Sig"] == "" {
-				log.Error("======================ProcessInboundMessages,verify sig fail=====================","key",msgprex,"msg",m,"err",err)
+				log.Error("======================ProcessInboundMessages,verify sig fail=====================","key",msgprex,"msg hash",hexs)
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail,sig data error")}
 				ch <- res
 				return
 			}
 
 			if msgmap["ENode"] == "" {
-				log.Error("======================ProcessInboundMessages,verify sig fail=====================","key",msgprex,"msg",m,"err",err)
+				log.Error("======================ProcessInboundMessages,verify sig fail=====================","key",msgprex,"msg hash",hexs)
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail,enode info error")}
 				ch <- res
 				return
@@ -119,14 +119,14 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 
 			sig, err := hex.DecodeString(msgmap["Sig"])
 			if err != nil {
-			    common.Error("[KEYGEN] decode msg sig data error","err",err,"key",msgprex)
+			    common.Error("[KEYGEN] decode msg sig data error","err",err,"key",msgprex,"msg hash",hexs)
 			    res := RPCSmpcRes{Ret: "", Err: err}
 			    ch <- res
 			    return
 			}
 			
 			if !checkP2pSig(sig,mm,msgmap["ENode"]) {
-			    common.Error("===============keygen,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
+			    common.Error("===============keygen,check p2p msg fail===============","msg hash",hexs,"sender",msgmap["ENode"])
 			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
 			    ch <- res
 			    return
@@ -137,7 +137,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			id := fmt.Sprintf("%v", UID)
 			uid := hex.EncodeToString([]byte(id))
 			if !strings.EqualFold(uid,mm.GetFromID()) {
-			    common.Error("===============keygen,check p2p msg fail===============","UID",UID,"uid",uid,"fromID",mm.GetFromID(),"gid",w.groupid,"sender",msgmap["ENode"],"msg type",msgmap["Type"],"err","check from ID fail")
+			    common.Error("===============keygen,check p2p msg fail===============","UID",UID,"uid",uid,"fromID",mm.GetFromID(),"gid",w.groupid,"sender",msgmap["ENode"],"msg hash",hexs,"err","check from ID fail")
 			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check from ID fail")}
 			    ch <- res
 			    return
@@ -156,7 +156,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 			}
 
 			if !succ {
-				common.Error("===============keygen,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
+				common.Error("===============keygen,check p2p msg fail===============","sender",msgmap["ENode"],"msg hash",hexs)
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
 				ch <- res
 				return
@@ -164,7 +164,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 
 			_, err = w.DNode.Update(mm)
 			if err != nil {
-				common.Error("====================ProcessInboundMessages,dnode update fail=======================", "receiv msg", m, "err", err)
+				common.Error("====================ProcessInboundMessages,dnode update fail=======================", "msg hash",hexs, "err", err)
 				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
 				return

@@ -17,14 +17,14 @@
 package params
 
 // FsnMainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on
-// the main Fusion network.
+// the main Multichain network.
 var FsnMainnetBootnodes = []string{
-	// Fusion Foundation Go Bootnodes
+	// Multichain Foundation Go Bootnodes
 	"enode://400e00064520714fe69ecc5bfcf11e1a3c9a975744e58253c2dcd4381b9bea1c1bdfc54eb9a20adad85fda8d00a3ff7515344d2f1251df5f9b95efeacb1357b5@54.183.185.30:40400",
 }
 
 // FsnTestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
-// Fusion test network.
+// Multichain test network.
 var FsnTestnetBootnodes = []string{
 	"enode://40a66bd651fa6fb53ec5af02c17d1d57efee2ad918bda106a6a1dd61e730b331b56a43cd3b1eaedf980610b9e743dee88f38a4edb208cd22df7c9a199578a38c@47.107.50.83:40410",
 }

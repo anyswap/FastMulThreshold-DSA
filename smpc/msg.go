@@ -232,10 +232,10 @@ func SendMsgToSmpcGroup(msg string, groupid string) {
 	}
 
 	msghash := Keccak256Hash([]byte(strings.ToLower(msg))).Hex()
-	common.Debug("=========SendMsgToSmpcGroup=============", "msghash",msghash,"msg",msg,"groupid",groupid)
+	common.Debug("=========SendMsgToSmpcGroup=============", "orig msg hash",msghash,"orgi msg",msg,"groupid",groupid)
 	_, err := BroadcastInGroupOthers(groupid, msg)
 	if err != nil {
-		common.Debug("=========SendMsgToSmpcGroup,send msg to smpc group=============", "msghash",msghash,"msg", msg, "groupid", groupid, "err", err)
+		common.Debug("=========SendMsgToSmpcGroup,send msg to smpc group fail=============", "orig msg hash",msghash,"orig msg", msg, "groupid", groupid, "err", err)
 	}
 }
 
@@ -334,8 +334,9 @@ func SendMsgToPeerWithBrodcast(key string,enodes string, msg string,groupid stri
 	}
 	/////
 
+	shash := Keccak256Hash([]byte(strings.ToLower(msg))).Hex()
 	msghash := Keccak256Hash([]byte(strings.ToLower(string(s)))).Hex()
-	log.Debug("====================SendMsgToPeerWithBrodcast=====================","orig msg",msg,"msg",string(s),"msg hash",msghash,"gid",groupid)
+	log.Debug("====================SendMsgToPeerWithBrodcast=====================","orig msg",msg,"msg",string(s),"msg hash",msghash,"orig msg hash",shash,"gid",groupid)
 	SendMsgToSmpcGroup(string(s),groupid)
 }
 
@@ -525,39 +526,11 @@ func Call(msg interface{}, enode string) {
 	}
 
 	msghash := Keccak256Hash([]byte(strings.ToLower(s))).Hex()
-	common.Debug("====================Call===================", "get p2p msg ", msg,"msg hash",msghash,"sender node", enode)
+	common.Debug("====================Call,get p2p msg===================", "msg hash",msghash,"sender node", enode)
 	raw, err := UnCompress(s)
 	if err == nil {
 		s = raw
 	}
-
-	//check msg2peer
-	/*ok,keytmp,gidtmp,ss := IsMsg2Peer(s)
-	if ok {
-	    w, werr := FindWorker(keytmp)
-	    if werr != nil {
-		return
-	    }
-
-	    if findmsg2peer(w.Msg2Peer,msg.(string)) {
-		return
-	    }
-
-	    w.Msg2Peer = append(w.Msg2Peer,msg.(string))
-	    if ss == "" {
-		go func(msg2 string,gid string) {
-		    for i:=0;i<1;i++ {
-			SendMsgToSmpcGroup(msg2,gid)
-			time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
-		    }
-		}(msg.(string),gidtmp)
-		
-		return
-	    }
-
-	    s = ss
-	}*/
-	//
 
 	//msgdata, errdec := DecryptMsg(s) //for SendMsgToPeer
 	//if errdec == nil {
@@ -602,24 +575,25 @@ func Call(msg interface{}, enode string) {
 	    
 	    val, ok := msgmap["Key"]
 	    if ok {
+		    shash := Keccak256Hash([]byte(strings.ToLower(s))).Hex()
 		    w, err := FindWorker(val)
 		    if err == nil {
 			    if w.DNode != nil && w.DNode.Round() != nil {
-				    common.Debug("====================Call, get smpc msg,worker found.===================", "key", val, "msg", msg, "msg hash",msghash,"orig msg",s,"sender node", enode)
+				    common.Debug("====================Call, get smpc msg,worker found.===================", "key", val, "msg hash",msghash,"orig msg hash",shash,"sender node", enode)
 				    w.SmpcMsg <- s
 			    } else {
 				    from := msgmap["FromID"]
 				    msgtype := msgmap["Type"]
 				    key := strings.ToLower(val + "-" + from + "-" + msgtype)
 				    C1Data.WriteMap(key, s)
-				    log.Debug("===============================Call, pre-save p2p msg, worker found=============", "key",val,"fromID",from,"msgtype",msgtype,"c1data key",key,"msg",msg,"msg hash",msghash,"orig msg",s)
+				    log.Debug("===============================Call, pre-save p2p msg, worker found=============", "key",val,"fromID",from,"orig msg hash",shash,"msg hash",msghash)
 			    }
 		    } else {
 			    from := msgmap["FromID"]
 			    msgtype := msgmap["Type"]
 			    key := strings.ToLower(val + "-" + from + "-" + msgtype)
 			    C1Data.WriteMap(key, s)
-			    log.Debug("===============================Call, pre-save p2p msg, worker not found============","key",val,"fromID",from,"msgtype",msgtype,"c1data key",key,"msg",msg,"msg hash",msghash,"orig msg",s)
+			    log.Debug("===============================Call, pre-save p2p msg, worker not found============","key",val,"fromID",from,"orig msg hash",shash,"msg hash",msghash)
 		    }
 
 		    return

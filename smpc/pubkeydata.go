@@ -72,12 +72,12 @@ func GetPubKeyData2(key string, account string, cointype string) (string, string
 
 	exsit, da := GetPubKeyData([]byte(key))
 	if !exsit {
-		return "", "dcrm back-end internal error:get data from db fail ", fmt.Errorf("dcrm back-end internal error:get data from db fail")
+		return "", "", fmt.Errorf("get data from db fail")
 	}
 
 	pubs, ok := da.(*PubKeyData)
 	if !ok {
-		return "", "dcrm back-end internal error:get data from db fail", fmt.Errorf("dcrm back-end internal error:get data from db fail")
+		return "", "", fmt.Errorf("get data from db fail")
 	}
 
 	pubkey := hex.EncodeToString([]byte(pubs.Pub))
@@ -294,12 +294,12 @@ func GetAccounts(geteracc, mode string) (interface{}, string, error) {
 				return
 			}
 
-			dcrmpks, err := hex.DecodeString(pubkey)
+			smpcpks, err := hex.DecodeString(pubkey)
 			if err != nil {
 			    return
 			}
 
-			exsit, data2 := GetPubKeyData(dcrmpks[:])
+			exsit, data2 := GetPubKeyData(smpcpks[:])
 			if !exsit || data2 == nil {
 				return
 			}
