@@ -23,8 +23,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"net"
+	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -1414,7 +1416,36 @@ func GetEnode() string {
 	return SelfEnode
 }
 
+
+// GetPublicIP returns your public IP address
+func getPublicIP() (string, error) {
+	resp, err := http.Get("https://api.ipify.org")
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	ip := string(body)
+	return ip, nil
+}
+
 func CheckNetwokConnect() {
+	go func() {
+		time.Sleep(time.Duration(60) * time.Second)
+		for {
+			ip, err := getPublicIP()
+			if err == nil {
+				updateRemoteIP(parseIP(ip), RemotePort)
+				return
+			}
+			time.Sleep(time.Duration(1) * time.Second)
+		}
+	}()
 	go func() {
 		<-checkNetworkChan
 		connectOk = true
