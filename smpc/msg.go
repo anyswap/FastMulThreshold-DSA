@@ -642,15 +642,6 @@ func Call(msg interface{}, enode string) {
 	msghash2 := Keccak256Hash([]byte(strings.ToLower(s))).Hex()
 	//common.Debug("====================Call,get p2p msg===================","msg hash",msghash2,"sender node", enode)
 
-	//check msg
-	_,exist := MsgReceiv.ReadMap(msghash2)
-	if exist {
-	    return
-	}
-
-	MsgReceiv.WriteMap(msghash2,NowMilliStr())
-	//go p2psmpc.P2pBroatcastPeers(s,false)
-	
 	ma := &p2psmpc.MsgAck{}
 	err := json.Unmarshal([]byte(s), ma)
 	if err == nil && ma.Flag != "" {
@@ -678,6 +669,15 @@ func Call(msg interface{}, enode string) {
 	    common.Error("====================Call,check msg hash fail===================","sender node", enode,"orig msg hash",ms.MsgHash,"split msg hash",msghash2)
 	    return
 	}
+	
+	//check msg
+	_,exist := MsgReceiv.ReadMap(msghash)
+	if exist {
+	    return
+	}
+
+	MsgReceiv.WriteMap(msghash,NowMilliStr())
+	//go p2psmpc.P2pBroatcastPeers(s,false)
 	
 	common.Debug("====================Call,get orig msg success===================", "sender node", enode,"orig msg hash",ms.MsgHash)
 	origmsg := s //save the orig msg
