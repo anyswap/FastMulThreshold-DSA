@@ -57,7 +57,7 @@ func BroadcastToGroup(gid discover.NodeID, msg string, p2pType int, myself bool)
 
 var (
     MsgAckMap  = common.NewSafeMap(10)
-    resend = 30
+    resend = 60
     splitlen = 1200 
 )
 
@@ -92,7 +92,7 @@ func SendMsgAck(msghash string,eID string) {
 	return
     }
 
-    log.Debug("=================SendMsgAck==================","send msg ack to node.ID",eID,"orig msg hash",msghash)
+    //log.Debug("=================SendMsgAck==================","send msg ack to node.ID",eID,"orig msg hash",msghash)
     sendMsgToBroadcastNode(nodeid,string(s))
 }
 
@@ -112,7 +112,7 @@ func SetMsgStatus(msghash string,enode string) {
 	return
     }
 
-    log.Debug("================SetMsgStatus,get msg ack=================","orig msg hash",msghash,"enode",enode)
+    //log.Debug("================SetMsgStatus,get msg ack=================","orig msg hash",msghash,"enode",enode)
     ack <-true
 }
 
@@ -131,17 +131,17 @@ func checkMsgStatus(msghash string,msg string,node discover.RpcNode,msgCode uint
 
 	select {
 	case <-ack:
-	    log.Debug("=================checkMsgStatus,get msg ack success===========================","i",i,"orig msg hash",msghash,"send to node.ID",node.ID)
+	    log.Debug("=================checkMsgStatus,get msg ack success(send msg success)===========================","i",i,"orig msg hash",msghash,"send to node.ID",node.ID)
 		MsgAckMap.DeleteMap(msghash2)
 		return
 	case <-ackWaitTimeOut.C:
-		log.Debug("=================checkMsgStatus,get msg ack timeout===========================","i",i,"orig msg hash",msghash,"send to node.ID",node.ID)
+		//log.Debug("=================checkMsgStatus,get msg ack timeout===========================","i",i,"orig msg hash",msghash,"send to node.ID",node.ID)
 		SplitMsg(msg,node,int(msgCode))
 		break	
 	}
     }
     
-    log.Debug("=================checkMsgStatus,get msg ack fail===========================","orig msg hash",msghash,"send to node.ID",node.ID)
+    log.Debug("=================checkMsgStatus,get msg ack fail(maybe send msg fail)===========================","orig msg hash",msghash,"send to node.ID",node.ID)
     MsgAckMap.DeleteMap(msghash2)
 }
 
@@ -246,8 +246,8 @@ func SplitMsg(msg string,node discover.RpcNode,msgCode int) error {
 			return err
 		}
 		
-		splitmsghash := crypto.Keccak256Hash([]byte(strings.ToLower(string(s)))).Hex()
-		log.Debug("=========SplitMsg,send split msg to node=============", "node.ID",node.ID,"split msg hash",splitmsghash,"orig msg hash",msghash)
+		//splitmsghash := crypto.Keccak256Hash([]byte(strings.ToLower(string(s)))).Hex()
+		//log.Debug("=========SplitMsg,send split msg to node=============", "node.ID",node.ID,"split msg hash",splitmsghash,"orig msg hash",msghash)
 
 		sendMsgToBroadcastNode(node.ID,string(s))
 
@@ -365,7 +365,7 @@ func p2pBroatcast(dccpGroup *discover.Group, msg string, msgCode int, myself boo
 	
 		go checkMsgStatus(msghash,msg,node,uint64(msgCode))
 
-		common.Debug("============== p2pBroatcast,send msg to group node terminal success ================", "orig msg hash", msghash,"send to node.IP",node.IP,"send to node.UDP",node.UDP,"send to node.ID",node.ID,"msg len",len(msg))
+		//common.Debug("============== p2pBroatcast,send msg to group node terminal success ================", "orig msg hash", msghash,"send to node.IP",node.IP,"send to node.UDP",node.UDP,"send to node.ID",node.ID,"msg len",len(msg))
 		//}(node)
 
 		time.Sleep(time.Duration(80) * time.Millisecond)

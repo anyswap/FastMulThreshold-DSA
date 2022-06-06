@@ -69,7 +69,6 @@ require (
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
-	github.com/tendermint/tendermint v0.32.9 // indirect
 	github.com/whyrusleeping/go-logging v0.0.1
 	github.com/whyrusleeping/go-smux-multiplex v3.0.16+incompatible // indirect
 	github.com/whyrusleeping/go-smux-multistream v2.0.2+incompatible // indirect

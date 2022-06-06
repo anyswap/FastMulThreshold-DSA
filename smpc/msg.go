@@ -561,7 +561,7 @@ func CleanUpMsgReceiv() {
 
 	    timestamp, _ := GetUint64FromStr(tt)
 	    if expiredInterval > 0 && int64(timestamp/1000) + expiredInterval < time.Now().Unix() {
-		log.Debug("======================CleanUpMsgReceiv======================","key",k,"value",tt)
+		//log.Debug("======================CleanUpMsgReceiv======================","key",k,"value",tt)
 		MsgReceiv.DeleteMap(k)
 	    }
 	}
@@ -640,7 +640,7 @@ func Call(msg interface{}, enode string) {
 	}
 
 	msghash2 := Keccak256Hash([]byte(strings.ToLower(s))).Hex()
-	common.Debug("====================Call,get p2p msg===================","msg hash",msghash2,"sender node", enode)
+	//common.Debug("====================Call,get p2p msg===================","msg hash",msghash2,"sender node", enode)
 
 	//check msg
 	_,exist := MsgReceiv.ReadMap(msghash2)
@@ -654,7 +654,7 @@ func Call(msg interface{}, enode string) {
 	ma := &p2psmpc.MsgAck{}
 	err := json.Unmarshal([]byte(s), ma)
 	if err == nil && ma.Flag != "" {
-	    common.Debug("====================Call,get msg ack===================", "sender node", enode,"msg hash",msghash2,"orig msg hash",ma.MsgHash)
+	    //common.Debug("====================Call,get msg ack===================", "sender node", enode,"msg hash",msghash2,"orig msg hash",ma.MsgHash)
 	    p2psmpc.SetMsgStatus(ma.MsgHash,enode)
 	    return
 	}
@@ -679,7 +679,7 @@ func Call(msg interface{}, enode string) {
 	    return
 	}
 	
-	common.Debug("====================Call,get orig msg success===================", "orig msg",s,"sender node", enode,"orig msg hash",ms.MsgHash)
+	common.Debug("====================Call,get orig msg success===================", "sender node", enode,"orig msg hash",ms.MsgHash)
 	origmsg := s //save the orig msg
 	p2psmpc.SendMsgAck(msghash,enode)
 	//
