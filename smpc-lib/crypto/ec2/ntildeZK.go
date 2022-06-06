@@ -22,7 +22,8 @@ import (
 
 const (
 	// Iterations iter times
-	Iterations              = 128
+	//Iterations              = 128
+	Iterations              = 1 //TODO
 )
 
 type (
