@@ -43,6 +43,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/layer2"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/nat"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/netutil"
 	rpcsmpc "github.com/anyswap/FastMulThreshold-DSA/rpc/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc"
 	comlog "github.com/anyswap/FastMulThreshold-DSA/log"
@@ -127,6 +128,7 @@ var (
 	rotate       uint64
 	maxage       uint64
 	verbosity    uint64
+	nonetrestrict bool
 	json         bool
 	color        bool
 	waitmsg      uint64
@@ -178,6 +180,7 @@ func init() {
 		cli.Uint64Flag{Name: "rotate", Value: 2, Usage: "log rotation time (unit hour)", Destination: &rotate},
 		cli.Uint64Flag{Name: "maxage", Value: 72, Usage: "log max age (unit hour)", Destination: &maxage},
 		cli.Uint64Flag{Name: "verbosity", Value: 4, Usage: "log verbosity (0:panic, 1:fatal, 2:error, 3:warn, 4:info, 5:debug, 6:trace)", Destination: &verbosity},
+		cli.BoolFlag{Name: "nonetrestrict", Usage: "Not connectivity can be restricted to certain IP networks(without whitelist of static nodes)", Destination: &nonetrestrict},
 		cli.BoolFlag{Name: "json", Usage: "output log in json format", Destination: &json},
 		cli.BoolFlag{Name: "color", Usage: "output log in color text format", Destination: &color},
 		cli.Uint64Flag{Name: "waitmsg", Value: 120, Usage: "the time to wait p2p msg", Destination: &waitmsg},
@@ -340,6 +343,10 @@ func startP2pNode() error {
 			NAT:             nat.Any(),
 			//Logger:     logger,
 		},
+	}
+	if !nonetrestrict {
+		var inetRestrict netutil.Netlist
+		nodeserv.Config.NetRestrict = &inetRestrict
 	}
 
 	bootNodes, err := discover.ParseNode(bootnodes)

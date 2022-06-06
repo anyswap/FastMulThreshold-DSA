@@ -662,6 +662,11 @@ running:
 			// The server was stopped. Run the cleanup logic.
 			break running
 		case n := <-srv.addstatic:
+			if srv.NetRestrict != nil {
+				cidr := fmt.Sprintf("%v/8", n.IP)
+				common.Debug("srv.NetRestrict.Add", "cidr", cidr)
+				srv.NetRestrict.Add(cidr)
+			}
 			// This channel is used by AddPeer to add to the
 			// ephemeral static peer list. Add it to the dialer,
 			// it will keep the node connected.
@@ -852,7 +857,9 @@ func (srv *Server) listenLoop() {
 
 		// Reject connections that do not match NetRestrict.
 		if srv.NetRestrict != nil {
+			common.Debug("listenLoop", "srv.NetRestrict", srv.NetRestrict)
 			if tcp, ok := fd.RemoteAddr().(*net.TCPAddr); ok && !srv.NetRestrict.Contains(tcp.IP) {
+				common.Debug("listenLoop close", "srv.NetRestrict", srv.NetRestrict, "tcp.IP", tcp.IP)
 				fd.Close()
 				slots <- struct{}{}
 				continue
