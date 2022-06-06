@@ -27,6 +27,7 @@ import (
 
 // RPCTEST test
 var RPCTEST bool = false
+const maxGroupMember int = 100
 
 const (
     	// SUCCESS success 
@@ -82,9 +83,8 @@ func packageResult(status, tip, errors string, msg interface{}) map[string]inter
 
 // GetVersion get gsmpc version
 func (service *Service) GetVersion() map[string]interface{} {
-	fmt.Printf("==== GetVersion() ====\n")
 	v, c, d := params.GetVersion()
-	fmt.Printf("==== GetVersion() ====, version: %v, commit: %v, date: %v\n", v, c, d)
+	common.Debug("==== GetVersion() ====", "version", v, "commit", c, "date", d)
 	retv := &Version{Version: v, Commit: c, Date: d}
 	return packageResult(SUCCESS, "", "", retv)
 }
@@ -114,17 +114,22 @@ type GroupInfo struct {
 
 // ReshareGroup create reshare group
 func (service *Service) ReshareGroup(threshold string, enodes []string) map[string]interface{} {
-	fmt.Printf("==== ReshareSDKGroup() ====, threshold: %v, enodes: %v\n", threshold, enodes)
+	if len(enodes) > maxGroupMember {
+		ret := &GroupID{}
+		common.Debug("==== ReshareSDKGroup() ====", "threshold", threshold, "len(enodes)", len(enodes), "enodes", "parameter error")
+		return packageResult(FAIL, "enodes parameter error", "", ret)
+	}
+	common.Debug("==== ReshareSDKGroup() ====", "threshold", threshold, "len(enodes)", len(enodes))
 	all, err := layer2.CheckAddPeer(threshold, enodes, true)
 	if err != nil {
 		ret := &GroupID{}
-		fmt.Printf("==== ReshareSDKGroup() ====, CheckAddPeer err: %v\n", err)
+		common.Debug("==== ReshareSDKGroup() ====", "CheckAddPeer", "error")
 		return packageResult(FAIL, err.Error(), err.Error(), ret)
 	}
 	gid, count, retErr := layer2.CreateSDKGroup(threshold, enodes, false)
 	if retErr != "" {
 		status := FAIL
-		fmt.Printf("==== ReshareSDKGroup() ====, CreateSDKGroup tip: %v, err: %v\n", retErr, retErr)
+		common.Debug("==== ReshareSDKGroup() ====", "CreateSDKGroup", "error")
 		ret := &GroupID{Gid: gid}
 		return packageResult(status, retErr, retErr, ret)
 	}
@@ -133,7 +138,7 @@ func (service *Service) ReshareGroup(threshold string, enodes []string) map[stri
 		sid, _, retErrs := layer2.CreateSDKGroup(threshold, enodes, true)
 		if retErrs != "" {
 			status := FAIL
-			fmt.Printf("==== ReshareSDKGroup() ====, CreateSDKGroup sub tip: %v, err: %v\n", retErrs, retErrs)
+			common.Debug("==== ReshareSDKGroup() ====", "CreateSDKGroup sub", "error")
 			ret := &GroupID{Sgid: sid}
 			return packageResult(status, retErr, retErr, ret)
 		}
@@ -151,24 +156,25 @@ func (service *Service) CreateGroup(threshold string, enodes []string) map[strin
 
 // CreateSDKGroup create group
 func (service *Service) CreateSDKGroup(threshold string, enodes []string, subGroup bool) map[string]interface{} {
-	//fmt.Printf("==== CreateSDKGroup() ====\n")
+	if len(enodes) > maxGroupMember {
+		ret := &GroupID{}
+		common.Debug("==== CreateSDKGroup() ====", "threshold", threshold, "len(enodes)", len(enodes), "enodes", "parameter error")
+		return packageResult(FAIL, "enodes parameter error", "", ret)
+	}
 	_, err := layer2.CheckAddPeer(threshold, enodes, subGroup)
 	if err != nil {
 		ret := &GroupID{}
-		common.Debug("==== CreateSDKGroup() ====","CheckAddPeer err",err)
-		//fmt.Printf("==== CreateSDKGroup() ====, CheckAddPeer err: %v\n", err)
+		common.Debug("==== CreateSDKGroup() ====", "CheckAddPeer", "error")
 		return packageResult(FAIL, err.Error(), err.Error(), ret)
 	}
 	gid, count, retErr := layer2.CreateSDKGroup(threshold, enodes, subGroup)
 	if retErr != "" {
 		status := FAIL
-		common.Debug("==== CreateSDKGroup() ====","CreateSDKGroup tip",retErr,"err",retErr)
-		//fmt.Printf("==== CreateSDKGroup() ====, CreateSDKGroup tip: %v, err: %v\n", retErr, retErr)
+		common.Debug("==== CreateSDKGroup() ====", "CreateSDKGroup", "error")
 		ret := &GroupID{Gid: gid}
 		return packageResult(status, retErr, retErr, ret)
 	}
 	common.Debug("==== CreateSDKGroup() ====","gid",gid,"count",count)
-	//fmt.Printf("==== CreateSDKGroup() ====, gid: %v, count: %v\n", gid, count)
 	ret := &GroupID{Gid: gid}
 	return packageResult(SUCCESS, "", "", ret)
 }
@@ -180,7 +186,7 @@ type sdkGroupInfo struct {
 
 // GetGroupByID get group by gid
 func (service *Service) GetGroupByID(gid string) map[string]interface{} {
-	fmt.Printf("==== GetGroupByID() ====, gid: %v\n", gid)
+	common.Debug("==== GetGroupByID() ====", "gid", gid)
 	return getGroupByID(gid)
 }
 
@@ -207,17 +213,15 @@ func getGroupByID(gID string) map[string]interface{} {
 	tip := ""
 	addGroupChanged := false
 	for id, g := range layer2.GetGroupList() {
-		fmt.Printf("==== getGroupByID() ====, range g: %v\n", g)
 		enodes := make([]string, 0)
 		if id == gid {
 			for _, en := range g.Nodes {
 				enode := fmt.Sprintf("enode://%v@%v:%v", en.ID, en.IP, en.UDP)
 				enodes = append(enodes, enode)
-				fmt.Printf("==== getGroupByID() ====, gid: %v, enode: %v\n", gid, enode)
 				addGroupChanged = true
 			}
 			ret := &GroupInfo{Gid: gID, Count: len(g.Nodes), Enodes: enodes}
-			fmt.Printf("==== getGroupByID() ====, gid: %v, ret: %v\n", gid, ret)
+			common.Debug("==== getGroupByID() ====", "gid", gid, "len(enodes)", len(enodes))
 			return packageResult(stat, tip, tip, ret)
 		}
 	}
@@ -231,7 +235,7 @@ func getGroupByID(gID string) map[string]interface{} {
 
 func getSDKGroup(enode, groupType string) map[string]interface{} {
 	group := make([]GroupInfo, 0)
-	fmt.Printf("==== getSDKGroup() ====, call layer2.ParseNodeID() args enode: %v\n", enode)
+	common.Debug("==== getSDKGroup() ====", "enode", enode)
 	nodeid := layer2.ParseNodeID(enode)
 	stat := SUCCESS
 	tip := ""
@@ -241,9 +245,8 @@ func getSDKGroup(enode, groupType string) map[string]interface{} {
 		fmt.Printf("g: %v\n", gid, g)
 		enodes := make([]string, 0)
 		if g.Type == groupType {
-			for id, en := range g.Nodes {
+			for _, en := range g.Nodes {
 				enodes = append(enodes, fmt.Sprintf("enode://%v@%v:%v", en.ID, en.IP, en.UDP))
-				fmt.Printf("getSDKGroup, id: %v, nodeid: %v\n", id, nodeid)
 				if en.ID.String() == nodeid {
 					addGroup = true
 					addGroupChanged = true
@@ -265,11 +268,10 @@ func getSDKGroup(enode, groupType string) map[string]interface{} {
 
 // GetEnodeStatus get enode status
 func (service *Service) GetEnodeStatus(enode string) map[string]interface{} {
-	fmt.Printf("==== GetEnodeStatus() ====, enode: %v\n", enode)
 	es := &EnodeStatus{Enode: enode}
 	status := SUCCESS
 	stat, err := layer2.GetEnodeStatus(enode)
-	fmt.Printf("==== GetEnodeStatus() ====, enode: %v, stat: %v\n", enode, stat)
+	common.Debug("==== GetEnodeStatus() ====", "enode", enode, "stat", stat)
 	if stat == "" {
 		status = FAIL
 	}
@@ -284,16 +286,17 @@ func (service *Service) GetEnodeStatus(enode string) map[string]interface{} {
 
 // GetSDKGroupAll for test
 func (service *Service) GetSDKGroupAll() map[string]interface{} {
+	common.Debug("==== GetSDKGroupAll() ====")
 	if RPCTEST == false {
 		return packageResult(FAIL, "", "RPCTEST == false", "")
 	}
 	retMsg := layer2.GetGroupSDKAll()
-	fmt.Printf("==== GetSDKGroupAll() ====, ret: %v\n", retMsg)
 	return packageResult(SUCCESS, "", "", retMsg)
 }
 
 // BroadcastInSDKGroupAll broacast msg to all nodes in group by gid
 func (service *Service) BroadcastInSDKGroupAll(gid, msg string) map[string]interface{} {
+	common.Debug("==== BroadcastInSDKGroupAll() ====", "gid", gid)
 	if RPCTEST == false {
 		return packageResult(FAIL, "", "RPCTEST == false", "")
 	}
@@ -302,12 +305,12 @@ func (service *Service) BroadcastInSDKGroupAll(gid, msg string) map[string]inter
 	if err != nil {
 		status = FAIL
 	}
-	fmt.Printf("==== BroadcastInSDKGroupAll() ====, ret: %v\n", retMsg)
 	return packageResult(status, "", retMsg, msg)
 }
 
 // SendToGroupAllNodes send msg to all nodes in group by gid
 func (service *Service) SendToGroupAllNodes(gid, msg string) map[string]interface{} {
+	common.Debug("==== SendToGroupAllNodes() ====", "gid", gid)
 	if RPCTEST == false {
 		return packageResult(FAIL, "", "RPCTEST == false", "")
 	}
@@ -316,6 +319,5 @@ func (service *Service) SendToGroupAllNodes(gid, msg string) map[string]interfac
 	if err != nil {
 		status = FAIL
 	}
-	fmt.Printf("==== SendToGroupAllNodes() ====, ret: %v\n", retMsg)
 	return packageResult(status, "", retMsg, msg)
 }
