@@ -22,7 +22,7 @@ import (
 
 const (
 	// Iterations iter times
-	Iterations              = 128
+	Iterations              = 1 
 )
 
 type (
