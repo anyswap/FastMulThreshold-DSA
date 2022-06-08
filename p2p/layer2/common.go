@@ -630,10 +630,10 @@ func InitServer(nodeserv interface{}) {
 		for _, node := range g.Nodes {
 			common.Debug("==== InitServer() ====", "gid", i, "node", node)
 			if node.ID != selfid {
-				err = discover.PingNode(node.ID, node.IP, int(node.UDP))
-				if err != nil {
-				    return
-				}
+				//err = discover.PingNode(node.ID, node.IP, int(node.UDP))
+				//if err != nil {
+				//    return
+				//}
 				en := discover.NewNode(node.ID, node.IP, node.UDP, node.TCP)
 				go p2pServer.AddPeer(en)
 				go p2pServer.AddTrustedPeer(en)
