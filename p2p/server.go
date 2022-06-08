@@ -662,8 +662,8 @@ running:
 			// The server was stopped. Run the cleanup logic.
 			break running
 		case n := <-srv.addstatic:
-			if srv.NetRestrict != nil {
-				cidr := fmt.Sprintf("%v/8", n.IP)
+			if srv.NetRestrict != nil && !srv.NetRestrict.Contains(n.IP) {
+				cidr := fmt.Sprintf("%v/32", n.IP)
 				common.Debug("srv.NetRestrict.Add", "cidr", cidr)
 				srv.NetRestrict.Add(cidr)
 			}
