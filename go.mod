@@ -7,25 +7,20 @@ require (
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
 	github.com/aristanetworks/goarista v0.0.0-20191206003309-5d8d36c240c9
 	github.com/astaxie/beego v1.12.0
-	github.com/binance-chain/go-sdk v1.2.1
-	github.com/binance-chain/ledger-cosmos-go v0.9.9 // indirect
-	github.com/binance-chain/tss-lib v1.3.2
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v0.0.0-20191219182022-e17c9730c422
 	github.com/cosmos/ledger-cosmos-go v0.11.1 // indirect
 	github.com/davecgh/go-spew v1.1.1
-	github.com/deckarep/golang-set v1.7.1
+	github.com/deckarep/golang-set v1.8.0
 	github.com/dfuse-io/binary v0.0.0-20210216024852-4ae6830a495d
 	github.com/dfuse-io/solana-go v0.2.0
 	github.com/docker/docker v1.13.1
-	github.com/ethereum/go-ethereum v1.9.14
+	github.com/ethereum/go-ethereum v1.10.17
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/fsn-dev/cryptoCoins v1.0.0
-	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-logfmt/logfmt v0.5.0 // indirect
-	github.com/golang/snappy v0.0.1
-	github.com/huin/goupnp v1.0.0
-	github.com/influxdata/influxdb v1.7.9
+	github.com/golang/snappy v0.0.4
+	github.com/huin/goupnp v1.0.3-0.20220313090229-ca81a64b4204
 	github.com/ipfs/go-cid v0.0.4 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.1 // indirect
 	github.com/ipfs/go-log v1.0.1
@@ -54,12 +49,9 @@ require (
 	github.com/libp2p/go-stream-muxer v0.1.0 // indirect
 	github.com/libp2p/go-testutil v0.1.0 // indirect
 	github.com/libp2p/go-ws-transport v0.2.0 // indirect
-	github.com/mattn/go-colorable v0.1.6 // indirect
-	github.com/mitchellh/mapstructure v1.3.2 // indirect
 	github.com/multiformats/go-multiaddr v0.2.0
 	github.com/multiformats/go-multiaddr-dns v0.2.0 // indirect
 	github.com/onrik/ethrpc v1.0.0
-	github.com/pborman/uuid v1.2.0 // indirect
 	github.com/pelletier/go-toml v1.8.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.3.0 // indirect
@@ -70,19 +62,14 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
-	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
+	github.com/stretchr/testify v1.7.0
+	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/whyrusleeping/go-logging v0.0.1
 	github.com/whyrusleeping/go-smux-multiplex v3.0.16+incompatible // indirect
 	github.com/whyrusleeping/go-smux-multistream v2.0.2+incompatible // indirect
 	github.com/whyrusleeping/go-smux-yamux v2.0.9+incompatible // indirect
 	github.com/whyrusleeping/yamux v1.2.0 // indirect
-	github.com/zondax/ledger-go v0.11.0 // indirect
-	golang.org/x/mod v0.3.0 // indirect
-	golang.org/x/net v0.0.0-20200904194848-62affa334b73
-	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 // indirect
-	golang.org/x/tools v0.0.0-20200609164405-eb789aa7ce50 // indirect
+	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0
-	gopkg.in/yaml.v3 v3.0.0-20200605160147-a5ece683394c // indirect
-	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
 )
