@@ -24,6 +24,7 @@ import (
 	"math/big"
 	"strings"
 	"sync"
+	"strconv"
 	"time"
 
 	"crypto/hmac"
@@ -31,6 +32,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"github.com/fsn-dev/cryptoCoins/coins"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
 )
 
 // AccountsBalanceRes the balance of all smpc addr by pubkey
@@ -502,5 +504,87 @@ func GetBip32ChildKey(rootpubkey string, inputcode string) (string, string, erro
 
 	return pubkeyhex, "", nil
 }
+
+//--------------------------------------------------------------
+
+var (
+    keygen_num = 0
+    sign_num = 0
+    keygen_fail_num = 0
+    sign_fail_num = 0
+)
+
+type MpcNodeInfo struct {
+    GidNum int
+    KeyGenNum int
+    KeyGenFailNum int
+    SignNum int
+    SignFailNum int
+}
+
+func GetMpcNodeInfo() (string,error) {
+    //group num
+    gidnum := 0
+    if discover.SDK_groupList != nil {
+	gidnum = len(discover.SDK_groupList)
+    }
+
+    mni := &MpcNodeInfo{GidNum:gidnum,KeyGenNum:keygen_num,KeyGenFailNum:keygen_fail_num,SignNum:sign_num,SignFailNum:sign_fail_num}
+
+    ret,err := json.Marshal(mni)
+    return string(ret),err
+}
+
+func InitMpcNodeInfo() {
+    //get mpc node info
+    keytmp := Keccak256Hash([]byte(strings.ToLower(curEnode + ":" + "KeyGenNum"))).Hex()
+    b,da := GetPubKeyData([]byte(keytmp))
+    if b {
+	data,ok := da.([]byte)
+	if ok {
+	    num,err := strconv.Atoi(string(data))
+	    if err != nil {
+		keygen_num = num
+	    }
+	}
+    }
+
+    keytmp = Keccak256Hash([]byte(strings.ToLower(curEnode + ":" + "KeyGenFailNum"))).Hex()
+    b,da = GetPubKeyData([]byte(keytmp))
+    if b {
+	data,ok := da.([]byte)
+	if ok {
+	    num,err := strconv.Atoi(string(data))
+	    if err != nil {
+		keygen_fail_num = num
+	    }
+	}
+    }
+
+    keytmp = Keccak256Hash([]byte(strings.ToLower(curEnode + ":" + "SignNum"))).Hex()
+    b,da = GetPubKeyData([]byte(keytmp))
+    if b {
+	data,ok := da.([]byte)
+	if ok {
+	    num,err := strconv.Atoi(string(data))
+	    if err != nil {
+		sign_num = num
+	    }
+	}
+    }
+
+    keytmp = Keccak256Hash([]byte(strings.ToLower(curEnode + ":" + "SignFailNum"))).Hex()
+    b,da = GetPubKeyData([]byte(keytmp))
+    if b {
+	data,ok := da.([]byte)
+	if ok {
+	    num,err := strconv.Atoi(string(data))
+	    if err != nil {
+		sign_fail_num = num
+	    }
+	}
+    }
+}
+
 
 

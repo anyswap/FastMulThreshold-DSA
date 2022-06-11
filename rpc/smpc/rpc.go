@@ -654,6 +654,29 @@ func (service *Service) GetSmpcAddr(pubkey string) map[string]interface{} {
 	}
 }
 
+// GetMpcNodeInfo  get mpc node info 
+func (service *Service) GetMpcNodeInfo() map[string]interface{} {
+	data := make(map[string]interface{})
+	ret, err := smpc.GetMpcNodeInfo()
+	if err != nil {
+		data["result"] = ""
+		return map[string]interface{}{
+			"Status": "Error",
+			"Tip":    "",
+			"Error":  err.Error(),
+			"Data":   data,
+		}
+	}
+
+	data["result"] = ret
+	return map[string]interface{}{
+		"Status": "Success",
+		"Tip":    "",
+		"Error":  "",
+		"Data":   data,
+	}
+}
+
 var (
 	rpcport  int
 	endpoint string = "0.0.0.0"

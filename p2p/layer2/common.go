@@ -622,6 +622,7 @@ func InitServer(nodeserv interface{}) {
 	p2pServer = nodeserv.(p2p.Server)
 	err := discover.RecoverGroupAll(SdkGroup)
 	if err != nil {
+	    common.Error("====================InitServer=====================","err",err)
 	    return
 	}
 
@@ -642,6 +643,7 @@ func InitServer(nodeserv interface{}) {
 	}
 	err = discover.RecoverGroupAll(discover.SDK_groupList) // Group
 	if err != nil {
+	    common.Error("====================InitServer,recover grouplist fail=====================","err",err)
 	    return
 	}
 	common.Debug("InitServer", "init Group info", "finished")

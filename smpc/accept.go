@@ -21,6 +21,7 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
 	"strings"
@@ -343,6 +344,19 @@ func AcceptReqAddr(initiator string, account string, cointype string, groupid st
 			common.Error("===================================AcceptReqAddr,put reqaddr accept data to pubkey data db fail===========================", "err", err, "key", key)
 			return err.Error(), err
 		}
+
+		///get mpc node info
+		keygen_num++
+		if ac2.Status == "Failure" {
+		    keygen_fail_num++
+		}
+		keytmp := Keccak256Hash([]byte(strings.ToLower(curEnode + ":" + "KeyGenNum"))).Hex()
+		s := strconv.Itoa(keygen_num)
+		PutPubKeyData([]byte(keytmp), []byte(s))
+		keytmp = Keccak256Hash([]byte(strings.ToLower(curEnode + ":" + "KeyGenFailNum"))).Hex()
+		s = strconv.Itoa(keygen_fail_num)
+		PutPubKeyData([]byte(keytmp), []byte(s))
+		///
 	} else {
 		err = PutReqAddrInfoData([]byte(key), []byte(es))
 		if err != nil {
@@ -521,6 +535,19 @@ func AcceptSign(initiator string, account string, pubkey string, msghash []strin
 			common.Error("========================AcceptSign,put sign accept data to pubkey data db fail.=======================", "key", key, "err", err)
 			return err.Error(), err
 		}
+		
+		///get mpc node info
+		sign_num++
+		if ac2.Status == "Failure" {
+		    sign_fail_num++
+		}
+		keytmp := Keccak256Hash([]byte(strings.ToLower(curEnode + ":" + "SignNum"))).Hex()
+		s := strconv.Itoa(sign_num)
+		PutPubKeyData([]byte(keytmp), []byte(s))
+		keytmp = Keccak256Hash([]byte(strings.ToLower(curEnode + ":" + "SignFailNum"))).Hex()
+		s = strconv.Itoa(sign_fail_num)
+		PutPubKeyData([]byte(keytmp), []byte(s))
+		///
 	} else {
 		err = PutSignInfoData([]byte(key), []byte(es))
 		if err != nil {

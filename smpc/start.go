@@ -24,6 +24,7 @@ import (
 	cryptocoinsconfig "github.com/fsn-dev/cryptoCoins/coins/config"
 	"github.com/fsn-dev/cryptoCoins/coins/eos"
 	"os"
+	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
 )
 
 var (
@@ -88,6 +89,15 @@ func Start(params *LunchParams) {
 		return
 	}
 
+	//get p2p group db
+	err = discover.GetSmpcGidDb()
+	if err != nil {
+		info := "======================smpc.Start," + err.Error() + ",so terminate smpc node startup"
+		common.Error(info)
+		os.Exit(1)
+	}
+	//
+
 	common.Debug("======================smpc.Start,open all db success======================", "curEnode", curEnode)
 
 	PrePubDataCount = int(params.PreSignNum)
@@ -114,6 +124,8 @@ func Start(params *LunchParams) {
 	CleanUpAllReqAddrInfo()
 	CleanUpAllSignInfo()
 	CleanUpAllReshareInfo()
+
+	InitMpcNodeInfo()
 
 	common.Info("================================smpc.Start,init finish.========================", "curEnode", curEnode, "waitmsg", WaitMsgTimeGG20, "trytimes", recalcTimes, "presignnum", PrePubDataCount, "bip32pre", PreBip32DataCount)
 }

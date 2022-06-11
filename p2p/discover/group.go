@@ -37,6 +37,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/rlp"
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/anyswap/FastMulThreshold-DSA/ethdb"
 )
 
 var (
@@ -119,6 +120,27 @@ const (
 
 	Ack_Packet
 )
+
+///get mpc node info
+var (
+    giddb    *ethdb.LDBDatabase
+)
+
+// GetSmpcGidDb open database for group db
+func GetSmpcGidDb() error {
+	dir := GetGroupDir()
+	db, err := ethdb.NewLDBDatabase(dir, 76, 512)
+	if err != nil {
+		common.Error("======================GetSmpcGidDb,open giddb fail======================", "err", err, "dir", dir)
+		return err
+	}
+
+	giddb = db
+
+	return nil
+}
+
+///
 
 type (
 	findgroup struct {
@@ -1542,11 +1564,19 @@ func StoreGroupToDb(groupInfo *Group) error { //nooo
 	groupDbLock.Lock()
 	defer groupDbLock.Unlock()
 
-	dir := getGroupDir()
-	db, err := leveldb.OpenFile(dir, nil)
-	if err != nil {
-		return err
+	// fix bug:resource temporarily unavailable
+	if giddb == nil {
+	    common.Error("===================StoreGroupToDb,init group db fail=====================")
+	    return errors.New("init group db fail") 
 	}
+
+	//dir := getGroupDir()
+	//db, err := leveldb.OpenFile(dir, nil)
+	//if err != nil {
+	 //   common.Error("===================StoreGroupToDb=====================","err",err)
+	 //   return err
+	//}
+	// fix bug:resource temporarily unavailable
 
 	key := crypto.Keccak256Hash([]byte(strings.ToLower(fmt.Sprintf("%v", groupInfo.ID)))).Hex()
 	ac := new(Group)
@@ -1560,23 +1590,31 @@ func StoreGroupToDb(groupInfo *Group) error { //nooo
 	}
 	alos, err := Encode2(ac)
 	if err != nil {
-		db.Close()
+		//db.Close()
+		giddb.Close()
+		common.Error("===================StoreGroupToDb=====================","err",err)
 		return err
 	}
 	ss, err := Compress([]byte(alos))
 	if err != nil {
-		db.Close()
+		//db.Close()
+		giddb.Close()
+		common.Error("===================StoreGroupToDb=====================","err",err)
 		return err
 	}
 
-	common.Info("================ StoreGroupInfo() ================ new", "ac", ac)
-	err = db.Put([]byte(key), []byte(ss), nil)
+	//err = db.Put([]byte(key), []byte(ss), nil)
+	err = giddb.Put([]byte(key), []byte(ss))
 	if err != nil {
-	    db.Close()
+	    //db.Close()
+	    giddb.Close()
+	    common.Error("===================StoreGroupToDb=====================","err",err)
 	    return err
 	}
 
-	db.Close()
+	//db.Close()
+	giddb.Close()
+	common.Debug("================ StoreGroupInfo,success save the group info ================ ")
 	return nil
 }
 
