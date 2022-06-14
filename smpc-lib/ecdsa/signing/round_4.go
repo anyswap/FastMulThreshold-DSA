@@ -25,6 +25,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
 	"encoding/hex"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 // Start verify MtAZK1Proof,paillier homo add ,paillier homo mul
@@ -67,7 +68,7 @@ func (round *round4) Start() error {
 			u1nt := round.save.U1NtildeH1H2[index]
 			u1rlt1 := msg2.U1u1MtAZK1Proof.MtARangeProofVerify(msg3.Kc, u1PaillierPk, u1nt)
 			if !u1rlt1 {
-				fmt.Printf("============round4.start,verify mtazk1 proof fail.==============\n")
+				log.Error("=====================round4.start,verify mtazk1 proof fail===================","msg2",*msg2,"msg3",*msg3,"index",index,"oldindex",oldindex,"idsign",round.idsign,"save.IDs",round.save.IDs,"curIndex",curIndex)
 				return errors.New("verify mtazk1 proof fail")
 			}
 		} else {
@@ -75,7 +76,7 @@ func (round *round4) Start() error {
 			u1nt := round.save.U1NtildeH1H2[oldindex]
 			u1rlt1 := msg2.U1u1MtAZK1Proof.MtARangeProofVerify(msg3.Kc, u1PaillierPk, u1nt)
 			if !u1rlt1 {
-				fmt.Printf("============round4.start,verify mtazk1 proof fail.==============\n")
+				log.Error("=====================round4.start,verify mtazk1 proof fail===================","msg2",*msg2,"msg3",*msg3,"index",index,"oldindex",oldindex,"idsign",round.idsign,"save.IDs",round.save.IDs,"curIndex",curIndex,"k",k)
 				return errors.New("verify mtazk1 proof fail")
 			}
 		}
@@ -85,6 +86,7 @@ func (round *round4) Start() error {
 		msg1, _ := round.temp.signRound1Messages[k].(*SignRound1Message)
 		deCommit := &ec2.Commitment{C: msg1.ComWiC, D: msg3.ComWiD}
 		if !deCommit.Verify() {
+			log.Error("=====================round4.start,verify commit for wi fail================","msg1",*msg1,"msg3",*msg3,"index",index,"oldindex",oldindex,"idsign",round.idsign,"save.IDs",round.save.IDs,"curIndex",curIndex,"k",k)
 		    return errors.New("verify commit for wi fail")
 		}
 	}
