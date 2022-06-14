@@ -728,16 +728,27 @@ func GetSignStatus(key string) (string, string, error) {
 	    return "","",errors.New("param error")
 	}
 
-	exsit, da := GetPubKeyData([]byte(key))
+	exsit, da := GetSignInfoData([]byte(key))
+	if exsit {
+	    ac, ok := da.(*AcceptSignData)
+	    if !ok {
+		return "", "", fmt.Errorf("get sign data error from db")
+	    }
+
+	    rsvs := strings.Split(ac.Rsv, ":")
+	    los := &SignStatus{Status: ac.Status, Rsv: rsvs[:len(rsvs)-1], Tip: ac.Tip, Error: ac.Error, AllReply: ac.AllReply, TimeStamp: ac.TimeStamp}
+	    ret, _ := json.Marshal(los)
+	    return string(ret), "", nil
+	}
+
+	exsit, da = GetPubKeyData([]byte(key))
 	if !exsit || da == nil {
-		common.Debug("=================GetSignStatus,get sign accept data fail from db================", "key", key)
-		return "", "smpc back-end internal error:get sign accept data fail from db when GetSignStatus", fmt.Errorf("get sign accept data fail from db")
+		return "", "", fmt.Errorf("")
 	}
 
 	ac, ok := da.(*AcceptSignData)
 	if !ok {
-		common.Error("=================GetSignStatus,get sign accept data error from db================", "key", key)
-		return "", "smpc back-end internal error:get sign accept data error from db when GetSignStatus", fmt.Errorf("get sign accept data error from db")
+		return "", "", fmt.Errorf("get sign data error from db")
 	}
 
 	rsvs := strings.Split(ac.Rsv, ":")

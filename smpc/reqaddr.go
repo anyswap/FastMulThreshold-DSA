@@ -368,16 +368,26 @@ func GetReqAddrStatus(key string) (string, string, error) {
 	    return "","",errors.New("param error")
 	}
 
-	exsit, da := GetPubKeyData([]byte(key))
-	///////
+	exsit, da := GetReqAddrInfoData([]byte(key))
+	if exsit {
+	    ac, ok := da.(*AcceptReqAddrData)
+	    if !ok {
+		    return "", "", fmt.Errorf("get keygen data error from db")
+	    }
+
+	    los := &ReqAddrStatus{Status: ac.Status, PubKey: ac.PubKey, Tip: ac.Tip, Error: ac.Error, AllReply: ac.AllReply, TimeStamp: ac.TimeStamp}
+	    ret, _ := json.Marshal(los)
+	    return string(ret), "", nil
+	}
+
+	exsit, da = GetPubKeyData([]byte(key))
 	if !exsit || da == nil {
-		common.Debug("=====================GetReqAddrStatus,key does not exsit======================", "key", key)
-		return "", "smpc back-end internal error:get reqaddr accept data fail from db when GetReqAddrStatus", fmt.Errorf("get reqaddr accept data fail from db")
+		return "", "", fmt.Errorf("get keygen data fail from db")
 	}
 
 	ac, ok := da.(*AcceptReqAddrData)
 	if !ok {
-		return "", "smpc back-end internal error:get reqaddr accept data error from db when GetReqAddrStatus", fmt.Errorf("get reqaddr accept data error from db")
+		return "", "", fmt.Errorf("get keygen data error from db")
 	}
 
 	los := &ReqAddrStatus{Status: ac.Status, PubKey: ac.PubKey, Tip: ac.Tip, Error: ac.Error, AllReply: ac.AllReply, TimeStamp: ac.TimeStamp}
