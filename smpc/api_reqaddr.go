@@ -196,14 +196,14 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 		    return false
 		}
 		
-		curnonce, _, _ := GetReqAddrNonce(from)
+		/*curnonce, _, _ := GetReqAddrNonce(from)
 		curnoncenum, _ := new(big.Int).SetString(curnonce, 10)
 		newnoncenum, _ := new(big.Int).SetString(nonce, 10)
 		if newnoncenum.Cmp(curnoncenum) < 0 {
 		    res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("nonce error")}
 		    ch <- res
 		    return false
-		}
+		}*/
 
 		_, err := SetReqAddrNonce(from, nonce)
 		if err != nil {
