@@ -522,7 +522,7 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 
 				HandleC1Data(nil, w.sid)
 			}()
-			go ReshareProcessInboundMessages(msgprex, commStopChan, &reshareWg, ch)
+			go ReshareProcessInboundMessages(msgprex, commStopChan, errChan,&reshareWg, ch)
 			newsku1, err := processReshare(msgprex, groupid, pubkey, account, mode, sigs, errChan, outCh, endCh)
 			if err != nil {
 				fmt.Printf("==========process reshare err = %v ==========\n", err)
@@ -564,7 +564,7 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 
 		HandleC1Data(nil, w.sid)
 	}()
-	go ReshareProcessInboundMessages(msgprex, commStopChan, &reshareWg, ch)
+	go ReshareProcessInboundMessages(msgprex, commStopChan, errChan,&reshareWg, ch)
 	newsku1, err := processReshare(msgprex, groupid, pubkey, account, mode, sigs, errChan, outCh, endCh)
 	if err != nil {
 		fmt.Printf("==========process reshare err = %v ==========\n", err)

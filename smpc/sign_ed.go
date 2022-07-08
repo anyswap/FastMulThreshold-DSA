@@ -33,8 +33,7 @@ import (
 //--------------------------------------------------------EDDSA start-------------------------------------------------------
 
 // EdSignProcessInboundMessages Analyze the obtained P2P messages and enter next round
-func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
-	defer wg.Done()
+func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, errChan chan struct{},wg *sync.WaitGroup, ch chan interface{}) {
 	if msgprex == "" {
 	    return
 	}
@@ -47,7 +46,12 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *
 		return
 	}
 
-	defer fmt.Printf("stop ed sign processing inbound messages\n")
+	defer func() {
+		wg.Done()
+		fmt.Printf("stop ed sign processing inbound messages\n")
+		close(errChan)
+	}()
+
 	for {
 		select {
 		case <-finishChan:

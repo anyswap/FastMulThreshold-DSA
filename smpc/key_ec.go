@@ -36,12 +36,17 @@ import (
 //---------------------------------------ECDSA start-----------------------------------------------------------------------
 
 // ProcessInboundMessages Analyze the obtained P2P messages and enter next round
-func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
+func ProcessInboundMessages(msgprex string, finishChan chan struct{}, errChan chan struct{},wg *sync.WaitGroup, ch chan interface{}) {
     	if msgprex == "" {
 	    return
 	}
 
-	defer wg.Done()
+	defer func() {
+		wg.Done()
+		log.Info("stop processing inbound messages","key",msgprex)
+		close(errChan)
+	}()
+
 	//log.Info("start processing inbound messages")
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
@@ -51,7 +56,6 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.W
 		return
 	}
 
-	defer log.Info("stop processing inbound messages","key",msgprex)
 	for {
 		select {
 		case <-finishChan:

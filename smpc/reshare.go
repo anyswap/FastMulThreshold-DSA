@@ -38,12 +38,17 @@ import (
 //----------------------------------------------------ECDSA start----------------------------------------------------------
 
 // ReshareProcessInboundMessages Analyze the obtained P2P messages and enter next round
-func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
-	defer wg.Done()
+func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, errChan chan struct{},wg *sync.WaitGroup, ch chan interface{}) {
 	
 	if msgprex == "" {
 	    return
 	}
+
+	defer func() {
+		wg.Done()
+		fmt.Printf("stop processing inbound messages\n")
+		close(errChan)
+	}()
 
 	fmt.Printf("start processing inbound messages\n")
 	w, err := FindWorker(msgprex)
@@ -53,7 +58,6 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, wg 
 		return
 	}
 
-	defer fmt.Printf("stop processing inbound messages\n")
 	for {
 		select {
 		case <-finishChan:

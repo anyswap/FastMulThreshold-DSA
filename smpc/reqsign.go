@@ -1466,7 +1466,7 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 			}
 		}
 	}()
-	go SignProcessInboundMessages(msgprex, commStopChan, &signWg, ch)
+	go SignProcessInboundMessages(msgprex, commStopChan, errChan,&signWg, ch)
 	pre, err := processSign(msgprex, kgsave.MsgToEnode, errChan, outCh, endCh)
 	if err != nil || pre == nil {
 	    	common.Debug("==========================PreSignEC3,process sign fail===========================","key",msgprex,"err",err)
@@ -1602,7 +1602,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 			}
 		}
 	}()
-	go SignProcessInboundMessages(msgprex, commStopChan, &signWg, ch)
+	go SignProcessInboundMessages(msgprex, commStopChan, errChan,&signWg, ch)
 	s, err := processSignFinalize(msgprex, kgsave.MsgToEnode, errChan, outCh, finalizeendCh, gid)
 	if err != nil || s == nil {
 	    	common.Debug("=========================SignEC3,process sign fail==============================","key",msgprex,"err",err)
@@ -2052,7 +2052,7 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 			}
 		}
 	}()
-	go EdSignProcessInboundMessages(msgprex, commStopChan, &signWg, ch)
+	go EdSignProcessInboundMessages(msgprex, commStopChan, errChan,&signWg, ch)
 	edrs, err := processSigned(msgprex, kgsave.MsgToEnode, errChan, outCh, endCh)
 	if err != nil || edrs == nil {
 		common.Debug("================SignED,process sign fail========================","key",msgprex,"err",err)

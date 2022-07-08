@@ -36,13 +36,17 @@ import (
 //--------------------------------------------ECDSA start----------------------------------------------------------
 
 // SignProcessInboundMessages Analyze the obtained P2P messages and enter next round
-func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
-	defer wg.Done()
+func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, errChan chan struct{},wg *sync.WaitGroup, ch chan interface{}) {
 	if msgprex == "" {
 	    return
 	}
 
-	//log.Info("start sign processing inbound messages")
+	defer func() {
+		wg.Done()
+		log.Info("stop sign processing inbound messages","key",msgprex)
+		close(errChan)
+	}()
+
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
 		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to sign process inbound messages")}
@@ -50,7 +54,6 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, wg *sy
 		return
 	}
 
-	defer log.Info("stop sign processing inbound messages","key",msgprex)
 	for {
 		select {
 		case <-finishChan:

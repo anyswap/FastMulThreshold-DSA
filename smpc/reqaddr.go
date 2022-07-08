@@ -930,7 +930,7 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 			}
 		}
 	}()
-	go ProcessInboundMessages(msgprex, commStopChan, &keyGenWg, ch)
+	go ProcessInboundMessages(msgprex, commStopChan, errChan,&keyGenWg, ch)
 	err := processKeyGen(msgprex, errChan, outCh, endCh)
 	if err != nil {
 		log.Error("==========KeyGenerateDECDSA,process keygen error============","key",msgprex,"err",err)
@@ -1003,7 +1003,7 @@ func KeyGenerateDEDDSA(msgprex string, ch chan interface{}, id int, cointype str
 			}
 		}
 	}()
-	go ProcessInboundMessagesEDDSA(msgprex, commStopChan, &keyGenWg, ch)
+	go ProcessInboundMessagesEDDSA(msgprex, commStopChan, errChan,&keyGenWg, ch)
 	err := processKeyGenEDDSA(msgprex, errChan, outCh, endCh)
 	if err != nil {
 		log.Error("==========KeyGenerateDEDDSA,process ed keygen error==========","key",msgprex,"err",err)
