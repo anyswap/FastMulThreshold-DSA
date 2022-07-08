@@ -326,6 +326,7 @@ func CreateSDKGroup(threshold string, enodes []string, subGroup bool) (string, i
 		msg := fmt.Sprintf("args threshold(%v) format is wrong", threshold)
 		return "", 0, msg
 	}
+
 	nodeNum0, _ := strconv.Atoi(es[0])
 	count := len(enodes)
 	enode := []*discover.Node{}
@@ -342,8 +343,10 @@ func CreateSDKGroup(threshold string, enodes []string, subGroup bool) (string, i
 				continue
 			}
 		}
+		
 		tmpEnodes = append(tmpEnodes, e)
 	}
+
 	gid, err := getGIDFromEnodes(tmpEnodes)
 	common.Debug("CreateSDKGroup", "gid <- id", gid, "err", err)
 	if err != nil {

@@ -91,6 +91,7 @@ type transport interface {
 	sendMsgToPeer(toid NodeID, toaddr *net.UDPAddr, msg string) error
 	sendToGroupCC(toid NodeID, toaddr *net.UDPAddr, msg string, p2pType int) (string, error)
 	sendMsgToBroadcastNode(toid NodeID, toaddr *net.UDPAddr, msg string) error
+	sendMsgSplitToPeerWithUDP(toid NodeID, toaddr *net.UDPAddr, packet []byte, p2pType int,ptype int) error
 	close()
 }
 

@@ -128,8 +128,13 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 		//}
 
 		countSendFail += 1
-		if countSendFail >= 60 {
-			common.Error("======================p2pSendMsg,terminal send fail p2perror======================", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash", msghash,"sendCount", countSendFail)
+		if countSendFail >= 120 {
+			common.Error("======================p2pSendMsg,terminal send fail p2perror with tcp======================", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash", msghash,"sendCount", countSendFail)
+
+			sbm := &discover.SmpcBroadcastMsg{}
+			sbm.Data = msg
+			toaddr := &net.UDPAddr{IP: node.IP, Port: int(node.UDP)}
+			discover.SendMsgSplitToPeerWithUDP(node.ID,toaddr,sbm,0,discover.Smpc_BroadcastMsgPacket)
 			break
 		}
 		if countSendFail == 1 || countSendFail%5 == 0 {
@@ -308,6 +313,7 @@ func HandlePeer(peer *p2p.Peer, rw p2p.MsgReadWriter) error {
 // receive message form peers
 func RegisterCallback(recvFunc func(interface{}, string)) {
 	callback = recvFunc
+	discover.SmpcCall = recvFunc
 }
 func callEvent(msg, fromID string) {
 	common.Debug("==== callEvent() ====", "fromID", fromID, "msg", msg)
@@ -364,6 +370,7 @@ func getGroup(gid discover.NodeID, p2pType int) (int, string) {
 
 func recvGroupInfo(gid discover.NodeID, mode string, req interface{}, p2pType int, Type string) {
 	common.Info("================ recvGroupInfo() =================", "gid", gid, "req", req)
+
 	discover.GroupSDK.Lock()
 	defer discover.GroupSDK.Unlock()
 	var xvcGroup *discover.Group

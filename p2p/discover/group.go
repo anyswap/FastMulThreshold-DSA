@@ -117,6 +117,9 @@ const (
 	gotSdkPacket
 	gotXpPacket
 	msgBroadcastPacket // use udp.send when peer.send failed
+	Smpc_MsgSplitPacket
+	Smpc_MsgSplitAckPacket
+	Smpc_BroadcastMsgPacket
 
 	Ack_Packet
 )
@@ -872,7 +875,7 @@ func buildSDKGroup(gid NodeID, threshold string, enode []*Node, Type string, exi
 	tmpNodes := make([]RpcNode, len(enode))
 	for i, node := range enode {
 		tmpNodes[i] = RpcNode(nodeToRPC(node))
-		common.Debug("==== buildSDKGroup() ====", "tmpNodes", tmpNodes)
+		common.Debug("==== buildSDKGroup() ====", "tmpNodes", tmpNodes,"i",i,"node",tmpNodes[i],"enode",*node)
 		if subGroup {
 			if i >= nodeNum0 {
 				continue
@@ -1147,29 +1150,401 @@ func SendMsgToNode(toid NodeID, toaddr *net.UDPAddr, msg string) error {
 	return Table4group.net.sendMsgToPeer(toid, toaddr, msg)
 }
 
+/////////ack for sending group info with udp
+
+var (
+    SmpcCall      func(interface{}, string)
+    Msg2Peer = common.NewSafeMap(10)
+    MsgAckMap  = common.NewSafeMap(10)
+    resend = 30
+    splitlen = 1200
+)
+
+func getFullLen(str []string) int {
+    n := 0
+    for _,v := range str {
+	if v != "" {
+	    n++
+	}
+    }
+
+    return n
+}
+
+func MergeSplitMsg(ms *MsgSend) string {
+    if ms == nil {
+	return ""
+    }
+
+    total,err := strconv.Atoi(ms.Num)
+    if err != nil {
+	return ""
+    }
+    pos,err := strconv.Atoi(ms.Pos)
+    if err != nil {
+	return ""
+    }
+
+    if pos >= total || pos < 0 {
+	common.Error("====================MergeSplitMsg,get split msg pos error====================","msg hash",ms.MsgHash,"pos",pos,"total",total)
+	return ""
+    }
+
+    val,exist := Msg2Peer.ReadMap(ms.MsgHash)
+    if !exist {
+	tmp := make([]string,total)
+	tmp[pos] = ms.SplitMsg
+	Msg2Peer.WriteMap(ms.MsgHash,tmp)
+	if getFullLen(tmp) == total {
+	    var s string
+	    for _,v := range tmp {
+		s += v
+	    }
+
+	    common.Debug("====================MergeSplitMsg,get msg====================","msg",s,"msg hash",ms.MsgHash,"pos",pos,"total",total)
+	    return s
+	}
+
+	return ""
+    }
+
+    tmp,ok := val.([]string)
+    if !ok {
+	return ""
+    }
+
+    tmp[pos] = ms.SplitMsg
+    Msg2Peer.WriteMap(ms.MsgHash,tmp)
+    if getFullLen(tmp) == total {
+	var s string
+	for _,v := range tmp {
+	    s += v
+	}
+
+	common.Debug("====================MergeSplitMsg,get msg====================","msg",s,"msg hash",ms.MsgHash,"pos",pos,"total",total)
+	return s
+    }
+
+    return ""
+}
+
+type MsgSend struct {
+   MsgHash string
+   Pos string
+   Num string
+   PacketType string
+   SplitMsg string
+}
+
+func sendSplitMsg(t *udp,msg string,ptype int,toaddr *net.UDPAddr,toid NodeID) error {
+
+    if msg == "" || t == nil || toaddr == nil {
+	return errors.New("param error")
+    }
+
+    num := getSplitMsgNum(msg)
+    if num <= 0 {
+	return errors.New("split msg num error")
+    }
+
+    msghash := crypto.Keccak256Hash([]byte(strings.ToLower(msg))).Hex()
+    common.Debug("==============sendSplitMsg,broadcast msg to group===================","orig msg hash",msghash,"send to node.ID",toid,"split len",splitlen,"orig msg len",len(msg),"split msg num",num)
+
+    msgs := []rune(msg)
+    for i:=0;i<num;i++ {
+	ms := &MsgSend{}
+	ms.MsgHash = msghash
+	ms.Pos = strconv.Itoa(i) 
+	ms.Num = strconv.Itoa(num)
+	ms.PacketType = strconv.Itoa(ptype)
+
+	if i == (int(num)-1) {
+	    ms.SplitMsg = string(msgs[splitlen*i:])
+	} else {
+	    ms.SplitMsg = string(msgs[splitlen*i:(i+1)*splitlen])
+	}
+
+	for j:=0;j<10;j++ {
+	    errc := t.pending(toid, byte(Smpc_MsgSplitPacket), func(r interface{}) bool {
+		    return true
+	    })
+
+	    if errc == nil {
+		break
+	    }
+	    
+	    time.Sleep(time.Duration(200) * time.Millisecond)
+	}
+
+	for j:=0;j<10;j++ {
+	    _, errt := t.send(toaddr, byte(Smpc_MsgSplitPacket),ms)
+	    if errt == nil {
+		break
+	    }
+	    
+	    common.Debug("====================sendSplitMsg,udp send msg fail=====================","j",j,"err",errt)
+	    time.Sleep(time.Duration(200) * time.Millisecond)
+	}
+	
+	//err := <-errc
+	//return err
+	
+	time.Sleep(time.Duration(20) * time.Millisecond)
+    }
+
+    return nil
+}
+
+func getReqObject(ptype int) packet {
+    switch ptype {
+    case Smpc_groupInfoPacket:
+	return new(Group)
+    case Smpc_BroadcastMsgPacket:
+	return new(SmpcBroadcastMsg)
+    default:
+	return nil
+    }
+
+    return nil
+}
+
+func (ms *MsgSend) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
+    common.Debug("=====================MsgSend.handle,get msg========================","fromID",fromID,"msghash",ms.MsgHash)
+    s := MergeSplitMsg(ms)
+    if s == "" {
+	return nil
+    }
+
+    common.Debug("=====================MsgSend.handle,get orig msg========================","fromID",fromID,"msghash",ms.MsgHash)
+    Msg2Peer.DeleteMap(ms.MsgHash)
+    msghash := crypto.Keccak256Hash([]byte(strings.ToLower(s))).Hex()
+    if !strings.EqualFold(msghash,ms.MsgHash) {
+	return nil
+    }
+    
+    common.Debug("=====================MsgSend.handle,check orig msg success========================","fromID",fromID,"msghash",ms.MsgHash)
+   
+    ptype,err := strconv.Atoi(ms.PacketType)
+    if err != nil {
+	return err
+    }
+
+    req := getReqObject(ptype)
+    if req == nil {
+	return errors.New("get req object fail")
+    }
+
+    err = json.Unmarshal([]byte(s), req)
+    if err != nil {
+	common.Debug("=====================MsgSend.handle,unmarshal orig msg error========================","fromID",fromID,"msghash",ms.MsgHash,"err",err)
+	return err
+    }
+
+    err = req.handle(t,from,fromID,mac)
+    if err != nil {
+	common.Error("=====================MsgSend.handle,call packet handle fail========================","fromID",fromID,"msghash",ms.MsgHash,"req",req,"err",err)
+	return err
+    }
+
+    common.Debug("=====================MsgSend.handle,send orig msg ack========================","fromID",fromID,"msghash",ms.MsgHash)
+    SendMsgAck(t,msghash,from,fromID)
+    return nil
+}
+
+func (ms *MsgSend) name() string {
+    return "MSGSEND/v4"
+}
+
+//-----------------------------------
+
+type MsgAck struct {
+    MsgHash string
+    Flag string
+}
+
+func SendMsgAck(t *udp,msghash string,from *net.UDPAddr,fromid NodeID) {
+    if t == nil || msghash == "" || from == nil {
+	return
+    }
+
+    ma := &MsgAck{}
+    ma.MsgHash = msghash
+    ma.Flag = "Msg Ack"
+
+    for i:=0;i<10;i++ {
+	errc := t.pending(fromid, byte(Smpc_MsgSplitAckPacket), func(r interface{}) bool {
+		return true
+	})
+	if errc == nil {
+	    break
+	}
+	
+	time.Sleep(time.Duration(200) * time.Millisecond)
+    }
+
+    for i:=0;i<10;i++ {
+	_, errt := t.send(from, byte(Smpc_MsgSplitAckPacket),ma)
+	if errt == nil {
+	    break
+	}
+	
+	time.Sleep(time.Duration(200) * time.Millisecond)
+    }
+    
+    common.Debug("=================SendMsgAck,send msg ack success==================","send msg ack to node.ID",fromid,"orig msg hash",msghash)
+}
+
+func (ms *MsgAck) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
+    msghash2 := crypto.Keccak256Hash([]byte(strings.ToLower(ms.MsgHash + ":" + fromID.String()))).Hex()
+    tmp,exist := MsgAckMap.ReadMap(msghash2)
+    if !exist {
+	return nil
+    }
+
+    ack,ok := tmp.(chan bool)
+    if !ok {
+	return errors.New("msg ack data error")
+    }
+
+    ack <-true
+    common.Debug("================MsgAck.handle,get msg ack=================","orig msg hash",ms.MsgHash,"fromid",fromID)
+    return nil
+}
+
+func (ms *MsgAck) name() string {
+    return "MSGACK/v4"
+}
+
+//-------------------------------------
+
+func checkMsgStatus(t *udp,msghash string,msg string,ptype int,toaddr *net.UDPAddr,toid NodeID) {
+    msghash2 := crypto.Keccak256Hash([]byte(strings.ToLower(msghash + ":" + toid.String()))).Hex()
+    ack := make(chan bool, 1)
+    MsgAckMap.WriteMap(msghash2,ack)
+
+    for i:=0;i<resend;i++ {
+	ackWaitTime := 10 * time.Second
+	ackWaitTimeOut := time.NewTicker(ackWaitTime)
+
+	select {
+	case <-ack:
+	    common.Debug("=================checkMsgStatus,get msg ack success===========================","i",i,"orig msg hash",msghash,"send to node",toaddr)
+		MsgAckMap.DeleteMap(msghash2)
+		return
+	case <-ackWaitTimeOut.C:
+	    common.Debug("=================checkMsgStatus,get msg ack timeout===========================","i",i,"orig msg hash",msghash,"send to node",toaddr)
+		sendSplitMsg(t,msg,ptype,toaddr,toid)
+		break
+	}
+    }
+
+    common.Debug("=================checkMsgStatus,get msg ack fail===========================","orig msg hash",msghash,"send to node",toaddr)
+    MsgAckMap.DeleteMap(msghash2)
+}
+
+func getSplitMsgNum(msg string) int {
+    l := len(msg)
+    a := l%splitlen
+    b := l/splitlen
+    if a != 0 {
+	b++
+    }
+
+    return b
+}
+
+func (t *udp) sendMsgSplitToPeerWithUDP(toid NodeID, toaddr *net.UDPAddr, packet []byte, p2pType int,ptype int) error {
+    if packet == nil || len(packet) == 0 {
+	return errors.New("packet error")
+    }
+
+    err := sendSplitMsg(t,string(packet),ptype,toaddr,toid)
+    if err != nil {
+	return err
+    }
+
+    msghash := crypto.Keccak256Hash([]byte(strings.ToLower(string(packet)))).Hex()
+    go checkMsgStatus(t,msghash,string(packet),ptype,toaddr,toid)
+
+    return err
+}
+
+//send any object with udp
+//split msg
+func SendMsgSplitToPeerWithUDP(toid NodeID, toaddr *net.UDPAddr, req interface{}, p2pType int,ptype int) error {
+    if req == nil {
+	return errors.New("msg error")
+    }
+    
+    packet, err := json.Marshal(req)
+    if err != nil {
+	common.Error("=====================SendMsgToPeerWithUDP,marshal error====================","err",err)
+	return err
+    }
+
+    return Table4group.net.sendMsgSplitToPeerWithUDP(toid,toaddr,packet,p2pType,ptype)
+}
+
+type SmpcBroadcastMsg struct {
+    Data string
+}
+
+func (sbm *SmpcBroadcastMsg) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
+    if sbm.Data == "" {
+	return errors.New("data error")
+    }
+
+    if SmpcCall == nil {
+	return errors.New("call back function nil")
+    }
+
+    go SmpcCall(sbm.Data,fromID.String())
+    return nil
+}
+
+func (sbm *SmpcBroadcastMsg) name() string {
+    return "SMPCBROADCASTMSG/v4"
+}
+
+/////////
+
 func SendToPeer(gid, toid NodeID, toaddr *net.UDPAddr, msg string, p2pType int) error {
 	common.Debug("==== SendToPeer() ====", "toaddr", toaddr, "msg", msg)
 	return Table4group.net.sendToPeer(gid, toid, toaddr, msg, p2pType)
 }
+
 func (t *udp) sendToPeer(gid, toid NodeID, toaddr *net.UDPAddr, msg string, p2pType int) error {
 	req := getGroupInfo(gid, p2pType)
 	common.Debug("====  (t *udp) sendToPeer()  ====", "toaddr", toaddr, "groupInfo", req)
 	if req == nil {
 		return nil
 	}
-	errc := t.pending(toid, byte(Smpc_groupInfoPacket), func(r interface{}) bool {
-		return true
-	})
-	_, errt := t.send(toaddr, byte(Smpc_groupInfoPacket), req)
+
+	packet, err := json.Marshal(req)
+	if err != nil {
+	    common.Error("=====================udp.sendToPeer,marshal group info error====================","err",err)
+	    return err
+	}
+	err = sendSplitMsg(t,string(packet),Smpc_groupInfoPacket,toaddr,toid)
+	if err != nil {
+	    return err
+	}
+
+	msghash := crypto.Keccak256Hash([]byte(strings.ToLower(string(packet)))).Hex()
+	go checkMsgStatus(t,msghash,string(packet),Smpc_groupInfoPacket,toaddr,toid)
+	////////////////
+
+	/*_, errt := t.send(toaddr, byte(Smpc_groupInfoPacket), req)
 	if errt != nil {
 		common.Debug("====  (t *udp) sendToPeer()  ====", "t.send, toaddr", toaddr, "err", errt)
 		return errt
 	} else {
 		common.Debug("====  (t *udp) sendToPeer()  ====", "t.send, toaddr", toaddr, "groupInfo", req, "SUCCESS", "")
-	}
-	err := <-errc
+	}*/
+	//err = <-errc
 	return err
 }
+
 func (req *Group) name() string { return "GROUPMSG/v4" }
 func (req *Group) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
 	if expired(req.Expiration) {

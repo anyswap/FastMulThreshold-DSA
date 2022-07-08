@@ -105,7 +105,7 @@ gid=`echo ${val:0-128:128}`
 echo
 
 $1/test/bin/gsmpc-client-test -cmd SetGroup -url http://127.0.0.1:$port -ts 2/2 -node http://127.0.0.1:$port -node http://127.0.0.1:$port2 > $1/test/tmp/ccc &
-sleep 15
+sleep 600 
 
 val=$(cat $1/test/tmp/ccc)
 subgid=`echo ${val:0-128:128}`

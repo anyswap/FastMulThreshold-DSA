@@ -29,6 +29,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/nat"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/netutil"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/rlp"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 )
 
 // Errors
@@ -46,7 +47,7 @@ var (
 // Timeouts
 const (
 	respTimeout = 500 * time.Millisecond
-	expiration  = 20 * time.Second
+	expiration  = 600 * time.Second
 	expirationBroadcast  = 10 * time.Second
 
 	ntpFailureThreshold = 32               // Continuous timeouts after which to check NTP
@@ -519,12 +520,15 @@ func (t *udp) send(toaddr *net.UDPAddr, ptype byte, req packet) ([]byte, error) 
 	packet, hash, err := encodePacket(t.priv, ptype, req)
 	_,_,err2 := encodePacket(t.priv, ptype, packet)
 	if err2 != nil {
+	    common.Error("====================udp.send,encode packet error=====================","err",err2)
 	    return nil,err2
 	}
 
 	if err != nil {
+		common.Error("====================udp.send,encode packet error=====================","err",err)
 		return hash, err
 	}
+
 	return hash, t.write(toaddr, req.name(), packet)
 }
 
@@ -585,8 +589,10 @@ func (t *udp) readLoop(unhandled chan<- ReadPacket) {
 func (t *udp) handlePacket(from *net.UDPAddr, buf []byte) error {
 	packet, fromID, hash, err := decodePacket(buf)
 	if err != nil {
+	    common.Error("========================udp.handlePacket========================","from",fromID,"msg",string(buf),"err",err)
 		return err
 	}
+	
 	err = packet.handle(t, from, fromID, hash)
 	return err
 }
@@ -644,6 +650,10 @@ func decodePacket(buf []byte) (packet, NodeID, []byte, error) {
 		req = new(smpcmessage)
 	case msgBroadcastPacket:
 		req = new(messageBroadcast)
+	case Smpc_MsgSplitPacket:
+		req = new(MsgSend)
+	case Smpc_MsgSplitAckPacket:
+		req = new(MsgAck)
 	case Ack_Packet:
 		req = new(Ack)
 	default:
