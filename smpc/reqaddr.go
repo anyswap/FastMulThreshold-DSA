@@ -935,8 +935,11 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 	if err != nil {
 		log.Error("==========KeyGenerateDECDSA,process keygen error============","key",msgprex,"err",err)
 		close(commStopChan)
-		res := RPCSmpcRes{Ret: "", Err: err}
-		ch <- res
+		if len(ch) == 0 {
+		    res := RPCSmpcRes{Ret: "", Err: err}
+		    ch <- res
+		}
+		log.Error("==========KeyGenerateDECDSA,process keygen error,close commStopChan============","key",msgprex,"err",err)
 		return false
 	}
 
@@ -1008,8 +1011,12 @@ func KeyGenerateDEDDSA(msgprex string, ch chan interface{}, id int, cointype str
 	if err != nil {
 		log.Error("==========KeyGenerateDEDDSA,process ed keygen error==========","key",msgprex,"err",err)
 		close(commStopChan)
-		res := RPCSmpcRes{Ret: "", Err: err}
-		ch <- res
+
+		if len(ch) == 0 {
+		    res := RPCSmpcRes{Ret: "", Err: err}
+		    ch <- res
+		}
+		
 		return false
 	}
 

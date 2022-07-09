@@ -402,6 +402,8 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 		if cherr != nil {
 			ars := GetAllReplyFromGroup(w.id, req2.GroupID, RPCREQADDR, sender)
 			_, err = AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "", "Failure", "", tip, cherr.Error(), ars, workid, "")
+			status,_,err3 := GetReqAddrStatus(w.sid)
+			common.Error("=====================DoReq,AcceptReqAddr finish======================","key",w.sid,"status",status,"accepte reqaddr err",err,"status err",err3)
 			if err != nil {
 				res := RPCSmpcRes{Ret: "", Tip: err.Error(), Err: err}
 				ch <- res

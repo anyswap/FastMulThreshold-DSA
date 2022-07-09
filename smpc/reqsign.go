@@ -1471,8 +1471,12 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 	if err != nil || pre == nil {
 	    	common.Debug("==========================PreSignEC3,process sign fail===========================","key",msgprex,"err",err)
 		close(commStopChan)
-		res := RPCSmpcRes{Ret: "", Err: err}
-		ch <- res
+
+		if len(ch) == 0 {
+		    res := RPCSmpcRes{Ret: "", Err: err}
+		    ch <- res
+		}
+		
 		return nil
 	}
 
@@ -1607,8 +1611,11 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 	if err != nil || s == nil {
 	    	common.Debug("=========================SignEC3,process sign fail==============================","key",msgprex,"err",err)
 		close(commStopChan)
-		res := RPCSmpcRes{Ret: "", Err: err}
-		ch <- res
+		if len(ch) == 0 {
+		    res := RPCSmpcRes{Ret: "", Err: err}
+		    ch <- res
+		}
+		
 		return ""
 	}
 
@@ -2057,8 +2064,12 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 	if err != nil || edrs == nil {
 		common.Debug("================SignED,process sign fail========================","key",msgprex,"err",err)
 		close(commStopChan)
-		res := RPCSmpcRes{Ret: "", Err: err}
-		ch <- res
+
+		if len(ch) == 0 {
+		    res := RPCSmpcRes{Ret: "", Err: err}
+		    ch <- res
+		}
+
 		return ""
 	}
 

@@ -41,9 +41,12 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, errC
 	fmt.Printf("start ed sign processing inbound messages\n")
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
+	    if len(ch) == 0 {
 		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to ed sign process inbound messages")}
 		ch <- res
-		return
+	    }
+	    
+	    return
 	}
 
 	defer func() {
@@ -63,44 +66,62 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, errC
 
 			//fmt.Printf("=================== EdSignProcessInboundMessages, msg = %v, err = %v, key = %v ====================\n", m, err, msgprex)
 			if err != nil {
+			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
-				return
+			    }
+
+			    return
 			}
 
 			mm := EdSignGetRealMessage(msgmap)
 			if mm == nil {
+			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to ed sign process inbound messages")}
 				ch <- res
-				return
+			    }
+
+			    return
 			}
 
 			//check sig
 			if msgmap["Sig"] == "" {
+			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail")}
 				ch <- res
-				return
+			    }
+
+			    return
 			}
 
 			if msgmap["ENode"] == "" {
+			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail")}
 				ch <- res
-				return
+			    }
+
+			    return
 			}
 
 			sig, err := hex.DecodeString(msgmap["Sig"])
 			if err != nil {
 			    common.Error("[SIGN] decode msg sig data error","err",err,"key",msgprex)
-			    res := RPCSmpcRes{Ret: "", Err: err}
-			    ch <- res
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Err:err}
+				ch <- res
+			    }
+
 			    return
 			}
 			
 			common.Debug("===============sign ed,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			if !checkP2pSig(sig,mm,msgmap["ENode"]) {
 			    common.Error("===============sign ed,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
-			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
-			    ch <- res
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
+				ch <- res
+			    }
+
 			    return
 			}
 			
@@ -108,23 +129,32 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, errC
 			// w.SmpcFrom is the MPC PubKey
 			smpcpks, err := hex.DecodeString(w.SmpcFrom)
 			if err != nil {
-			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
-			    ch <- res
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+				ch <- res
+			    }
+
 			    return
 			}
 
 			exsit, da := GetPubKeyData(smpcpks[:])
 			if !exsit || da == nil {
-			    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("ed sign get local save data fail")}
-			    ch <- res
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("ed sign get local save data fail")}
+				ch <- res
+			    }
+
 			    return
 			}
 			
 			pubs, ok := da.(*PubKeyData)
 			if !ok || pubs.GroupID == "" {
+			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("ed sign get local save data fail")}
 				ch <- res
-				return
+			    }
+
+			    return
 			}
 
 			_,ID := GetNodeUID(msgmap["ENode"], "ED25519",pubs.GroupID)
@@ -132,8 +162,11 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, errC
 			uid := hex.EncodeToString([]byte(id))
 			if !strings.EqualFold(uid,mm.GetFromID()) {
 			    common.Error("===============sign ed,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"],"err","check from ID fail")
-			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check from ID fail")}
-			    ch <- res
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check from ID fail")}
+				ch <- res
+			    }
+
 			    return
 			}
 			
@@ -151,18 +184,24 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, errC
 
 			if !succ {
 				common.Error("===============sign ed,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
+			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
 				ch <- res
-				return
+			    }
+
+			    return
 			}
 			////
 
 			_, err = w.DNode.Update(mm)
 			if err != nil {
 				fmt.Printf("========== EdSignProcessInboundMessages, dnode update fail, receiv smpc msg = %v, err = %v, key = %v ============\n", m, err, msgprex)
+			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
-				return
+			    }
+
+			    return
 			}
 		}
 	}

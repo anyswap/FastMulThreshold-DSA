@@ -53,9 +53,12 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, err
 	fmt.Printf("start processing inbound messages\n")
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
+	    if len(ch) == 0 {
 		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to process inbound messages")}
 		ch <- res
-		return
+	    }
+
+	    return
 	}
 
 	for {
@@ -67,8 +70,11 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, err
 			msgmap := make(map[string]string)
 			err := json.Unmarshal([]byte(m), &msgmap)
 			if err != nil {
-				res := RPCSmpcRes{Ret: "", Err: err}
-				ch <- res
+				if len(ch) == 0 {
+				    res := RPCSmpcRes{Ret: "", Err: err}
+				    ch <- res
+				}
+
 				return
 			}
 
@@ -80,37 +86,52 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, err
 
 			mm := ReshareGetRealMessage(msgmap)
 			if mm == nil {
-				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to process inbound messages")}
-				ch <- res
+				if len(ch) == 0 {
+				    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to process inbound messages")}
+				    ch <- res
+				}
+
 				return
 			}
 
 			//check sig
 			if msgmap["Sig"] == "" {
-				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail")}
-				ch <- res
+				if len(ch) == 0 {
+				    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail")}
+				    ch <- res
+				}
+
 				return
 			}
 
 			if msgmap["ENode"] == "" {
-				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail")}
-				ch <- res
+				if len(ch) == 0 {
+				    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail")}
+				    ch <- res
+				}
+
 				return
 			}
 
 			sig, err := hex.DecodeString(msgmap["Sig"])
 			if err != nil {
 			    common.Error("[RESHARE] decode msg sig data error","err",err,"key",msgprex)
-			    res := RPCSmpcRes{Ret: "", Err: err}
-			    ch <- res
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Err: err}
+				ch <- res
+			    }
+
 			    return
 			}
 			
 			common.Debug("===============reshare,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			if !checkP2pSig(sig,mm,msgmap["ENode"]) {
 			    common.Error("===============reshare,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
-			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
-			    ch <- res
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
+				ch <- res
+			    }
+
 			    return
 			}
 			
@@ -118,23 +139,32 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, err
 			// w.SmpcFrom is the MPC PubKey
 			smpcpks, err := hex.DecodeString(w.SmpcFrom)
 			if err != nil {
-			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
-			    ch <- res
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+				ch <- res
+			    }
+
 			    return
 			}
 
 			exsit, da := GetPubKeyData(smpcpks[:])
 			if !exsit || da == nil {
-			    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("reshare get local save data fail")}
-			    ch <- res
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("reshare get local save data fail")}
+				ch <- res
+			    }
+
 			    return
 			}
 			
 			pubs, ok := da.(*PubKeyData)
 			if !ok || pubs.GroupID == "" {
+			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("reshare get local save data fail")}
 				ch <- res
-				return
+			    }
+
+			    return
 			}
 
 			_,ID := GetNodeUID(msgmap["ENode"], "EC256K1",pubs.GroupID)
@@ -142,8 +172,11 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, err
 			uid := hex.EncodeToString([]byte(id))
 			if !strings.EqualFold(uid,mm.GetFromID()) {
 			    common.Error("===============reshare,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"],"err","check from ID fail")
-			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check from ID fail")}
-			    ch <- res
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check from ID fail")}
+				ch <- res
+			    }
+
 			    return
 			}
 			
@@ -160,10 +193,13 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, err
 			}
 
 			if !succ {
-				common.Error("===============reshare,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
+			    common.Error("===============reshare,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
+			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
 				ch <- res
-				return
+			    }
+
+			    return
 			}
 			////
 
@@ -176,10 +212,13 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, err
 
 			_, err = w.DNode.Update(mm)
 			if err != nil {
-				fmt.Printf("========== ReshareProcessInboundMessages, dnode update fail, receiv smpc msg = %v, err = %v ============\n", m, err)
+			    fmt.Printf("========== ReshareProcessInboundMessages, dnode update fail, receiv smpc msg = %v, err = %v ============\n", m, err)
+			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
-				return
+			    }
+
+			    return
 			}
 		}
 	}

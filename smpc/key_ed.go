@@ -47,9 +47,12 @@ func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, errCh
 	fmt.Printf("start processing inbound messages, key = %v \n", msgprex)
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
+	    if len(ch) == 0 {
 		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("ed,fail to process inbound messages")}
 		ch <- res
-		return
+	    }
+	    
+	    return
 	}
 
 	for {
@@ -61,9 +64,12 @@ func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, errCh
 			msgmap := make(map[string]string)
 			err := json.Unmarshal([]byte(m), &msgmap)
 			if err != nil {
+			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
-				return
+			    }
+			    
+			    return
 			}
 
 			if msgmap["Type"] == "KGRound0Message" { //0 message
@@ -73,37 +79,53 @@ func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, errCh
 
 			mm := GetRealMessageEDDSA(msgmap)
 			if mm == nil {
+			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("ed,fail to process inbound messages")}
 				ch <- res
-				return
+			    }
+			    
+			    return
 			}
 
 			//check sig
 			if msgmap["Sig"] == "" {
+			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail")}
 				ch <- res
-				return
+			    }
+			    
+			    return
 			}
 
 			if msgmap["ENode"] == "" {
+			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail")}
 				ch <- res
-				return
+			    }
+			    
+			    return
 			}
 
 			sig, err := hex.DecodeString(msgmap["Sig"])
 			if err != nil {
 			    common.Error("[KEYGEN] decode msg sig data error","err",err,"key",msgprex)
-			    res := RPCSmpcRes{Ret: "", Err: err}
-			    ch <- res
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Err: err}
+				ch <- res
+			    }
+
 			    return
 			}
 			
 			common.Debug("===============keygen ed,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			if !checkP2pSig(sig,mm,msgmap["ENode"]) {
 			    common.Error("===============keygen ed,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
-			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
-			    ch <- res
+
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
+				ch <- res
+			    }
+
 			    return
 			}
 			
@@ -113,8 +135,12 @@ func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, errCh
 			uid := hex.EncodeToString([]byte(id))
 			if !strings.EqualFold(uid,mm.GetFromID()) {
 			    common.Error("===============keygen ed,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"],"err","check from ID fail")
-			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check from ID fail")}
-			    ch <- res
+
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check from ID fail")}
+				ch <- res
+			    }
+
 			    return
 			}
 			
@@ -132,8 +158,12 @@ func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, errCh
 
 			if !succ {
 				common.Error("===============keygen ed,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
-				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
-				ch <- res
+
+				if len(ch) == 0 {
+				    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
+				    ch <- res
+				}
+
 				return
 			}
 			////
@@ -141,8 +171,12 @@ func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, errCh
 			_, err = w.DNode.Update(mm)
 			if err != nil {
 				common.Error("====================ProcessInboundMessagesEDDSA,dnode update fail=======================", "receiv msg", m, "err", err)
-				res := RPCSmpcRes{Ret: "", Err: err}
-				ch <- res
+
+				if len(ch) == 0 {
+				    res := RPCSmpcRes{Ret: "", Err: err}
+				    ch <- res
+				}
+
 				return
 			}
 		}

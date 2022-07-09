@@ -527,8 +527,12 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 			if err != nil {
 				fmt.Printf("==========process reshare err = %v ==========\n", err)
 				close(commStopChan)
-				res := RPCSmpcRes{Ret: "", Err: err}
-				ch <- res
+
+				if len(ch) == 0 {
+				    res := RPCSmpcRes{Ret: "", Err: err}
+				    ch <- res
+				}
+
 				return
 			}
 
@@ -569,8 +573,12 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 	if err != nil {
 		fmt.Printf("==========process reshare err = %v ==========\n", err)
 		close(commStopChan)
-		res := RPCSmpcRes{Ret: "", Err: err}
-		ch <- res
+
+		if len(ch) == 0 {
+		    res := RPCSmpcRes{Ret: "", Err: err}
+		    ch <- res
+		}
+
 		return
 	}
 
