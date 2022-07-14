@@ -128,7 +128,7 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 		//}
 
 		countSendFail += 1
-		if countSendFail >= 120 {
+		if countSendFail >= 3 {
 			common.Error("======================p2pSendMsg,terminal send fail p2perror with tcp======================", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash", msghash,"sendCount", countSendFail)
 
 			sbm := &discover.SmpcBroadcastMsg{}
@@ -140,7 +140,7 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 		if countSendFail == 1 || countSendFail%5 == 0 {
 			//common.Debug("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "send", "fail p2perror", "sendCount", countSendFail)
 		}
-		time.Sleep(time.Duration(1) * time.Second)
+		time.Sleep(time.Duration(4) * time.Second)
 	}
 	return err
 }
