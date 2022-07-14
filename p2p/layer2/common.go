@@ -31,6 +31,7 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"encoding/json"
 )
 
 func BroadcastToGroup(gid discover.NodeID, msg string, p2pType int, myself bool) (string, error) {
@@ -129,11 +130,17 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 
 		countSendFail += 1
 		if countSendFail >= 3 {
-			common.Error("======================p2pSendMsg,terminal send fail p2perror with tcp======================", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash", msghash,"sendCount", countSendFail)
-
 			sbm := &discover.SmpcBroadcastMsg{}
 			sbm.Data = msg
 			toaddr := &net.UDPAddr{IP: node.IP, Port: int(node.UDP)}
+			packet, err := json.Marshal(sbm)
+			if err != nil {
+			    common.Error("======================p2pSendMsg,terminal send fail p2perror with tcp,and re-send with udp,but marshal object fail======================", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash", msghash,"sendCount", countSendFail,"err",err)
+			} else {
+			    objmsghash := crypto.Keccak256Hash([]byte(strings.ToLower(string(packet)))).Hex()
+			    common.Debug("======================p2pSendMsg,terminal send fail p2perror with tcp,and re-send with udp======================", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash", msghash,"object msg hash",objmsghash,"sendCount", countSendFail)
+			}
+
 			discover.SendMsgSplitToPeerWithUDP(node.ID,toaddr,sbm,0,discover.Smpc_BroadcastMsgPacket)
 			break
 		}
