@@ -664,7 +664,7 @@ running:
 		case n := <-srv.addstatic:
 			if srv.NetRestrict != nil && !srv.NetRestrict.Contains(n.IP) {
 				cidr := fmt.Sprintf("%v/32", n.IP)
-				common.Debug("srv.NetRestrict.Add", "cidr", cidr)
+				common.Debug("==================server.run,add static node,srv.NetRestrict.Add===============", "cidr", cidr,"node",n)
 				srv.NetRestrict.Add(cidr)
 			}
 			// This channel is used by AddPeer to add to the
@@ -675,6 +675,7 @@ running:
 			// This channel is used by RemovePeer to send a
 			// disconnect request to a peer and begin the
 			// stop keeping the node connected.
+			common.Debug("==================server.run,remove static node===============","node",n)
 			dialstate.removeStatic(n)
 			if p, ok := peers[n.ID]; ok {
 				p.Disconnect(DiscRequested)
@@ -708,7 +709,7 @@ running:
 			dialstate.taskDone(t, time.Now())
 			delTask(t)
 			delTaskStatic(t)
-			common.Debug("done", "t", t)
+			common.Debug("==================server.run, taskdone==============", "t", t)
 		case c := <-srv.posthandshake:
 			// A connection has passed the encryption handshake so
 			// the remote identity is known (but hasn't been verified yet).
@@ -726,6 +727,7 @@ running:
 			// At this point the connection is past the protocol handshake.
 			// Its capabilities are known and the remote identity is verified.
 			err := srv.protoHandshakeChecks(peers, inboundCount, c)
+			common.Debug("==================server.run,addpeer==============", "node ID", c.id,"err",err)
 			if err == nil {
 				// The handshakes are done and it passed all checks.
 				p := newPeer(c, srv.Protocols)
@@ -752,6 +754,7 @@ running:
 		case pd := <-srv.delpeer:
 			// A peer disconnected.
 			//d := common.PrettyDuration(mclock.Now() - pd.created)
+			common.Debug("==================server.run, delpeer==============", "node ID", pd.ID())
 			delete(peers, pd.ID())
 			if pd.Inbound() {
 				inboundCount--
@@ -857,9 +860,9 @@ func (srv *Server) listenLoop() {
 
 		// Reject connections that do not match NetRestrict.
 		if srv.NetRestrict != nil {
-			common.Debug("listenLoop", "srv.NetRestrict", srv.NetRestrict)
+			common.Debug("===============listenLoop==================", "srv.NetRestrict", srv.NetRestrict)
 			if tcp, ok := fd.RemoteAddr().(*net.TCPAddr); ok && !srv.NetRestrict.Contains(tcp.IP) {
-				common.Debug("listenLoop close", "srv.NetRestrict", srv.NetRestrict, "tcp.IP", tcp.IP)
+				common.Debug("================listenLoop tcp connect close,not contain in srv.NetRestrict=============", "srv.NetRestrict", srv.NetRestrict, "tcp.IP", tcp.IP)
 				fd.Close()
 				slots <- struct{}{}
 				continue
@@ -883,17 +886,17 @@ func (srv *Server) listenLoop() {
 func (srv *Server) SetupConn(fd net.Conn, flags connFlag, dialDest *discover.Node) error {
 	self := srv.Self()
 	if self == nil {
-		common.Debug("SetupConn shutdown", "dialDest", dialDest)
+		common.Debug("==============server.SetupConn, shutdown===============", "dialDest", dialDest)
 		return errors.New("shutdown")
 	}
 	c := &conn{fd: fd, transport: srv.newTransport(fd), flags: flags, cont: make(chan error)}
 	err := srv.setupConn(c, flags, dialDest)
 	if err != nil {
-		common.Debug("SetupConn close", "dialDest", dialDest)
+		common.Debug("==============server.SetupConn==================", "dest", dialDest,"err",err)
 		c.close(err)
 		return err
 	}
-	common.Debug("SetupConn success", "dialDest", dialDest)
+	common.Debug("==================server.SetupConn, success==================", "dest", dialDest)
 	return nil
 }
 
@@ -903,42 +906,42 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 	running := srv.running
 	srv.lock.Unlock()
 	if !running {
-		common.Debug("setupConn running", "err errServerStopped", errServerStopped, "dialDest", dialDest)
+		common.Error("================server.setupConn,server not running==================", "err", errServerStopped, "dest", dialDest)
 		return errServerStopped
 	}
 	// Run the encryption handshake.
 	var err error
 	if c.id, err = c.doEncHandshake(srv.PrivateKey, dialDest); err != nil {
-		common.Debug("setupConn c.doEncHandshake", "err", err, "dialDest", dialDest)
+		common.Error("==========server.setupConn,call doEncHandshake fail==================", "err", err, "dest", dialDest)
 		return err
 	}
 	// For dialed connections, check that the remote public key matches.
 	if dialDest != nil && c.id != dialDest.ID {
-		common.Debug("setupConn dialDest.ID", "err DiscUnexpectedIdentity", DiscUnexpectedIdentity, "dialDest", dialDest)
+		common.Error("================server.setupConn,check dest ID fail===================", "err", DiscUnexpectedIdentity, "dialDest", dialDest)
 		return DiscUnexpectedIdentity
 	}
 	err = srv.checkpoint(c, srv.posthandshake)
 	if err != nil {
-		common.Debug("setupConn srv.checkpoint srv.posthandshake", "err", err, "dialDest", dialDest)
+		common.Error("================server.setupConn,check point fail=====================", "err", err, "dest", dialDest)
 		return err
 	}
 	// Run the protocol handshake
 	phs, err := c.doProtoHandshake(srv.ourHandshake)
 	if err != nil {
-		common.Debug("setupConn c.doProtoHandshake", "err", err, "dialDest", dialDest)
+		common.Error("================server.setupCon,call doProtoHandshake fail================", "err", err, "dest", dialDest)
 		return err
 	}
 	if phs.ID != c.id {
-		common.Debug("setupConn", "err DiscUnexpectedIdentity", DiscUnexpectedIdentity, "dialDest", dialDest)
+		common.Error("==================server.setupConn,check id fail====================", "err", DiscUnexpectedIdentity, "dest", dialDest)
 		return DiscUnexpectedIdentity
 	}
 	c.caps, c.name = phs.Caps, phs.Name
 	err = srv.checkpoint(c, srv.addpeer)
 	if err != nil {
-		common.Debug("setupConn srv.checkpoint srv.addpeer", "err DiscUnexpectedIdentity", DiscUnexpectedIdentity, "dialDest", dialDest)
+		common.Error("=====================server.setupConn,check checkpoint by addpeer fail===================", "err", DiscUnexpectedIdentity, "dest", dialDest)
 		return err
 	}
-	common.Debug("setupConn success", "dialDest", dialDest)
+	common.Debug("=====================server.setupConn, success===================", "dest", dialDest)
 	// If the checks completed successfully, runPeer has now been
 	// launched by run.
 	return nil
