@@ -502,7 +502,7 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 		return "", "", "", nil, err
 	}
 
-	signer := types.NewEIP155Signer(big.NewInt(30400)) //
+	signer := types.NewEIP155Signer(big.NewInt(4)) //
 	from, err := types.Sender(signer, tx)
 	if err != nil {
 		return "", "", "", nil, err
