@@ -238,27 +238,33 @@ func GetENodeByFrom(from string,ac *AcceptReqAddrData) string {
     if from == "" || ac == nil {
 	return ""
     }
-    
+   
+	log.Debug("================GetENodeByFrom=================","sigs",ac.Sigs) 
     mms := strings.Split(ac.Sigs, common.Sep)
     if len(mms) < 3 {
+	log.Error("================GetENodeByFrom,sigs data error=================","sigs",ac.Sigs) 
 	return ""
     }
 
     nums := strings.Split(ac.LimitNum, "/")
     if len(nums) != 2 {
+	log.Error("================GetENodeByFrom,threshold error=================","threshold",ac.LimitNum) 
 	    return ""
     }
 
     nodecnt, err := strconv.Atoi(nums[1])
     if err != nil {
+	log.Error("================GetENodeByFrom,get node count by threshold fail=================","threshold",ac.LimitNum,"err",err) 
 	    return ""
     }
 
     if len(mms) != (2*nodecnt + 1) {
+	log.Error("================GetENodeByFrom,check node count fail=================","threshold",ac.LimitNum,"nodecnt",nodecnt,"mms",mms,"mms len",len(mms)) 
 	return ""
     }
 
     for k,_ := range mms {
+	log.Debug("================GetENodeByFrom,get approver=================","k",k,"value",mms[k],"from",from,"mms len",len(mms)) 
 	if k < len(mms) && strings.EqualFold(mms[k],from) {
 	    return mms[k-1]
 	}

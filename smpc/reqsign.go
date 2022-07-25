@@ -40,6 +40,7 @@ import (
 	"github.com/astaxie/beego/logs"
 	"runtime/debug"
 	"sync"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 var (
@@ -179,20 +180,23 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 	reqaddrkey := GetReqAddrKeyByOtherKey(key, RPCSIGN)
 	exsit, da := GetPubKeyData([]byte(reqaddrkey))
 	if !exsit {
-		res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("save keygen accept data fail")}
+		log.Error("================DoSign,get keygen data by key from db fail===============","sign key",key,"keygen key",reqaddrkey)
+		res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("get keygen data by key from db fail")}
 		ch <- res
-		return fmt.Errorf("save sign accept data fail")
+		return fmt.Errorf("get keygen data by key from db fail")
 	}
 
 	acceptreqdata, ok := da.(*AcceptReqAddrData)
 	if !ok || acceptreqdata == nil {
-		res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("save keyen accept data fail")}
+		log.Error("================DoSign,get keygen data fail===============","sign key",key,"keygen key",reqaddrkey)
+		res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("get keygen data fail")}
 		ch <- res
-		return fmt.Errorf("save keygen accept data fail")
+		return fmt.Errorf("get keygen data fail")
 	}
 
 	enode := GetENodeByFrom(from,acceptreqdata)
 	if enode == "" {
+		log.Error("================DoSign,get enode fail===============","sign key",key,"keygen key",reqaddrkey)
 	    res := RPCSmpcRes{Ret: "", Tip: "", Err: errors.New("get enode fail")}
 	    ch <- res
 	    return errors.New("get enode fail") 

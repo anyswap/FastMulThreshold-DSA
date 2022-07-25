@@ -28,6 +28,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 // ReqSmpcAddr keygen cmd request
@@ -278,6 +279,7 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 
 		enode := GetENodeByFrom(from,ac)
 		if enode == "" {
+			log.Error("================DoReq,get enode fail===============","keygen key",key,"from",from)
 		    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get enode fail")}
 		    ch <- res
 		    return false
