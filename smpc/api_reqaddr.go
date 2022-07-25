@@ -57,6 +57,7 @@ func (req *ReqSmpcAddr) GetReplyFromGroup(wid int, gid string, initiator string)
 		in := "0"
 		if strings.EqualFold(initiator, node2) {
 			in = "1"
+			sta = "AGREE"
 		}
 
 		iter := w.msgacceptreqaddrres.Front()
@@ -212,7 +213,7 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 		    return false
 		}
 
-		ars := GetAllReplyFromGroup(workid, req2.GroupID, RPCREQADDR, sender)
+		ars := GetAllReplyFromGroup(workid,req2.GroupID,RPCREQADDR,sender)
 		sigs, err := GetGroupSigsDataByRaw(raw)
 		if err != nil {
 			common.Debug("=================DoReq================", "get group sigs ", sigs, "err ", err, "key ", key)
@@ -262,10 +263,42 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 		}
 		w.ThresHold = th
 
+		//
+		index := -1
+		for j,rh := range w.ApprovReplys {
+		    if rh == nil {
+			continue
+		    }
+
+		    if strings.EqualFold(rh.From,from) {
+			index = j
+			break
+		    }
+		}
+
+		enode := GetENodeByFrom(from,ac)
+		if enode == "" {
+		    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get enode fail")}
+		    ch <- res
+		    return false
+		}
+
+		reply := &ApprovReply{ENode:enode,From: from, Accept: "AGREE", TimeStamp: ac.TimeStamp}
+		if index != -1 {
+		    w.ApprovReplys[index] = reply
+		} else {
+		    w.ApprovReplys = append(w.ApprovReplys,reply)
+		}
+		
+		//arstmp := GetAllReplyFromGroup2(w.id,sender)
+		//AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "false", "Pending", "", "", "", arstmp, workid, "")
+		//
+		
 		if req2.Mode == "0" { // self-group
 			////
 			var reply bool
-			var tip string
+			var keygentimeout bool
+
 			timeout := make(chan bool, 1)
 			go func(wid int) {
 				curEnode = discover.GetLocalID().String() //GetSelfEnode()
@@ -277,16 +310,14 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 				agreeWaitTime := time.Duration(ato) * time.Second
 				agreeWaitTimeOut := time.NewTicker(agreeWaitTime)
 				if wid < 0 || wid >= len(workers) || workers[wid] == nil {
-					ars := GetAllReplyFromGroup(w.id, req2.GroupID, RPCREQADDR, sender)
+					ars := GetAllReplyFromGroup2(w.id,sender)
 					_, err = AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "false", "Failure", "", "workid error", "workid error", ars, wid, "")
 					if err != nil {
-						tip = "accept reqaddr error"
 						reply = false
 						timeout <- true
 						return
 					}
 
-					tip = "worker id error"
 					reply = false
 					timeout <- true
 					return
@@ -297,7 +328,6 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 					select {
 					case account := <-wtmp2.acceptReqAddrChan:
 						common.Debug("(self *RecvMsg) Run(),", "account= ", account, "key = ", key)
-						//ars := GetAllReplyFromGroup(w.id, req2.GroupID, RPCREQADDR, sender)
 						ars := GetAllReplyFromGroup2(w.id,sender)
 						common.Info("==================get all keygen approve results====================", "raw ", raw, "result ", ars, "key ", key)
 
@@ -312,21 +342,9 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 						//
 
 						if !reply {
-							tip = "don't accept req addr"
-							_, err = AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "false", "Failure", "", "don't accept req addr", "don't accept req addr", ars, wid, "")
-							if err != nil {
-								tip = "don't accept req addr and accept reqaddr error"
-								timeout <- true
-								return
-							}
+							AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "true", "false", "Failure", "", "not all accept keygen", "not all accept keygen", ars, wid, "")
 						} else {
-							tip = ""
-							_, err = AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "true", "Pending", "", "", "", ars, wid, "")
-							if err != nil {
-								tip = "accept reqaddr error"
-								timeout <- true
-								return
-							}
+							AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "true", "Pending", "", "", "", ars, wid, "")
 						}
 
 						///////
@@ -334,20 +352,13 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 						return
 					case <-agreeWaitTimeOut.C:
 						common.Info("================== DoReq, agree wait timeout==================", "raw ", raw, "key ", key)
-						ars := GetAllReplyFromGroup(w.id, req2.GroupID, RPCREQADDR, sender)
+						ars := GetAllReplyFromGroup2(w.id,sender)
 						//bug: if self not accept and timeout
-						_, err = AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "false", "Timeout", "", "get other node accept req addr result timeout", "get other node accept req addr result timeout", ars, wid, "")
-						if err != nil {
-							tip = "get other node accept req addr result timeout and accept reqaddr fail"
-							reply = false
-							timeout <- true
-							return
-						}
-
-						tip = "get other node accept req addr result timeout"
+						AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "true", "false", "Timeout", "", "approving timeout", "approving timeout", ars, wid, "")
 						reply = false
 						//
 
+						keygentimeout = true
 						timeout <- true
 						return
 					}
@@ -365,30 +376,24 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 
 			common.Debug("================== DoReq ======================", "raw ", raw, "the terminal accept req addr result ", reply, "key ", key)
 
-			ars := GetAllReplyFromGroup(w.id, req2.GroupID, RPCREQADDR, sender)
 			if !reply {
-				if tip == "get other node accept req addr result timeout" {
-					_, err = AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "", "Timeout", "", tip, "don't accept req addr", ars, workid, "")
-				} else {
-					_, err = AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "", "Failure", "", tip, "don't accept req addr", ars, workid, "")
-				}
-
-				if err != nil {
-					res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("don't accept req addr")}
-					ch <- res
-					return false
-				}
-
-				res := RPCSmpcRes{Ret: strconv.Itoa(workid) + common.Sep + "rpc_req_smpcaddr", Tip: tip, Err: fmt.Errorf("don't accept req addr")}
-				ch <- res
-				return false
+			    arstmp := GetAllReplyFromGroup2(w.id,sender)
+			    if keygentimeout {
+				AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "true", "false", "Timeout", "", "approving timeout", "approving timeout", arstmp, workid, "")
+			    } else {
+				AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "true", "false", "Failure", "", "not all accept keygen", "not all accept keygen", arstmp, workid, "")
+			    }
+			    
+			    res := RPCSmpcRes{Ret: strconv.Itoa(workid) + common.Sep + "rpc_req_smpcaddr", Tip: "", Err: fmt.Errorf("approving fail")}
+			    ch <- res
+			    return false
 			}
 		} else {
 			if len(workers[workid].acceptWaitReqAddrChan) == 0 {
 				workers[workid].acceptWaitReqAddrChan <- "go on"
 			}
 
-			ars := GetAllReplyFromGroup(w.id, req2.GroupID, RPCREQADDR, sender)
+			ars := GetAllReplyFromGroup2(w.id,sender)
 			_, err = AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "true", "Pending", "", "", "", ars, workid, "")
 			if err != nil {
 				res := RPCSmpcRes{Ret: "", Tip: err.Error(), Err: err}
@@ -400,10 +405,10 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 		smpcGenPubKey(w.sid, from, req2.Keytype, rch, req2.Mode, nonce)
 		chret, tip, cherr := GetChannelValue(waitall, rch)
 		if cherr != nil {
-			ars := GetAllReplyFromGroup(w.id, req2.GroupID, RPCREQADDR, sender)
+			ars := GetAllReplyFromGroup2(w.id,sender)
 			_, err = AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "", "Failure", "", tip, cherr.Error(), ars, workid, "")
 			status,_,err3 := GetReqAddrStatus(w.sid)
-			common.Error("=====================DoReq,AcceptReqAddr finish======================","key",w.sid,"status",status,"accepte reqaddr err",err,"status err",err3)
+			common.Debug("=====================DoReq,AcceptReqAddr finish======================","key",w.sid,"status",status,"accepte reqaddr err",err,"status err",err3)
 			if err != nil {
 				res := RPCSmpcRes{Ret: "", Tip: err.Error(), Err: err}
 				ch <- res
@@ -467,7 +472,7 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 		DisAcceptMsg(raw, id)
 		HandleC1Data(ac, acceptreq.Key)
 
-		ars := GetAllReplyFromGroup(id, ac.GroupID, RPCREQADDR, ac.Initiator)
+		ars := GetAllReplyFromGroup2(id,ac.Initiator)
 		tip, err := AcceptReqAddr(ac.Initiator, ac.Account, ac.Cointype, ac.GroupID, ac.Nonce, ac.LimitNum, ac.Mode, "false", accept, status, "", "", "", ars, ac.WorkID, "")
 		if err != nil {
 			res := RPCSmpcRes{Ret: "Failure", Tip: tip, Err: err}

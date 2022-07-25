@@ -59,6 +59,7 @@ func (req *ReqSmpcReshare) GetReplyFromGroup(wid int, gid string, initiator stri
 		in := "0"
 		if strings.EqualFold(initiator, node2) {
 			in = "1"
+			sta = "AGREE"
 		}
 
 		iter := w.msgacceptreshareres.Front()
@@ -283,6 +284,8 @@ func (req *ReqSmpcReshare) DoReq(raw string, workid int, sender string, ch chan 
 
 		var reply bool
 		var tip string
+		var resharetimeout bool
+
 		timeout := make(chan bool, 1)
 		go func(wid int) {
 			curEnode = discover.GetLocalID().String() //GetSelfEnode()
@@ -300,6 +303,7 @@ func (req *ReqSmpcReshare) DoReq(raw string, workid int, sender string, ch chan 
 				select {
 				case account := <-wtmp2.acceptReShareChan:
 					common.Debug("(self *RecvMsg) Run(),", "account= ", account, "key = ", key)
+					//ars := GetAllReplyFromGroup2(w.id,sender)
 					ars := GetAllReplyFromGroup(w.id, rh.GroupID, RPCRESHARE, sender)
 					common.Info("================== DoReq, get all AcceptReShareRes================", "raw ", raw, "result ", ars, "key ", key)
 
@@ -312,15 +316,9 @@ func (req *ReqSmpcReshare) DoReq(raw string, workid int, sender string, ch chan 
 					}
 
 					if !reply {
-						tip = "don't accept reshare"
-						_, err = AcceptReShare(sender, from, rh.GroupID, rh.TSGroupID, rh.PubKey, rh.ThresHold, rh.Mode, "false", "false", "Failure", "", "don't accept reshare", "don't accept reshare", nil, wid)
+					    AcceptReShare(sender, from, rh.GroupID, rh.TSGroupID, rh.PubKey, rh.ThresHold, rh.Mode, "false", "false", "Failure", "", "not all accept reshare", "not all accept reshare", ars, wid)
 					} else {
-						tip = ""
-						_, err = AcceptReShare(sender, from, rh.GroupID, rh.TSGroupID, rh.PubKey, rh.ThresHold, rh.Mode, "false", "false", "pending", "", "", "", ars, wid)
-					}
-
-					if err != nil {
-						tip = tip + " and accept reshare data fail"
+					    AcceptReShare(sender, from, rh.GroupID, rh.TSGroupID, rh.PubKey, rh.ThresHold, rh.Mode, "false", "false", "pending", "", "", "", ars, wid)
 					}
 
 					timeout <- true
@@ -328,13 +326,10 @@ func (req *ReqSmpcReshare) DoReq(raw string, workid int, sender string, ch chan 
 				case <-agreeWaitTimeOut.C:
 					common.Info("================== DoReq, agree wait timeout===================", "raw ", raw, "key ", key)
 					ars := GetAllReplyFromGroup(w.id, rh.GroupID, RPCRESHARE, sender)
-					_, err = AcceptReShare(sender, from, rh.GroupID, rh.TSGroupID, rh.PubKey, rh.ThresHold, rh.Mode, "false", "false", "Timeout", "", "get other node accept reshare result timeout", "get other node accept reshare result timeout", ars, wid)
+					AcceptReShare(sender, from, rh.GroupID, rh.TSGroupID, rh.PubKey, rh.ThresHold, rh.Mode, "false", "false", "Timeout", "", "approving  timeout", "approving timeout", ars, wid)
 					reply = false
-					tip = "get other node accept reshare result timeout"
-					if err != nil {
-						tip = tip + " and accept reshare data fail"
-					}
 
+					resharetimeout = true
 					timeout <- true
 					return
 				}
@@ -351,14 +346,16 @@ func (req *ReqSmpcReshare) DoReq(raw string, workid int, sender string, ch chan 
 		<-timeout
 
 		if !reply {
-			if tip == "get other node accept reshare result timeout" {
-				ars := GetAllReplyFromGroup(workid, rh.GroupID, RPCRESHARE, sender)
-				_, err = AcceptReShare(sender, from, rh.GroupID, rh.TSGroupID, rh.PubKey, rh.ThresHold, rh.Mode, "false", "", "Timeout", "", "get other node accept reshare result timeout", "get other node accept reshare result timeout", ars, workid)
-			}
+		    arstmp := GetAllReplyFromGroup(w.id, rh.GroupID, RPCRESHARE, sender)
+		    if resharetimeout {
+			AcceptReShare(sender, from, rh.GroupID, rh.TSGroupID, rh.PubKey, rh.ThresHold, rh.Mode, "true", "false", "Timeout", "", "approving  timeout", "approving timeout", arstmp, workid)
+		    } else {
+			AcceptReShare(sender, from, rh.GroupID, rh.TSGroupID, rh.PubKey, rh.ThresHold, rh.Mode, "true", "false", "Failure", "", "not all accept reshare", "not all accept reshare", arstmp, workid)
+		    }
 
-			res2 := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("don't accept reshare")}
-			ch <- res2
-			return false
+		    res2 := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("approving fail")}
+		    ch <- res2
+		    return false
 		}
 
 		rch := make(chan interface{}, 1)
@@ -370,17 +367,14 @@ func (req *ReqSmpcReshare) DoReq(raw string, workid int, sender string, ch chan 
 			return true
 		}
 
-		if tip == "get other node accept reshare result timeout" {
-			ars := GetAllReplyFromGroup(workid, rh.GroupID, RPCRESHARE, sender)
-			_, err = AcceptReShare(sender, from, rh.GroupID, rh.TSGroupID, rh.PubKey, rh.ThresHold, rh.Mode, "false", "", "Timeout", "", "get other node accept reshare result timeout", "get other node accept reshare result timeout", ars, workid)
-		}
-
 		if cherr != nil {
+			AcceptReShare(sender, from, rh.GroupID, rh.TSGroupID, rh.PubKey, rh.ThresHold, rh.Mode, "true", "", "Failure", "", "", cherr.Error(), nil, workid)
 			res2 := RPCSmpcRes{Ret: "", Tip: tip, Err: cherr}
 			ch <- res2
 			return false
 		}
 
+		AcceptReShare(sender, from, rh.GroupID, rh.TSGroupID, rh.PubKey, rh.ThresHold, rh.Mode, "true", "", "Failure", "", "", cherr.Error(), nil, workid)
 		res2 := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("reshare fail")}
 		ch <- res2
 		return false

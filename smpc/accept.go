@@ -70,6 +70,7 @@ func GetAllReplyFromGroup(wid int, gid string, rt RPCType, initiator string) []N
 			in := "0"
 			if strings.EqualFold(initiator, node2) {
 				in = "1"
+				sta = "AGREE"
 			}
 
 			nr := NodeReply{Enode: node2, Approver:node2,Status: sta, TimeStamp: ts, Initiator: in}
@@ -337,6 +338,7 @@ func AcceptReqAddr(initiator string, account string, cointype string, groupid st
 	if ac2.Status != "Pending" {
 	    err := DeleteReqAddrInfoData([]byte(key))
 	    if err != nil {
+		common.Error("===================================AcceptReqAddr,delete reqaddr accept data from db fail===========================", "err", err, "key", key)
 		return err.Error(), err
 	    }
 
@@ -346,6 +348,7 @@ func AcceptReqAddr(initiator string, account string, cointype string, groupid st
 			return err.Error(), err
 		}
 
+		common.Debug("===================================AcceptReqAddr,put reqaddr accept data to pubkey data db success==========================","key", key,"allreply",allreply)
 		///get mpc node info
 		keygen_num++
 		if ac2.Status == "Failure" {

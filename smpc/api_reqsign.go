@@ -63,6 +63,7 @@ func (req *ReqSmpcSign) GetReplyFromGroup(wid int, gid string, initiator string)
 		in := "0"
 		if strings.EqualFold(initiator, node2) {
 			in = "1"
+			sta = "AGREE"
 		}
 
 		iter := w.msgacceptsignres.Front()
@@ -784,7 +785,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 	exsit, da := GetSignInfoData([]byte(acceptsig.Key))
 	if !exsit {
 		common.Error("===============DoReq, get sign accept data fail from db=====================", "key ", acceptsig.Key, "from ", from)
-		res := RPCSmpcRes{Ret: "Failure", Tip: "smpc back-end internal error:get sign accept data fail from db in init accept data", Err: fmt.Errorf("get sign accept data fail from db")}
+		res := RPCSmpcRes{Ret: "Failure", Tip: "", Err: fmt.Errorf("get sign accept data fail from db")}
 		ch <- res
 		return false
 	}
@@ -792,14 +793,14 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 	ac, ok := da.(*AcceptSignData)
 	if !ok || ac == nil {
 		common.Error("===============DoReq, it is acceptsign and decode accept data fail=====================", "key ", acceptsig.Key, "from ", from)
-		res := RPCSmpcRes{Ret: "Failure", Tip: "smpc back-end internal error:decode accept data fail", Err: fmt.Errorf("decode accept data fail")}
+		res := RPCSmpcRes{Ret: "Failure", Tip: "", Err: fmt.Errorf("decode accept data fail")}
 		ch <- res
 		return false
 	}
 
 	if ac.Deal == "true" || ac.Status == "Success" || ac.Status == "Failure" || ac.Status == "Timeout" {
 		common.Info("===============DoReq,sign has handled before=====================", "key ", acceptsig.Key, "from ", from)
-		res := RPCSmpcRes{Ret: "", Tip: "sign has handled before", Err: fmt.Errorf("sign has handled before")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign has handled before")}
 		ch <- res
 		return false
 	}
@@ -818,7 +819,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 	exsit, da = GetPubKeyData([]byte(reqaddrkey))
 	if !exsit {
 		common.Error("===============DoReq, get reqaddr sigs data fail=====================", "key ", acceptsig.Key, "from ", from)
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get reqaddr sigs data fail")}
 		ch <- res
 		return false
 	}
@@ -833,10 +834,10 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 	HandleC1Data(acceptreqdata, acceptsig.Key)
 
-	ars := GetAllReplyFromGroup(id, ac.GroupID, RPCSIGN, ac.Initiator)
+	ars := GetAllReplyFromGroup2(id,ac.Initiator)
 	if ac.Deal == "true" || ac.Status == "Success" || ac.Status == "Failure" || ac.Status == "Timeout" {
 		common.Info("===============DoReq,sign has handled before=====================", "key ", acceptsig.Key, "from ", from)
-		res := RPCSmpcRes{Ret: "", Tip: "sign has handled before", Err: fmt.Errorf("sign has handled before")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign has handled before")}
 		ch <- res
 		return false
 	}

@@ -297,17 +297,17 @@ func ExecApproveKeyGen(raw string,from string,req *TxDataAcceptReqAddr,ac *Accep
 	HandleC1Data(ac, req.Key)
     }
     
-    status := "Pending"
+    //status := "Pending"
     accept := req.Accept
     if accept == "" {
 	accept = "DISAGREE"
     }
 
-    if req.Accept != "AGREE" {
-	    status = "Failure"
-    }
+    //if req.Accept != "AGREE" {
+	//    status = "Failure"
+    //}
 
-    AcceptReqAddr(ac.Initiator, ac.Account, ac.Cointype, ac.GroupID, ac.Nonce, ac.LimitNum, ac.Mode, "false", accept, status, "", "", "", nil, ac.WorkID, "")
+    //AcceptReqAddr(ac.Initiator, ac.Account, ac.Cointype, ac.GroupID, ac.Nonce, ac.LimitNum, ac.Mode, "false", accept, status, "", "", "", nil, ac.WorkID, "")
     
     w.msgacceptreqaddrres.PushBack(raw)
     

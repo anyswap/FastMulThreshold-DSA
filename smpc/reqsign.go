@@ -133,7 +133,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 		return fmt.Errorf("the sign cmd has handled before")
 	}
 
-	ars := GetAllReplyFromGroup(workid, sig.GroupID, RPCSIGN, sender)
+	ars := GetAllReplyFromGroup(workid,sig.GroupID,RPCSIGN,sender)
 	ac := &AcceptSignData{Raw:sbd.Raw,Initiator: sender, Account: from, GroupID: sig.GroupID, Nonce: nonce, PubKey: sig.PubKey, MsgHash: sig.MsgHash, MsgContext: sig.MsgContext, Keytype: sig.Keytype, LimitNum: sig.ThresHold, Mode: sig.Mode, TimeStamp: sig.TimeStamp, Deal: "false", Accept: "false", Status: "Pending", Rsv: "", Tip: "", Error: "", AllReply: ars, WorkID: workid}
 	err = SaveAcceptSignData(ac)
 	if err != nil {
@@ -163,9 +163,57 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 
 	w.SmpcFrom = sig.PubKey // pubkey replace smpcfrom in sign
 
+	//
+	index := -1
+	for j,rh := range w.ApprovReplys {
+	    if rh == nil {
+		continue
+	    }
+
+	    if strings.EqualFold(rh.From,from) {
+		index = j
+		break
+	    }
+	}
+
+	reqaddrkey := GetReqAddrKeyByOtherKey(key, RPCSIGN)
+	exsit, da := GetPubKeyData([]byte(reqaddrkey))
+	if !exsit {
+		res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("save keygen accept data fail")}
+		ch <- res
+		return fmt.Errorf("save sign accept data fail")
+	}
+
+	acceptreqdata, ok := da.(*AcceptReqAddrData)
+	if !ok || acceptreqdata == nil {
+		res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("save keyen accept data fail")}
+		ch <- res
+		return fmt.Errorf("save keygen accept data fail")
+	}
+
+	enode := GetENodeByFrom(from,acceptreqdata)
+	if enode == "" {
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: errors.New("get enode fail")}
+	    ch <- res
+	    return errors.New("get enode fail") 
+	}
+
+	reply := &ApprovReply{ENode:enode,From: from, Accept: "AGREE", TimeStamp: acceptreqdata.TimeStamp}
+	if index != -1 {
+	    w.ApprovReplys[index] = reply
+	} else {
+	    w.ApprovReplys = append(w.ApprovReplys,reply)
+	}
+	
+	//arstmp := GetAllReplyFromGroup2(w.id,sender)
+	//AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "false", "false", "Pending", "", "", "", arstmp, workid)
+	//
+	
 	if sig.Mode == "0" { // self-group
 		var reply bool
 		var tip string
+		var signtimeout bool
+
 		timeout := make(chan bool, 1)
 		go func(wid int) {
 			curEnode = discover.GetLocalID().String() //GetSelfEnode()
@@ -195,29 +243,20 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 					}
 
 					if !reply {
-						tip = "don't accept sign"
-						_, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "don't accept sign", "don't accept sign", ars, wid)
+						_, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "not all accept sign", "not all accept sign", ars, wid)
 					} else {
-						tip = ""
 						_, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "false", "true", "Pending", "", "", "", ars, wid)
-					}
-
-					if err != nil {
-						tip = tip + " and accept sign data fail"
 					}
 
 					timeout <- true
 					return
 				case <-agreeWaitTimeOut.C:
-					ars := GetAllReplyFromGroup(w.id, sig.GroupID, RPCSIGN, sender)
+					ars := GetAllReplyFromGroup2(w.id,sender)
 					common.Info("================== DoSign, agree wait timeout=============", "ars", ars, "key ", key)
-					_, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "get other node accept sign result timeout", "get other node accept sign result timeout", ars, wid)
+					_, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "approving timeout", "approving timeout", ars, wid)
 					reply = false
-					tip = "get other node accept sign result timeout"
-					if err != nil {
-						tip = tip + " and accept sign data fail"
-					}
 
+					signtimeout = true
 					timeout <- true
 					return
 				}
@@ -231,14 +270,14 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 		DisAcceptMsg(sbd.Raw, workid)
 		reqaddrkey := GetReqAddrKeyByOtherKey(key, RPCSIGN)
 		if reqaddrkey == "" {
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get req addr key fail", Err: fmt.Errorf("get reqaddr key fail")}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get reqaddr key fail")}
 			ch <- res
 			return fmt.Errorf("get reqaddr key fail")
 		}
 
 		exsit, da := GetPubKeyData([]byte(reqaddrkey))
 		if !exsit {
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get reqaddr sigs data fail")}
 			ch <- res
 			return fmt.Errorf("get reqaddr sigs data fail")
 		}
@@ -246,7 +285,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 		acceptreqdata, ok := da.(*AcceptReqAddrData)
 		if !ok || acceptreqdata == nil {
 			common.Debug("===============DoSign, get req addr key by other key error ===================", "key ", key)
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get reqaddr sigs data fail")}
 			ch <- res
 			return fmt.Errorf("get reqaddr sigs data fail")
 		}
@@ -256,21 +295,23 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 		<-timeout
 
 		if !reply {
-			if tip == "get other node accept sign result timeout" {
-				ars := GetAllReplyFromGroup(w.id, sig.GroupID, RPCSIGN, sender)
-				_, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "", "Timeout", "", "get other node accept sign result timeout", "get other node accept sign result timeout", ars, workid)
-			}
+			arstmp := GetAllReplyFromGroup2(w.id,sender)
+		    if signtimeout {
+			AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "approving timeout", "approving timeout", arstmp, workid)
+		    } else {
+			AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "not all accept sign", "not all accept sign", arstmp, workid)
+		    }
 
-			res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("don't accept sign")}
-			ch <- res
-			return fmt.Errorf("don't accept sign")
+		    res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("approving fail")}
+		    ch <- res
+		    return fmt.Errorf("approving fail")
 		}
 	} else {
 		if len(workers[workid].acceptWaitSignChan) == 0 {
 			workers[workid].acceptWaitSignChan <- "go on"
 		}
 
-		ars := GetAllReplyFromGroup(w.id, sig.GroupID, RPCSIGN, sender)
+		ars := GetAllReplyFromGroup2(w.id,sender)
 		_, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "false", "true", "Pending", "", "", "", ars, workid)
 		if err != nil {
 			res := RPCSmpcRes{Ret: "", Tip: err.Error(), Err: err}
@@ -288,17 +329,16 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 		return nil
 	}
 
-	ars = GetAllReplyFromGroup(w.id, sig.GroupID, RPCSIGN, sender)
-	if tip == "get other node accept sign result timeout" {
-		_, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "", "Timeout", "", tip, cherr.Error(), ars, workid)
-	}
-
 	if cherr != nil {
+		ars := GetAllReplyFromGroup2(w.id,sender)
+		AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", cherr.Error(), ars, workid)
 		res := RPCSmpcRes{Ret: "", Tip: tip, Err: cherr}
 		ch <- res
 		return cherr
 	}
 
+	ars = GetAllReplyFromGroup2(w.id,sender)
+	AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", "sign fail", ars, workid)
 	res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("sign fail")}
 	ch <- res
 	return fmt.Errorf("sign fail")
@@ -395,17 +435,17 @@ func ExecApproveSigning(raw string,from string,sig *TxDataAcceptSign,ac *AcceptS
 	    HandleC1Data(acceptreqdata, sig.Key)
 	}
 
-	status := "Pending"
+	//status := "Pending"
 	accept := sig.Accept
 	if accept == "" {
 	    accept = "DISAGREE"
 	}
 
-	if sig.Accept != "AGREE" {
-		status = "Failure"
-	}
+	//if sig.Accept != "AGREE" {
+	//	status = "Failure"
+	//}
 
-	AcceptSign(ac.Initiator, ac.Account, ac.PubKey, ac.MsgHash, ac.Keytype, ac.GroupID, ac.Nonce, ac.LimitNum, ac.Mode, "false", accept, status, "", "", "", nil, ac.WorkID)
+	//AcceptSign(ac.Initiator, ac.Account, ac.PubKey, ac.MsgHash, ac.Keytype, ac.GroupID, ac.Nonce, ac.LimitNum, ac.Mode, "false", accept, status, "", "", "", nil, ac.WorkID)
 	
 	w.msgacceptsignres.PushBack(raw)
 	/////fix bug: miss accept msg for 7-11 test
@@ -921,7 +961,7 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
 	exsit, da := GetPubKeyData(smpcpks[:])
 	if !exsit {
 		common.Debug("============================sign,not exist sign data===========================", "pubkey", pubkey, "key", wsid)
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get sign data from db fail", Err: fmt.Errorf("get sign data from db fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get sign data from db fail")}
 		ch <- res
 		return
 	}
@@ -929,7 +969,7 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
 	_, ok := da.(*PubKeyData)
 	if !ok {
 		common.Debug("============================sign,sign data error==========================", "pubkey", pubkey, "key", wsid)
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get sign data from db fail", Err: fmt.Errorf("get sign data from db fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get sign data from db fail")}
 		ch <- res
 		return
 	}
@@ -947,13 +987,13 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
 	///sku1
 	da2 := getSkU1FromLocalDb(smpcpks[:])
 	if da2 == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "sign get sku1 fail", Err: fmt.Errorf("sign get sku1 fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
 		ch <- res
 		return
 	}
 	sku1 := new(big.Int).SetBytes(da2)
 	if sku1 == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "lockout get sku1 fail", Err: fmt.Errorf("lockout get sku1 fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("lockout get sku1 fail")}
 		ch <- res
 		return
 	}
@@ -997,7 +1037,7 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
 		//bug
 		rets := []rune(rsv)
 		if keytype != "ED25519" && len(rets) != 130 {
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:wrong rsv size", Err: GetRetErr(ErrSmpcSigWrongSize)}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrSmpcSigWrongSize)}
 			ch <- res
 			return
 		}
@@ -1007,7 +1047,7 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
 		w, err := FindWorker(wsid)
 		if w == nil || err != nil {
 			common.Debug("==========sign,no find worker============", "err", err, "key", wsid)
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker", Err: fmt.Errorf("get worker error")}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get worker error")}
 			ch <- res
 			return
 		}
@@ -1028,12 +1068,12 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
 
 	if cherrtmp != nil {
 		common.Info("================sign,the terminal sign res is failure================", "err", cherrtmp, "key", wsid)
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:sign fail", Err: cherrtmp}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: cherrtmp}
 		ch <- res
 		return
 	}
 
-	res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:sign fail", Err: fmt.Errorf("sign fail")}
+	res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign fail")}
 	ch <- res
 }
 
