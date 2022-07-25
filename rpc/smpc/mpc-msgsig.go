@@ -31,7 +31,7 @@ import (
 //}
 //return pubkey and coins addr
 func (service *Service) ReqKeyGen(rsv string,msg string) map[string]interface{} {
-	common.Debug("===============ReqKeyGen================", "msg",msg)
+	common.Debug("===============ReqKeyGen================","rsv",rsv,"msg",msg)
 	
 	data := make(map[string]interface{})
 	if msg == "" || rsv == "" {
@@ -47,6 +47,7 @@ func (service *Service) ReqKeyGen(rsv string,msg string) map[string]interface{} 
 	m := &smpc.MsgSig{Rsv: rsv, MsgType: "REQSMPCADDR", Msg: msg}
        raw,err := json.Marshal(m)
        if err != nil {
+	    common.Error("===============ReqKeyGen,marshal msg sig error================","err",err)
                data["result"] = ""
                return map[string]interface{}{
                        "Status": "Error",
@@ -57,7 +58,7 @@ func (service *Service) ReqKeyGen(rsv string,msg string) map[string]interface{} 
        }
 
 	ret, tip, err := smpc.ReqKeyGen(string(raw))
-	common.Debug("=================ReqKeyGen,get result.==================", "ret", ret, "tip", tip, "err", err, "raw", raw)
+	common.Debug("=================ReqKeyGen,get result.==================", "ret", ret,"err", err, "raw", raw)
 	if err != nil {
 		data["result"] = ""
 		return map[string]interface{}{
@@ -89,10 +90,12 @@ func (service *Service) ReqKeyGen(rsv string,msg string) map[string]interface{} 
 // }
 func (service *Service) AcceptKeyGen(rsv string,msg string) map[string]interface{} {
 
+	common.Debug("=================AcceptKeyGen==================", "rsv", rsv,"msg", msg)
 	data := make(map[string]interface{})
 	m := &smpc.MsgSig{Rsv: rsv, MsgType: "ACCEPTREQADDR", Msg: msg}
        raw,err := json.Marshal(m)
        if err != nil {
+	    common.Error("=================AcceptKeyGen,marshal msg sig error==================", "err",err,"rsv", rsv,"msg", msg)
                data["result"] = ""
                return map[string]interface{}{
                        "Status": "Error",
@@ -103,6 +106,7 @@ func (service *Service) AcceptKeyGen(rsv string,msg string) map[string]interface
        }
 
 	ret, tip, err := smpc.RPCAcceptReqAddr(string(raw))
+	common.Debug("=================AcceptKeyGen,get result==================", "ret", ret,"err", err)
 	if err != nil {
 		data["result"] = "Failure"
 		return map[string]interface{}{
@@ -134,10 +138,12 @@ func (service *Service) AcceptKeyGen(rsv string,msg string) map[string]interface
 // }
 func (service *Service) AcceptSigning(rsv string,msg string) map[string]interface{} {
 
+	common.Debug("=================AcceptSigning==================", "rsv", rsv,"msg", msg)
 	data := make(map[string]interface{})
 	m := &smpc.MsgSig{Rsv: rsv, MsgType: "ACCEPTSIGN", Msg: msg}
        raw,err := json.Marshal(m)
        if err != nil {
+	    common.Error("=================AcceptSigning,marshal msg sig error==================", "err", err)
                data["result"] = ""
                return map[string]interface{}{
                        "Status": "Error",
@@ -148,6 +154,7 @@ func (service *Service) AcceptSigning(rsv string,msg string) map[string]interfac
        }
 
 	ret, tip, err := smpc.RPCAcceptSign(string(raw))
+	common.Debug("=================AcceptSigning,get result==================", "err", err,"ret",ret)
 	if err != nil {
 		data["result"] = "Failure"
 		return map[string]interface{}{
@@ -189,6 +196,7 @@ func (service *Service) Signing(rsv string,msg string) map[string]interface{} {
 	m := &smpc.MsgSig{Rsv: rsv, MsgType: "SIGN", Msg: msg}
        raw,err := json.Marshal(m)
        if err != nil {
+	    common.Error("===================Signing,marshal msg sig error=====================", "err",err)
                data["result"] = ""
                return map[string]interface{}{
                        "Status": "Error",
@@ -199,6 +207,7 @@ func (service *Service) Signing(rsv string,msg string) map[string]interface{} {
        }
 
 	key, tip, err := smpc.Sign(string(raw))
+	common.Debug("===================Signing=====================", "err", err,"ret",key)
 	if err != nil {
 		data["result"] = ""
 		return map[string]interface{}{

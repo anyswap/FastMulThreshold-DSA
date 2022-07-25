@@ -42,6 +42,7 @@ import (
        "github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
        "encoding/hex"
        "github.com/fsn-dev/cryptoCoins/coins"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 //---------------------------------------------------------------------------
@@ -520,16 +521,19 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	   msgsig = true
 	   data = []byte(m.Msg)
 	   rsv = m.Rsv
+	   log.Debug("======================CheckRaw,get msg sig data===================")
        } else {
 	    tx := new(types.Transaction)
 	    raws := common.FromHex(raw)
 	    if err := rlp.DecodeBytes(raws, tx); err != nil {
+		log.Error("======================CheckRaw,decode raw tx data fail===================","raw",raw,"err",err)
 		    return "", "", "", nil, err
 	    }
  
 	    signer := types.NewEIP155Signer(big.NewInt(30400)) //
 	    from2, err := types.Sender(signer, tx)
 	    if err != nil {
+		log.Error("======================CheckRaw,check raw tx data fail===================","raw",raw,"err",err)
 		    return "", "", "", nil, err
 	    }
 	   
@@ -537,6 +541,8 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	    txtype = GetTxTypeFromData(data)
 	    nonce = tx.Nonce()
 	    from = from2.Hex()
+	    msgsig = false 
+	    log.Debug("======================CheckRaw,get raw tx data===================","from",from)
        }
  
 	var smpcreq CmdReq
@@ -548,6 +554,7 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 		   err := json.Unmarshal(data, &req)
 		   if err == nil {
 		       from = req.Account
+			log.Debug("======================CheckRaw,get keygen tx data with msg sig===================","from",from)
 		       non,err := strconv.Atoi(req.Nonce)
 		       if err != nil {
 			   nonce = 0
@@ -564,6 +571,7 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 		      err := json.Unmarshal(data, &req)
 		      if err == nil {
 			   from = req.Account
+			    log.Debug("======================CheckRaw,get sign tx data with msg sig===================","from",from)
 			   non,err := strconv.Atoi(req.Nonce)
 			   if err != nil {
 			       nonce = 0
@@ -628,6 +636,7 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 		   err := json.Unmarshal(data, &req)
 		   if err == nil {
 		       from = req.Account
+			log.Debug("======================CheckRaw,get accept keygen data with msg sig===================","from",from)
 		       non,err := strconv.Atoi(req.Nonce)
 		       if err != nil {
 			   nonce = 0
@@ -644,6 +653,7 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 		   err := json.Unmarshal(data, &req)
 		   if err == nil {
 		       from = req.Account
+			log.Debug("======================CheckRaw,get accept signing data with msg sig===================","from",from)
 		       non,err := strconv.Atoi(req.Nonce)
 		       if err != nil {
 			   nonce = 0
@@ -661,12 +671,15 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	if msgsig {
 	   sig := common.FromHex(rsv)
 	   if sig == nil {
+		log.Error("======================CheckRaw,get sig fail===================","from",from,"rsv",rsv,"data",string(data))
 	       return "", "", "", nil, fmt.Errorf("verify sig fail")
 	   }
 
 	   hash := crypto.Keccak256(data)
+	   hashtmp := hex.EncodeToString(hash) // 04.....
 	   public,err := crypto.SigToPub(hash,sig)
 	   if err != nil {
+		log.Error("======================CheckRaw,recover pubkey fail===================","from",from,"rsv",rsv,"data",string(data),"err",err,"hash1",string(hash),"hash2",hashtmp)
 	       return "", "", "", nil,err
 	   }
 
@@ -675,13 +688,16 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	   // pub2: 04730c8fc7142d15669e8329138953d9484fd4cce0c690e35e105a9714deb741f10b52be1c5d49eeeb6f00aab8f3d2dec4e3352d0bf    56bdbc2d86cb5f89c8e90d0
 	   h := coins.NewCryptocoinHandler("ETH")
 	   if h == nil {
+		log.Error("======================CheckRaw,get smpc addr fail===================","from",from,"rsv",rsv,"data",string(data),"hash1",string(hash),"hash2",hashtmp,"pub",pub2)
 	       return "", "", "", nil,errors.New("get smpc addr fail")
 	   }
 	   ctaddr, err := h.PublicKeyToAddress(pub2)
 	   if err != nil {
+		log.Error("======================CheckRaw,pubkey to addr fail===================","from",from,"rsv",rsv,"data",string(data),"err",err,"hash1",string(hash),"hash2",hashtmp,"pub",pub2)
 	       return "", "", "", nil,err
 	   }
 	   if !strings.EqualFold(ctaddr,from) {
+		log.Error("======================CheckRaw,verify sig fail===================","from",from,"rsv",rsv,"data",string(data),"ctaddr",ctaddr,"pub",pub2,"hash1",string(hash),"hash2",hashtmp)
 	       return "", "", "", nil, fmt.Errorf("verify sig fail")
 	   }
 	   //
