@@ -1064,18 +1064,28 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 		return "", fmt.Errorf("raw data empty")
 	}
 
-	tx := new(types.Transaction)
-	raws := common.FromHex(raw)
-	if err := rlp.DecodeBytes(raws, tx); err != nil {
-		return "", err
-	}
+	var data []byte
 
-	signer := types.NewEIP155Signer(big.NewInt(4)) //
-	_, err := types.Sender(signer, tx)
-	if err != nil {
-		return "", err
-	}
+	m := MsgSig{}
+       err := json.Unmarshal([]byte(raw), &m)
+       if err == nil {
+	   data = []byte(m.Msg)
+       } else {
+	    tx := new(types.Transaction)
+	    raws := common.FromHex(raw)
+	    if err := rlp.DecodeBytes(raws, tx); err != nil {
+		    return "", err
+	    }
+ 
+	    signer := types.NewEIP155Signer(big.NewInt(30400)) //
+	    _, err := types.Sender(signer, tx)
+	    if err != nil {
+		    return "", err
+	    }
 
+	    data = tx.Data()
+       }
+ 
 	var threshold string
 	var mode string
 	var groupsigs string
@@ -1083,19 +1093,19 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 
 	var req2 CmdReq
 	req := TxDataReqAddr{}
-	err = json.Unmarshal(tx.Data(), &req)
+	err = json.Unmarshal(data, &req)
 	if err == nil && req.TxType == "REQSMPCADDR" {
 		req2 = &ReqSmpcAddr{}
 	} else {
 		rh := TxDataReShare{}
-		err = json.Unmarshal(tx.Data(), &rh)
+		err = json.Unmarshal(data, &rh)
 		if err == nil && rh.TxType == "RESHARE" {
 			req2 = &ReqSmpcReshare{}
 		}
 	}
 
 	if req2 != nil {
-		threshold, mode, groupsigs, groupid = req2.GetGroupSigs(tx.Data())
+		threshold, mode, groupsigs, groupid = req2.GetGroupSigs(data)
 	}
 
 	if threshold == "" || mode == "" || groupid == "" {

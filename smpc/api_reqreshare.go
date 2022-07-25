@@ -544,36 +544,57 @@ func GetReshareRawValue(raw string) (string, string, string) {
 		return "", "", ""
 	}
 
-	tx := new(types.Transaction)
-	raws := common.FromHex(raw)
-	if err := rlp.DecodeBytes(raws, tx); err != nil {
-		return "", "", ""
-	}
+	var from string
+	var data []byte
+	var msgsig bool
 
-	signer := types.NewEIP155Signer(big.NewInt(4))
-	from, err := types.Sender(signer, tx)
-	if err != nil {
-		return "", "", ""
-	}
+	m := MsgSig{}
+       err := json.Unmarshal([]byte(raw), &m)
+       if err == nil {
+	   msgsig = true
+	   data = []byte(m.Msg)
+       } else {
+	    tx := new(types.Transaction)
+	    raws := common.FromHex(raw)
+	    if err := rlp.DecodeBytes(raws, tx); err != nil {
+		    return "", "", ""
+	    }
 
+	    signer := types.NewEIP155Signer(big.NewInt(30400))
+	    from2, err := types.Sender(signer, tx)
+	    if err != nil {
+		    return "", "", ""
+	    }
+
+	    data = tx.Data()
+	    from = from2.Hex()
+	    msgsig = false 
+       }
+ 
 	var txtype string
 	var timestamp string
 
 	rh := TxDataReShare{}
-	err = json.Unmarshal(tx.Data(), &rh)
+	err = json.Unmarshal(data, &rh)
 	if err == nil && rh.TxType == "RESHARE" {
 		txtype = "RESHARE"
 		timestamp = rh.TimeStamp
+		if msgsig {
+		    from = rh.Account
+		}
 	} else {
 		acceptrh := TxDataAcceptReShare{}
-		err = json.Unmarshal(tx.Data(), &acceptrh)
+		err = json.Unmarshal(data, &acceptrh)
 		if err == nil && acceptrh.TxType == "ACCEPTRESHARE" {
 			txtype = "ACCEPTRESHARE"
 			timestamp = acceptrh.TimeStamp
+			if msgsig {
+			    from = acceptrh.Account
+			}
 		}
 	}
 
-	return from.Hex(), txtype, timestamp
+	return from, txtype, timestamp
 }
 
 // CheckReshareDulpRawReply Filter duplicate accept data (command data is also a kind of accept data), 

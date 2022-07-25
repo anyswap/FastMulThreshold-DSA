@@ -92,6 +92,8 @@ func SetReqAddrNonce(account string, nonce string) (string, error) {
 // TxDataReqAddr the data of the special tx of keygen
 type TxDataReqAddr struct {
 	TxType    string
+	Account    string
+	Nonce    string
 	Keytype   string
 	GroupID   string
 	ThresHold string

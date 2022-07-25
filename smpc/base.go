@@ -38,6 +38,10 @@ import (
 	"io"
 	"errors"
 	"sort"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto"
+       "github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
+       "encoding/hex"
+       "github.com/fsn-dev/cryptoCoins/coins"
 )
 
 //---------------------------------------------------------------------------
@@ -490,45 +494,199 @@ func GetTxTypeFromData(txdata []byte) string {
 	return ""
 }
 
+type MsgSig struct {
+    Rsv string
+    MsgType string
+    Msg string
+}
+
 // CheckRaw check command data or accept data
 func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	if raw == "" {
 		return "", "", "", nil, fmt.Errorf("raw data empty")
 	}
 
-	tx := new(types.Transaction)
-	raws := common.FromHex(raw)
-	if err := rlp.DecodeBytes(raws, tx); err != nil {
-		return "", "", "", nil, err
-	}
+	var from string
+	var txtype string
+	var nonce uint64
+	var msgsig bool
+	var data []byte
+	var rsv string
 
-	signer := types.NewEIP155Signer(big.NewInt(4)) //
-	from, err := types.Sender(signer, tx)
-	if err != nil {
-		return "", "", "", nil, err
-	}
-
+	m := MsgSig{}
+       err := json.Unmarshal([]byte(raw), &m)
+       if err == nil {
+	   txtype = m.MsgType
+	   msgsig = true
+	   data = []byte(m.Msg)
+	   rsv = m.Rsv
+       } else {
+	    tx := new(types.Transaction)
+	    raws := common.FromHex(raw)
+	    if err := rlp.DecodeBytes(raws, tx); err != nil {
+		    return "", "", "", nil, err
+	    }
+ 
+	    signer := types.NewEIP155Signer(big.NewInt(30400)) //
+	    from2, err := types.Sender(signer, tx)
+	    if err != nil {
+		    return "", "", "", nil, err
+	    }
+	   
+	    data = tx.Data()
+	    txtype = GetTxTypeFromData(data)
+	    nonce = tx.Nonce()
+	    from = from2.Hex()
+       }
+ 
 	var smpcreq CmdReq
-	txtype := GetTxTypeFromData(tx.Data())
 	switch txtype {
 	case "REQSMPCADDR":
 		smpcreq = &ReqSmpcAddr{}
+		if msgsig {
+		    req := TxDataReqAddr{}
+		   err := json.Unmarshal(data, &req)
+		   if err == nil {
+		       from = req.Account
+		       non,err := strconv.Atoi(req.Nonce)
+		       if err != nil {
+			   nonce = 0
+		       } else {
+			   nonce = uint64(non)
+		       }
+		   }
+		}
+               break
 	case "SIGN":
 		smpcreq = &ReqSmpcSign{}
+		if msgsig {
+		    req := TxDataSign{}
+		      err := json.Unmarshal(data, &req)
+		      if err == nil {
+			   from = req.Account
+			   non,err := strconv.Atoi(req.Nonce)
+			   if err != nil {
+			       nonce = 0
+			   } else {
+			       nonce = uint64(non)
+			   }
+		       }
+		}
+		break
 	case "PRESIGNDATA":
 		smpcreq = &ReqSmpcSign{}
+		if msgsig {
+		    req := TxDataPreSignData{}
+		   err := json.Unmarshal(data, &req)
+		   if err == nil {
+		       from = req.Account
+		       non,err := strconv.Atoi(req.Nonce)
+		       if err != nil {
+			   nonce = 0
+		       } else {
+			   nonce = uint64(non)
+		       }
+		   }
+		}
+		break
 	case "RESHARE":
 		smpcreq = &ReqSmpcReshare{}
+		if msgsig {
+		    req := TxDataReShare{}
+		   err := json.Unmarshal(data, &req)
+		   if err == nil {
+		       from = req.Account
+		       non,err := strconv.Atoi(req.Nonce)
+		       if err != nil {
+			   nonce = 0
+		       } else {
+			   nonce = uint64(non)
+		       }
+		   }
+		}
+		break
 	case "ACCEPTREQADDR":
 		smpcreq = &ReqSmpcAddr{}
+		if msgsig {
+		    req := TxDataAcceptReqAddr{}
+		   err := json.Unmarshal(data, &req)
+		   if err == nil {
+		       from = req.Account
+		       non,err := strconv.Atoi(req.Nonce)
+		       if err != nil {
+			   nonce = 0
+		       } else {
+			   nonce = uint64(non)
+		       }
+		   }
+		}
+		break
 	case "ACCEPTSIGN":
 		smpcreq = &ReqSmpcSign{}
+		if msgsig {
+		    req := TxDataAcceptSign{}
+		   err := json.Unmarshal(data, &req)
+		   if err == nil {
+		       from = req.Account
+		       non,err := strconv.Atoi(req.Nonce)
+		       if err != nil {
+			   nonce = 0
+		       } else {
+			   nonce = uint64(non)
+		       }
+		   }
+		}
+		break
 	case "ACCEPTRESHARE":
 		smpcreq = &ReqSmpcReshare{}
+		if msgsig {
+		    req := TxDataAcceptReShare{}
+		   err := json.Unmarshal(data, &req)
+		   if err == nil {
+		       from = req.Account
+		       non,err := strconv.Atoi(req.Nonce)
+		       if err != nil {
+			   nonce = 0
+		       } else {
+			   nonce = uint64(non)
+		       }
+		   }
+		}
+		break
 	default:
 		return "", "", "", nil, fmt.Errorf("Unsupported request type")
 	}
 
-	return smpcreq.CheckTxData(tx.Data(), from.Hex(), tx.Nonce())
+	//check msg sig
+	if msgsig {
+	   sig := common.FromHex(rsv)
+	   if sig == nil {
+	       return "", "", "", nil, fmt.Errorf("verify sig fail")
+	   }
+
+	   hash := crypto.Keccak256(data)
+	   public,err := crypto.SigToPub(hash,sig)
+	   if err != nil {
+	       return "", "", "", nil,err
+	   }
+
+	   pub := secp256k1.S256().Marshal(public.X,public.Y)
+	   pub2 := hex.EncodeToString(pub) // 04.....
+	   // pub2: 04730c8fc7142d15669e8329138953d9484fd4cce0c690e35e105a9714deb741f10b52be1c5d49eeeb6f00aab8f3d2dec4e3352d0bf    56bdbc2d86cb5f89c8e90d0
+	   h := coins.NewCryptocoinHandler("ETH")
+	   if h == nil {
+	       return "", "", "", nil,errors.New("get smpc addr fail")
+	   }
+	   ctaddr, err := h.PublicKeyToAddress(pub2)
+	   if err != nil {
+	       return "", "", "", nil,err
+	   }
+	   if !strings.EqualFold(ctaddr,from) {
+	       return "", "", "", nil, fmt.Errorf("verify sig fail")
+	   }
+	   //
+	}
+
+       return smpcreq.CheckTxData(data, from, nonce)
 }
 

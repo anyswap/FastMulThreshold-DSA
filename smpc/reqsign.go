@@ -503,6 +503,8 @@ type RPCSignData struct {
 // TxDataSign the data of the special tx of sign 
 type TxDataSign struct {
 	TxType     string
+	Account     string
+	Nonce     string
 	PubKey     string
 	InputCode  string
 	MsgHash    []string

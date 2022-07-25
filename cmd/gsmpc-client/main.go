@@ -89,6 +89,7 @@ var (
 	enode       *string
 	tsgid       *string
 	netcfg      *string
+	msgsig      *string
 
 	enodesSig         arrayFlags
 	nodes             arrayFlags
@@ -112,10 +113,18 @@ func main() {
 		setGroup()
 	case "REQSMPCADDR":
 		// req SMPC account
-		reqSmpcAddr()
+		if *msgsig == "true" {
+		    reqKeyGen()
+		} else {
+		    reqSmpcAddr()
+		}
 	case "ACCEPTREQADDR":
 		// req condominium account
-		acceptReqAddr()
+		if *msgsig == "true" {
+		    acceptKeyGen()
+		} else {
+		    acceptReqAddr()
+		}
 	case "LOCKOUT":
 		lockOut()
 	case "ACCEPTLOCKOUT":
@@ -145,7 +154,11 @@ func main() {
 					wg.Add(1)
 					go func() {
 						defer wg.Done()
-						sign()
+						if *msgsig == "true" {
+						    signing()
+						} else {
+						    sign()
+						}
 					}()
 				}
 				wg.Wait()
@@ -156,7 +169,11 @@ func main() {
 		outwg.Wait()
 	case "PRESIGNDATA":
 		// test pre sign data
-		preGenSignData()
+		if *msgsig == "true" {
+		    preSigning()
+		} else {
+		    preGenSignData()
+		}
 	case "DELPRESIGNDATA":
 		// test pre sign data
 		delPreSignData()
@@ -165,13 +182,25 @@ func main() {
 		getPreSignData()
 	case "ACCEPTSIGN":
 		// approve condominium account sign
-		acceptSign()
+		if *msgsig == "true" {
+		    acceptSigning()
+		} else {
+		    acceptSign()
+		}
 	case "RESHARE":
 		// test reshare
-		reshare()
+		if *msgsig == "true" {
+		    resharing()
+		} else {
+		    reshare()
+		}
 	case "ACCEPTRESHARE":
 		// approve condominium account reshare
-		acceptReshare()
+		if *msgsig == "true" {
+		    acceptResharing()
+		} else {
+		    acceptReshare()
+		}
 	case "CREATECONTRACT":
 		err := createContract()
 		if err != nil {
@@ -206,6 +235,7 @@ func init() {
 	value = flag.String("value", "10000000000000000", "lockout value")
 	coin = flag.String("coin", "FSN", "Coin type")
 	netcfg = flag.String("netcfg", "mainnet", "chain config") //mainnet or testnet
+	msgsig = flag.String("msgsig", "false", "true") //false or true
 	fromAddr = flag.String("from", "", "From address")
 	memo = flag.String("memo", "smpcwallet.com", "Memo")
 	accept = flag.String("accept", "AGREE", "AGREE|DISAGREE")
@@ -358,6 +388,96 @@ func setGroup() {
 	fmt.Printf("\nGid = %s\n\n", groupJSON.Gid)
 }
 
+// reqKeyGen  Execute generate pubkey 
+func reqKeyGen() {
+	// get nonce
+	reqAddrNonce, err := client.Call("smpc_getReqAddrNonce", keyWrapper.Address.String())
+	if err != nil {
+		panic(err)
+	}
+	nonceStr, _ := getJSONResult(reqAddrNonce)
+	nonce, _ := strconv.ParseUint(nonceStr, 0, 64)
+	fmt.Printf("smpc_getReqAddrNonce = %s\nNonce = %d\n", reqAddrNonce, nonce)
+	// build Sigs list parameter
+	sigs := ""
+	if *mode == "0" {
+		for i := 0; i < len(enodesSig)-1; i++ {
+			sigs = sigs + enodesSig[i] + "|"
+		}
+		sigs = sigs + enodesSig[len(enodesSig)-1]
+	}
+	// build tx data
+	timestamp := strconv.FormatInt((time.Now().UnixNano() / 1e6), 10)
+	txdata := reqAddrData{
+		TxType:    *cmd,
+		Account:    keyWrapper.Address.String(),
+              Nonce:strconv.Itoa(int(nonce)),
+		Keytype:   *keyType,
+		GroupID:   *gid,
+		ThresHold: *ts,
+		Mode:      *mode,
+		AcceptTimeOut: "600",
+		TimeStamp: timestamp,
+		Sigs:      sigs,
+	}
+	 playload, err := json.Marshal(txdata)
+       if err != nil {
+           fmt.Printf("reqaddr fail,err",err)
+           panic(err)
+       }
+
+	// sign tx
+	rsv,err := signMsg(keyWrapper.PrivateKey,playload)
+	if err != nil {
+		panic(err)
+	}
+	// send rawTx
+	reqKeyID, err := client.Call("smpc_reqKeyGen", rsv,string(playload))
+	if err != nil {
+		panic(err)
+	}
+	// get keyID
+	keyID, err := getJSONResult(reqKeyID)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("\nsmpc_reqKeyGen keyID = %s\n\n", keyID)
+
+	fmt.Printf("\nWaiting for stats result...\n")
+	// get accounts
+	time.Sleep(time.Duration(20) * time.Second)
+	accounts, err := client.Call("smpc_getAccounts", keyWrapper.Address.String(), *mode)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("\naddress = %s\naccounts = %s\n\n", keyWrapper.Address.String(), accounts)
+
+	// traverse key from reqAddr failed by keyID
+	time.Sleep(time.Duration(2) * time.Second)
+	fmt.Printf("\nreqSMPCAddr:User=%s", keyWrapper.Address.String())
+	var statusJSON reqAddrStatus
+	reqStatus, err := client.Call("smpc_getReqAddrStatus", keyID)
+	if err != nil {
+		fmt.Println("\tsmpc_getReqAddrStatus rpc error:", err)
+		return
+	}
+	statusJSONStr, err := getJSONResult(reqStatus)
+	if err != nil {
+		fmt.Printf("\tsmpc_getReqAddrStatus=NotStart\tkeyID=%s ", keyID)
+		fmt.Println("\tRequest not complete:", err)
+		return
+	}
+	if err := json.Unmarshal([]byte(statusJSONStr), &statusJSON); err != nil {
+		fmt.Println("\treqSMPCAddr:User=%s\tUnmarshal statusJSONStr fail:", err)
+		return
+	}
+	if statusJSON.Status != "Success" {
+		fmt.Printf("\tsmpc_getReqAddrStatus=%s\tkeyID=%s", statusJSON.Status, keyID)
+	} else {
+		fmt.Printf("\tSuccess\tPubkey=%s\n", statusJSON.PubKey)
+	}
+}
+
 // reqSmpcAddr  Execute generate pubkey 
 func reqSmpcAddr() {
 	// get nonce
@@ -439,6 +559,66 @@ func reqSmpcAddr() {
 		fmt.Printf("\tsmpc_getReqAddrStatus=%s\tkeyID=%s", statusJSON.Status, keyID)
 	} else {
 		fmt.Printf("\tSuccess\tPubkey=%s\n", statusJSON.PubKey)
+	}
+}
+
+// acceptKeyGen  Agree to generate pubkey 
+func acceptKeyGen() {
+	// get reqAddr account list
+	reqListRep, err := client.Call("smpc_getCurNodeReqAddrInfo", keyWrapper.Address.String())
+	if err != nil {
+		panic(err)
+	}
+	reqListJSON, _ := getJSONData(reqListRep)
+	fmt.Printf("smpc_getCurNodeReqAddrInfo = %s\n", reqListJSON)
+
+	var keyList []reqAddrCurNodeInfo
+	if err := json.Unmarshal(reqListJSON, &keyList); err != nil {
+		fmt.Println("Unmarshal reqAddrCurNodeInfo fail:", err)
+		return
+	}
+
+	// gen key list which not approve, auto accept replace input by arg -key
+	for i := 0; i < len(keyList); i++ {
+		// build tx data
+		var keyStr string
+		if *key != "" {
+			i = len(keyList)
+			keyStr = *key
+		} else {
+			keyStr = keyList[i].Key
+		}
+
+		timestamp := strconv.FormatInt((time.Now().UnixNano() / 1e6), 10)
+		data := acceptData{
+			TxType:    *cmd,
+			 Account:keyWrapper.Address.String(),
+                       Nonce:"0",
+			Key:       keyStr,
+			Accept:    *accept,
+			TimeStamp: timestamp,
+		}
+		playload, err := json.Marshal(data)
+		if err != nil {
+			fmt.Println("error:", err)
+			panic(err)
+		}
+		// sign tx
+		rsv, err := signMsg(keyWrapper.PrivateKey, playload)
+		if err != nil {
+			panic(err)
+		}
+		// send rawTx
+		acceptReqAddrRep, err := client.Call("smpc_acceptKeyGen", rsv,string(playload))
+		if err != nil {
+			panic(err)
+		}
+		// get result
+		acceptRet, err := getJSONResult(acceptReqAddrRep)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("\nsmpc_acceptReq result: key[%d]\t%s = %s\n\n", i+1, keyStr, acceptRet)
 	}
 }
 
@@ -625,6 +805,22 @@ func acceptLockOut() {
 	}
 }
 
+// signing Execute MPC sign 
+func signing() {
+	//if *msghash == "" {
+	//	*msghash = common.ToHex(crypto.Keccak256([]byte(*memo)))
+	//}
+	if len(hashs) == 0 {
+		hashs = append(hashs, common.ToHex(crypto.Keccak256([]byte(*memo))))
+	}
+
+	if len(contexts) == 0 {
+		contexts = append(contexts, *memo)
+	}
+
+	signingMsgHash(hashs, contexts, -1)
+}
+
 // sign Execute MPC sign 
 func sign() {
 	//if *msghash == "" {
@@ -639,6 +835,35 @@ func sign() {
 	}
 
 	signMsgHash(hashs, contexts, -1)
+}
+
+//  preSigning Generate relevant data required for distributed sign in advance 
+func preSigning() {
+	if len(subgids) == 0 {
+		panic(fmt.Errorf("error:sub group id array is empty"))
+	}
+
+	txdata := preSignData{
+		TxType: "PRESIGNDATA",
+		Account:keyWrapper.Address.String(),
+               Nonce:"0",
+		PubKey: *pubkey,
+		SubGid: subgids,
+	}
+	playload, err := json.Marshal(txdata)
+       if err != nil {
+           panic(err)
+       }
+	// sign tx
+	rsv, err := signMsg(keyWrapper.PrivateKey,playload)
+	if err != nil {
+		panic(err)
+	}
+	// get rawTx
+	_, err = client.Call("smpc_preSigning", rsv,string(playload))
+	if err != nil {
+		panic(err)
+	}
 }
 
 //  preGenSignData Generate relevant data required for distributed sign in advance 
@@ -950,6 +1175,104 @@ func PrintTime(t time.Time, key string, status string, loopcount int) {
 	log.Println(str)
 }
 
+// signingMsgHash sign
+func signingMsgHash(hashs []string, contexts []string, loopCount int) (rsv []string) {
+	timevalue := time.Now()
+
+	// get sign nonce
+	signNonce, err := client.Call("smpc_getSignNonce", keyWrapper.Address.String())
+	if err != nil {
+		PrintTime(timevalue, "", "Error", 0)
+		panic(err)
+	}
+	nonceStr, err := getJSONResult(signNonce)
+	if err != nil {
+		PrintTime(timevalue, "", "Error", 0)
+		panic(err)
+	}
+	nonce, _ := strconv.ParseUint(nonceStr, 0, 64)
+	fmt.Printf("smpc_getSignNonce = %s\nNonce = %d\n", signNonce, nonce)
+	// build tx data
+	timestamp := strconv.FormatInt((time.Now().UnixNano() / 1e6), 10)
+	txdata := signData{
+		TxType:     "SIGN",
+		Account:keyWrapper.Address.String(),
+               Nonce:strconv.Itoa(int(nonce)),
+		PubKey:     *pubkey,
+		InputCode:  *inputcode,
+		MsgContext: contexts,
+		MsgHash:    hashs,
+		Keytype:    *keyType,
+		GroupID:    *gid,
+		ThresHold:  *ts,
+		Mode:       *mode,
+		AcceptTimeOut: "600",
+		TimeStamp:  timestamp,
+	}
+	playload, err := json.Marshal(txdata)
+       if err != nil {
+           panic(err)
+       }
+       rsv2, err := signMsg(keyWrapper.PrivateKey,playload)
+	if err != nil {
+		PrintTime(timevalue, "", "Error", 0)
+		panic(err)
+	}
+	// get rawTx
+	reqKeyID, err := client.Call("smpc_signing", rsv2,string(playload))
+	if err != nil {
+		PrintTime(timevalue, "", "Error", 0)
+		//panic(err)
+		return
+	}
+	// get keyID
+	keyID, err := getJSONResult(reqKeyID)
+	if err != nil {
+		PrintTime(timevalue, "", "Error", 0)
+		panic(err)
+	}
+	fmt.Printf("\nsmpc_sign keyID = %s\n\n", keyID)
+	for i, j := loopCount, 1; i != 0; j++ {
+		fmt.Printf("\nWaiting for stats result (loop %v)...\n", j)
+		if i > 0 {
+			i--
+		}
+		// traverse key from reqAddr failed by keyID
+		time.Sleep(time.Duration(20) * time.Second)
+		fmt.Printf("\n\nUser=%s", keyWrapper.Address.String())
+		var statusJSON signStatus
+		reqStatus, err := client.Call("smpc_getSignStatus", keyID)
+		if err != nil {
+			fmt.Println("\nsmpc_getSignStatus rpc error:", err)
+			continue
+		}
+		statusJSONStr, err := getJSONResult(reqStatus)
+		if err != nil {
+			fmt.Printf("\tsmpc_getSignStatus=NotStart\tkeyID=%s ", keyID)
+			fmt.Println("\tRequest not complete:", err)
+			continue
+		}
+		if err := json.Unmarshal([]byte(statusJSONStr), &statusJSON); err != nil {
+			fmt.Println("\tUnmarshal statusJSONStr fail:", err)
+			continue
+		}
+		switch statusJSON.Status {
+		case "Timeout", "Failure":
+			PrintTime(timevalue, keyID, statusJSON.Status, j)
+			fmt.Printf("\tsmpc_getSignStatus=%s\tkeyID=%s\n", statusJSON.Status, keyID)
+			return
+		case "Success":
+			PrintTime(timevalue, keyID, "Success", j)
+			fmt.Printf("\tSuccess\tRSV=%s\n", statusJSON.Rsv)
+			return statusJSON.Rsv
+		default:
+			fmt.Printf("\tsmpc_getSignStatus=%s\tkeyID=%s\n", statusJSON.Status, keyID)
+			continue
+		}
+	}
+	return
+}
+
 // signMsgHash sign
 func signMsgHash(hashs []string, contexts []string, loopCount int) (rsv []string) {
 	timevalue := time.Now()
@@ -1044,6 +1367,81 @@ func signMsgHash(hashs []string, contexts []string, loopCount int) (rsv []string
 	return
 }
 
+// acceptSigning accept sign
+func acceptSigning() {
+	// get approve list of condominium account
+	reqListRep, err := client.Call("smpc_getCurNodeSignInfo", keyWrapper.Address.String())
+	if err != nil {
+		panic(err)
+	}
+	reqListJSON, _ := getJSONData(reqListRep)
+	fmt.Printf("smpc_getCurNodeSignInfo = %s\n", reqListJSON)
+
+	var keyList []signCurNodeInfo
+	if err := json.Unmarshal(reqListJSON, &keyList); err != nil {
+		fmt.Println("Unmarshal signCurNodeInfo fail:", err)
+		return
+	}
+	// gen key list which not approve, auto accept replace input by arg -key
+	for i := 0; i < len(keyList); i++ {
+		// build tx data
+		var keyStr string
+		var msgHash []string
+		var msgContext []string
+
+		if len(hashs) == 0 {
+			hashs = append(hashs, common.ToHex(crypto.Keccak256([]byte(*memo))))
+		}
+
+		if len(contexts) == 0 {
+			contexts = append(contexts, *memo)
+		}
+
+		if *key != "" {
+			i = len(keyList)
+			keyStr = *key
+			msgHash = hashs
+			msgContext = contexts
+		} else {
+			keyStr = keyList[i].Key
+			msgHash = keyList[i].MsgHash
+			msgContext = keyList[i].MsgContext
+		}
+		timestamp := strconv.FormatInt((time.Now().UnixNano() / 1e6), 10)
+		data := acceptSignData{
+			TxType:     *cmd,
+			Account:keyWrapper.Address.String(),
+                       Nonce:"0",
+			Key:        keyStr,
+			Accept:     *accept,
+			MsgHash:    msgHash,
+			MsgContext: msgContext,
+			TimeStamp:  timestamp,
+		}
+		playload, err := json.Marshal(data)
+		if err != nil {
+			fmt.Println("error:", err)
+			panic(err)
+		}
+		// sign tx
+		rsv, err := signMsg(keyWrapper.PrivateKey, playload)
+		if err != nil {
+			panic(err)
+		}
+		// send rawTx
+		acceptSignRep, err := client.Call("smpc_acceptSigning", rsv,string(playload))
+		if err != nil {
+			panic(err)
+		}
+		// get result
+		acceptRet, err := getJSONResult(acceptSignRep)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("\nsmpc_acceptSign result: key[%d]\t%s = %s\n\n", i+1, keyStr, acceptRet)
+	}
+}
+
 // acceptSign accept sign
 func acceptSign() {
 	// get approve list of condominium account
@@ -1117,6 +1515,52 @@ func acceptSign() {
 	}
 }
 
+// resharing  Execute Resharing
+func resharing() {
+	// build tx data
+	sigs := ""
+	for i := 0; i < len(enodesSig)-1; i++ {
+		sigs = sigs + enodesSig[i] + "|"
+	}
+
+	sigs = sigs + enodesSig[len(enodesSig)-1]
+	timestamp := strconv.FormatInt((time.Now().UnixNano() / 1e6), 10)
+	txdata := reshareData{
+		TxType:    *cmd,
+		Nonce:"0",
+		PubKey:    *pubkey,
+		GroupID:   *gid,
+		TSGroupID: *tsgid,
+		ThresHold: *ts,
+		Account:   keyWrapper.Address.String(),
+		Mode:      *mode,
+		AcceptTimeOut: "600",
+		Sigs:      sigs,
+		TimeStamp: timestamp,
+	}
+	playload, err := json.Marshal(txdata)
+	if err != nil {
+		panic(err)
+	}
+
+	// sign tx
+	rsv, err := signMsg(keyWrapper.PrivateKey, playload)
+	if err != nil {
+		panic(err)
+	}
+	// send rawTx
+	reqKeyID, err := client.Call("smpc_reSharing", rsv,string(playload))
+	if err != nil {
+		panic(err)
+	}
+	// get keyID
+	keyID, err := getJSONResult(reqKeyID)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("\nsmpc_reShare keyID = %s\n\n", keyID)
+}
+
 // reshare  Execute Reshare 
 func reshare() {
 	// build tx data
@@ -1160,6 +1604,64 @@ func reshare() {
 		panic(err)
 	}
 	fmt.Printf("\nsmpc_reShare keyID = %s\n\n", keyID)
+}
+
+// acceptResharing accept reshare
+func acceptResharing() {
+	// get account reshare approve list
+	reqListRep, err := client.Call("smpc_getCurNodeReShareInfo")
+	if err != nil {
+		panic(err)
+	}
+	reqListJSON, _ := getJSONData(reqListRep)
+	fmt.Printf("smpc_getCurNodeReShareInfo = %s\n", reqListJSON)
+
+	var keyList []reshareCurNodeInfo
+	if err := json.Unmarshal(reqListJSON, &keyList); err != nil {
+		fmt.Println("Unmarshal reshareCurNodeInfo fail:", err)
+		return
+	}
+	// gen key list which not approve, auto accept replace input by arg -key
+	for i := 0; i < len(keyList); i++ {
+		// build tx data
+		var keyStr string
+		if *key != "" {
+			i = len(keyList)
+			keyStr = *key
+		} else {
+			keyStr = keyList[i].Key
+		}
+		timestamp := strconv.FormatInt((time.Now().UnixNano() / 1e6), 10)
+		data := acceptData{
+			TxType:    *cmd,
+			Account:keyWrapper.Address.String(),
+                       Nonce:"0",
+			Key:       keyStr,
+			Accept:    *accept,
+			TimeStamp: timestamp,
+		}
+		playload, err := json.Marshal(data)
+		if err != nil {
+			fmt.Println("error:", err)
+			panic(err)
+		}
+		// sign tx
+		rsv, err := signMsg(keyWrapper.PrivateKey, playload)
+		if err != nil {
+			panic(err)
+		}
+		// send rawTx
+		acceptSignRep, err := client.Call("smpc_acceptReSharing", rsv,string(playload))
+		if err != nil {
+			panic(err)
+		}
+		// get result
+		acceptRet, err := getJSONResult(acceptSignRep)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("\nsmpc_acceptReShare result: key[%d]\t%s = %s\n\n", i+1, keyStr, acceptRet)
+	}
 }
 
 // acceptReshare accept reshare
@@ -1216,6 +1718,19 @@ func acceptReshare() {
 		}
 		fmt.Printf("\nsmpc_acceptReShare result: key[%d]\t%s = %s\n\n", i+1, keyStr, acceptRet)
 	}
+}
+
+// signMsg sign msg
+func signMsg(privatekey *ecdsa.PrivateKey,playload []byte) (string, error) {
+       // sign tx by privatekey
+       hash := crypto.Keccak256(playload)
+       signature, signatureErr := crypto.Sign(hash, privatekey)
+      if signatureErr != nil {
+               fmt.Println("signature create error")
+               panic(signatureErr)
+       }
+       rsv := common.ToHex(signature)
+       return rsv, nil
 }
 
 // getSmpcAddr get smpc addr by pubkey
@@ -1395,6 +1910,8 @@ type groupInfo struct {
 }
 type reqAddrData struct {
 	TxType    string `json:"TxType"`
+	Account string `json:"Account"`
+       Nonce string `json:"Nonce"`
 	Keytype   string `json:"Keytype"`
 	GroupID   string `json:"GroupId"`
 	ThresHold string `json:"ThresHold"`
@@ -1405,12 +1922,16 @@ type reqAddrData struct {
 }
 type acceptData struct {
 	TxType    string `json:"TxType"`
+	Account string `json:"Account"`
+       Nonce string `json:"Nonce"`
 	Key       string `json:"Key"`
 	Accept    string `json:"Accept"`
 	TimeStamp string `json:"TimeStamp"`
 }
 type acceptSignData struct {
 	TxType     string   `json:"TxType"`
+	Account string `json:"Account"`
+       Nonce string `json:"Nonce"`
 	Key        string   `json:"Key"`
 	Accept     string   `json:"Accept"`
 	MsgHash    []string `json:"MsgHash"`
@@ -1431,6 +1952,8 @@ type lockoutData struct {
 }
 type signData struct {
 	TxType     string   `json:"TxType"`
+	Account string `json:"Account"`
+       Nonce string `json:"Nonce"`
 	PubKey     string   `json:"PubKey"`
 	InputCode  string   `json:"InputCode"`
 	MsgContext []string `json:"MsgContext"`
@@ -1444,11 +1967,14 @@ type signData struct {
 }
 type preSignData struct {
 	TxType string   `json:"TxType"`
+	Account string `json:"Account"`
+       Nonce string `json:"Nonce"`
 	PubKey string   `json:"PubKey"`
 	SubGid []string `json:"SubGid"`
 }
 type reshareData struct {
 	TxType    string `json:"TxType"`
+       Nonce string `json:"Nonce"`
 	PubKey    string `json:"PubKey"`
 	GroupID   string `json:"GroupId"`
 	TSGroupID string `json:"TSGroupId"`

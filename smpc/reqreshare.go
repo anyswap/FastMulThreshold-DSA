@@ -108,6 +108,7 @@ func IsValidReShareAccept(from string, gid string) bool {
 // TxDataReShare the data of the special tx of reshare
 type TxDataReShare struct {
 	TxType    string
+	Nonce    string
 	PubKey    string
 	GroupID   string
 	TSGroupID string

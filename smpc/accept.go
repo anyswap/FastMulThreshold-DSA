@@ -240,6 +240,8 @@ func SaveAcceptReqAddrData(ac *AcceptReqAddrData) error {
 // TxDataAcceptReqAddr the data of the special tx of accepting keygen
 type TxDataAcceptReqAddr struct {
 	TxType    string
+	Account    string
+	Nonce    string
 	Key       string
 	Accept    string
 	TimeStamp string
@@ -436,6 +438,8 @@ func SaveAcceptSignData(ac *AcceptSignData) error {
 // TxDataAcceptSign the data of the special tx of accepting sign
 type TxDataAcceptSign struct {
 	TxType     string
+	Account     string
+	Nonce     string
 	Key        string
 	MsgHash    []string
 	MsgContext []string
@@ -624,6 +628,8 @@ func SaveAcceptReShareData(ac *AcceptReShareData) error {
 // TxDataAcceptReShare the data of the special tx of accepting reshare
 type TxDataAcceptReShare struct {
 	TxType    string
+	Account    string
+	Nonce    string
 	Key       string
 	Accept    string
 	TimeStamp string

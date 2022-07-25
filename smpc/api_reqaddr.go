@@ -628,36 +628,57 @@ func GetReqAddrRawValue(raw string) (string, string, string) {
 		return "", "", ""
 	}
 
-	tx := new(types.Transaction)
-	raws := common.FromHex(raw)
-	if err := rlp.DecodeBytes(raws, tx); err != nil {
-		return "", "", ""
-	}
+	var from string
+	var data []byte
+	var msgsig bool
 
-	signer := types.NewEIP155Signer(big.NewInt(4))
-	from, err := types.Sender(signer, tx)
-	if err != nil {
-		return "", "", ""
-	}
+	m := MsgSig{}
+	err := json.Unmarshal([]byte(raw), &m)
+	if err == nil {
+	    msgsig = true
+	    data = []byte(m.Msg)
+	} else {
+	    tx := new(types.Transaction)
+	    raws := common.FromHex(raw)
+	    if err := rlp.DecodeBytes(raws, tx); err != nil {
+		    return "", "", ""
+	    }
+ 
+	    signer := types.NewEIP155Signer(big.NewInt(30400))
+	    from2, err := types.Sender(signer, tx)
+	    if err != nil {
+		    return "", "", ""
+	    }
+
+	    data = tx.Data()
+	    from = from2.Hex()
+	    msgsig = false
+ 	}
 
 	var txtype string
 	var timestamp string
 
 	req := TxDataReqAddr{}
-	err = json.Unmarshal(tx.Data(), &req)
+	err = json.Unmarshal(data, &req)
 	if err == nil && req.TxType == "REQSMPCADDR" {
 		txtype = "REQSMPCADDR"
 		timestamp = req.TimeStamp
+		if msgsig {
+		    from = req.Account
+		}
 	} else {
 		acceptreq := TxDataAcceptReqAddr{}
-		err = json.Unmarshal(tx.Data(), &acceptreq)
+		err = json.Unmarshal(data, &acceptreq)
 		if err == nil && acceptreq.TxType == "ACCEPTREQADDR" {
 			txtype = "ACCEPTREQADDR"
 			timestamp = acceptreq.TimeStamp
+			if msgsig {
+			    from = acceptreq.Account
+			}
 		}
 	}
 
-	return from.Hex(), txtype, timestamp
+	return from, txtype, timestamp
 }
 
 // CheckReqAddrDulpRawReply Filter duplicate accept data (command data is also a kind of accept data), 

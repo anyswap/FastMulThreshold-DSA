@@ -1045,43 +1045,67 @@ func GetSignRawValue(raw string) (string, string, string) {
 		return "", "", ""
 	}
 
-	tx := new(types.Transaction)
-	raws := common.FromHex(raw)
-	if err := rlp.DecodeBytes(raws, tx); err != nil {
-		return "", "", ""
-	}
+	var from string
+	var data []byte
+	var msgsig bool 
 
-	signer := types.NewEIP155Signer(big.NewInt(4))
-	from, err := types.Sender(signer, tx)
-	if err != nil {
-		return "", "", ""
-	}
+	m := MsgSig{}
+       err := json.Unmarshal([]byte(raw), &m)
+       if err == nil {
+	   msgsig = true
+	   data = []byte(m.Msg)
+       } else {
+	    tx := new(types.Transaction)
+	    raws := common.FromHex(raw)
+	    if err := rlp.DecodeBytes(raws, tx); err != nil {
+		    return "", "", ""
+	    }
 
+	    signer := types.NewEIP155Signer(big.NewInt(30400))
+	    from2, err := types.Sender(signer, tx)
+	    if err != nil {
+		    return "", "", ""
+	    }
+
+	    data = tx.Data()
+	    from = from2.Hex()
+	    msgsig = false 
+       }
+ 
 	var txtype string
 	var timestamp string
 
 	sig := TxDataSign{}
-	err = json.Unmarshal(tx.Data(), &sig)
+	err = json.Unmarshal(data, &sig)
 	if err == nil && sig.TxType == "SIGN" {
 		txtype = "SIGN"
 		timestamp = sig.TimeStamp
+		if msgsig {
+		    from = sig.Account
+		}
 	} else {
 		pre := TxDataPreSignData{}
-		err = json.Unmarshal(tx.Data(), &pre)
+		err = json.Unmarshal(data, &pre)
 		if err == nil && pre.TxType == "PRESIGNDATA" {
 			txtype = "PRESIGNDATA"
 			//timestamp = pre.TimeStamp
+			if msgsig {
+			    from = pre.Account
+			}
 		} else {
 			acceptsig := TxDataAcceptSign{}
-			err = json.Unmarshal(tx.Data(), &acceptsig)
+			err = json.Unmarshal(data, &acceptsig)
 			if err == nil && acceptsig.TxType == "ACCEPTSIGN" {
 				txtype = "ACCEPTSIGN"
 				timestamp = acceptsig.TimeStamp
+				if msgsig {
+				    from = acceptsig.Account
+				}
 			}
 		}
 	}
 
-	return from.Hex(), txtype, timestamp
+	return from, txtype, timestamp
 }
 
 // CheckSignDulpRawReply Filter duplicate accept data (command data is also a kind of accept data), 

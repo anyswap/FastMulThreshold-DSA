@@ -753,6 +753,8 @@ func PickPreSignData(pubkey string, inputcode string, gid string) *PreSignData {
 // TxDataPreSignData the data of the special tx of pre-generating sign data
 type TxDataPreSignData struct {
 	TxType string
+	Account string
+	Nonce string
 	PubKey string
 	SubGid []string
 }
