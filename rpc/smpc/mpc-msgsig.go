@@ -58,7 +58,7 @@ func (service *Service) ReqKeyGen(rsv string,msg string) map[string]interface{} 
        }
 
 	ret, tip, err := smpc.ReqKeyGen(string(raw))
-	common.Debug("=================ReqKeyGen,get result.==================", "ret", ret,"err", err, "raw", raw)
+	common.Debug("=================ReqKeyGen,get result.==================", "ret", ret,"err", err)
 	if err != nil {
 		data["result"] = ""
 		return map[string]interface{}{

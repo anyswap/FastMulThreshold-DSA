@@ -49,6 +49,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
+	msgsigsha3 "golang.org/x/crypto/sha3"
 )
 
 const (
@@ -1720,10 +1721,24 @@ func acceptReshare() {
 	}
 }
 
+func GetMsgSigHash(message []byte) []byte {
+    msglen := []byte(strconv.Itoa(len(message)))
+
+    hash := msgsigsha3.NewLegacyKeccak256()
+    hash.Write([]byte{0x19})
+    hash.Write([]byte("Ethereum Signed Message:"))
+    hash.Write([]byte{0x0A})
+    hash.Write(msglen)
+    hash.Write(message)
+    buf := hash.Sum([]byte{})
+    return buf
+}
+
 // signMsg sign msg
 func signMsg(privatekey *ecdsa.PrivateKey,playload []byte) (string, error) {
        // sign tx by privatekey
-       hash := crypto.Keccak256(playload)
+       hash := GetMsgSigHash(playload)
+       //hash := crypto.Keccak256([]byte(header),playload)
        signature, signatureErr := crypto.Sign(hash, privatekey)
       if signatureErr != nil {
                fmt.Println("signature create error")

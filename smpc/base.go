@@ -43,6 +43,7 @@ import (
        "encoding/hex"
        "github.com/fsn-dev/cryptoCoins/coins"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
+	msgsigsha3 "golang.org/x/crypto/sha3"
 )
 
 //---------------------------------------------------------------------------
@@ -501,6 +502,19 @@ type MsgSig struct {
     Msg string
 }
 
+func GetMsgSigHash(message []byte) []byte {
+    msglen := []byte(strconv.Itoa(len(message)))
+
+    hash := msgsigsha3.NewLegacyKeccak256()
+    hash.Write([]byte{0x19})
+    hash.Write([]byte("Ethereum Signed Message:"))
+    hash.Write([]byte{0x0A})
+    hash.Write(msglen)
+    hash.Write(message)
+    buf := hash.Sum([]byte{})
+    return buf
+}
+
 // CheckRaw check command data or accept data
 func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	if raw == "" {
@@ -675,11 +689,12 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	       return "", "", "", nil, fmt.Errorf("verify sig fail")
 	   }
 
-	   hash := crypto.Keccak256(data)
+	   //hash := crypto.Keccak256([]byte(header),data)
+	   hash := GetMsgSigHash(data)
 	   hashtmp := hex.EncodeToString(hash) // 04.....
 	   public,err := crypto.SigToPub(hash,sig)
 	   if err != nil {
-		log.Error("======================CheckRaw,recover pubkey fail===================","from",from,"rsv",rsv,"data",string(data),"err",err,"hash1",string(hash),"hash2",hashtmp)
+		log.Error("======================CheckRaw,recover pubkey fail===================","from",from,"rsv",rsv,"data",string(data),"err",err,"hash",hashtmp)
 	       return "", "", "", nil,err
 	   }
 
@@ -688,16 +703,16 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	   // pub2: 04730c8fc7142d15669e8329138953d9484fd4cce0c690e35e105a9714deb741f10b52be1c5d49eeeb6f00aab8f3d2dec4e3352d0bf    56bdbc2d86cb5f89c8e90d0
 	   h := coins.NewCryptocoinHandler("ETH")
 	   if h == nil {
-		log.Error("======================CheckRaw,get smpc addr fail===================","from",from,"rsv",rsv,"data",string(data),"hash1",string(hash),"hash2",hashtmp,"pub",pub2)
+		log.Error("======================CheckRaw,get smpc addr fail===================","from",from,"rsv",rsv,"data",string(data),"hash",hashtmp,"pub",pub2)
 	       return "", "", "", nil,errors.New("get smpc addr fail")
 	   }
 	   ctaddr, err := h.PublicKeyToAddress(pub2)
 	   if err != nil {
-		log.Error("======================CheckRaw,pubkey to addr fail===================","from",from,"rsv",rsv,"data",string(data),"err",err,"hash1",string(hash),"hash2",hashtmp,"pub",pub2)
+		log.Error("======================CheckRaw,pubkey to addr fail===================","from",from,"rsv",rsv,"data",string(data),"err",err,"hash",hashtmp,"pub",pub2)
 	       return "", "", "", nil,err
 	   }
 	   if !strings.EqualFold(ctaddr,from) {
-		log.Error("======================CheckRaw,verify sig fail===================","from",from,"rsv",rsv,"data",string(data),"ctaddr",ctaddr,"pub",pub2,"hash1",string(hash),"hash2",hashtmp)
+		log.Error("======================CheckRaw,verify sig fail===================","from",from,"rsv",rsv,"data",string(data),"ctaddr",ctaddr,"pub",pub2,"hash",hashtmp)
 	       return "", "", "", nil, fmt.Errorf("verify sig fail")
 	   }
 	   //
