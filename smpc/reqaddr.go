@@ -354,12 +354,69 @@ func ExecApproveKeyGen(raw string,from string,req *TxDataAcceptReqAddr,ac *Accep
 
 // ReqAddrStatus keygen result
 type ReqAddrStatus struct {
+	KeyID    string
+	From string
+	GroupID string
 	Status    string
 	PubKey    string
+	ThresHold    string
 	Tip       string
 	Error     string
 	AllReply  []NodeReply
 	TimeStamp string
+}
+
+func GetApproverByReqAddrKey(key string,enodeID string) string {
+    if key == "" || enodeID == "" {
+	return ""
+    }
+
+    var ac *AcceptReqAddrData
+    exsit, da := GetReqAddrInfoData([]byte(key))
+    if exsit {
+	ac, _ = da.(*AcceptReqAddrData)
+    }
+
+    if ac == nil {
+	exsit, da = GetPubKeyData([]byte(key))
+	if !exsit || da == nil {
+		return ""
+	}
+
+	ac, _ = da.(*AcceptReqAddrData)
+	if ac == nil {
+	    return ""
+	}
+    }
+
+    mms := strings.Split(ac.Sigs, common.Sep)
+    if len(mms) < 3 {
+	return "" 
+    }
+
+    nums := strings.Split(ac.LimitNum, "/")
+    if len(nums) != 2 {
+	    return ""
+    }
+
+    nodecnt, err := strconv.Atoi(nums[1])
+    if err != nil {
+	    return ""
+    }
+
+    if len(mms) != (2*nodecnt + 1) {
+	return ""
+    }
+
+    for k,v := range mms {
+	if strings.EqualFold(v,enodeID) {
+	    if (k+1) < len(mms) {
+		return mms[k+1]
+	    }
+	}
+    }
+
+    return ""
 }
 
 // GetReqAddrStatus get the result of the keygen request by key
@@ -375,7 +432,14 @@ func GetReqAddrStatus(key string) (string, string, error) {
 		    return "", "", fmt.Errorf("get keygen data error from db")
 	    }
 
-	    los := &ReqAddrStatus{Status: ac.Status, PubKey: ac.PubKey, Tip: ac.Tip, Error: ac.Error, AllReply: ac.AllReply, TimeStamp: ac.TimeStamp}
+	    var rep []NodeReply
+	    for _,v := range ac.AllReply {
+		acc := GetApproverByReqAddrKey(key,v.Enode)
+		nr := NodeReply{Enode: v.Enode, Approver:acc,Status: v.Status, TimeStamp: v.TimeStamp, Initiator: v.Initiator}
+		rep = append(rep,nr)
+	    }
+
+	    los := &ReqAddrStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,Status: ac.Status, PubKey: ac.PubKey, ThresHold:ac.LimitNum,Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp}
 	    ret, _ := json.Marshal(los)
 	    return string(ret), "", nil
 	}
@@ -390,7 +454,14 @@ func GetReqAddrStatus(key string) (string, string, error) {
 		return "", "", fmt.Errorf("get keygen data error from db")
 	}
 
-	los := &ReqAddrStatus{Status: ac.Status, PubKey: ac.PubKey, Tip: ac.Tip, Error: ac.Error, AllReply: ac.AllReply, TimeStamp: ac.TimeStamp}
+	var rep []NodeReply
+	for _,v := range ac.AllReply {
+	    acc := GetApproverByReqAddrKey(key,v.Enode)
+	    nr := NodeReply{Enode: v.Enode, Approver:acc,Status: v.Status, TimeStamp: v.TimeStamp, Initiator: v.Initiator}
+	    rep = append(rep,nr)
+	}
+
+	los := &ReqAddrStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,Status: ac.Status, PubKey: ac.PubKey, ThresHold:ac.LimitNum,Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp}
 	ret, _ := json.Marshal(los)
 	return string(ret), "", nil
 }

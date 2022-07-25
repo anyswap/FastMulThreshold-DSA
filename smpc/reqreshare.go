@@ -181,6 +181,10 @@ func RPCAcceptReShare(raw string) (string, string, error) {
 
 // ReShareStatus reshare result
 type ReShareStatus struct {
+	KeyID    string
+	From string
+	GroupID string
+	ThresHold    string
 	Status    string
 	Pubkey    string
 	Tip       string
@@ -205,7 +209,7 @@ func GetReShareStatus(key string) (string, string, error) {
 		return "", "smpc back-end internal error:get reshare accept data error from db when GetReShareStatus", fmt.Errorf("get reshare accept data error from db")
 	}
 
-	los := &ReShareStatus{Status: ac.Status, Pubkey: ac.PubKey, Tip: ac.Tip, Error: ac.Error, AllReply: ac.AllReply, TimeStamp: ac.TimeStamp}
+	los := &ReShareStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,ThresHold:ac.LimitNum,Status: ac.Status, Pubkey: ac.PubKey, Tip: ac.Tip, Error: ac.Error, AllReply: ac.AllReply, TimeStamp: ac.TimeStamp}
 	ret, _ := json.Marshal(los)
 	return string(ret), "", nil
 }

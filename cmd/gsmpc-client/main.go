@@ -1002,7 +1002,7 @@ func signMsgHash(hashs []string, contexts []string, loopCount int) (rsv []string
 		PrintTime(timevalue, "", "Error", 0)
 		panic(err)
 	}
-	fmt.Printf("\nsmpc_sign keyID = %s\n\n", keyID)
+	fmt.Printf("\nsmpc_signing keyID = %s\n\n", keyID)
 	for i, j := loopCount, 1; i != 0; j++ {
 		fmt.Printf("\nWaiting for stats result (loop %v)...\n", j)
 		if i > 0 {

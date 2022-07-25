@@ -117,7 +117,7 @@ func (req *ReqSmpcReshare) GetReplyFromGroup(wid int, gid string, initiator stri
 			iter = iter.Next()
 		}
 
-		nr := NodeReply{Enode: node2, Status: sta, TimeStamp: ts, Initiator: in}
+		nr := NodeReply{Enode: node2, Approver:node2,Status: sta, TimeStamp: ts, Initiator: in}
 		ars = append(ars, nr)
 	}
 

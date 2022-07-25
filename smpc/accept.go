@@ -32,6 +32,7 @@ import (
 // NodeReply node accept or not accept the keygen/sign/reshare
 type NodeReply struct {
 	Enode     string
+	Approver string
 	Status    string
 	TimeStamp string
 	Initiator string // "1"/"0"
@@ -71,7 +72,7 @@ func GetAllReplyFromGroup(wid int, gid string, rt RPCType, initiator string) []N
 				in = "1"
 			}
 
-			nr := NodeReply{Enode: node2, Status: sta, TimeStamp: ts, Initiator: in}
+			nr := NodeReply{Enode: node2, Approver:node2,Status: sta, TimeStamp: ts, Initiator: in}
 			ars = append(ars, nr)
 		}
 
@@ -117,7 +118,7 @@ func GetAllReplyFromGroup2(wid int,initiator string) []NodeReply {
 			in = "1"
 		}
 
-		nr := NodeReply{Enode: v.ENode, Status: v.Accept, TimeStamp: v.TimeStamp, Initiator: in}
+		nr := NodeReply{Enode: v.ENode, Approver:v.ENode,Status: v.Accept, TimeStamp: v.TimeStamp, Initiator: in}
 		ars = append(ars, nr)
 	}
 

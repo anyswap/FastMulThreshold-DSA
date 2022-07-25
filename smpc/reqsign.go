@@ -714,6 +714,10 @@ func getSignHash(hash []string, keytype string) string {
 
 // SignStatus sign result
 type SignStatus struct {
+	KeyID    string
+	From string
+	GroupID string
+	ThresHold    string
 	Status    string
 	Rsv       []string
 	Tip       string
@@ -735,8 +739,16 @@ func GetSignStatus(key string) (string, string, error) {
 		return "", "", fmt.Errorf("get sign data error from db")
 	    }
 
+	    var rep []NodeReply
+	    for _,v := range ac.AllReply {
+		reqaddrkey := GetReqAddrKeyByOtherKey(key,RPCSIGN)
+		acc := GetApproverByReqAddrKey(reqaddrkey,v.Enode)
+		nr := NodeReply{Enode: v.Enode, Approver:acc,Status: v.Status, TimeStamp: v.TimeStamp, Initiator: v.Initiator}
+		rep = append(rep,nr)
+	    }
+
 	    rsvs := strings.Split(ac.Rsv, ":")
-	    los := &SignStatus{Status: ac.Status, Rsv: rsvs[:len(rsvs)-1], Tip: ac.Tip, Error: ac.Error, AllReply: ac.AllReply, TimeStamp: ac.TimeStamp}
+	    los := &SignStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,ThresHold:ac.LimitNum,Status: ac.Status, Rsv: rsvs[:len(rsvs)-1], Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp}
 	    ret, _ := json.Marshal(los)
 	    return string(ret), "", nil
 	}
@@ -751,8 +763,16 @@ func GetSignStatus(key string) (string, string, error) {
 		return "", "", fmt.Errorf("get sign data error from db")
 	}
 
+	var rep []NodeReply
+	for _,v := range ac.AllReply {
+	    reqaddrkey := GetReqAddrKeyByOtherKey(key,RPCSIGN)
+	    acc := GetApproverByReqAddrKey(reqaddrkey,v.Enode)
+	    nr := NodeReply{Enode: v.Enode, Approver:acc,Status: v.Status, TimeStamp: v.TimeStamp, Initiator: v.Initiator}
+	    rep = append(rep,nr)
+	}
+
 	rsvs := strings.Split(ac.Rsv, ":")
-	los := &SignStatus{Status: ac.Status, Rsv: rsvs[:len(rsvs)-1], Tip: ac.Tip, Error: ac.Error, AllReply: ac.AllReply, TimeStamp: ac.TimeStamp}
+	los := &SignStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,ThresHold:ac.LimitNum,Status: ac.Status, Rsv: rsvs[:len(rsvs)-1], Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp}
 	ret, _ := json.Marshal(los)
 	return string(ret), "", nil
 }
