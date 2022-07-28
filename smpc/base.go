@@ -499,15 +499,20 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	tx := new(types.Transaction)
 	raws := common.FromHex(raw)
 	if err := rlp.DecodeBytes(raws, tx); err != nil {
+	    common.Error("=====================CheckRaw,decode raw error====================","err",err,"raw",raw)
 		return "", "", "", nil, err
 	}
 
-	signer := types.NewEIP155Signer(big.NewInt(4)) //
+	signer := types.NewEIP155Signer(big.NewInt(30400)) //
+	V, R, S := tx.RawSignatureValues()
+	common.Debug("=====================CheckRaw,decode tx success====================","tx",tx,"raw",raw,"tx hash",signer.Hash(tx).Hex(),"R",R,"S",S,"V",V)
 	from, err := types.Sender(signer, tx)
 	if err != nil {
+	    common.Error("=====================CheckRaw,decode raw error====================","err",err,"raw",raw)
 		return "", "", "", nil, err
 	}
 
+	common.Debug("=====================CheckRaw,check from success====================","from",from,"tx",tx,"raw",raw)
 	var smpcreq CmdReq
 	txtype := GetTxTypeFromData(tx.Data())
 	switch txtype {

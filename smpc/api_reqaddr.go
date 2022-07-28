@@ -634,7 +634,7 @@ func GetReqAddrRawValue(raw string) (string, string, string) {
 		return "", "", ""
 	}
 
-	signer := types.NewEIP155Signer(big.NewInt(4))
+	signer := types.NewEIP155Signer(big.NewInt(30400))
 	from, err := types.Sender(signer, tx)
 	if err != nil {
 		return "", "", ""

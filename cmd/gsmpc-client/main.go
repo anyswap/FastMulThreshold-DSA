@@ -59,7 +59,7 @@ const (
 	SmpcToAddr = `0x00000000000000000000000000000000000000dc`
 
 	// CHID smpc wallet service ID
-	CHID     = 4 //SMPC_walletService  ID
+	CHID     = 30400 //SMPC_walletService  ID
 )
 
 var (

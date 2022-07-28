@@ -1070,7 +1070,7 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 		return "", err
 	}
 
-	signer := types.NewEIP155Signer(big.NewInt(4)) //
+	signer := types.NewEIP155Signer(big.NewInt(30400)) //
 	_, err := types.Sender(signer, tx)
 	if err != nil {
 		return "", err
