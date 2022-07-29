@@ -758,6 +758,7 @@ type SignStatus struct {
 	From string
 	GroupID string
 	ThresHold    string
+	MsgContext []string
 	Status    string
 	Rsv       []string
 	Tip       string
@@ -788,7 +789,7 @@ func GetSignStatus(key string) (string, string, error) {
 	    }
 
 	    rsvs := strings.Split(ac.Rsv, ":")
-	    los := &SignStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,ThresHold:ac.LimitNum,Status: ac.Status, Rsv: rsvs[:len(rsvs)-1], Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp}
+	    los := &SignStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,ThresHold:ac.LimitNum,MsgContext:ac.MsgContext,Status: ac.Status, Rsv: rsvs[:len(rsvs)-1], Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp}
 	    ret, _ := json.Marshal(los)
 	    return string(ret), "", nil
 	}
@@ -812,7 +813,7 @@ func GetSignStatus(key string) (string, string, error) {
 	}
 
 	rsvs := strings.Split(ac.Rsv, ":")
-	los := &SignStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,ThresHold:ac.LimitNum,Status: ac.Status, Rsv: rsvs[:len(rsvs)-1], Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp}
+	los := &SignStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,ThresHold:ac.LimitNum,MsgContext:ac.MsgContext,Status: ac.Status, Rsv: rsvs[:len(rsvs)-1], Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp}
 	ret, _ := json.Marshal(los)
 	return string(ret), "", nil
 }
