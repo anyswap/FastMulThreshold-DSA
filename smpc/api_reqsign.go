@@ -1190,7 +1190,9 @@ func (req *ReqSmpcSign) DisAcceptMsg(raw string, workid int, key string) {
 
 	w.msgacceptsignres.PushBack(raw)
 	/////fix bug: miss accept msg for 7-11 test
-	//SendMsgToSmpcGroup(raw, ac.GroupID)
+	if RelayInGroup {
+	    SendMsgToSmpcGroup(raw, ac.GroupID)
+	}
 	/////
 
 	if w.msgacceptsignres.Len() >= w.ThresHold {
