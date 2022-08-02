@@ -554,7 +554,7 @@ func Call(msg interface{}, enode string) {
 
 		w.Msg2Peer = append(w.Msg2Peer,msg.(string))
 		if ss == "" {
-		    if RelayInGroup {
+		    if RelayInPeers {
 			go func(msg2 string,gid string) {
 			    for i:=0;i<1;i++ {
 			       log.Debug("================Call,also broacast to group for msg===================","key",keytmp,"msg",msg2,"gid",gid,"msg hash",msghash)

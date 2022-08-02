@@ -860,7 +860,7 @@ func (srv *Server) listenLoop() {
 
 		// Reject connections that do not match NetRestrict.
 		if srv.NetRestrict != nil {
-			common.Debug("===============listenLoop==================", "srv.NetRestrict", srv.NetRestrict)
+			//common.Debug("===============listenLoop==================", "srv.NetRestrict", srv.NetRestrict)
 			if tcp, ok := fd.RemoteAddr().(*net.TCPAddr); ok && !srv.NetRestrict.Contains(tcp.IP) {
 				common.Debug("================listenLoop tcp connect close,not contain in srv.NetRestrict=============", "srv.NetRestrict", srv.NetRestrict, "tcp.IP", tcp.IP)
 				fd.Close()

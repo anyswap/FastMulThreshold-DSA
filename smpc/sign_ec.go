@@ -226,7 +226,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, errCha
 			
 			//if !dul {
 			    //////also broacast to group for msg
-			    if RelayInGroup && mm.IsBroadcast() {
+			    if RelayInPeers && mm.IsBroadcast() {
 				go func(msg string,gid string) {
 				    for i:=0;i<1;i++ {
 					log.Debug("================SignProcessInboundMessages,also broacast to group for msg=====================","msg type",mm.GetMsgType(),"key",msgprex,"msg",msg,"gid",gid)

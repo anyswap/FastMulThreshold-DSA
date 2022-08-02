@@ -765,7 +765,7 @@ func (req *ReqSmpcAddr) DisAcceptMsg(raw string, workid int, key string) {
 	w.msgacceptreqaddrres.PushBack(raw)
 	
 	/////fix bug: miss accept msg for 7-11 test
-	if RelayInGroup {
+	if RelayInPeers {
 	    SendMsgToSmpcGroup(raw, ac.GroupID)
 	}
 	/////

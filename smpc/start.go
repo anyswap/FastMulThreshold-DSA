@@ -35,7 +35,7 @@ var (
 	// KeyFile bootnode keyfile
 	KeyFile      string
 	
-	RelayInGroup      bool
+	RelayInPeers      bool
 )
 
 func init() {
@@ -63,7 +63,7 @@ type LunchParams struct {
 	MaxAcceptTime    uint64
 	Bip32Pre     uint64
 	SyncPreSign string
-	RelayInGroup bool
+	RelayInPeers bool
 }
 
 // Start init gsmpc
@@ -130,7 +130,7 @@ func Start(params *LunchParams) {
 
 	InitMpcNodeInfo()
 
-	RelayInGroup = params.RelayInGroup
+	RelayInPeers = params.RelayInPeers
 
 	common.Info("================================smpc.Start,init finish.========================", "curEnode", curEnode, "waitmsg", WaitMsgTimeGG20, "trytimes", recalcTimes, "presignnum", PrePubDataCount, "bip32pre", PreBip32DataCount)
 }
