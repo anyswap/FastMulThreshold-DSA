@@ -445,6 +445,57 @@ func GetGroupNodeUIDs(keytype string,gid string,subgid string) smpclib.SortableI
 
 //-----------------------------------------------------------------------------
 
+// GetKeyFromData get special tx data type from command data or accept data
+func GetKeyFromData(txdata []byte) string {
+	if txdata == nil {
+		return ""
+	}
+
+	req := TxDataReqAddr{}
+	err := json.Unmarshal(txdata, &req)
+	if err == nil && req.TxType == "REQSMPCADDR" {
+		return ""
+	}
+
+	sig := TxDataSign{}
+	err = json.Unmarshal(txdata, &sig)
+	if err == nil && sig.TxType == "SIGN" {
+		return ""
+	}
+
+	pre := TxDataPreSignData{}
+	err = json.Unmarshal(txdata, &pre)
+	if err == nil && pre.TxType == "PRESIGNDATA" {
+		return ""
+	}
+
+	rh := TxDataReShare{}
+	err = json.Unmarshal(txdata, &rh)
+	if err == nil && rh.TxType == "RESHARE" {
+		return ""
+	}
+
+	acceptreq := TxDataAcceptReqAddr{}
+	err = json.Unmarshal(txdata, &acceptreq)
+	if err == nil && acceptreq.TxType == "ACCEPTREQADDR" {
+		return acceptreq.Key
+	}
+
+	acceptsig := TxDataAcceptSign{}
+	err = json.Unmarshal(txdata, &acceptsig)
+	if err == nil && acceptsig.TxType == "ACCEPTSIGN" {
+		return acceptsig.Key
+	}
+
+	acceptrh := TxDataAcceptReShare{}
+	err = json.Unmarshal(txdata, &acceptrh)
+	if err == nil && acceptrh.TxType == "ACCEPTRESHARE" {
+		return ""
+	}
+
+	return ""
+}
+
 // GetTxTypeFromData get special tx data type from command data or accept data
 func GetTxTypeFromData(txdata []byte) string {
 	if txdata == nil {
@@ -521,6 +572,7 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 		return "", "", "", nil, fmt.Errorf("raw data empty")
 	}
 
+	var key string
 	var from string
 	var txtype string
 	var nonce uint64
@@ -556,6 +608,7 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	    nonce = tx.Nonce()
 	    from = from2.Hex()
 	    msgsig = false 
+	    key = GetKeyFromData(data)
 	    log.Debug("======================CheckRaw,get raw tx data===================","from",from)
        }
  
@@ -640,6 +693,8 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 		       } else {
 			   nonce = uint64(non)
 		       }
+
+			key = req.Key
 		   }
 		}
 		break
@@ -657,6 +712,8 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 		       } else {
 			   nonce = uint64(non)
 		       }
+
+			key = req.Key
 		   }
 		}
 		break
@@ -718,6 +775,15 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	   //
 	}
 
+	//
+	if key != "" {
+	    w, err := FindWorker(key)
+	    if err != nil || w == nil {
+		    c1data := strings.ToLower(key + "-" + from)
+		    C1Data.WriteMap(c1data, raw) // save the lastest accept msg??
+	    }
+	}
+	//
        return smpcreq.CheckTxData(data, from, nonce)
 }
 
