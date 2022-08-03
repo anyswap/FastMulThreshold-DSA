@@ -236,7 +236,7 @@ func init() {
 	value = flag.String("value", "10000000000000000", "lockout value")
 	coin = flag.String("coin", "FSN", "Coin type")
 	netcfg = flag.String("netcfg", "mainnet", "chain config") //mainnet or testnet
-	msgsig = flag.String("msgsig", "false", "true") //false or true
+	msgsig = flag.String("msgsig", "true", "msg sign flag") //false or true
 	fromAddr = flag.String("from", "", "From address")
 	memo = flag.String("memo", "smpcwallet.com", "Memo")
 	accept = flag.String("accept", "AGREE", "AGREE|DISAGREE")
