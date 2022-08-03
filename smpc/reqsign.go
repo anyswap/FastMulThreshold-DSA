@@ -194,12 +194,15 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 		return fmt.Errorf("get keygen data fail")
 	}
 
-	enode := GetENodeByFrom(from,acceptreqdata)
-	if enode == "" {
-		log.Error("================DoSign,get enode fail===============","sign key",key,"keygen key",reqaddrkey)
-	    res := RPCSmpcRes{Ret: "", Tip: "", Err: errors.New("get enode fail")}
-	    ch <- res
-	    return errors.New("get enode fail") 
+	enode := curEnode
+	if acceptreqdata.Mode == "0" {
+		enode = GetENodeByFrom(from,acceptreqdata)
+		if enode == "" {
+			log.Error("================DoSign,get enode fail===============","sign key",key,"keygen key",reqaddrkey)
+		    res := RPCSmpcRes{Ret: "", Tip: "", Err: errors.New("get enode fail")}
+		    ch <- res
+		    return errors.New("get enode fail") 
+		}
 	}
 
 	reply := &ApprovReply{ENode:enode,From: from, Accept: "AGREE", TimeStamp: acceptreqdata.TimeStamp}
@@ -470,9 +473,12 @@ func ExecApproveSigning(raw string,from string,sig *TxDataAcceptSign,ac *AcceptS
 	    }
 	}
 
-	enode := GetENodeByFrom(from,acceptreqdata)
-	if enode == "" {
-	    return
+	enode := curEnode
+	if acceptreqdata.Mode == "0" {
+		enode = GetENodeByFrom(from,acceptreqdata)
+		if enode == "" {
+		    return
+		}
 	}
 
 	reply := &ApprovReply{ENode:enode,From: from, Accept: accept, TimeStamp: sig.TimeStamp}

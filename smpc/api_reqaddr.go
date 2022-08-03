@@ -277,14 +277,17 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 		    }
 		}
 
-		enode := GetENodeByFrom(from,ac)
-		if enode == "" {
-			log.Error("================DoReq,get enode fail===============","keygen key",key,"from",from)
-		    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get enode fail")}
-		    ch <- res
-		    return false
+		enode := curEnode
+		if ac.Mode == "0" {
+			enode = GetENodeByFrom(from,ac)
+			if enode == "" {
+				log.Error("================DoReq,get enode fail===============","keygen key",key,"from",from)
+			    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get enode fail")}
+			    ch <- res
+			    return false
+			}
 		}
-
+		
 		reply := &ApprovReply{ENode:enode,From: from, Accept: "AGREE", TimeStamp: ac.TimeStamp}
 		if index != -1 {
 		    w.ApprovReplys[index] = reply

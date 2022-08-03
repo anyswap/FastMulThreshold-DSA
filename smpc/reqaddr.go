@@ -337,9 +337,12 @@ func ExecApproveKeyGen(raw string,from string,req *TxDataAcceptReqAddr,ac *Accep
 	}
     }
 
-    enode := GetENodeByFrom(from,ac)
-    if enode == "" {
-	return
+    enode := curEnode
+    if ac.Mode == "0" { 
+	    enode = GetENodeByFrom(from,ac)
+	    if enode == "" {
+		return
+	    }
     }
 
     reply := &ApprovReply{ENode:enode,From: from, Accept: accept, TimeStamp: req.TimeStamp}
