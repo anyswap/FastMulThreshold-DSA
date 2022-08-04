@@ -81,10 +81,10 @@ else
 fi
 
 gsmpc=$1/test/bin/gsmpctest
-$gsmpc --rpcport $port --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node1 --port 48541 --nodekey "$1/test/nodekey/node1.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 3 --verbosity 5 --log $1/test/log/node1.log &
+$gsmpc --rpcport $port --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node1 --port 48541 --nodekey "$1/test/nodekey/node1.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 3 --verbosity 5 --log $1/test/log/node1.log --nonetrestrict true --relay true &
 sleep 2 
 
-$gsmpc --rpcport $port2 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node2 --port 48542 --nodekey "$1/test/nodekey/node2.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 3 --verbosity 5 --log $1/test/log/node2.log &
+$gsmpc --rpcport $port2 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node2 --port 48542 --nodekey "$1/test/nodekey/node2.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 3 --verbosity 5 --log $1/test/log/node2.log --nonetrestrict true --relay true &
 sleep 2
 
 echo

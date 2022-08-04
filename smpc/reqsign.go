@@ -656,7 +656,7 @@ func HandleRPCSign() {
 			    }()
 
 			    go func() {
-				    syncWaitTime := 180 * time.Second
+				    syncWaitTime := 630 * time.Second
 				    syncWaitTimeOut := time.NewTicker(syncWaitTime)
 
 				    for {

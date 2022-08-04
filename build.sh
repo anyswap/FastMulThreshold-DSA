@@ -42,11 +42,11 @@ if [ $1 = $mod1 ]; then
 else
     export GO111MODULE=on
     export GOPROXY=https://goproxy.io
-    export GOPROXY=https://gonexus.dev
     export GOPROXY=https://athens.azurefd.net
     export GOPROXY=https://gocenter.io
     export GOPROXY=https://proxy.golang.org
     export GOPROXY=https://goproxy.cn
+    export GOPROXY=https://gonexus.dev
     #export GOPROXY=https://mirrors.aliyun.com/goproxy/
 
     for mod in $@; do
