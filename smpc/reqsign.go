@@ -649,7 +649,9 @@ func HandleRPCSign() {
 					return
 				    }
 
-				    pick = PickPreSignData(rsd.PubKey, rsd.InputCode, rsd.GroupID)
+				    if pick == nil {
+					pick = PickPreSignData(rsd.PubKey, rsd.InputCode, rsd.GroupID)
+				    }
 				    if pick != nil {
 					common.Debug("=========================HandleRpcSign,pick pre-sign data successfully======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID,"pick key",pick.Key)
 					rch <-true

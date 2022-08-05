@@ -46,16 +46,16 @@ var (
 	cht            = 300
 
 	//ec keygen timeout
-	EcKeygenTimeout = 1200
+	EcKeygenTimeout = 600 
 
 	//ed keygen timeout
-	EdKeygenTimeout = 1200
+	EdKeygenTimeout = 600
 
 	//ec sign timeout
-	EcSignTimeout = 1200
+	EcSignTimeout = 600
 
 	//ed sign timeout
-	EdSignTimeout = 1200
+	EdSignTimeout = 600
 
 	// WaitMsgTimeGG20 wait msg timeout
 	WaitMsgTimeGG20 = 100

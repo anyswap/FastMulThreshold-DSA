@@ -1156,9 +1156,9 @@ var (
     SmpcCall      func(interface{}, string)
     Msg2Peer = common.NewSafeMap(10)
     MsgAckMap  = common.NewSafeMap(10)
-    resend = 20
+    resend = 3
     splitlen = 1200
-    repeat = 5 
+    repeat = 1 
 )
 
 func getFullLen(str []string) int {
@@ -1274,7 +1274,7 @@ func sendSplitMsg(t *udp,msg string,ptype int,toaddr *net.UDPAddr,toid NodeID) e
 		break
 	    }
 	    
-	    time.Sleep(time.Duration(200) * time.Millisecond)
+	    time.Sleep(time.Duration(20) * time.Millisecond)
 	}
 
 	for j:=0;j<repeat;j++ {
@@ -1284,7 +1284,7 @@ func sendSplitMsg(t *udp,msg string,ptype int,toaddr *net.UDPAddr,toid NodeID) e
 	    }
 	    
 	    common.Debug("====================sendSplitMsg,udp send msg fail=====================","j",j,"err",errt)
-	    time.Sleep(time.Duration(200) * time.Millisecond)
+	    time.Sleep(time.Duration(20) * time.Millisecond)
 	}
 	
 	//err := <-errc
@@ -1379,7 +1379,7 @@ func SendMsgAck(t *udp,msghash string,from *net.UDPAddr,fromid NodeID) {
 	    break
 	}
 	
-	time.Sleep(time.Duration(200) * time.Millisecond)
+	time.Sleep(time.Duration(20) * time.Millisecond)
     }
 
     for i:=0;i<repeat;i++ {
@@ -1388,7 +1388,7 @@ func SendMsgAck(t *udp,msghash string,from *net.UDPAddr,fromid NodeID) {
 	    break
 	}
 	
-	time.Sleep(time.Duration(200) * time.Millisecond)
+	time.Sleep(time.Duration(20) * time.Millisecond)
     }
     
     common.Debug("=================SendMsgAck,send msg ack success==================","send msg ack to node.ID",fromid,"orig msg hash",msghash,"send msg ack to node.IP",from.IP,"send msg ack to node.UDP",from.Port)

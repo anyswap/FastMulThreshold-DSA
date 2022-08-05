@@ -88,7 +88,7 @@ func p2pBroatcastPeers(msg string, msgCode int, myself bool) int {
 	    
 	    emitter.Unlock()
 
-	    time.Sleep(time.Duration(1000) * time.Millisecond)
+	    time.Sleep(time.Duration(100) * time.Millisecond)
 	}
 
 	if !suss && p.peer != nil {
@@ -108,7 +108,7 @@ func p2pBroatcastPeers(msg string, msgCode int, myself bool) int {
 	    discover.SendMsgSplitToPeerWithUDP(node.ID,toaddr,sbm,0,discover.Smpc_BroadcastMsgPacket)
 	}
 	
-	time.Sleep(time.Duration(100) * time.Millisecond)
+	time.Sleep(time.Duration(10) * time.Millisecond)
     }
 
     return 1
