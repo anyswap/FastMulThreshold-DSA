@@ -350,7 +350,7 @@ func processKeyGenEDDSA(msgprex string, errChan chan struct{}, outCh <-chan smpc
 
 		case <-time.After(time.Second * time.Duration(EdKeygenTimeout)):
 			fmt.Printf("====================== processKeyGenEDDSA,ed keygen timeout, key = %v ====================\n", msgprex)
-			return errors.New("ed keygen timeout")
+			return errors.New("keygen timeout")
 		case msg := <-outCh:
 			err := ProcessOutCh(msgprex, msg)
 			if err != nil {

@@ -256,7 +256,7 @@ func AcceptReqAddr(initiator string, account string, cointype string, groupid st
 		ac, ok := da.(*AcceptReqAddrData)
 		if ok {
 			if ac.Status != "Pending" {
-				common.Info("=====================AcceptReqAddr, the reqaddr has been processed =======================", "key", key)
+				common.Info("=====================AcceptReqAddr, the keygen has been processed =======================", "key", key)
 				return "", nil
 			}
 		}
@@ -264,13 +264,13 @@ func AcceptReqAddr(initiator string, account string, cointype string, groupid st
 
 	exsit, da = GetReqAddrInfoData([]byte(key))
 	if !exsit {
-		common.Info("=====================AcceptReqAddr, key does not exist =======================", "key", key)
-		return "smpc back-end internal error:get accept data fail from db", fmt.Errorf("get reqaddr accept data fail from db")
+		common.Error("=====================AcceptReqAddr, key does not exist =======================", "key", key)
+		return "", fmt.Errorf("get keygen accept data fail from db")
 	}
 
 	ac, ok := da.(*AcceptReqAddrData)
 	if !ok {
-		return "smpc back-end internal error:get accept data fail from db", fmt.Errorf("get reqaddr accept data fail from db")
+		return "", fmt.Errorf("get keygen accept data fail from db")
 	}
 
 	in := ac.Initiator
@@ -356,6 +356,7 @@ func AcceptReqAddr(initiator string, account string, cointype string, groupid st
 		if ac2.Status == "Failure" {
 		    keygen_fail_num++
 		}
+
 		keytmp := Keccak256Hash([]byte(strings.ToLower(curEnode + ":" + "KeyGenNum"))).Hex()
 		s := strconv.Itoa(keygen_num)
 		PutPubKeyData([]byte(keytmp), []byte(s))
@@ -366,7 +367,7 @@ func AcceptReqAddr(initiator string, account string, cointype string, groupid st
 	} else {
 		err = PutReqAddrInfoData([]byte(key), []byte(es))
 		if err != nil {
-			common.Error("===================================AcceptReqAddr,put reqaddr accept data to pubkey data db fail===========================", "err", err, "key", key)
+			common.Error("===================================AcceptReqAddr,put keygen accept data to pubkey data db fail===========================", "err", err, "key", key)
 			return err.Error(), err
 		}
 	}

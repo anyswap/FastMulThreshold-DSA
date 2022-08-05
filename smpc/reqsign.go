@@ -250,7 +250,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 					}
 
 					if !reply {
-						_, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "not all accept sign", "not all accept sign", ars, wid)
+						_, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "Someone refused to sign", "Someone refused to sign", ars, wid)
 					} else {
 						_, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "false", "true", "Pending", "", "", "", ars, wid)
 					}
@@ -260,7 +260,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 				case <-agreeWaitTimeOut.C:
 					ars := GetAllReplyFromGroup2(w.id,sender)
 					common.Info("================== DoSign, agree wait timeout=============", "ars", ars, "key ", key)
-					_, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "approving timeout", "approving timeout", ars, wid)
+					_, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "Approval timeout", "Approval timeout", ars, wid)
 					reply = false
 
 					signtimeout = true
@@ -304,14 +304,14 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 		if !reply {
 			arstmp := GetAllReplyFromGroup2(w.id,sender)
 		    if signtimeout {
-			AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "approving timeout", "approving timeout", arstmp, workid)
+			AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "Approval timeout", "Approval timeout", arstmp, workid)
 		    } else {
-			AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "not all accept sign", "not all accept sign", arstmp, workid)
+			AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "Someone refused to sign", "Someone refused to sign", arstmp, workid)
 		    }
 
-		    res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("approving fail")}
+		    res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("approval fail")}
 		    ch <- res
-		    return fmt.Errorf("approving fail")
+		    return fmt.Errorf("approval fail")
 		}
 	} else {
 		if len(workers[workid].acceptWaitSignChan) == 0 {
@@ -338,17 +338,23 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 
 	if cherr != nil {
 		ars := GetAllReplyFromGroup2(w.id,sender)
-		AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", cherr.Error(), ars, workid)
+		errinfo := "Abnormal value in MPC calculation"
+		if cherr.Error() == "signing timeout" {
+		    errinfo = "Data network transmission failure in MPC calculation"
+		}
+
+		AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
 		res := RPCSmpcRes{Ret: "", Tip: tip, Err: cherr}
 		ch <- res
 		return cherr
 	}
 
 	ars = GetAllReplyFromGroup2(w.id,sender)
-	AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", "sign fail", ars, workid)
-	res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("sign fail")}
+	errinfo := "Abnormal value in MPC calculation"
+	AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
+	res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf(errinfo)}
 	ch <- res
-	return fmt.Errorf("sign fail")
+	return fmt.Errorf(errinfo)
 }
 
 //------------------------------------------------------------------------------------------------------
@@ -785,14 +791,14 @@ type SignStatus struct {
 // GetSignStatus get the result of the sign request by key
 func GetSignStatus(key string) (string, string, error) {
     	if key  == "" {
-	    return "","",errors.New("param error")
+	    return "","",errors.New("Input data error")
 	}
 
 	exsit, da := GetSignInfoData([]byte(key))
 	if exsit {
 	    ac, ok := da.(*AcceptSignData)
 	    if !ok {
-		return "", "", fmt.Errorf("get sign data error from db")
+		return "", "", fmt.Errorf("Signing failed,data error,please try again")
 	    }
 
 	    var rep []NodeReply
@@ -811,12 +817,12 @@ func GetSignStatus(key string) (string, string, error) {
 
 	exsit, da = GetPubKeyData([]byte(key))
 	if !exsit || da == nil {
-		return "", "", fmt.Errorf("")
+		return "", "", fmt.Errorf("The MPC calculation record cannot be found")
 	}
 
 	ac, ok := da.(*AcceptSignData)
 	if !ok {
-		return "", "", fmt.Errorf("get sign data error from db")
+		return "", "", fmt.Errorf("Signing failed,data error,please try again")
 	}
 
 	var rep []NodeReply
@@ -1009,7 +1015,7 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
 	}
 	sku1 := new(big.Int).SetBytes(da2)
 	if sku1 == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("lockout get sku1 fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
 		ch <- res
 		return
 	}
@@ -1225,7 +1231,7 @@ func signEC(msgprex string, txhash []string, save string, sku1 *big.Int, smpcpkx
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
 		common.Debug("==========smpc_sign,no find worker===========", "key", msgprex, "err", err)
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker", Err: fmt.Errorf("no find worker")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("not find worker")}
 		ch <- res
 		return ""
 	}
@@ -1298,7 +1304,7 @@ func signEC(msgprex string, txhash []string, save string, sku1 *big.Int, smpcpkx
 		return ""
 	}
 
-	res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error: sign fail", Err: fmt.Errorf("sign fail")}
+	res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign fail")}
 	ch <- res
 	return ""
 }
@@ -1449,7 +1455,7 @@ func GetMsgToEnode(keytype string, gid string,groupid string) map[string]string 
 //  the return value is the generated pre-sign data.
 func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *big.Int,cointype string, ch chan interface{}, id int) *PreSignData {
 	if id < 0 || id >= len(workers) {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("no find worker")}
+		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("not find worker")}
 		ch <- res
 		return nil
 	}
@@ -1481,14 +1487,14 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 
 	exsit, da := GetPubKeyData(smpcpks[:])
 	if !exsit || da == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("presign get local save data fail")}
 		ch <- res
 		return nil
 	}
 
 	pubs, ok := da.(*PubKeyData)
 	if !ok || pubs.GroupID == "" {
-		res := RPCSmpcRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("presign get local save data fail")}
 		ch <- res
 		return nil
 	}
@@ -1533,7 +1539,6 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 		}
 
 		exsit, da := GetPubKeyData([]byte(pubs.Key))
-		common.Debug("==========PreSignEC3, get reqaddr info from pubkeydata db==============","key",msgprex,"exsit",exsit)
 		if exsit {
 			acceptreqdata, ok := da.(*AcceptReqAddrData)
 			if ok && acceptreqdata != nil {
@@ -1546,12 +1551,12 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 	pre, err := processSign(msgprex, kgsave.MsgToEnode, errChan, outCh, endCh)
 	if err != nil || pre == nil {
 	    	common.Debug("==========================PreSignEC3,process sign fail===========================","key",msgprex,"err",err)
-		close(commStopChan)
 
 		if len(ch) == 0 {
 		    res := RPCSmpcRes{Ret: "", Err: err}
 		    ch <- res
 		}
+		close(commStopChan)
 		
 		return nil
 	}
@@ -1568,7 +1573,7 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 // return value is the backup for the smpc sign
 func SignEC3(msgprex string, message string, cointype string, save string, pkx *big.Int, pky *big.Int, ch chan interface{}, id int, pre *PreSignData) string {
 	if id < 0 || id >= len(workers) {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("no find worker")}
+		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("not find worker")}
 		ch <- res
 		return ""
 	}
@@ -1605,14 +1610,14 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 	ys := secp256k1.S256().Marshal(pkx, pky)
 	exsit, da := GetPubKeyData(ys)
 	if !exsit || da == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "sign get local pubkey data fail", Err: fmt.Errorf("sign get local pubkey data fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get local pubkey data fail")}
 		ch <- res
 		return ""
 	}
 
 	pubs, ok := da.(*PubKeyData)
 	if !ok || pubs.GroupID == "" {
-		res := RPCSmpcRes{Ret: "", Tip: "presign get local save data fail", Err: fmt.Errorf("presign get local save data fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("presign get local save data fail")}
 		ch <- res
 		return ""
 	}
@@ -1620,13 +1625,13 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 	///sku1
 	da2 := getSkU1FromLocalDb(ys)
 	if da2 == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "sign get sku1 fail", Err: fmt.Errorf("sign get sku1 fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
 		ch <- res
 		return ""
 	}
 	sku1 := new(big.Int).SetBytes(da2)
 	if sku1 == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "sign get sku1 fail", Err: fmt.Errorf("sign get sku1 fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
 		ch <- res
 		return ""
 	}
@@ -1673,7 +1678,6 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 		}
 
 		exsit, da := GetPubKeyData([]byte(pubs.Key))
-		common.Debug("======================SignEC3,get reqaddr info from pubkeydata db========================","key",msgprex,"exsit",exsit)
 		if exsit {
 			acceptreqdata, ok := da.(*AcceptReqAddrData)
 			if ok && acceptreqdata != nil {
@@ -1686,11 +1690,11 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 	s, err := processSignFinalize(msgprex, kgsave.MsgToEnode, errChan, outCh, finalizeendCh, gid)
 	if err != nil || s == nil {
 	    	common.Debug("=========================SignEC3,process sign fail==============================","key",msgprex,"err",err)
-		close(commStopChan)
 		if len(ch) == 0 {
 		    res := RPCSmpcRes{Ret: "", Err: err}
 		    ch <- res
 		}
+		close(commStopChan)
 		
 		return ""
 	}
@@ -1963,7 +1967,7 @@ func signED(msgprex string, txhash []string, save string, sku1 *big.Int, pk stri
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
 		logs.Debug("===========get worker fail.=============")
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker", Err: GetRetErr(ErrNoFindWorker)}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrNoFindWorker)}
 		ch <- res
 		return ""
 	}
@@ -2009,7 +2013,7 @@ func signED(msgprex string, txhash []string, save string, sku1 *big.Int, pk stri
 // return value is the backup for the smpc sign
 func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype string, pk string, ch chan interface{}, id int) string {
 	if id < 0 || id >= len(workers) || id >= RPCMaxWorker {
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get worker id fail", Err: GetRetErr(ErrGetWorkerIDError)}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrGetWorkerIDError)}
 		ch <- res
 		return ""
 	}
@@ -2053,14 +2057,14 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 
 	exsit, da := GetPubKeyData(smpcpks[:])
 	if !exsit || da == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "ed sign get local save data fail", Err: fmt.Errorf("ed sign get local save data fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("ed sign get local save data fail")}
 		ch <- res
 		return ""
 	}
 
 	pubs, ok := da.(*PubKeyData)
 	if !ok || pubs.GroupID == "" {
-		res := RPCSmpcRes{Ret: "", Tip: "ed sign get local save data fail", Err: fmt.Errorf("ed sign get local save data fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("ed sign get local save data fail")}
 		ch <- res
 		return ""
 	}

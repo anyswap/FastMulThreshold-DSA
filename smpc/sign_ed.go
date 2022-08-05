@@ -392,7 +392,7 @@ func processSigned(msgprex string, msgtoenode map[string]string, errChan chan st
 
 		case <-time.After(time.Second * time.Duration(EdSignTimeout)):
 			fmt.Printf("========================== processSigned,sign timeout, key = %v ==========================\n", msgprex)
-			return nil, errors.New("ed sign timeout")
+			return nil, errors.New("signing timeout")
 		case msg := <-outCh:
 			err := SignProcessOutCh(msgprex, msgtoenode, msg, "")
 			if err != nil {

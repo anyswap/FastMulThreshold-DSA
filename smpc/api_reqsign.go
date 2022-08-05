@@ -485,7 +485,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 					ww, err2 := FindWorker(sd.MsgPrex)
 					if err2 != nil || ww == nil {
-						res2 := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker", Err: fmt.Errorf("no find worker")}
+						res2 := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("not find worker")}
 						ch <- res2
 						return false
 					}
@@ -495,10 +495,15 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 					ch <- res2
 					return true
 				}
-
 			}
 
-			res2 := RPCSmpcRes{Ret: "", Tip: "sign fail", Err: fmt.Errorf("sign fail")}
+			_, _, cherr := GetChannelValue(WaitMsgTimeGG20+10, ch1)
+			errinfo := "sign fail"
+			if cherr != nil {
+			    errinfo = cherr.Error()
+			}
+
+			res2 := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf(errinfo)}
 			ch <- res2
 			return false
 		}
@@ -626,12 +631,24 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			if pre == nil {
 				common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid, "err", "return result is nil")
 				if syncpresign && !SynchronizePreSignData(w.sid, w.id, false) {
-					res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+					_, _, cherr := GetChannelValue(waitall, ch1)
+					errinfo := "presign fail"
+					if cherr != nil {
+					    errinfo = cherr.Error()
+					}
+
+					res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf(errinfo)}
 					ch <- res
 					return false
 				}
 
-				res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+				_, _, cherr := GetChannelValue(waitall, ch1)
+				errinfo := "presign fail"
+				if cherr != nil {
+				    errinfo = cherr.Error()
+				}
+
+				res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf(errinfo)}
 				ch <- res
 				return false
 			}
@@ -646,13 +663,13 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time,put pre-sign data to local db fail. ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid, "err", err)
 				if syncpresign && !SynchronizePreSignData(w.sid, w.id, false) {
 					common.Info("================================PreSign at RecvMsg.Run, put pre-sign data to local db fail=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index, "err", err)
-					res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+					res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 					ch <- res
 					return false
 				}
 
 				common.Info("================================PreSign at RecvMsg.Run, put pre-sign data to local db fail=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index, "err", err)
-				res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+				res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 				ch <- res
 				return false
 			}
@@ -759,7 +776,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 	acceptsig, ok := txdata.(*TxDataAcceptSign)
 	if !ok {
-		res := RPCSmpcRes{Ret: "", Tip: "sign data error", Err: fmt.Errorf("sign data error")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign data error")}
 		ch <- res
 		return false
 	}
@@ -769,7 +786,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 		common.Info("===============DoReq, worker was not found.=====================", "accept sign key ", acceptsig.Key, "from ", from)
 		c1data := strings.ToLower(acceptsig.Key + "-" + from)
 		C1Data.WriteMap(c1data, raw) // save the lastest accept msg??
-		res := RPCSmpcRes{Ret: "Failure", Tip: "get sign accept data fail from db when no find worker.", Err: fmt.Errorf("get sign accept data fail from db when no find worker")}
+		res := RPCSmpcRes{Ret: "Failure", Tip: "", Err: fmt.Errorf("not find worker")}
 		ch <- res
 		return false
 	}
@@ -827,7 +844,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 	acceptreqdata, ok := da.(*AcceptReqAddrData)
 	if !ok || acceptreqdata == nil {
 		common.Error("===============DoReq, get reqaddr sigs data fail =====================", "key ", acceptsig.Key, "from ", from)
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get reqaddr sigs data fail", Err: fmt.Errorf("get reqaddr sigs data fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get reqaddr sigs data fail")}
 		ch <- res
 		return false
 	}

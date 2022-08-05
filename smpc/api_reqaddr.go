@@ -316,7 +316,7 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 				agreeWaitTimeOut := time.NewTicker(agreeWaitTime)
 				if wid < 0 || wid >= len(workers) || workers[wid] == nil {
 					ars := GetAllReplyFromGroup2(w.id,sender)
-					_, err = AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "false", "Failure", "", "workid error", "workid error", ars, wid, "")
+					_, err = AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "false", "Failure", "", "Abnormal value in MPC calculation", "Abnormal value in MPC calculation", ars, wid, "")
 					if err != nil {
 						reply = false
 						timeout <- true
@@ -347,7 +347,7 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 						//
 
 						if !reply {
-							AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "true", "false", "Failure", "", "not all accept keygen", "not all accept keygen", ars, wid, "")
+							AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "true", "false", "Failure", "", "Someone refused to create the public key" , "Someone refused to create the public key", ars, wid, "")
 						} else {
 							AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "true", "Pending", "", "", "", ars, wid, "")
 						}
@@ -359,7 +359,7 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 						common.Info("================== DoReq, agree wait timeout==================", "raw ", raw, "key ", key)
 						ars := GetAllReplyFromGroup2(w.id,sender)
 						//bug: if self not accept and timeout
-						AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "true", "false", "Timeout", "", "approving timeout", "approving timeout", ars, wid, "")
+						AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "true", "false", "Timeout", "", "Approval timeout", "Approval timeout", ars, wid, "")
 						reply = false
 						//
 
@@ -384,9 +384,9 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 			if !reply {
 			    arstmp := GetAllReplyFromGroup2(w.id,sender)
 			    if keygentimeout {
-				AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "true", "false", "Timeout", "", "approving timeout", "approving timeout", arstmp, workid, "")
+				AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "true", "false", "Timeout", "", "Approval timeout", "Approval timeout", arstmp, workid, "")
 			    } else {
-				AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "true", "false", "Failure", "", "not all accept keygen", "not all accept keygen", arstmp, workid, "")
+				AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "true", "false", "Failure", "", "Someone refused to create the public key", "Someone refused to create the public key", arstmp, workid, "")
 			    }
 			    
 			    res := RPCSmpcRes{Ret: strconv.Itoa(workid) + common.Sep + "rpc_req_smpcaddr", Tip: "", Err: fmt.Errorf("approving fail")}
@@ -411,7 +411,11 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 		chret, tip, cherr := GetChannelValue(waitall, rch)
 		if cherr != nil {
 			ars := GetAllReplyFromGroup2(w.id,sender)
-			_, err = AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "", "Failure", "", tip, cherr.Error(), ars, workid, "")
+			errinfo := "Abnormal value in MPC calculation"
+			if cherr.Error() == "keygen timeout" {
+			    errinfo = "Data network transmission failure in MPC calculation"
+			}
+			_, err = AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "", "Failure", "", tip, errinfo, ars, workid, "")
 			status,_,err3 := GetReqAddrStatus(w.sid)
 			common.Debug("=====================DoReq,AcceptReqAddr finish======================","key",w.sid,"status",status,"accepte reqaddr err",err,"status err",err3)
 			if err != nil {

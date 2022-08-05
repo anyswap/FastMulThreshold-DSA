@@ -435,14 +435,14 @@ func GetApproverByReqAddrKey(key string,enodeID string) string {
 // GetReqAddrStatus get the result of the keygen request by key
 func GetReqAddrStatus(key string) (string, string, error) {
 	if key == "" {
-	    return "","",errors.New("param error")
+	    return "","",errors.New("Input data error")
 	}
 
 	exsit, da := GetReqAddrInfoData([]byte(key))
 	if exsit {
 	    ac, ok := da.(*AcceptReqAddrData)
 	    if !ok {
-		    return "", "", fmt.Errorf("get keygen data error from db")
+		    return "", "", fmt.Errorf("Create public key fail,data error,please try again")
 	    }
 
 	    var rep []NodeReply
@@ -459,12 +459,12 @@ func GetReqAddrStatus(key string) (string, string, error) {
 
 	exsit, da = GetPubKeyData([]byte(key))
 	if !exsit || da == nil {
-		return "", "", fmt.Errorf("get keygen data fail from db")
+		return "", "", fmt.Errorf("The MPC calculation record cannot be found")
 	}
 
 	ac, ok := da.(*AcceptReqAddrData)
 	if !ok {
-		return "", "", fmt.Errorf("get keygen data error from db")
+		return "", "", fmt.Errorf("Create public key fail,data error,please try again")
 	}
 
 	var rep []NodeReply
@@ -636,7 +636,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 
 	wk, err := FindWorker(msgprex)
 	if err != nil || wk == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker", Err: err}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 		ch <- res
 		return
 	}
@@ -666,7 +666,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 
 		itertmp := workers[id].edpk.Front()
 		if itertmp == nil {
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get workers[id].edpk fail", Err: GetRetErr(ErrGetGenPubkeyFail)}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrGetGenPubkeyFail)}
 			ch <- res
 			return
 		}
@@ -674,7 +674,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 
 		itertmp = workers[id].edsave.Front()
 		if itertmp == nil {
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get workers[id].edsave fail", Err: GetRetErr(ErrGetGenSaveDataFail)}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrGetGenSaveDataFail)}
 			ch <- res
 			return
 		}
@@ -682,7 +682,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 		sedsave := itertmp.Value.(string)
 		itertmp = workers[id].edsku1.Front()
 		if itertmp == nil {
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get workers[id].edsku1 fail", Err: GetRetErr(ErrGetGenSaveDataFail)}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrGetGenSaveDataFail)}
 			ch <- res
 			return
 		}
@@ -695,7 +695,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 		epubs, err := Encode2(pubs)
 		if err != nil {
 			common.Error("===============smpcGenPubKey,encode fail=================", "err", err, "account", account, "pubkey", pubkeyhex, "nonce", nonce, "key", msgprex)
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:encode PubKeyData fail in req ed pubkey", Err: err}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			ch <- res
 			return
 		}
@@ -703,7 +703,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 		ss, err := Compress([]byte(epubs))
 		if err != nil {
 			common.Error("===============smpcGenPubKey,commpress fail=================", "err", err, "account", account, "pubkey", pubkeyhex, "nonce", nonce, "key", msgprex)
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:compress PubKeyData fail in req ed pubkey", Err: err}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			ch <- res
 			return
 		}
@@ -718,21 +718,21 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 
 		err = PutPubKeyData(sedpk[:], []byte(ss))
 		if err != nil {
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error: put pubkey data fail", Err: err}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			ch <- res
 			return
 		}
 
 		err = PutAccountDataToDb(sedpk[:], []byte(pubkeyhex))
 		if err != nil {
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error: put account data to db fail", Err: err}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			ch <- res
 			return
 		}
 
 		err = putSkU1ToLocalDb(sedpk[:], []byte(sedsku1))
 		if err != nil {
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error: put sku1 data fail", Err: err}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			ch <- res
 			return
 		}
@@ -755,21 +755,21 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 
 			err = PutPubKeyData([]byte(key), []byte(ss))
 			if err != nil {
-				res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error: put pubkey data fail", Err: err}
+				res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 				ch <- res
 				return
 			}
 
 			err = PutAccountDataToDb([]byte(key), []byte(pubkeyhex))
 			if err != nil {
-				res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error: put account data to db fail", Err: err}
+				res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 				ch <- res
 				return
 			}
 
 			err = putSkU1ToLocalDb([]byte(key), []byte(sedsku1))
 			if err != nil {
-				res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error: put sku1 data fail", Err: err}
+				res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 				ch <- res
 				return
 			}
@@ -800,7 +800,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 
 	iter := workers[id].pkx.Front()
 	if iter == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get pkx fail in req ec2 pubkey", Err: GetRetErr(ErrGetGenPubkeyFail)}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrGetGenPubkeyFail)}
 		ch <- res
 		return
 	}
@@ -808,7 +808,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 	pkx, _ := new(big.Int).SetString(spkx, 10)
 	iter = workers[id].pky.Front()
 	if iter == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get pky fail in req ec2 pubkey", Err: GetRetErr(ErrGetGenPubkeyFail)}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrGetGenPubkeyFail)}
 		ch <- res
 		return
 	}
@@ -818,14 +818,14 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 
 	iter = workers[id].save.Front()
 	if iter == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get save data fail in req ec2 pubkey", Err: GetRetErr(ErrGetGenSaveDataFail)}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrGetGenSaveDataFail)}
 		ch <- res
 		return
 	}
 	save := iter.Value.(string)
 	iter = workers[id].sku1.Front()
 	if iter == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get sku1 fail in req ec2 pubkey", Err: GetRetErr(ErrGetGenSaveDataFail)}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrGetGenSaveDataFail)}
 		ch <- res
 		return
 	}
@@ -833,7 +833,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 
 	err = putSkU1ToLocalDb(ys, []byte(sku1))
 	if err != nil {
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:put sku1 to local db fail", Err: GetRetErr(ErrGetGenSaveDataFail)}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrGetGenSaveDataFail)}
 		ch <- res
 		return
 	}
@@ -841,14 +841,14 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 	//bip32
 	iter = workers[id].bip32c.Front()
 	if iter == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get c for bip32 fail in req ec2 pubkey", Err: fmt.Errorf("get c for bip32 fail in req ec2 pubkey")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get c for bip32 fail in req ec2 pubkey")}
 		ch <- res
 		return
 	}
 	bip32c := iter.Value.(string)
 	err = putBip32cToLocalDb(ys, []byte(bip32c))
 	if err != nil {
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:put bip32c to local db fail", Err: GetRetErr(ErrGetGenSaveDataFail)}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrGetGenSaveDataFail)}
 		ch <- res
 		return
 	}
@@ -857,13 +857,13 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 	rk := Keccak256Hash([]byte(strings.ToLower(account + ":" + cointype + ":" + wk.groupid + ":" + nonce + ":" + wk.limitnum + ":" + mode))).Hex()
 
 	pubkeyhex := hex.EncodeToString(ys)
-	common.Info("================ smpc_genpubkey,pubkey generated successfully ===================","pkx",pkx,"pky",pky,"pubkey hex",pubkeyhex)
+	common.Info("================ smpc_genpubkey,pubkey generated successfully ===================","pkx",pkx,"pky",pky,"pubkey hex",pubkeyhex,"key",msgprex)
 
 	pubs := &PubKeyData{Key: msgprex, Account: account, Pub: string(ys), Save: save, Nonce: nonce, GroupID: wk.groupid, LimitNum: wk.limitnum, Mode: mode, KeyGenTime: tt}
 	epubs, err := Encode2(pubs)
 	if err != nil {
 		common.Error("===============smpcGenPubKey,encode fail===================", "err", err, "account", account, "pubkey", pubkeyhex, "nonce", nonce, "key", rk)
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:encode PubKeyData fail in req ec2 pubkey", Err: err}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 		ch <- res
 		return
 	}
@@ -871,7 +871,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 	ss, err := Compress([]byte(epubs))
 	if err != nil {
 		common.Error("===============smpcGenPubKey,compress fail===================", "err", err, "account", account, "pubkey", pubkeyhex, "nonce", nonce, "key", rk)
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:compress PubKeyData fail in req ec2 pubkey", Err: err}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 		ch <- res
 		return
 	}
@@ -887,7 +887,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 	err = PutPubKeyData(ys, []byte(ss))
 	if err != nil {
 		common.Error("================================smpcGenPubKey,put pubkey data to local db fail=========================", "err", err, "key", msgprex)
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error: put pubkey data fail", Err: err}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 		ch <- res
 		return
 	}
@@ -895,7 +895,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 	err = PutAccountDataToDb(ys, []byte(pubkeyhex))
 	if err != nil {
 		common.Error("================================smpcGenPubKey,put account data to local db fail=========================", "err", err, "key", msgprex)
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error: put account data to local db fail", Err: err}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 		ch <- res
 		return
 	}
@@ -920,7 +920,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 		err = PutPubKeyData([]byte(key), []byte(ss))
 		if err != nil {
 			common.Error("================================smpc_genPubKey,put pubkey data to localdb fail=========================", "err", err, "key", msgprex)
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error: put pubkey data fail", Err: err}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			ch <- res
 			return
 		}
@@ -928,7 +928,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 		err = PutAccountDataToDb([]byte(key), []byte(pubkeyhex))
 		if err != nil {
 			common.Error("================================smpcGenPubKey,put account data to localdb fail=========================", "err", err, "key", msgprex)
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error: put account data to local db fail", Err: err}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			ch <- res
 			return
 		}
@@ -936,7 +936,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 		err = putSkU1ToLocalDb([]byte(key), []byte(sku1))
 		if err != nil {
 			common.Error("================================smpcGenPubKey,put sku1 data to local db fail,=========================", "err", err, "key", msgprex)
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error: put sku1 data fail", Err: err}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			ch <- res
 			return
 		}
@@ -944,7 +944,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 		err = putBip32cToLocalDb([]byte(key), []byte(bip32c))
 		if err != nil {
 			common.Error("================================smpcGenPubKey,put bip32c to local db fail,=========================", "err", err, "key", msgprex)
-			res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error: put bip32c fail", Err: err}
+			res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			ch <- res
 			return
 		}
@@ -1005,7 +1005,6 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 		}
 
 		exsit, da := GetReqAddrInfoData([]byte(msgprex))
-		common.Debug("==========KeyGenerateDECDSA, get reqaddr info from db==================","key",msgprex,"exsit",exsit)
 		if exsit {
 			ac, ok := da.(*AcceptReqAddrData)
 			if ok && ac != nil {
@@ -1017,12 +1016,11 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 	go ProcessInboundMessages(msgprex, commStopChan, errChan,&keyGenWg, ch)
 	err := processKeyGen(msgprex, errChan, outCh, endCh)
 	if err != nil {
-		log.Error("==========KeyGenerateDECDSA,process keygen error============","key",msgprex,"err",err)
-		close(commStopChan)
 		if len(ch) == 0 {
 		    res := RPCSmpcRes{Ret: "", Err: err}
 		    ch <- res
 		}
+		close(commStopChan)
 		log.Error("==========KeyGenerateDECDSA,process keygen error,close commStopChan============","key",msgprex,"err",err)
 		return false
 	}
@@ -1041,7 +1039,7 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 // cointype = keytype    // ec || ed25519
 func KeyGenerateDEDDSA(msgprex string, ch chan interface{}, id int, cointype string) bool {
 	if id < 0 || id >= RPCMaxWorker || id >= len(workers) {
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:no find worker id", Err: GetRetErr(ErrGetWorkerIDError)}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrGetWorkerIDError)}
 		ch <- res
 		return false
 	}
@@ -1049,14 +1047,14 @@ func KeyGenerateDEDDSA(msgprex string, ch chan interface{}, id int, cointype str
 	w := workers[id]
 	GroupID := w.groupid
 	if GroupID == "" {
-		res := RPCSmpcRes{Ret: "", Tip: "get group id fail", Err: fmt.Errorf("get group id fail")}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get group id fail")}
 		ch <- res
 		return false
 	}
 
 	ns, _ := GetGroup(GroupID)
 	if ns != w.NodeCnt {
-		res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:the group is not ready", Err: GetRetErr(ErrGroupNotReady)}
+		res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrGroupNotReady)}
 		ch <- res
 		return false
 	}
@@ -1081,7 +1079,6 @@ func KeyGenerateDEDDSA(msgprex string, ch chan interface{}, id int, cointype str
 		}
 
 		exsit, da := GetReqAddrInfoData([]byte(msgprex))
-		common.Debug("=========================KeyGenerateDEDDSA,get reqaddr info from db===========================","key",msgprex,"exsit",exsit)
 		if exsit {
 			ac, ok := da.(*AcceptReqAddrData)
 			if ok && ac != nil {

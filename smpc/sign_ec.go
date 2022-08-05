@@ -585,8 +585,8 @@ func processSign(msgprex string, msgtoenode map[string]string, errChan chan stru
 			return nil, errors.New("error channel closed fail to start local smpc node")
 
 		case <-time.After(time.Second * time.Duration(EcSignTimeout)):
-			log.Error("========================== processSign,sign timeout=======================","key",msgprex)
-			return nil, errors.New("sign timeout")
+			log.Error("========================== processSign,signing timeout=======================","key",msgprex)
+			return nil, errors.New("signing timeout")
 		case msg := <-outCh:
 			err := SignProcessOutCh(msgprex, msgtoenode, msg, "")
 			if err != nil {
@@ -620,7 +620,7 @@ func processSignFinalize(msgprex string, msgtoenode map[string]string, errChan c
 
 		case <-time.After(time.Second * time.Duration(EcSignTimeout)):
 			log.Error("========================== processSignFinalize,sign timeout =====================","key", msgprex)
-			return nil, errors.New("sign timeout")
+			return nil, errors.New("signing timeout")
 		case msg := <-outCh:
 			err := SignProcessOutCh(msgprex, msgtoenode, msg, gid)
 			if err != nil {
