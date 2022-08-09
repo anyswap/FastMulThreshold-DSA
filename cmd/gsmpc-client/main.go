@@ -339,9 +339,12 @@ func enodeSig() {
 	s := strings.Split(enodeJSON.Enode, "@")
 	enodePubkey := strings.Split(s[0], "//")
 	fmt.Printf("enodePubkey = %s\n", enodePubkey[1])
-	sig, err := crypto.Sign(crypto.Keccak256([]byte(enodePubkey[1])), keyWrapper.PrivateKey)
+	
+	hash := GetMsgSigHash([]byte(enodePubkey[1]))
+	//sig, err := crypto.Sign(crypto.Keccak256([]byte(enodePubkey[1])), keyWrapper.PrivateKey)
+	sig, err := crypto.Sign(hash, keyWrapper.PrivateKey)
 	if err != nil {
-		panic(err)
+	    panic(err)
 	}
 	fmt.Printf("\nenodeSig self = \n%s\n\n", enodeJSON.Enode+common.ToHex(sig))
 }

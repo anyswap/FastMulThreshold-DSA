@@ -1178,21 +1178,25 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 					return "", fmt.Errorf("group sigs error")
 				}
 
-				pub, err := secp256k1.RecoverPubkey(crypto.Keccak256([]byte(node2)), sigbit)
+				hash := GetMsgSigHash([]byte(node2))
+				hashtmp := hex.EncodeToString(hash)
+				//pub, err := secp256k1.RecoverPubkey(crypto.Keccak256([]byte(node2)), sigbit)
+				pub, err := secp256k1.RecoverPubkey(hash, sigbit)
 				if err != nil {
-					log.Error("============================GetGroupSigsDataByRaw,recover pubkey err======================","err",err)
+					log.Error("============================GetGroupSigsDataByRaw,recover pubkey err======================","err",err,"hash",string(hash),"hashtmp",hashtmp,"rsv",string(sig[:]),"enode",node2)
 					return "", err
 				}
 
-				h := coins.NewCryptocoinHandler("FSN")
+				h := coins.NewCryptocoinHandler("ETH")
 				if h != nil {
 					pubkey := hex.EncodeToString(pub)
 					from, err := h.PublicKeyToAddress(pubkey)
 					if err != nil {
-						log.Error("============================GetGroupSigsDataByRaw,pubkey to addr fail======================","err",err)
+						log.Error("============================GetGroupSigsDataByRaw,pubkey to addr fail======================","err",err,"hash",string(hash),"hashtmp",hashtmp,"rsv",string(sig[:]),"enode",node2)
 						return "", err
 					}
 
+					log.Info("============================GetGroupSigsDataByRaw,pubkey to addr ======================","hash",string(hash),"hashtmp",hashtmp,"rsv",string(sig[:]),"enode",node2,"from",from)
 					//5:eid1:acc1:eid2:acc2:eid3:acc3:eid4:acc4:eid5:acc5
 					sstmp += common.Sep
 					sstmp += node2
