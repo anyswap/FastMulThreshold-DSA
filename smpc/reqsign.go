@@ -589,242 +589,382 @@ func Sign(raw string) (string, string, error) {
 	} else {
 		rsd := &RPCSignData{Raw: raw, PubKey: sig.PubKey, InputCode: sig.InputCode, GroupID: sig.GroupID, MsgHash: sig.MsgHash, Key: key}
 		SignChan <- rsd
+		//go HandleRPCSign2(rsd)
 	}
+	
 	return key, "", nil
+}
+
+func DoPreSign(pubkey string,gid string,hash string) string {
+    if pubkey == "" || gid == "" || hash == "" {
+	return ""
+    }
+    
+    pub := Keccak256Hash([]byte(strings.ToLower(pubkey + ":" + gid))).Hex()
+    PutPreSigal(pub, true)
+    err := SavePrekeyToDb(pubkey, "", gid)
+    if err != nil {
+	    common.Error("=========================DoPreSign,save (pubkey,gid) to db fail=======================", "pubkey", pubkey, "gid", gid,"hash",hash, "err", err)
+	    return ""
+    }
+
+    tt := fmt.Sprintf("%v", time.Now().UnixNano()/1e6)
+    nonce := Keccak256Hash([]byte(strings.ToLower(pub + tt + hash))).Hex()
+    ps := &PreSign{Pub: pubkey, Gid: gid, Nonce: nonce,Index:-1}
+
+    m := make(map[string]string)
+    psjson, err := ps.MarshalJSON()
+    if err == nil {
+	    m["PreSign"] = string(psjson)
+    }
+    m["Type"] = "PreSign"
+    val, err := json.Marshal(m)
+    if err != nil {
+	    return ""
+    }
+
+    SendMsgToSmpcGroup(string(val), gid)
+
+    rch := make(chan interface{}, 1)
+    SetUpMsgList3(string(val), curEnode, rch)
+
+    reply := false
+    timeout := make(chan bool, 1)
+    go func() {
+	    syncWaitTime := 200 * time.Second
+	    syncWaitTimeOut := time.NewTicker(syncWaitTime)
+
+	    for {
+		    select {
+		    case v := <-rch:
+			    ret, ok := v.(RPCSmpcRes)
+			    if ok {
+				    if ret.Err != nil {
+					reply = false 
+					timeout <- false
+				    } else {
+					reply = true 
+					timeout <- false
+				    }
+			    } else {
+				reply = false
+				timeout <- false
+			    }
+
+			    return
+		    case <-syncWaitTimeOut.C:
+			    reply = false
+			    timeout <- true
+			    return
+		    }
+	    }
+    }()
+    <-timeout
+
+    if !reply {
+	    common.Error("=====================DoPreSign, failed to pre-generate sign data.========================", "pubkey", pubkey, "sub-groupid", gid, "hash", hash,"index",ps.Index)
+	    return ""
+    }
+
+    common.Info("================================DoPreSign,success to pre-generation of sign data==================================", "pubkey", pubkey, "sub-groupid", gid, "hash", hash,"index",ps.Index,"data key",nonce)
+    return nonce
+}
+
+func HandleRPCSign2(rsd *RPCSignData) {
+    if rsd == nil {
+	return
+    }
+
+    smpcpks, err := hex.DecodeString(rsd.PubKey)
+    if err != nil {
+	common.Error("[SIGN] decode pubkey string error", "pubkey", rsd.PubKey, "key", rsd.Key,"err",err)
+	return
+    }
+
+    exsit, da := GetPubKeyData(smpcpks[:])
+    common.Debug("=========================HandleRpcSign2======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit)
+    if !exsit {
+	return
+    }
+
+    _, ok := da.(*PubKeyData)
+    common.Debug("=========================HandleRpcSign2======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok)
+    if !ok {
+	return
+    }
+
+    var datakey string
+    var pick *PreSignData
+    bret := false
+    pickdata := make([]*PickHashData, 0)
+    pickhash := make([]*PickHashKey, 0)
+    for _, vv := range rsd.MsgHash {
+	go func(hashtmp string) {
+	    for {
+		if bret {
+		    common.Debug("=========================HandleRpcSign2,pick pre-sign data fail======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID)
+		    return
+		}
+
+		datakey = DoPreSign(rsd.PubKey,rsd.GroupID,hashtmp)
+		if datakey == "" {
+		    time.Sleep(time.Duration(1) * time.Second)
+		    continue
+		}
+
+		common.Debug("=========================HandleRpcSign2,pick pre-sign data succes======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID,"data key",datakey)
+		return
+	    }
+	    
+	}(vv)
+
+	timeout := make(chan bool, 1)
+	rch := make(chan bool, 1)
+	go func() {
+	    for {
+		if bret {
+		    common.Debug("=========================HandleRpcSign2,pick pre-sign data fail======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID)
+		    return
+		}
+
+		pick = GetPreSignData(rsd.PubKey,rsd.InputCode,rsd.GroupID,datakey)
+		if pick != nil {
+		    common.Debug("=========================HandleRpcSign2,pick pre-sign data successfully======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID,"pick key",pick.Key,"data key",datakey)
+
+		    rch <-true
+		    bret = false
+		    return
+		}
+		
+		time.Sleep(time.Duration(3) * time.Second)
+	    }
+	}()
+
+	go func() {
+		syncWaitTime := 300 * time.Second
+		syncWaitTimeOut := time.NewTicker(syncWaitTime)
+
+		for {
+			select {
+			case <-rch:
+				//common.Debug("=========================HandleRpcSign,pick pre-sign data finish======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID,"pick key",pick.Key)
+				bret = false
+				timeout <-false
+				return
+			case <-syncWaitTimeOut.C:
+				common.Debug("=========================HandleRpcSign2,pick pre-sign data timeout======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID)
+				bret = true
+				timeout <- true
+				return
+			}
+		}
+	}()
+	<-timeout
+
+	if bret {
+	    return
+	}
+
+	err = DeletePreSignData(rsd.PubKey,rsd.InputCode,rsd.GroupID,pick.Key)
+	if err != nil {
+	    log.Error("============================HandleRpcSign2,delete pre-sign data fail============================","err",err,"pubkey",rsd.PubKey,"gid",rsd.GroupID,"data key",pick.Key)
+	    return
+	}
+	
+	common.Info("========================HandleRpcSign2,choose pickkey==================", "txhash", vv, "pickkey", pick.Key, "key", rsd.Key)
+	ph := &PickHashKey{Hash: vv, PickKey: pick.Key}
+	pickhash = append(pickhash, ph)
+	phd := &PickHashData{Hash: vv, Pre: pick}
+	pickdata = append(pickdata, phd)
+
+	datakey = ""
+	pick = nil
+    }
+
+    if bret {
+	return
+    }
+
+    m := make(map[string]string)
+    send, err := CompressSignBrocastData(rsd.Raw, pickhash)
+    if err == nil {
+	    m["ComSignBrocastData"] = send
+    }
+    m["Type"] = "ComSignBrocastData"
+    val, err := json.Marshal(m)
+    if err != nil {
+	    common.Error("=========================HandleRpcSign2======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok, "bret", bret, "err", err)
+	    return
+    }
+
+    SendMsgToSmpcGroup(string(val), rsd.GroupID)
+
+    m2 := make(map[string]string)
+    selfsend, err := CompressSignData(rsd.Raw, pickdata)
+    if err == nil {
+	    m2["ComSignData"] = selfsend
+    }
+    m2["Type"] = "ComSignData"
+    val2, err := json.Marshal(m2)
+    if err != nil {
+	    common.Error("=========================HandleRpcSign2,compress hash data.======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok, "bret", bret, "err", err)
+	    return
+    }
+
+    SetUpMsgList(string(val2), curEnode)
 }
 
 // HandleRPCSign handle sign request,read sign command from the channel and do it!
 func HandleRPCSign() {
-	for {
-		rsd := <-SignChan
+    for {
+	    rsd := <-SignChan
 
-		smpcpks, err := hex.DecodeString(rsd.PubKey)
-		if err != nil {
-		    common.Error("[SIGN] decode pubkey string error", "pubkey", rsd.PubKey, "key", rsd.Key,"err",err)
-		    continue
-		}
+	    smpcpks, err := hex.DecodeString(rsd.PubKey)
+	    if err != nil {
+		common.Error("[SIGN] decode pubkey string error", "pubkey", rsd.PubKey, "key", rsd.Key,"err",err)
+		continue
+	    }
 
-		exsit, da := GetPubKeyData(smpcpks[:])
-		common.Debug("=========================HandleRpcSign======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit)
-		if !exsit {
-		    continue
-		}
-		
-		_, ok := da.(*PubKeyData)
-		common.Debug("=========================HandleRpcSign======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok)
-		if !ok {
-		    continue
-		}
-		
-		var pub string
-		if rsd.InputCode != "" {
-			pub = Keccak256Hash([]byte(strings.ToLower(rsd.PubKey + ":" + rsd.InputCode + ":" + rsd.GroupID))).Hex()
-		} else {
-			pub = Keccak256Hash([]byte(strings.ToLower(rsd.PubKey + ":" + rsd.GroupID))).Hex()
-		}
+	    exsit, da := GetPubKeyData(smpcpks[:])
+	    common.Debug("=========================HandleRpcSign======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit)
+	    if !exsit {
+		continue
+	    }
+	    
+	    _, ok := da.(*PubKeyData)
+	    common.Debug("=========================HandleRpcSign======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok)
+	    if !ok {
+		continue
+	    }
+	    
+	    var pub string
+	    if rsd.InputCode != "" {
+		    pub = Keccak256Hash([]byte(strings.ToLower(rsd.PubKey + ":" + rsd.InputCode + ":" + rsd.GroupID))).Hex()
+	    } else {
+		    pub = Keccak256Hash([]byte(strings.ToLower(rsd.PubKey + ":" + rsd.GroupID))).Hex()
+	    }
 
-		bret := false
-		pickdata := make([]*PickHashData, 0)
-		pickhash := make([]*PickHashKey, 0)
-		//var wg sync.WaitGroup
-		for kk, vv := range rsd.MsgHash {
-			//wg.Add(1)
-			//go func(hash string) {
-			    //wg.Done()
-			    pick := PickPreSignData(rsd.PubKey, rsd.InputCode, rsd.GroupID)
-			    if pick == nil && kk == 0 {
-				//common.Debug("=========================HandleRpcSign,pick pre-sign data fail and excute pre-sign cmd======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID)
-				subgid := make([]string,0)
-				subgid = append(subgid,rsd.GroupID)
-				pre := &TxDataPreSignData{TxType: "PRESIGNDATA", PubKey: rsd.PubKey, SubGid: subgid}
-				ExcutePreSignData(pre)
-			    }
-				
-			    timeout := make(chan bool, 1)
-			    rch := make(chan bool, 1)
-			    go func() {
-				for {
-				    if bret {
-					common.Debug("=========================HandleRpcSign,pick pre-sign data fail======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID)
-					return
-				    }
+	    bret := false
+	    pickdata := make([]*PickHashData, 0)
+	    pickhash := make([]*PickHashKey, 0)
+	    for _, vv := range rsd.MsgHash {
+			pick := PickPreSignData(rsd.PubKey, rsd.InputCode, rsd.GroupID)
+			if pick == nil {
+			    go HandleRPCSign2(rsd)
+			    bret = true
+			    break
+			}
+			    
+			common.Info("========================HandleRpcSign,choose pickkey==================", "txhash", vv, "pickkey", pick.Key, "key", rsd.Key)
 
-				    if pick == nil {
-					pick = PickPreSignData(rsd.PubKey, rsd.InputCode, rsd.GroupID)
-				    }
-				    if pick != nil {
-					common.Debug("=========================HandleRpcSign,pick pre-sign data successfully======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID,"pick key",pick.Key)
-					rch <-true
-					bret = false
-					return
-				    }
-				    
-				    time.Sleep(time.Duration(3) * time.Second)
+			ph := &PickHashKey{Hash: vv, PickKey: pick.Key}
+			pickhash = append(pickhash, ph)
+			phd := &PickHashData{Hash: vv, Pre: pick}
+			pickdata = append(pickdata, phd)
+
+			//check pre sigal
+			if rsd.InputCode != "" {
+				if GetTotalCount(rsd.PubKey, rsd.InputCode, rsd.GroupID) >= (PreBip32DataCount/2) && GetTotalCount(rsd.PubKey, rsd.InputCode, rsd.GroupID) <= PreBip32DataCount {
+					PutPreSigal(pub, false)
+				} else {
+					PutPreSigal(pub, true)
 				}
-			    }()
+			} else {
+				if GetTotalCount(rsd.PubKey, "", rsd.GroupID) >= (PrePubDataCount*3/4) && GetTotalCount(rsd.PubKey, "", rsd.GroupID) <= PrePubDataCount {
+					PutPreSigal(pub, false)
+				} else {
+					PutPreSigal(pub, true)
+				}
+			}
+	    }
 
-			    go func() {
-				    syncWaitTime := 630 * time.Second
-				    syncWaitTimeOut := time.NewTicker(syncWaitTime)
+	    if bret {
+		    continue
+	    }
 
-				    for {
-					    select {
-					    case <-rch:
-						    //common.Debug("=========================HandleRpcSign,pick pre-sign data finish======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID,"pick key",pick.Key)
-						    bret = false
-						    timeout <-false
-						    return
-					    case <-syncWaitTimeOut.C:
-						    common.Debug("=========================HandleRpcSign,pick pre-sign data timeout======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID)
-						    bret = true
-						    timeout <- true
-						    return
-					    }
-				    }
-			    }()
-			    <-timeout
+	    m := make(map[string]string)
+	    send, err := CompressSignBrocastData(rsd.Raw, pickhash)
+	    if err == nil {
+		    m["ComSignBrocastData"] = send
+	    }
+	    m["Type"] = "ComSignBrocastData"
+	    val, err := json.Marshal(m)
+	    if err != nil {
+		    common.Error("=========================HandleRpcSign======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok, "bret", bret, "err", err)
+		    continue
+	    }
 
-			    if bret {
-				break
-			    }
+	    SendMsgToSmpcGroup(string(val), rsd.GroupID)
 
-			    common.Info("========================HandleRpcSign,choose pickkey==================", "txhash", vv, "pickkey", pick.Key, "key", rsd.Key)
-
-			    ph := &PickHashKey{Hash: vv, PickKey: pick.Key}
-			    pickhash = append(pickhash, ph)
-			    phd := &PickHashData{Hash: vv, Pre: pick}
-			    pickdata = append(pickdata, phd)
-
-			    //check pre sigal
-			    if rsd.InputCode != "" {
-				    if GetTotalCount(rsd.PubKey, rsd.InputCode, rsd.GroupID) >= (PreBip32DataCount/2) && GetTotalCount(rsd.PubKey, rsd.InputCode, rsd.GroupID) <= PreBip32DataCount {
-					    PutPreSigal(pub, false)
-				    } else {
-					    PutPreSigal(pub, true)
-				    }
-			    } else {
-				    if GetTotalCount(rsd.PubKey, "", rsd.GroupID) >= (PrePubDataCount*3/4) && GetTotalCount(rsd.PubKey, "", rsd.GroupID) <= PrePubDataCount {
-					    PutPreSigal(pub, false)
-				    } else {
-					    PutPreSigal(pub, true)
-				    }
-			    }
-			    //
-			//}(vv)
-		}
-		//wg.Wait()
-
-		if bret {
-			continue
-		}
-
-		m := make(map[string]string)
-		send, err := CompressSignBrocastData(rsd.Raw, pickhash)
-		if err == nil {
-			m["ComSignBrocastData"] = send
-		}
-		m["Type"] = "ComSignBrocastData"
-		val, err := json.Marshal(m)
-		if err != nil {
-			common.Error("=========================HandleRpcSign======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok, "bret", bret, "err", err)
-			continue
-		}
-
-		SendMsgToSmpcGroup(string(val), rsd.GroupID)
-
-		m2 := make(map[string]string)
-		selfsend, err := CompressSignData(rsd.Raw, pickdata)
-		if err == nil {
-			m2["ComSignData"] = selfsend
-		}
-		m2["Type"] = "ComSignData"
-		val2, err := json.Marshal(m2)
-		if err != nil {
-			common.Error("=========================HandleRpcSign,compress hash data.======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok, "bret", bret, "err", err)
-			continue
-		}
-		SetUpMsgList(string(val2), curEnode)
-	}
+	    m2 := make(map[string]string)
+	    selfsend, err := CompressSignData(rsd.Raw, pickdata)
+	    if err == nil {
+		    m2["ComSignData"] = selfsend
+	    }
+	    m2["Type"] = "ComSignData"
+	    val2, err := json.Marshal(m2)
+	    if err != nil {
+		    common.Error("=========================HandleRpcSign,compress hash data.======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok, "bret", bret, "err", err)
+		    continue
+	    }
+	    SetUpMsgList(string(val2), curEnode)
+    }
 }
 
 //-----------------------------------------------------------------------------------------------
 
 // getSignHash To get the key of sign command with the hash value,we must transfer hash array to a string
 func getSignHash(hash []string, keytype string) string {
-    	if hash == nil || keytype  == "" {
-	    return ""
-	}
+    if hash == nil || keytype  == "" {
+	return ""
+    }
 
-	var ids smpclib.SortableIDSSlice
-	for _, v := range hash {
-		uid := DoubleHash(v, keytype)
-		ids = append(ids, uid)
-	}
-	sort.Sort(ids)
+    var ids smpclib.SortableIDSSlice
+    for _, v := range hash {
+	    uid := DoubleHash(v, keytype)
+	    ids = append(ids, uid)
+    }
+    sort.Sort(ids)
 
-	ret := ""
-	for _, v := range ids {
-		ret += fmt.Sprintf("%v", v)
-		ret += ":"
-	}
+    ret := ""
+    for _, v := range ids {
+	    ret += fmt.Sprintf("%v", v)
+	    ret += ":"
+    }
 
-	ret += "NULL"
-	return ret
+    ret += "NULL"
+    return ret
 }
 
 //---------------------------------------------------------------------------------------------------
 
 // SignStatus sign result
 type SignStatus struct {
-	KeyID    string
-	From string
-	GroupID string
-	ThresHold    string
-	MsgHash       []string
-	MsgContext       []string
-	Status    string
-	Rsv       []string
-	Tip       string
-	Error     string
-	AllReply  []NodeReply
-	TimeStamp string
+    KeyID    string
+    From string
+    GroupID string
+    ThresHold    string
+    MsgHash       []string
+    MsgContext       []string
+    Status    string
+    Rsv       []string
+    Tip       string
+    Error     string
+    AllReply  []NodeReply
+    TimeStamp string
 }
 
 // GetSignStatus get the result of the sign request by key
 func GetSignStatus(key string) (string, string, error) {
-    	if key  == "" {
-	    return "","",errors.New("Input data error")
-	}
+    if key  == "" {
+	return "","",errors.New("Input data error")
+    }
 
-	exsit, da := GetSignInfoData([]byte(key))
-	if exsit {
-	    ac, ok := da.(*AcceptSignData)
-	    if !ok {
-		return "", "", fmt.Errorf("Signing failed,data error,please try again")
-	    }
-
-	    var rep []NodeReply
-	    for _,v := range ac.AllReply {
-		reqaddrkey := GetReqAddrKeyByOtherKey(key,RPCSIGN)
-		acc := GetApproverByReqAddrKey(reqaddrkey,v.Enode)
-		nr := NodeReply{Enode: v.Enode, Approver:acc,Status: v.Status, TimeStamp: v.TimeStamp, Initiator: v.Initiator}
-		rep = append(rep,nr)
-	    }
-
-	    rsvs := strings.Split(ac.Rsv, ":")
-	    los := &SignStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,ThresHold:ac.LimitNum,MsgHash:ac.MsgHash,MsgContext:ac.MsgContext,Status: ac.Status, Rsv: rsvs[:len(rsvs)-1], Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp}
-	    ret, _ := json.Marshal(los)
-	    return string(ret), "", nil
-	}
-
-	exsit, da = GetPubKeyData([]byte(key))
-	if !exsit || da == nil {
-		return "", "", fmt.Errorf("The MPC calculation record cannot be found")
-	}
-
+    exsit, da := GetSignInfoData([]byte(key))
+    if exsit {
 	ac, ok := da.(*AcceptSignData)
 	if !ok {
-		return "", "", fmt.Errorf("Signing failed,data error,please try again")
+	    return "", "", fmt.Errorf("Signing failed,data error,please try again")
 	}
 
 	var rep []NodeReply
@@ -839,135 +979,159 @@ func GetSignStatus(key string) (string, string, error) {
 	los := &SignStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,ThresHold:ac.LimitNum,MsgHash:ac.MsgHash,MsgContext:ac.MsgContext,Status: ac.Status, Rsv: rsvs[:len(rsvs)-1], Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp}
 	ret, _ := json.Marshal(los)
 	return string(ret), "", nil
+    }
+
+    exsit, da = GetPubKeyData([]byte(key))
+    if !exsit || da == nil {
+	    return "", "", fmt.Errorf("The MPC calculation record cannot be found")
+    }
+
+    ac, ok := da.(*AcceptSignData)
+    if !ok {
+	    return "", "", fmt.Errorf("Signing failed,data error,please try again")
+    }
+
+    var rep []NodeReply
+    for _,v := range ac.AllReply {
+	reqaddrkey := GetReqAddrKeyByOtherKey(key,RPCSIGN)
+	acc := GetApproverByReqAddrKey(reqaddrkey,v.Enode)
+	nr := NodeReply{Enode: v.Enode, Approver:acc,Status: v.Status, TimeStamp: v.TimeStamp, Initiator: v.Initiator}
+	rep = append(rep,nr)
+    }
+
+    rsvs := strings.Split(ac.Rsv, ":")
+    los := &SignStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,ThresHold:ac.LimitNum,MsgHash:ac.MsgHash,MsgContext:ac.MsgContext,Status: ac.Status, Rsv: rsvs[:len(rsvs)-1], Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp}
+    ret, _ := json.Marshal(los)
+    return string(ret), "", nil
 }
 
 //--------------------------------------------------------------------------------------------------
 
 // SignCurNodeInfo the info of the current node's approve list
 type SignCurNodeInfo struct {
-    	Raw	string
-	Key        string
-	Account    string
-	PubKey     string
-	MsgHash    []string
-	MsgContext []string
-	KeyType    string
-	GroupID    string
-	Nonce      string
-	ThresHold  string
-	Mode       string
-	TimeStamp  string
+    Raw	string
+    Key        string
+    Account    string
+    PubKey     string
+    MsgHash    []string
+    MsgContext []string
+    KeyType    string
+    GroupID    string
+    Nonce      string
+    ThresHold  string
+    Mode       string
+    TimeStamp  string
 }
 
 // SignCurNodeInfoSort sort the info that get from current node's approve list
 type SignCurNodeInfoSort struct {
-	Info []*SignCurNodeInfo
+    Info []*SignCurNodeInfo
 }
 
 // Len get the count of arrary elements
 func (s *SignCurNodeInfoSort) Len() int {
-	return len(s.Info)
+    return len(s.Info)
 }
 
 // Less weather r.Info[i] < r.Info[j]
 func (s *SignCurNodeInfoSort) Less(i, j int) bool {
-	itime, _ := new(big.Int).SetString(s.Info[i].TimeStamp, 10)
-	jtime, _ := new(big.Int).SetString(s.Info[j].TimeStamp, 10)
-	return itime.Cmp(jtime) >= 0
+    itime, _ := new(big.Int).SetString(s.Info[i].TimeStamp, 10)
+    jtime, _ := new(big.Int).SetString(s.Info[j].TimeStamp, 10)
+    return itime.Cmp(jtime) >= 0
 }
 
 // Swap swap value of r.Info[i] and r.Info[j]
 func (s *SignCurNodeInfoSort) Swap(i, j int) {
-	s.Info[i], s.Info[j] = s.Info[j], s.Info[i]
+    s.Info[i], s.Info[j] = s.Info[j], s.Info[i]
 }
 
 // GetCurNodeSignInfo  Get current node's sign command approval list 
 func GetCurNodeSignInfo(geteracc string) ([]*SignCurNodeInfo, string, error) {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Errorf("GetCurNodeSignInfo Runtime error: %v\n%v", r, string(debug.Stack()))
-			return
-		}
-	}()
+    defer func() {
+	    if r := recover(); r != nil {
+		    fmt.Errorf("GetCurNodeSignInfo Runtime error: %v\n%v", r, string(debug.Stack()))
+		    return
+	    }
+    }()
 
-    	if geteracc  == "" {
-	    return nil,"",errors.New("param error")
-	}
+    if geteracc  == "" {
+	return nil,"",errors.New("param error")
+    }
 
-	var ret []*SignCurNodeInfo
-	data := make(chan *SignCurNodeInfo, 1000)
+    var ret []*SignCurNodeInfo
+    data := make(chan *SignCurNodeInfo, 1000)
 
-	var wg sync.WaitGroup
-	iter := signinfodb.NewIterator()
-	for iter.Next() {
-		key2 := []byte(string(iter.Key())) //must be deep copy, Otherwise, an error will be reported: "panic: JSON decoder out of sync - data changing underfoot?"
-		exsit, val := GetSignInfoData(key2)
-		if !exsit || val == nil {
-			continue
-		}
+    var wg sync.WaitGroup
+    iter := signinfodb.NewIterator()
+    for iter.Next() {
+	    key2 := []byte(string(iter.Key())) //must be deep copy, Otherwise, an error will be reported: "panic: JSON decoder out of sync - data changing underfoot?"
+	    exsit, val := GetSignInfoData(key2)
+	    if !exsit || val == nil {
+		    continue
+	    }
 
-		wg.Add(1)
-		go func(key string, value interface{}, ch chan *SignCurNodeInfo) {
-			defer func() {
-				if r := recover(); r != nil {
-					fmt.Errorf("GetCurNodeSignInfo go Runtime error: %v\n%v", r, string(debug.Stack()))
-				}
-				wg.Done()
-			}()
+	    wg.Add(1)
+	    go func(key string, value interface{}, ch chan *SignCurNodeInfo) {
+		    defer func() {
+			    if r := recover(); r != nil {
+				    fmt.Errorf("GetCurNodeSignInfo go Runtime error: %v\n%v", r, string(debug.Stack()))
+			    }
+			    wg.Done()
+		    }()
 
-			if value == nil || key == "" {
-				return
-			}
+		    if value == nil || key == "" {
+			    return
+		    }
 
-			vv, ok := value.(*AcceptSignData)
-			if vv == nil || !ok {
-				return
-			}
+		    vv, ok := value.(*AcceptSignData)
+		    if vv == nil || !ok {
+			    return
+		    }
 
-			if vv.Deal == "true" || vv.Status == "Success" {
-				return
-			}
+		    if vv.Deal == "true" || vv.Status == "Success" {
+			    return
+		    }
 
-			if vv.Status != "Pending" {
-				return
-			}
+		    if vv.Status != "Pending" {
+			    return
+		    }
 
-			if !CheckAccept(vv.PubKey, vv.Mode, geteracc) {
-				return
-			}
+		    if !CheckAccept(vv.PubKey, vv.Mode, geteracc) {
+			    return
+		    }
 
-			//los := &SignCurNodeInfo{Key: key, Account: vv.Account, PubKey: vv.PubKey, MsgHash: vv.MsgHash, MsgContext: vv.MsgContext, KeyType: vv.Keytype, GroupID: vv.GroupID, Nonce: vv.Nonce, ThresHold: vv.LimitNum, Mode: vv.Mode, TimeStamp: vv.TimeStamp}
-			los := &SignCurNodeInfo{Raw:vv.Raw,Key: key, Account: vv.Account, PubKey: vv.PubKey, MsgHash: vv.MsgHash, MsgContext: vv.MsgContext, KeyType: vv.Keytype, GroupID: vv.GroupID, Nonce: vv.Nonce, ThresHold: vv.LimitNum, Mode: vv.Mode, TimeStamp: vv.TimeStamp}
-			if los == nil {
-				common.Error("=========================GetCurNodeSignInfo,current info is nil========================", "key", key)
-				return
-			}
+		    //los := &SignCurNodeInfo{Key: key, Account: vv.Account, PubKey: vv.PubKey, MsgHash: vv.MsgHash, MsgContext: vv.MsgContext, KeyType: vv.Keytype, GroupID: vv.GroupID, Nonce: vv.Nonce, ThresHold: vv.LimitNum, Mode: vv.Mode, TimeStamp: vv.TimeStamp}
+		    los := &SignCurNodeInfo{Raw:vv.Raw,Key: key, Account: vv.Account, PubKey: vv.PubKey, MsgHash: vv.MsgHash, MsgContext: vv.MsgContext, KeyType: vv.Keytype, GroupID: vv.GroupID, Nonce: vv.Nonce, ThresHold: vv.LimitNum, Mode: vv.Mode, TimeStamp: vv.TimeStamp}
+		    if los == nil {
+			    common.Error("=========================GetCurNodeSignInfo,current info is nil========================", "key", key)
+			    return
+		    }
 
-			ch <- los
-		}(string(key2), val, data)
-	}
-	iter.Release()
-	wg.Wait()
+		    ch <- los
+	    }(string(key2), val, data)
+    }
+    iter.Release()
+    wg.Wait()
 
-	l := len(data)
-	for i := 0; i < l; i++ {
-		info := <-data
-		ret = append(ret, info)
-	}
+    l := len(data)
+    for i := 0; i < l; i++ {
+	    info := <-data
+	    ret = append(ret, info)
+    }
 
-	signinfosort := SignCurNodeInfoSort{Info: ret}
-	sort.Sort(&signinfosort)
+    signinfosort := SignCurNodeInfoSort{Info: ret}
+    sort.Sort(&signinfosort)
 
-	var tmp []*SignCurNodeInfo
-	for i := 0; i < len(signinfosort.Info); i++ {
-		if signinfosort.Info[i] == nil {
-			continue
-		}
+    var tmp []*SignCurNodeInfo
+    for i := 0; i < len(signinfosort.Info); i++ {
+	    if signinfosort.Info[i] == nil {
+		    continue
+	    }
 
-		tmp = append(tmp, signinfosort.Info[i])
-	}
+	    tmp = append(tmp, signinfosort.Info[i])
+    }
 
-	return tmp, "", nil
+    return tmp, "", nil
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -975,244 +1139,244 @@ func GetCurNodeSignInfo(geteracc string) ([]*SignCurNodeInfo, string, error) {
 // sign execut the sign command,including ec and ed.
 // keytype : EC256K1 || ED25519
 func sign(wsid string, account string, pubkey string, inputcode string, unsignhash []string, keytype string, nonce string, mode string, pickdata []*PickHashData, ch chan interface{}) {
-	smpcpks, err := hex.DecodeString(pubkey)
-	if err != nil {
-	    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+    smpcpks, err := hex.DecodeString(pubkey)
+    if err != nil {
+	res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+	ch <- res
+	return
+    }
+
+    exsit, da := GetPubKeyData(smpcpks[:])
+    if !exsit {
+	    common.Debug("============================sign,not exist sign data===========================", "pubkey", pubkey, "key", wsid)
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get sign data from db fail")}
 	    ch <- res
 	    return
-	}
+    }
 
-	exsit, da := GetPubKeyData(smpcpks[:])
-	if !exsit {
-		common.Debug("============================sign,not exist sign data===========================", "pubkey", pubkey, "key", wsid)
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get sign data from db fail")}
-		ch <- res
-		return
-	}
+    _, ok := da.(*PubKeyData)
+    if !ok {
+	    common.Debug("============================sign,sign data error==========================", "pubkey", pubkey, "key", wsid)
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get sign data from db fail")}
+	    ch <- res
+	    return
+    }
 
-	_, ok := da.(*PubKeyData)
-	if !ok {
-		common.Debug("============================sign,sign data error==========================", "pubkey", pubkey, "key", wsid)
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get sign data from db fail")}
-		ch <- res
-		return
-	}
+    save := (da.(*PubKeyData)).Save
+    smpcpub := (da.(*PubKeyData)).Pub
 
-	save := (da.(*PubKeyData)).Save
-	smpcpub := (da.(*PubKeyData)).Pub
+    var smpcpkx *big.Int
+    var smpcpky *big.Int
+    if keytype == "EC256K1" {
+	    smpcpks := []byte(smpcpub)
+	    smpcpkx, smpcpky = secp256k1.S256().Unmarshal(smpcpks[:])
+    }
 
-	var smpcpkx *big.Int
-	var smpcpky *big.Int
-	if keytype == "EC256K1" {
-		smpcpks := []byte(smpcpub)
-		smpcpkx, smpcpky = secp256k1.S256().Unmarshal(smpcpks[:])
-	}
+    ///sku1
+    da2 := getSkU1FromLocalDb(smpcpks[:])
+    if da2 == nil {
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
+	    ch <- res
+	    return
+    }
+    sku1 := new(big.Int).SetBytes(da2)
+    if sku1 == nil {
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
+	    ch <- res
+	    return
+    }
+    //
 
-	///sku1
-	da2 := getSkU1FromLocalDb(smpcpks[:])
-	if da2 == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
-		ch <- res
-		return
-	}
-	sku1 := new(big.Int).SetBytes(da2)
-	if sku1 == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
-		ch <- res
-		return
-	}
-	//
+    var result string
+    var cherrtmp error
+    rch := make(chan interface{}, 1)
+    if keytype == "ED25519" {
+	    signED(wsid, unsignhash, save, sku1, smpcpub, keytype, rch)
+	    ret, tip, cherr := GetChannelValue(waitall, rch)
+	    if cherr != nil {
+		    res := RPCSmpcRes{Ret: "", Tip: tip, Err: cherr}
+		    ch <- res
+		    return
+	    }
 
-	var result string
-	var cherrtmp error
-	rch := make(chan interface{}, 1)
-	if keytype == "ED25519" {
-		signED(wsid, unsignhash, save, sku1, smpcpub, keytype, rch)
-		ret, tip, cherr := GetChannelValue(waitall, rch)
-		if cherr != nil {
-			res := RPCSmpcRes{Ret: "", Tip: tip, Err: cherr}
-			ch <- res
-			return
-		}
+	    result = ret
+	    cherrtmp = cherr
+    } else {
+	    signEC(wsid, unsignhash, save, sku1, smpcpkx, smpcpky, inputcode, keytype, pickdata, rch)
+	    ret, tip, cherr := GetChannelValue(waitall, rch)
+	    common.Debug("=================sign,call signEC finish.==============", "return result", ret, "err", cherr, "key", wsid)
+	    if cherr != nil {
+		    res := RPCSmpcRes{Ret: "", Tip: tip, Err: cherr}
+		    ch <- res
+		    return
+	    }
 
-		result = ret
-		cherrtmp = cherr
-	} else {
-		signEC(wsid, unsignhash, save, sku1, smpcpkx, smpcpky, inputcode, keytype, pickdata, rch)
-		ret, tip, cherr := GetChannelValue(waitall, rch)
-		common.Debug("=================sign,call signEC finish.==============", "return result", ret, "err", cherr, "key", wsid)
-		if cherr != nil {
-			res := RPCSmpcRes{Ret: "", Tip: tip, Err: cherr}
-			ch <- res
-			return
-		}
+	    result = ret
+	    cherrtmp = cherr
+    }
 
-		result = ret
-		cherrtmp = cherr
-	}
+    tmps := strings.Split(result, ":")
+    for _, rsv := range tmps {
 
-	tmps := strings.Split(result, ":")
-	for _, rsv := range tmps {
+	    if rsv == "NULL" {
+		    continue
+	    }
 
-		if rsv == "NULL" {
-			continue
-		}
+	    //bug
+	    rets := []rune(rsv)
+	    if keytype != "ED25519" && len(rets) != 130 {
+		    res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrSmpcSigWrongSize)}
+		    ch <- res
+		    return
+	    }
+    }
 
-		//bug
-		rets := []rune(rsv)
-		if keytype != "ED25519" && len(rets) != 130 {
-			res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrSmpcSigWrongSize)}
-			ch <- res
-			return
-		}
-	}
+    if result != "" {
+	    w, err := FindWorker(wsid)
+	    if w == nil || err != nil {
+		    common.Debug("==========sign,no find worker============", "err", err, "key", wsid)
+		    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get worker error")}
+		    ch <- res
+		    return
+	    }
 
-	if result != "" {
-		w, err := FindWorker(wsid)
-		if w == nil || err != nil {
-			common.Debug("==========sign,no find worker============", "err", err, "key", wsid)
-			res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get worker error")}
-			ch <- res
-			return
-		}
+	    common.Debug("================sign,success sign and call AcceptSign==============", "key", wsid)
+	    tip, reply := AcceptSign("", account, pubkey, unsignhash, keytype, w.groupid, nonce, w.limitnum, mode, "true", "true", "Success", result, "", "", nil, w.id)
+	    if reply != nil {
+		    res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("update sign status error")}
+		    ch <- res
+		    return
+	    }
 
-		common.Debug("================sign,success sign and call AcceptSign==============", "key", wsid)
-		tip, reply := AcceptSign("", account, pubkey, unsignhash, keytype, w.groupid, nonce, w.limitnum, mode, "true", "true", "Success", result, "", "", nil, w.id)
-		if reply != nil {
-			res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("update sign status error")}
-			ch <- res
-			return
-		}
+	    common.Info("================sign,the terminal sign res is success==============", "key", wsid)
+	    res := RPCSmpcRes{Ret: result, Tip: tip, Err: err}
+	    ch <- res
+	    return
+    }
 
-		common.Info("================sign,the terminal sign res is success==============", "key", wsid)
-		res := RPCSmpcRes{Ret: result, Tip: tip, Err: err}
-		ch <- res
-		return
-	}
+    if cherrtmp != nil {
+	    common.Info("================sign,the terminal sign res is failure================", "err", cherrtmp, "key", wsid)
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: cherrtmp}
+	    ch <- res
+	    return
+    }
 
-	if cherrtmp != nil {
-		common.Info("================sign,the terminal sign res is failure================", "err", cherrtmp, "key", wsid)
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: cherrtmp}
-		ch <- res
-		return
-	}
-
-	res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign fail")}
-	ch <- res
+    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign fail")}
+    ch <- res
 }
 
 //----------------------------------------------------------------------------------------------
 
 // SignData the data refer to sign
 type SignData struct {
-	MsgPrex    string
-	Key        string
-	InputCodeT string
-	Save       string
-	Sku1       *big.Int
-	Txhash     string
-	GroupID    string
-	NodeCnt    int
-	ThresHold  int
-	SmpcFrom   string
-	Keytype    string
-	Cointype   string
-	Pkx        *big.Int
-	Pky        *big.Int
-	Pre        *PreSignData
+    MsgPrex    string
+    Key        string
+    InputCodeT string
+    Save       string
+    Sku1       *big.Int
+    Txhash     string
+    GroupID    string
+    NodeCnt    int
+    ThresHold  int
+    SmpcFrom   string
+    Keytype    string
+    Cointype   string
+    Pkx        *big.Int
+    Pky        *big.Int
+    Pre        *PreSignData
 }
 
 // MarshalJSON marshal *SignData to json byte
 func (sd *SignData) MarshalJSON() ([]byte, error) {
-	if sd.Pre == nil {
-		return nil, errors.New("get pre-sign data fail")
-	}
+    if sd.Pre == nil {
+	    return nil, errors.New("get pre-sign data fail")
+    }
 
-	s, err := sd.Pre.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
+    s, err := sd.Pre.MarshalJSON()
+    if err != nil {
+	    return nil, err
+    }
 
-	return json.Marshal(struct {
-		MsgPrex    string `json:"MsgPrex"`
-		Key        string `json:"Key"`
-		InputCodeT string `json:"InputCodeT"`
-		Save       string `json:"Save"`
-		Sku1       string `json:"Sku1"`
-		Txhash     string `json:"Txhash"`
-		GroupID    string `json:"GroupID"`
-		NodeCnt    string `json:"NodeCnt"`
-		ThresHold  string `json:"ThresHold"`
-		SmpcFrom   string `json:"SmpcFrom"`
-		Keytype    string `json:"Keytype"`
-		Cointype   string `json:"Cointype"`
-		Pkx        string `json:"Pkx"`
-		Pky        string `json:"Pky"`
-		Pre        string `json:"Pre"`
-	}{
-		MsgPrex:    sd.MsgPrex,
-		Key:        sd.Key,
-		InputCodeT: sd.InputCodeT,
-		Save:       sd.Save,
-		Sku1:       fmt.Sprintf("%v", sd.Sku1),
-		Txhash:     sd.Txhash,
-		GroupID:    sd.GroupID,
-		NodeCnt:    strconv.Itoa(sd.NodeCnt),
-		ThresHold:  strconv.Itoa(sd.ThresHold),
-		SmpcFrom:   sd.SmpcFrom,
-		Keytype:    sd.Keytype,
-		Cointype:   sd.Cointype,
-		Pkx:        fmt.Sprintf("%v", sd.Pkx),
-		Pky:        fmt.Sprintf("%v", sd.Pky),
-		Pre:        string(s),
-	})
+    return json.Marshal(struct {
+	    MsgPrex    string `json:"MsgPrex"`
+	    Key        string `json:"Key"`
+	    InputCodeT string `json:"InputCodeT"`
+	    Save       string `json:"Save"`
+	    Sku1       string `json:"Sku1"`
+	    Txhash     string `json:"Txhash"`
+	    GroupID    string `json:"GroupID"`
+	    NodeCnt    string `json:"NodeCnt"`
+	    ThresHold  string `json:"ThresHold"`
+	    SmpcFrom   string `json:"SmpcFrom"`
+	    Keytype    string `json:"Keytype"`
+	    Cointype   string `json:"Cointype"`
+	    Pkx        string `json:"Pkx"`
+	    Pky        string `json:"Pky"`
+	    Pre        string `json:"Pre"`
+    }{
+	    MsgPrex:    sd.MsgPrex,
+	    Key:        sd.Key,
+	    InputCodeT: sd.InputCodeT,
+	    Save:       sd.Save,
+	    Sku1:       fmt.Sprintf("%v", sd.Sku1),
+	    Txhash:     sd.Txhash,
+	    GroupID:    sd.GroupID,
+	    NodeCnt:    strconv.Itoa(sd.NodeCnt),
+	    ThresHold:  strconv.Itoa(sd.ThresHold),
+	    SmpcFrom:   sd.SmpcFrom,
+	    Keytype:    sd.Keytype,
+	    Cointype:   sd.Cointype,
+	    Pkx:        fmt.Sprintf("%v", sd.Pkx),
+	    Pky:        fmt.Sprintf("%v", sd.Pky),
+	    Pre:        string(s),
+    })
 }
 
 // UnmarshalJSON unmarshal json string to *SignData
 func (sd *SignData) UnmarshalJSON(raw []byte) error {
-	var si struct {
-		MsgPrex    string `json:"MsgPrex"`
-		Key        string `json:"Key"`
-		InputCodeT string `json:"InputCodeT"`
-		Save       string `json:"Save"`
-		Sku1       string `json:"Sku1"`
-		Txhash     string `json:"Txhash"`
-		GroupID    string `json:"GroupID"`
-		NodeCnt    string `json:"NodeCnt"`
-		ThresHold  string `json:"ThresHold"`
-		SmpcFrom   string `json:"SmpcFrom"`
-		Keytype    string `json:"Keytype"`
-		Cointype   string `json:"Cointype"`
-		Pkx        string `json:"Pkx"`
-		Pky        string `json:"Pky"`
-		Pre        string `json:"Pre"`
-	}
-	if err := json.Unmarshal(raw, &si); err != nil {
-		return err
-	}
+    var si struct {
+	    MsgPrex    string `json:"MsgPrex"`
+	    Key        string `json:"Key"`
+	    InputCodeT string `json:"InputCodeT"`
+	    Save       string `json:"Save"`
+	    Sku1       string `json:"Sku1"`
+	    Txhash     string `json:"Txhash"`
+	    GroupID    string `json:"GroupID"`
+	    NodeCnt    string `json:"NodeCnt"`
+	    ThresHold  string `json:"ThresHold"`
+	    SmpcFrom   string `json:"SmpcFrom"`
+	    Keytype    string `json:"Keytype"`
+	    Cointype   string `json:"Cointype"`
+	    Pkx        string `json:"Pkx"`
+	    Pky        string `json:"Pky"`
+	    Pre        string `json:"Pre"`
+    }
+    if err := json.Unmarshal(raw, &si); err != nil {
+	    return err
+    }
 
-	sd.MsgPrex = si.MsgPrex
-	sd.Key = si.Key
-	sd.InputCodeT = si.InputCodeT
-	sd.Save = si.Save
-	sd.Sku1, _ = new(big.Int).SetString(si.Sku1, 10)
-	sd.Txhash = si.Txhash
-	sd.GroupID = si.GroupID
-	sd.NodeCnt, _ = strconv.Atoi(si.NodeCnt)
-	sd.ThresHold, _ = strconv.Atoi(si.ThresHold)
-	sd.SmpcFrom = si.SmpcFrom
-	sd.Keytype = si.Keytype
-	sd.Cointype = si.Cointype
-	sd.Pkx, _ = new(big.Int).SetString(si.Pkx, 10)
-	sd.Pky, _ = new(big.Int).SetString(si.Pky, 10)
-	pre := &PreSignData{}
-	err := pre.UnmarshalJSON([]byte(si.Pre))
-	if err != nil {
-		return err
-	}
+    sd.MsgPrex = si.MsgPrex
+    sd.Key = si.Key
+    sd.InputCodeT = si.InputCodeT
+    sd.Save = si.Save
+    sd.Sku1, _ = new(big.Int).SetString(si.Sku1, 10)
+    sd.Txhash = si.Txhash
+    sd.GroupID = si.GroupID
+    sd.NodeCnt, _ = strconv.Atoi(si.NodeCnt)
+    sd.ThresHold, _ = strconv.Atoi(si.ThresHold)
+    sd.SmpcFrom = si.SmpcFrom
+    sd.Keytype = si.Keytype
+    sd.Cointype = si.Cointype
+    sd.Pkx, _ = new(big.Int).SetString(si.Pkx, 10)
+    sd.Pky, _ = new(big.Int).SetString(si.Pky, 10)
+    pre := &PreSignData{}
+    err := pre.UnmarshalJSON([]byte(si.Pre))
+    if err != nil {
+	    return err
+    }
 
-	sd.Pre = pre
-	return nil
+    sd.Pre = pre
+    return nil
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -1220,118 +1384,118 @@ func (sd *SignData) UnmarshalJSON(raw []byte) error {
 // signEC execute the sign command with ec algorithm 
 func signEC(msgprex string, txhash []string, save string, sku1 *big.Int, smpcpkx *big.Int, smpcpky *big.Int, inputcode string, keytype string, pickdata []*PickHashData, ch chan interface{}) string {
 
-	tmp := make([]string, 0)
-	for _, v := range txhash {
-		txhashs := []rune(v)
-		if string(txhashs[0:2]) == "0x" {
-			tmp = append(tmp, string(txhashs[2:]))
-		} else {
-			tmp = append(tmp, string(txhashs))
-		}
-	}
+    tmp := make([]string, 0)
+    for _, v := range txhash {
+	    txhashs := []rune(v)
+	    if string(txhashs[0:2]) == "0x" {
+		    tmp = append(tmp, string(txhashs[2:]))
+	    } else {
+		    tmp = append(tmp, string(txhashs))
+	    }
+    }
 
-	w, err := FindWorker(msgprex)
-	if w == nil || err != nil {
-		common.Debug("==========smpc_sign,no find worker===========", "key", msgprex, "err", err)
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("not find worker")}
-		ch <- res
-		return ""
-	}
+    w, err := FindWorker(msgprex)
+    if w == nil || err != nil {
+	    common.Debug("==========smpc_sign,no find worker===========", "key", msgprex, "err", err)
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("not find worker")}
+	    ch <- res
+	    return ""
+    }
 
-	curEnode = GetSelfEnode()
+    curEnode = GetSelfEnode()
 
-	var wg sync.WaitGroup
-	for _, v := range tmp {
-		wg.Add(1)
-		go func(vv string) {
-			defer wg.Done()
+    var wg sync.WaitGroup
+    for _, v := range tmp {
+	    wg.Add(1)
+	    go func(vv string) {
+		    defer wg.Done()
 
-			//get pick
-			var pick *PreSignData
-			for _, val := range pickdata {
-				if strings.EqualFold(val.Hash, ("0x"+vv)) || strings.EqualFold(val.Hash, vv) {
-					pick = val.Pre
-					break
-				}
-			}
-			if pick == nil {
-				return
-			}
-			//
+		    //get pick
+		    var pick *PreSignData
+		    for _, val := range pickdata {
+			    if strings.EqualFold(val.Hash, ("0x"+vv)) || strings.EqualFold(val.Hash, vv) {
+				    pick = val.Pre
+				    break
+			    }
+		    }
+		    if pick == nil {
+			    return
+		    }
+		    //
 
-			fmt.Printf("============================signEC,pkx = %v,pky = %v =============================\n", smpcpkx, smpcpky)
-			key := Keccak256Hash([]byte(strings.ToLower(msgprex + "-" + vv))).Hex()
-			sd := &SignData{MsgPrex: msgprex, Key: key, InputCodeT: inputcode, Save: save, Sku1: sku1, Txhash: vv, GroupID: w.groupid, NodeCnt: w.NodeCnt, ThresHold: w.ThresHold, SmpcFrom: w.SmpcFrom, Keytype: keytype, Cointype: "", Pkx: smpcpkx, Pky: smpcpky, Pre: pick}
+		    fmt.Printf("============================signEC,pkx = %v,pky = %v =============================\n", smpcpkx, smpcpky)
+		    key := Keccak256Hash([]byte(strings.ToLower(msgprex + "-" + vv))).Hex()
+		    sd := &SignData{MsgPrex: msgprex, Key: key, InputCodeT: inputcode, Save: save, Sku1: sku1, Txhash: vv, GroupID: w.groupid, NodeCnt: w.NodeCnt, ThresHold: w.ThresHold, SmpcFrom: w.SmpcFrom, Keytype: keytype, Cointype: "", Pkx: smpcpkx, Pky: smpcpky, Pre: pick}
 
-			m := make(map[string]string)
-			sdjson, err := sd.MarshalJSON()
-			if err == nil {
-				m["SignData"] = string(sdjson)
-			}
-			m["Type"] = "SignData"
-			val, err := json.Marshal(m)
-			if err != nil {
-				common.Error("======================signEC, marshal SignData to json fail.==================", "unsign txhash", vv, "msgprex", msgprex, "key", key, "pick key", pick.Key, "err", err)
-				return
-			}
+		    m := make(map[string]string)
+		    sdjson, err := sd.MarshalJSON()
+		    if err == nil {
+			    m["SignData"] = string(sdjson)
+		    }
+		    m["Type"] = "SignData"
+		    val, err := json.Marshal(m)
+		    if err != nil {
+			    common.Error("======================signEC, marshal SignData to json fail.==================", "unsign txhash", vv, "msgprex", msgprex, "key", key, "pick key", pick.Key, "err", err)
+			    return
+		    }
 
-			rch := make(chan interface{}, 1)
-			SetUpMsgList3(string(val), curEnode, rch)
-			_, _, cherr := GetChannelValue(cht, rch)
-			if cherr != nil {
-				common.Error("======================signEC, sign error====================", "vv", vv, "msgprex", msgprex, "key", key, "cherr", cherr)
-				return
-			}
-		}(v)
-	}
-	wg.Wait()
+		    rch := make(chan interface{}, 1)
+		    SetUpMsgList3(string(val), curEnode, rch)
+		    _, _, cherr := GetChannelValue(cht, rch)
+		    if cherr != nil {
+			    common.Error("======================signEC, sign error====================", "vv", vv, "msgprex", msgprex, "key", key, "cherr", cherr)
+			    return
+		    }
+	    }(v)
+    }
+    wg.Wait()
 
-	common.Info("======================signEC, all sign finish===================", "msgprex", msgprex, "w.rsv", w.rsv)
+    common.Info("======================signEC, all sign finish===================", "msgprex", msgprex, "w.rsv", w.rsv)
 
-	var ret string
-	iter := w.rsv.Front()
-	for iter != nil {
-		mdss := iter.Value.(string)
-		ret += mdss
-		ret += ":"
-		iter = iter.Next()
-	}
+    var ret string
+    iter := w.rsv.Front()
+    for iter != nil {
+	    mdss := iter.Value.(string)
+	    ret += mdss
+	    ret += ":"
+	    iter = iter.Next()
+    }
 
-	ret += "NULL"
-	tmps := strings.Split(ret, ":")
-	common.Debug("======================signEC=====================", "return result", ret, "len(tmps)", len(tmps), "len(tmp)", len(tmp), "key", msgprex)
-	if len(tmps) == (len(tmp) + 1) {
-		res := RPCSmpcRes{Ret: ret, Tip: "", Err: nil}
-		ch <- res
-		return ""
-	}
+    ret += "NULL"
+    tmps := strings.Split(ret, ":")
+    common.Debug("======================signEC=====================", "return result", ret, "len(tmps)", len(tmps), "len(tmp)", len(tmp), "key", msgprex)
+    if len(tmps) == (len(tmp) + 1) {
+	    res := RPCSmpcRes{Ret: ret, Tip: "", Err: nil}
+	    ch <- res
+	    return ""
+    }
 
-	res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign fail")}
-	ch <- res
-	return ""
+    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign fail")}
+    ch <- res
+    return ""
 }
 
 //-----------------------------------------------------------------------------------------------------
 
 // GetPaillierPkByIndexFromSaveData get paillier pubkey by index from saved data that obtained when generating pubkey
 func GetPaillierPkByIndexFromSaveData(save string, index int) *ec2.PublicKey {
-	if save == "" || index < 0 {
-		return nil
-	}
+    if save == "" || index < 0 {
+	    return nil
+    }
 
-	mm := strings.Split(save, common.SepSave)
-	s := 4 + 4*index
-	if len(mm) < (s + 4) {
-		return nil
-	}
+    mm := strings.Split(save, common.SepSave)
+    s := 4 + 4*index
+    if len(mm) < (s + 4) {
+	    return nil
+    }
 
-	l := mm[s]
-	n := new(big.Int).SetBytes([]byte(mm[s+1]))
-	g := new(big.Int).SetBytes([]byte(mm[s+2]))
-	n2 := new(big.Int).SetBytes([]byte(mm[s+3]))
-	publicKey := &ec2.PublicKey{Length: l, N: n, G: g, N2: n2}
+    l := mm[s]
+    n := new(big.Int).SetBytes([]byte(mm[s+1]))
+    g := new(big.Int).SetBytes([]byte(mm[s+2]))
+    n2 := new(big.Int).SetBytes([]byte(mm[s+3]))
+    publicKey := &ec2.PublicKey{Length: l, N: n, G: g, N2: n2}
 
-	return publicKey
+    return publicKey
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1339,20 +1503,20 @@ func GetPaillierPkByIndexFromSaveData(save string, index int) *ec2.PublicKey {
 // GetCurNodeIndex get the serial number of uid of current node in group.
 // gid is the `keygen gid`
 func GetCurNodeIndex(gid string,subgid string,keytype string) int {
-	if gid == "" || subgid == "" || keytype == "" {
-		return -1
-	}
+    if gid == "" || subgid == "" || keytype == "" {
+	    return -1
+    }
 
-	_,uid := GetNodeUID(curEnode, keytype,gid)
-	ids := GetGroupNodeUIDs(keytype, gid,subgid)
+    _,uid := GetNodeUID(curEnode, keytype,gid)
+    ids := GetGroupNodeUIDs(keytype, gid,subgid)
 
-	for k, v := range ids {
-		if v.Cmp(uid) == 0 {
-			return k
-		}
-	}
+    for k, v := range ids {
+	    if v.Cmp(uid) == 0 {
+		    return k
+	    }
+    }
 
-	return -1
+    return -1
 }
 
 //-----------------------------------------------------------------------------------------------------
@@ -1360,71 +1524,71 @@ func GetCurNodeIndex(gid string,subgid string,keytype string) int {
 // GetCurNodePaillierSkFromSaveData get current node's paillier private key from saved data that obtained when generating pubkey
 // gid is not the sub-gid
 func GetCurNodePaillierSkFromSaveData(save string, gid string, keytype string) *ec2.PrivateKey {
-	if save == "" || gid == "" || keytype == "" {
-		return nil
-	}
+    if save == "" || gid == "" || keytype == "" {
+	    return nil
+    }
 
-	curIndex := GetCurNodeIndex(gid,gid,keytype)
-	publicKey := GetPaillierPkByIndexFromSaveData(save, curIndex)
-	if publicKey != nil {
-		mm := strings.Split(save, common.SepSave)
-		if len(mm) < 4 {
-			return nil
-		}
+    curIndex := GetCurNodeIndex(gid,gid,keytype)
+    publicKey := GetPaillierPkByIndexFromSaveData(save, curIndex)
+    if publicKey != nil {
+	    mm := strings.Split(save, common.SepSave)
+	    if len(mm) < 4 {
+		    return nil
+	    }
 
-		l := mm[1]
-		ll := new(big.Int).SetBytes([]byte(mm[2]))
-		uu := new(big.Int).SetBytes([]byte(mm[3]))
-		privateKey := &ec2.PrivateKey{Length: l, PublicKey: *publicKey, L: ll, U: uu}
-		return privateKey
-	}
+	    l := mm[1]
+	    ll := new(big.Int).SetBytes([]byte(mm[2]))
+	    uu := new(big.Int).SetBytes([]byte(mm[3]))
+	    privateKey := &ec2.PrivateKey{Length: l, PublicKey: *publicKey, L: ll, U: uu}
+	    return privateKey
+    }
 
-	return nil
+    return nil
 }
 
 //---------------------------------------------------------------------------------------------
 
 // GetNtildeByIndexFromSaveData get ntilde data by index from saved data that obtained when generating pubkey
 func GetNtildeByIndexFromSaveData(save string, index int, NodeCnt int) *ec2.NtildeH1H2 {
-	if save == "" || index < 0 || NodeCnt < 0 {
-		return nil
-	}
+    if save == "" || index < 0 || NodeCnt < 0 {
+	    return nil
+    }
 
-	mm := strings.Split(save, common.SepSave)
-	s := 4 + 4*NodeCnt + 3*index
-	if len(mm) < (s + 3) {
-		return nil
-	}
+    mm := strings.Split(save, common.SepSave)
+    s := 4 + 4*NodeCnt + 3*index
+    if len(mm) < (s + 3) {
+	    return nil
+    }
 
-	ntilde := new(big.Int).SetBytes([]byte(mm[s]))
-	h1 := new(big.Int).SetBytes([]byte(mm[s+1]))
-	h2 := new(big.Int).SetBytes([]byte(mm[s+2]))
-	ntildeh1h2 := &ec2.NtildeH1H2{Ntilde: ntilde, H1: h1, H2: h2}
+    ntilde := new(big.Int).SetBytes([]byte(mm[s]))
+    h1 := new(big.Int).SetBytes([]byte(mm[s+1]))
+    h2 := new(big.Int).SetBytes([]byte(mm[s+2]))
+    ntildeh1h2 := &ec2.NtildeH1H2{Ntilde: ntilde, H1: h1, H2: h2}
 
-	return ntildeh1h2
+    return ntildeh1h2
 }
 
 //-------------------------------------------------------------------------------------------------------------
 
 // GetNtildePrivDataByIndexFromSaveData get ntilde priv data by index from saved data that obtained when generating pubkey
 func GetNtildePrivDataByIndexFromSaveData(save string,NodeCnt int) *ec2.NtildePrivData {
-	if save == "" || NodeCnt < 0 {
-		return nil
-	}
+    if save == "" || NodeCnt < 0 {
+	    return nil
+    }
 
-	mm := strings.Split(save, common.SepSave)
-	s := 4 + 4*NodeCnt + 3*NodeCnt
-	if len(mm) < (s + 3) {
-		return nil
-	}
+    mm := strings.Split(save, common.SepSave)
+    s := 4 + 4*NodeCnt + 3*NodeCnt
+    if len(mm) < (s + 3) {
+	    return nil
+    }
 
-	alpha := new(big.Int).SetBytes([]byte(mm[s]))
-	beta := new(big.Int).SetBytes([]byte(mm[s+1]))
-	q1 := new(big.Int).SetBytes([]byte(mm[s+2]))
-	q2 := new(big.Int).SetBytes([]byte(mm[s+3]))
-	priv := &ec2.NtildePrivData{Alpha: alpha, Beta: beta, Q1: q1,Q2:q2}
+    alpha := new(big.Int).SetBytes([]byte(mm[s]))
+    beta := new(big.Int).SetBytes([]byte(mm[s+1]))
+    q1 := new(big.Int).SetBytes([]byte(mm[s+2]))
+    q2 := new(big.Int).SetBytes([]byte(mm[s+3]))
+    priv := &ec2.NtildePrivData{Alpha: alpha, Beta: beta, Q1: q1,Q2:q2}
 
-	return priv
+    return priv
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -1433,21 +1597,21 @@ func GetNtildePrivDataByIndexFromSaveData(save string,NodeCnt int) *ec2.NtildePr
 // map: uid ----> enodeID
 // gid is the `keygen gid`
 func GetMsgToEnode(keytype string, gid string,groupid string) map[string]string {
-    if keytype == "" || gid == "" || groupid == "" {
-	return nil
-    }
+if keytype == "" || gid == "" || groupid == "" {
+    return nil
+}
 
-    msgtoenode := make(map[string]string)
-    _, nodes := GetGroup(groupid)
-    others := strings.Split(nodes, common.Sep2)
-    for _, v := range others {
-	    node2 := ParseNode(v)
-	    _,uid := GetNodeUID(node2, keytype,gid)
-	    tmp := fmt.Sprintf("%v",uid)
-	    msgtoenode[hex.EncodeToString([]byte(tmp))] = node2
-    }
+msgtoenode := make(map[string]string)
+_, nodes := GetGroup(groupid)
+others := strings.Split(nodes, common.Sep2)
+for _, v := range others {
+	node2 := ParseNode(v)
+	_,uid := GetNodeUID(node2, keytype,gid)
+	tmp := fmt.Sprintf("%v",uid)
+	msgtoenode[hex.EncodeToString([]byte(tmp))] = node2
+}
 
-    return msgtoenode
+return msgtoenode
 }
 
 //-----------------------------------------------------------------------------------------------------
@@ -1456,391 +1620,391 @@ func GetMsgToEnode(keytype string, gid string,groupid string) map[string]string 
 // msgprex = hash
 //  the return value is the generated pre-sign data.
 func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *big.Int,cointype string, ch chan interface{}, id int) *PreSignData {
-	if id < 0 || id >= len(workers) {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("not find worker")}
-		ch <- res
-		return nil
-	}
-	w := workers[id]
-	if w.groupid == "" {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get group id fail")}
-		ch <- res
-		return nil
-	}
-
-	mm := strings.Split(save, common.SepSave)
-	if len(mm) == 0 {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get save data fail")}
-		ch <- res
-		return nil
-	}
-
-	sd := &keygen.LocalDNodeSaveData{}
-	sd.SkU1 = sku1
-	sd.Pkx = pkx
-	sd.Pky = pky
-
-	smpcpks, err := hex.DecodeString(w.SmpcFrom)
-	if err != nil {
-	    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+    if id < 0 || id >= len(workers) {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("not find worker")}
 	    ch <- res
 	    return nil
-	}
+    }
+    w := workers[id]
+    if w.groupid == "" {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get group id fail")}
+	    ch <- res
+	    return nil
+    }
 
-	exsit, da := GetPubKeyData(smpcpks[:])
-	if !exsit || da == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("presign get local save data fail")}
+    mm := strings.Split(save, common.SepSave)
+    if len(mm) == 0 {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get save data fail")}
+	    ch <- res
+	    return nil
+    }
+
+    sd := &keygen.LocalDNodeSaveData{}
+    sd.SkU1 = sku1
+    sd.Pkx = pkx
+    sd.Pky = pky
+
+    smpcpks, err := hex.DecodeString(w.SmpcFrom)
+    if err != nil {
+	res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+	ch <- res
+	return nil
+    }
+
+    exsit, da := GetPubKeyData(smpcpks[:])
+    if !exsit || da == nil {
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("presign get local save data fail")}
+	    ch <- res
+	    return nil
+    }
+
+    pubs, ok := da.(*PubKeyData)
+    if !ok || pubs.GroupID == "" {
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("presign get local save data fail")}
+	    ch <- res
+	    return nil
+    }
+
+    sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, pubs.GroupID, cointype)
+
+    U1PaillierPk := make([]*ec2.PublicKey, w.NodeCnt)
+    U1NtildeH1H2 := make([]*ec2.NtildeH1H2, w.NodeCnt)
+    for i := 0; i < w.NodeCnt; i++ {
+	    U1PaillierPk[i] = GetPaillierPkByIndexFromSaveData(save, i)
+	    U1NtildeH1H2[i] = GetNtildeByIndexFromSaveData(save, i, w.NodeCnt)
+    }
+    sd.U1PaillierPk = U1PaillierPk
+    sd.U1NtildeH1H2 = U1NtildeH1H2
+
+    sd.IDs = GetGroupNodeUIDs(cointype,pubs.GroupID,pubs.GroupID)
+    _,sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
+
+    msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
+    kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
+
+    // [Notes]
+    // 1. assume the nodes who take part in the signature generation as follows
+    idsign := GetGroupNodeUIDs(cointype,pubs.GroupID,w.groupid)
+
+    commStopChan := make(chan struct{})
+    outCh := make(chan smpclib.Message, w.ThresHold)
+    endCh := make(chan signing.PrePubData, w.ThresHold)
+    finalizeendCh := make(chan *big.Int, w.ThresHold)
+    errChan := make(chan struct{})
+    signDNode := signing.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, nil, finalizeendCh)
+    w.DNode = signDNode
+    signDNode.SetDNodeID(fmt.Sprintf("%v", sd.CurDNodeID))
+
+    var signWg sync.WaitGroup
+    signWg.Add(2)
+    go func() {
+	    defer signWg.Done()
+	    if err := signDNode.Start(); nil != err {
+		    common.Error("==========PreSignEC3, node start fail=======","key",msgprex,"err",err)
+		    close(errChan)
+	    }
+
+	    exsit, da := GetPubKeyData([]byte(pubs.Key))
+	    if exsit {
+		    acceptreqdata, ok := da.(*AcceptReqAddrData)
+		    if ok && acceptreqdata != nil {
+			    common.Debug("==========PreSignEC3, get reqaddr info from pubkeydata db==============","key",msgprex,"acceptreqdata",acceptreqdata)
+			    HandleC1Data(acceptreqdata, w.sid)
+		    }
+	    }
+    }()
+    go SignProcessInboundMessages(msgprex, commStopChan, errChan,&signWg, ch)
+    pre, err := processSign(msgprex, kgsave.MsgToEnode, errChan, outCh, endCh)
+    if err != nil || pre == nil {
+	    common.Debug("==========================PreSignEC3,process sign fail===========================","key",msgprex,"err",err)
+
+	    if len(ch) == 0 {
+		res := RPCSmpcRes{Ret: "", Err: err}
 		ch <- res
-		return nil
-	}
+	    }
+	    close(commStopChan)
+	    
+	    return nil
+    }
 
-	pubs, ok := da.(*PubKeyData)
-	if !ok || pubs.GroupID == "" {
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("presign get local save data fail")}
-		ch <- res
-		return nil
-	}
+    close(commStopChan)
+    signWg.Wait()
 
-	sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, pubs.GroupID, cointype)
-
-	U1PaillierPk := make([]*ec2.PublicKey, w.NodeCnt)
-	U1NtildeH1H2 := make([]*ec2.NtildeH1H2, w.NodeCnt)
-	for i := 0; i < w.NodeCnt; i++ {
-		U1PaillierPk[i] = GetPaillierPkByIndexFromSaveData(save, i)
-		U1NtildeH1H2[i] = GetNtildeByIndexFromSaveData(save, i, w.NodeCnt)
-	}
-	sd.U1PaillierPk = U1PaillierPk
-	sd.U1NtildeH1H2 = U1NtildeH1H2
-
-	sd.IDs = GetGroupNodeUIDs(cointype,pubs.GroupID,pubs.GroupID)
-	_,sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
-
-	msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
-	kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
-
-	// [Notes]
-	// 1. assume the nodes who take part in the signature generation as follows
-	idsign := GetGroupNodeUIDs(cointype,pubs.GroupID,w.groupid)
-
-	commStopChan := make(chan struct{})
-	outCh := make(chan smpclib.Message, w.ThresHold)
-	endCh := make(chan signing.PrePubData, w.ThresHold)
-	finalizeendCh := make(chan *big.Int, w.ThresHold)
-	errChan := make(chan struct{})
-	signDNode := signing.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, nil, finalizeendCh)
-	w.DNode = signDNode
-	signDNode.SetDNodeID(fmt.Sprintf("%v", sd.CurDNodeID))
-
-	var signWg sync.WaitGroup
-	signWg.Add(2)
-	go func() {
-		defer signWg.Done()
-		if err := signDNode.Start(); nil != err {
-			common.Error("==========PreSignEC3, node start fail=======","key",msgprex,"err",err)
-			close(errChan)
-		}
-
-		exsit, da := GetPubKeyData([]byte(pubs.Key))
-		if exsit {
-			acceptreqdata, ok := da.(*AcceptReqAddrData)
-			if ok && acceptreqdata != nil {
-				common.Debug("==========PreSignEC3, get reqaddr info from pubkeydata db==============","key",msgprex,"acceptreqdata",acceptreqdata)
-				HandleC1Data(acceptreqdata, w.sid)
-			}
-		}
-	}()
-	go SignProcessInboundMessages(msgprex, commStopChan, errChan,&signWg, ch)
-	pre, err := processSign(msgprex, kgsave.MsgToEnode, errChan, outCh, endCh)
-	if err != nil || pre == nil {
-	    	common.Debug("==========================PreSignEC3,process sign fail===========================","key",msgprex,"err",err)
-
-		if len(ch) == 0 {
-		    res := RPCSmpcRes{Ret: "", Err: err}
-		    ch <- res
-		}
-		close(commStopChan)
-		
-		return nil
-	}
-
-	close(commStopChan)
-	signWg.Wait()
-
-	ret := &PreSignData{Key: msgprex, K1: pre.K1, R: pre.R, Ry: pre.Ry, Sigma1: pre.Sigma1, Gid: w.groupid, Used: false, Index: -1}
-	return ret
+    ret := &PreSignData{Key: msgprex, K1: pre.K1, R: pre.R, Ry: pre.Ry, Sigma1: pre.Sigma1, Gid: w.groupid, Used: false, Index: -1}
+    return ret
 }
 
 // SignEC3 execute sign with gg20 MPC algorithm
 // msgprex = hash
 // return value is the backup for the smpc sign
 func SignEC3(msgprex string, message string, cointype string, save string, pkx *big.Int, pky *big.Int, ch chan interface{}, id int, pre *PreSignData) string {
-	if id < 0 || id >= len(workers) {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("not find worker")}
+    if id < 0 || id >= len(workers) {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("not find worker")}
+	    ch <- res
+	    return ""
+    }
+    w := workers[id]
+    gid := w.groupid
+
+    if w.groupid == "" {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get group id fail")}
+	    ch <- res
+	    return ""
+    }
+
+    hashBytes, err2 := hex.DecodeString(message)
+    if err2 != nil {
+	    res := RPCSmpcRes{Ret: "", Err: err2}
+	    ch <- res
+	    return ""
+    }
+
+    // [Notes]
+    // 1. assume the nodes who take part in the signature generation as follows
+    mMtA, _ := new(big.Int).SetString(message, 16)
+    mm := strings.Split(save, common.SepSave)
+    if len(mm) == 0 {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get save data fail")}
+	    ch <- res
+	    return ""
+    }
+
+    sd := &keygen.LocalDNodeSaveData{}
+    sd.Pkx = pkx
+    sd.Pky = pky
+
+    ys := secp256k1.S256().Marshal(pkx, pky)
+    exsit, da := GetPubKeyData(ys)
+    if !exsit || da == nil {
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get local pubkey data fail")}
+	    ch <- res
+	    return ""
+    }
+
+    pubs, ok := da.(*PubKeyData)
+    if !ok || pubs.GroupID == "" {
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("presign get local save data fail")}
+	    ch <- res
+	    return ""
+    }
+
+    ///sku1
+    da2 := getSkU1FromLocalDb(ys)
+    if da2 == nil {
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
+	    ch <- res
+	    return ""
+    }
+    sku1 := new(big.Int).SetBytes(da2)
+    if sku1 == nil {
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
+	    ch <- res
+	    return ""
+    }
+    //
+    sd.SkU1 = sku1
+
+    sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, pubs.GroupID, cointype)
+
+    U1PaillierPk := make([]*ec2.PublicKey, w.NodeCnt)
+    U1NtildeH1H2 := make([]*ec2.NtildeH1H2, w.NodeCnt)
+    for i := 0; i < w.NodeCnt; i++ {
+	    U1PaillierPk[i] = GetPaillierPkByIndexFromSaveData(save, i)
+	    U1NtildeH1H2[i] = GetNtildeByIndexFromSaveData(save, i, w.NodeCnt)
+    }
+    sd.U1PaillierPk = U1PaillierPk
+    sd.U1NtildeH1H2 = U1NtildeH1H2
+
+    sd.IDs = GetGroupNodeUIDs(cointype, pubs.GroupID,pubs.GroupID)
+    _,sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
+
+    msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
+    kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
+
+    idsign := GetGroupNodeUIDs(cointype,pubs.GroupID,w.groupid)
+
+    commStopChan := make(chan struct{})
+    outCh := make(chan smpclib.Message, w.ThresHold)
+    endCh := make(chan signing.PrePubData, w.ThresHold)
+    finalizeendCh := make(chan *big.Int, w.ThresHold)
+    errChan := make(chan struct{})
+    predata := &signing.PrePubData{K1: pre.K1, R: pre.R, Ry: pre.Ry, Sigma1: pre.Sigma1}
+    signDNode := signing.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, true, predata, mMtA, finalizeendCh)
+    w.DNode = signDNode
+    _,UID := GetNodeUID(curEnode, "EC256K1",pubs.GroupID)
+    signDNode.SetDNodeID(fmt.Sprintf("%v", UID))
+
+    var signWg sync.WaitGroup
+    signWg.Add(2)
+    go func() {
+	    defer signWg.Done()
+	    if err := signDNode.Start(); nil != err {
+		    fmt.Printf("==========SignEC3, node start, key = %v, err = %v ==========\n", msgprex,err)
+		    close(errChan)
+	    }
+
+	    exsit, da := GetPubKeyData([]byte(pubs.Key))
+	    if exsit {
+		    acceptreqdata, ok := da.(*AcceptReqAddrData)
+		    if ok && acceptreqdata != nil {
+			    common.Debug("======================SignEC3,get reqaddr info from pubkeydata db========================","key",msgprex,"acceptreqdata",acceptreqdata)
+			    HandleC1Data(acceptreqdata, msgprex) // fixed: must use sub-key `msgprex`, don't use `w.sid`
+		    }
+	    }
+    }()
+    go SignProcessInboundMessages(msgprex, commStopChan, errChan,&signWg, ch)
+    s, err := processSignFinalize(msgprex, kgsave.MsgToEnode, errChan, outCh, finalizeendCh, gid)
+    if err != nil || s == nil {
+	    common.Debug("=========================SignEC3,process sign fail==============================","key",msgprex,"err",err)
+	    if len(ch) == 0 {
+		res := RPCSmpcRes{Ret: "", Err: err}
 		ch <- res
-		return ""
-	}
-	w := workers[id]
-	gid := w.groupid
+	    }
+	    close(commStopChan)
+	    
+	    return ""
+    }
 
-	if w.groupid == "" {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get group id fail")}
-		ch <- res
-		return ""
-	}
+    close(commStopChan)
+    signWg.Wait()
 
-	hashBytes, err2 := hex.DecodeString(message)
-	if err2 != nil {
-		res := RPCSmpcRes{Ret: "", Err: err2}
-		ch <- res
-		return ""
-	}
+    // 5. calculate s
+    //us1 := signing.CalcUs(mMtA, pre.K1, pre.R, pre.Sigma1)
 
-	// [Notes]
-	// 1. assume the nodes who take part in the signature generation as follows
-	mMtA, _ := new(big.Int).SetString(message, 16)
-	mm := strings.Split(save, common.SepSave)
-	if len(mm) == 0 {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get save data fail")}
-		ch <- res
-		return ""
-	}
+    /*commitBigVAB1, commitbigvabs, rho1, l1 := DECDSASignRoundSeven(msgprex, pre.R, pre.Ry, us1, w, ch)
+    if commitBigVAB1 == nil || commitbigvabs == nil || rho1 == nil || l1 == nil {
+	    return ""
+    }
+    common.Debug("=====================SignEC3, round seven finish=================","key",msgprex)
 
-	sd := &keygen.LocalDNodeSaveData{}
-	sd.Pkx = pkx
-	sd.Pky = pky
+    u1zkABProof, zkabproofs := DECDSASignRoundEight(msgprex, pre.R, pre.Ry, us1, l1, rho1, w, ch, commitBigVAB1)
+    if u1zkABProof == nil || zkabproofs == nil {
+	    return ""
+    }
+    common.Debug("=====================SignEC3, round eight finish=================","key",msgprex)
 
-	ys := secp256k1.S256().Marshal(pkx, pky)
-	exsit, da := GetPubKeyData(ys)
-	if !exsit || da == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get local pubkey data fail")}
-		ch <- res
-		return ""
-	}
+    commitbigcom, BigVx, BigVy := DECDSASignVerifyBigVAB(cointype, w, commitbigvabs, zkabproofs, commitBigVAB1, u1zkABProof, idSign, pre.R, pre.Ry, ch)
+    if commitbigcom == nil || BigVx == nil || BigVy == nil {
+	    return ""
+    }
+    common.Debug("=====================SignEC3, verify BigVAB finish=================","key",msgprex)
 
-	pubs, ok := da.(*PubKeyData)
-	if !ok || pubs.GroupID == "" {
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("presign get local save data fail")}
-		ch <- res
-		return ""
-	}
+    commitbiguts, commitBigUT1 := DECDSASignRoundNine(msgprex, cointype, w, idSign, mMtA, pre.R, pkx, pky, BigVx, BigVy, rho1, commitbigcom, l1, ch)
+    if commitbiguts == nil || commitBigUT1 == nil {
+	    return ""
+    }
+    common.Debug("=====================SignEC3, round nine finish=================","key",msgprex)
 
-	///sku1
-	da2 := getSkU1FromLocalDb(ys)
-	if da2 == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
-		ch <- res
-		return ""
-	}
-	sku1 := new(big.Int).SetBytes(da2)
-	if sku1 == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
-		ch <- res
-		return ""
-	}
-	//
-	sd.SkU1 = sku1
+    commitbigutd11s := DECDSASignRoundTen(msgprex, commitBigUT1, w, ch)
+    if commitbigutd11s == nil {
+	    return ""
+    }
+    common.Debug("=====================SignEC3, round ten finish=================","key",msgprex)
 
-	sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, pubs.GroupID, cointype)
+    if !DECDSASignVerifyBigUTCommitment(msgprex,cointype, commitbiguts, commitbigutd11s, commitBigUT1, w, idSign, ch, commitbigcom) {
+	    return ""
+    }
+    common.Debug("=====================SignEC3, verify BigUT commitment finish=================","key",msgprex)
+    */ //------
 
-	U1PaillierPk := make([]*ec2.PublicKey, w.NodeCnt)
-	U1NtildeH1H2 := make([]*ec2.NtildeH1H2, w.NodeCnt)
-	for i := 0; i < w.NodeCnt; i++ {
-		U1PaillierPk[i] = GetPaillierPkByIndexFromSaveData(save, i)
-		U1NtildeH1H2[i] = GetNtildeByIndexFromSaveData(save, i, w.NodeCnt)
-	}
-	sd.U1PaillierPk = U1PaillierPk
-	sd.U1NtildeH1H2 = U1NtildeH1H2
+    //ss1s := DECDSASignRoundEleven(msgprex, cointype, w, idSign, ch, us1)
+    //if ss1s == nil {
+    //	return ""
+    //}
+    //common.Debug("=====================SignEC3,round eleven finish=================","key",msgprex)
 
-	sd.IDs = GetGroupNodeUIDs(cointype, pubs.GroupID,pubs.GroupID)
-	_,sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
+    //s := Calc_s(msgprex,cointype, w, idSign, ss1s, ch)
+    //if s == nil {
+    //	return ""
+    //}
+    //common.Debug("=====================SignEC3,calc s finish=================","key",msgprex)
 
-	msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
-	kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
+    // 3. justify the s
+    bb := false
+    halfN := new(big.Int).Div(secp256k1.S256().N, big.NewInt(2))
+    if s.Cmp(halfN) > 0 {
+	    bb = true
+	    s = new(big.Int).Sub(secp256k1.S256().N, s)
+    }
 
-	idsign := GetGroupNodeUIDs(cointype,pubs.GroupID,w.groupid)
+    zero, _ := new(big.Int).SetString("0", 10)
+    if s.Cmp(zero) == 0 {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("s == 0")}
+	    ch <- res
+	    return ""
+    }
+    common.Debug("=====================SignEC3,justify s finish=================", "key", msgprex)
 
-	commStopChan := make(chan struct{})
-	outCh := make(chan smpclib.Message, w.ThresHold)
-	endCh := make(chan signing.PrePubData, w.ThresHold)
-	finalizeendCh := make(chan *big.Int, w.ThresHold)
-	errChan := make(chan struct{})
-	predata := &signing.PrePubData{K1: pre.K1, R: pre.R, Ry: pre.Ry, Sigma1: pre.Sigma1}
-	signDNode := signing.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, true, predata, mMtA, finalizeendCh)
-	w.DNode = signDNode
-	_,UID := GetNodeUID(curEnode, "EC256K1",pubs.GroupID)
-	signDNode.SetDNodeID(fmt.Sprintf("%v", UID))
+    // **[End-Test]  verify signature with MtA
+    signature := new(ECDSASignature)
+    signature.New()
+    signature.SetR(pre.R)
+    signature.SetS(s)
 
-	var signWg sync.WaitGroup
-	signWg.Add(2)
-	go func() {
-		defer signWg.Done()
-		if err := signDNode.Start(); nil != err {
-			fmt.Printf("==========SignEC3, node start, key = %v, err = %v ==========\n", msgprex,err)
-			close(errChan)
-		}
+    invert := false
+    if cointype == "ETH" && bb {
+	    invert = true
+    }
+    if cointype == "BTC" && bb {
+	    invert = true
+    }
 
-		exsit, da := GetPubKeyData([]byte(pubs.Key))
-		if exsit {
-			acceptreqdata, ok := da.(*AcceptReqAddrData)
-			if ok && acceptreqdata != nil {
-				common.Debug("======================SignEC3,get reqaddr info from pubkeydata db========================","key",msgprex,"acceptreqdata",acceptreqdata)
-				HandleC1Data(acceptreqdata, msgprex) // fixed: must use sub-key `msgprex`, don't use `w.sid`
-			}
-		}
-	}()
-	go SignProcessInboundMessages(msgprex, commStopChan, errChan,&signWg, ch)
-	s, err := processSignFinalize(msgprex, kgsave.MsgToEnode, errChan, outCh, finalizeendCh, gid)
-	if err != nil || s == nil {
-	    	common.Debug("=========================SignEC3,process sign fail==============================","key",msgprex,"err",err)
-		if len(ch) == 0 {
-		    res := RPCSmpcRes{Ret: "", Err: err}
-		    ch <- res
-		}
-		close(commStopChan)
-		
-		return ""
-	}
+    recid := smpclib.DECDSASignCalcv(pre.R, pre.Ry, pkx, pky, signature.GetR(), signature.GetS(), hashBytes, invert)
+    common.Debug("=====================SignEC3,first get recid =================", "recid", recid, "key", msgprex)
 
-	close(commStopChan)
-	signWg.Wait()
+    ////check v
+    ys = secp256k1.S256().Marshal(pkx, pky)
+    pubkeyhex := hex.EncodeToString(ys)
+    pbhs := []rune(pubkeyhex)
+    if string(pbhs[0:2]) == "0x" {
+	    pubkeyhex = string(pbhs[2:])
+    }
 
-	// 5. calculate s
-	//us1 := signing.CalcUs(mMtA, pre.K1, pre.R, pre.Sigma1)
+    rsvBytes1 := append(signature.GetR().Bytes(), signature.GetS().Bytes()...)
+    for j := 0; j < 4; j++ {
+	    rsvBytes2 := append(rsvBytes1, byte(j))
+	    pkr, e := secp256k1.RecoverPubkey(hashBytes, rsvBytes2)
+	    pkr2 := hex.EncodeToString(pkr)
+	    pbhs2 := []rune(pkr2)
+	    if string(pbhs2[0:2]) == "0x" {
+		    pkr2 = string(pbhs2[2:])
+	    }
+	    if e == nil && strings.EqualFold(pkr2, pubkeyhex) {
+		    recid = j
+		    common.Debug("=====================SignEC3,second get recid =================", "recid", recid, "key", msgprex)
+		    break
+	    }
+    }
+    /////
+    signature.SetRecoveryParam(int32(recid))
+    common.Debug("=====================SignEC3,terminal get recid =================", "recid", signature.GetRecoveryParam(), "key", msgprex)
 
-	/*commitBigVAB1, commitbigvabs, rho1, l1 := DECDSASignRoundSeven(msgprex, pre.R, pre.Ry, us1, w, ch)
-	if commitBigVAB1 == nil || commitbigvabs == nil || rho1 == nil || l1 == nil {
-		return ""
-	}
-	common.Debug("=====================SignEC3, round seven finish=================","key",msgprex)
+    if !DECDSASignVerifyRSV(signature.GetR(), signature.GetS(), signature.GetRecoveryParam(), message, pkx, pky) {
+	    common.Error("=================SignEC3,verify fail==============", "key", msgprex)
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("sign verify fail")}
+	    ch <- res
+	    return ""
+    }
 
-	u1zkABProof, zkabproofs := DECDSASignRoundEight(msgprex, pre.R, pre.Ry, us1, l1, rho1, w, ch, commitBigVAB1)
-	if u1zkABProof == nil || zkabproofs == nil {
-		return ""
-	}
-	common.Debug("=====================SignEC3, round eight finish=================","key",msgprex)
+    signature2 := GetSignString(signature.GetR(), signature.GetS(), int(signature.GetRecoveryParam()))
+    rstring := "========================== r = " + fmt.Sprintf("%v", signature.GetR()) + " ========================="
+    sstring := "========================== s = " + fmt.Sprintf("%v", signature.GetS()) + " =========================="
+    fmt.Println(rstring)
+    fmt.Println(sstring)
+    fmt.Printf("===============SignEC3,verify (r,s) pass,rsv str = %v, key = %v =============\n", signature2, msgprex)
+    res := RPCSmpcRes{Ret: signature2, Err: nil}
+    ch <- res
 
-	commitbigcom, BigVx, BigVy := DECDSASignVerifyBigVAB(cointype, w, commitbigvabs, zkabproofs, commitBigVAB1, u1zkABProof, idSign, pre.R, pre.Ry, ch)
-	if commitbigcom == nil || BigVx == nil || BigVy == nil {
-		return ""
-	}
-	common.Debug("=====================SignEC3, verify BigVAB finish=================","key",msgprex)
-
-	commitbiguts, commitBigUT1 := DECDSASignRoundNine(msgprex, cointype, w, idSign, mMtA, pre.R, pkx, pky, BigVx, BigVy, rho1, commitbigcom, l1, ch)
-	if commitbiguts == nil || commitBigUT1 == nil {
-		return ""
-	}
-	common.Debug("=====================SignEC3, round nine finish=================","key",msgprex)
-
-	commitbigutd11s := DECDSASignRoundTen(msgprex, commitBigUT1, w, ch)
-	if commitbigutd11s == nil {
-		return ""
-	}
-	common.Debug("=====================SignEC3, round ten finish=================","key",msgprex)
-
-	if !DECDSASignVerifyBigUTCommitment(msgprex,cointype, commitbiguts, commitbigutd11s, commitBigUT1, w, idSign, ch, commitbigcom) {
-		return ""
-	}
-	common.Debug("=====================SignEC3, verify BigUT commitment finish=================","key",msgprex)
-	*/ //------
-
-	//ss1s := DECDSASignRoundEleven(msgprex, cointype, w, idSign, ch, us1)
-	//if ss1s == nil {
-	//	return ""
-	//}
-	//common.Debug("=====================SignEC3,round eleven finish=================","key",msgprex)
-
-	//s := Calc_s(msgprex,cointype, w, idSign, ss1s, ch)
-	//if s == nil {
-	//	return ""
-	//}
-	//common.Debug("=====================SignEC3,calc s finish=================","key",msgprex)
-
-	// 3. justify the s
-	bb := false
-	halfN := new(big.Int).Div(secp256k1.S256().N, big.NewInt(2))
-	if s.Cmp(halfN) > 0 {
-		bb = true
-		s = new(big.Int).Sub(secp256k1.S256().N, s)
-	}
-
-	zero, _ := new(big.Int).SetString("0", 10)
-	if s.Cmp(zero) == 0 {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("s == 0")}
-		ch <- res
-		return ""
-	}
-	common.Debug("=====================SignEC3,justify s finish=================", "key", msgprex)
-
-	// **[End-Test]  verify signature with MtA
-	signature := new(ECDSASignature)
-	signature.New()
-	signature.SetR(pre.R)
-	signature.SetS(s)
-
-	invert := false
-	if cointype == "ETH" && bb {
-		invert = true
-	}
-	if cointype == "BTC" && bb {
-		invert = true
-	}
-
-	recid := smpclib.DECDSASignCalcv(pre.R, pre.Ry, pkx, pky, signature.GetR(), signature.GetS(), hashBytes, invert)
-	common.Debug("=====================SignEC3,first get recid =================", "recid", recid, "key", msgprex)
-
-	////check v
-	ys = secp256k1.S256().Marshal(pkx, pky)
-	pubkeyhex := hex.EncodeToString(ys)
-	pbhs := []rune(pubkeyhex)
-	if string(pbhs[0:2]) == "0x" {
-		pubkeyhex = string(pbhs[2:])
-	}
-
-	rsvBytes1 := append(signature.GetR().Bytes(), signature.GetS().Bytes()...)
-	for j := 0; j < 4; j++ {
-		rsvBytes2 := append(rsvBytes1, byte(j))
-		pkr, e := secp256k1.RecoverPubkey(hashBytes, rsvBytes2)
-		pkr2 := hex.EncodeToString(pkr)
-		pbhs2 := []rune(pkr2)
-		if string(pbhs2[0:2]) == "0x" {
-			pkr2 = string(pbhs2[2:])
-		}
-		if e == nil && strings.EqualFold(pkr2, pubkeyhex) {
-			recid = j
-			common.Debug("=====================SignEC3,second get recid =================", "recid", recid, "key", msgprex)
-			break
-		}
-	}
-	/////
-	signature.SetRecoveryParam(int32(recid))
-	common.Debug("=====================SignEC3,terminal get recid =================", "recid", signature.GetRecoveryParam(), "key", msgprex)
-
-	if !DECDSASignVerifyRSV(signature.GetR(), signature.GetS(), signature.GetRecoveryParam(), message, pkx, pky) {
-		common.Error("=================SignEC3,verify fail==============", "key", msgprex)
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("sign verify fail")}
-		ch <- res
-		return ""
-	}
-
-	signature2 := GetSignString(signature.GetR(), signature.GetS(), int(signature.GetRecoveryParam()))
-	rstring := "========================== r = " + fmt.Sprintf("%v", signature.GetR()) + " ========================="
-	sstring := "========================== s = " + fmt.Sprintf("%v", signature.GetS()) + " =========================="
-	fmt.Println(rstring)
-	fmt.Println(sstring)
-	fmt.Printf("===============SignEC3,verify (r,s) pass,rsv str = %v, key = %v =============\n", signature2, msgprex)
-	res := RPCSmpcRes{Ret: signature2, Err: nil}
-	ch <- res
-
-	return ""
+    return ""
 }
 
 //------------------------------------------------------------------------------------------
 
 // ECDSASignature (r,s,v)
 type ECDSASignature struct {
-	r               *big.Int
-	s               *big.Int
-	recoveryParam   int32
+    r               *big.Int
+    s               *big.Int
+    recoveryParam   int32
 }
 
 // New new a *ECDSASignature
@@ -1849,104 +2013,104 @@ func (rsv *ECDSASignature) New() {
 
 // GetR get r
 func (rsv *ECDSASignature) GetR() *big.Int {
-	return rsv.r
+    return rsv.r
 }
 
 // SetR set r
 func (rsv *ECDSASignature) SetR(r *big.Int) {
-	rsv.r = r
+    rsv.r = r
 }
 
 // GetS get s
 func (rsv *ECDSASignature) GetS() *big.Int {
-	return rsv.s
+    return rsv.s
 }
 
 // SetS set s
 func (rsv *ECDSASignature) SetS(s *big.Int) {
-	rsv.s = s
+    rsv.s = s
 }
 
 // GetRecoveryParam get v
 func (rsv *ECDSASignature) GetRecoveryParam() int32 {
-	return rsv.recoveryParam
+    return rsv.recoveryParam
 }
 
 // SetRecoveryParam set v
 func (rsv *ECDSASignature) SetRecoveryParam(recoveryParam int32) {
-	rsv.recoveryParam = recoveryParam
+    rsv.recoveryParam = recoveryParam
 }
 
 //------------------------------------------------------------------------------------------
 
 // ToolDecimalByteSlice2HexString transfer Decimal byte to hex string
 func ToolDecimalByteSlice2HexString(DecimalSlice []byte) string {
-    	if DecimalSlice == nil {
-	    return ""
-	}
+    if DecimalSlice == nil {
+	return ""
+    }
 
-	var sa = make([]string, 0)
-	for _, v := range DecimalSlice {
-		sa = append(sa, fmt.Sprintf("%02X", v))
-	}
-	ss := strings.Join(sa, "")
-	return ss
+    var sa = make([]string, 0)
+    for _, v := range DecimalSlice {
+	    sa = append(sa, fmt.Sprintf("%02X", v))
+    }
+    ss := strings.Join(sa, "")
+    return ss
 }
 
 // GetSignString get RSV string
 func GetSignString(r *big.Int, s *big.Int, v int) string {
-    	if r == nil || s == nil {
-	    return "" 
-	}
+    if r == nil || s == nil {
+	return "" 
+    }
 
-	rr := r.Bytes()
-	sss := s.Bytes()
+    rr := r.Bytes()
+    sss := s.Bytes()
 
-	//bug
-	if len(rr) == 31 && len(sss) == 32 {
-		sigs := make([]byte, 65)
-		sigs[0] = byte(0)
-		smpclib.ReadBits(r, sigs[1:32])
-		smpclib.ReadBits(s, sigs[32:64])
-		sigs[64] = byte(v)
-		ret := ToolDecimalByteSlice2HexString(sigs)
-		return ret
-	}
-	if len(rr) == 31 && len(sss) == 31 {
-		sigs := make([]byte, 65)
-		sigs[0] = byte(0)
-		sigs[32] = byte(0)
-		smpclib.ReadBits(r, sigs[1:32])
-		smpclib.ReadBits(s, sigs[33:64])
-		sigs[64] = byte(v)
-		ret := ToolDecimalByteSlice2HexString(sigs)
-		return ret
-	}
-	if len(rr) == 32 && len(sss) == 31 {
-		sigs := make([]byte, 65)
-		sigs[32] = byte(0)
-		smpclib.ReadBits(r, sigs[0:32])
-		smpclib.ReadBits(s, sigs[33:64])
-		sigs[64] = byte(v)
-		ret := ToolDecimalByteSlice2HexString(sigs)
-		return ret
-	}
-	//
+    //bug
+    if len(rr) == 31 && len(sss) == 32 {
+	    sigs := make([]byte, 65)
+	    sigs[0] = byte(0)
+	    smpclib.ReadBits(r, sigs[1:32])
+	    smpclib.ReadBits(s, sigs[32:64])
+	    sigs[64] = byte(v)
+	    ret := ToolDecimalByteSlice2HexString(sigs)
+	    return ret
+    }
+    if len(rr) == 31 && len(sss) == 31 {
+	    sigs := make([]byte, 65)
+	    sigs[0] = byte(0)
+	    sigs[32] = byte(0)
+	    smpclib.ReadBits(r, sigs[1:32])
+	    smpclib.ReadBits(s, sigs[33:64])
+	    sigs[64] = byte(v)
+	    ret := ToolDecimalByteSlice2HexString(sigs)
+	    return ret
+    }
+    if len(rr) == 32 && len(sss) == 31 {
+	    sigs := make([]byte, 65)
+	    sigs[32] = byte(0)
+	    smpclib.ReadBits(r, sigs[0:32])
+	    smpclib.ReadBits(s, sigs[33:64])
+	    sigs[64] = byte(v)
+	    ret := ToolDecimalByteSlice2HexString(sigs)
+	    return ret
+    }
+    //
 
-	n := len(rr) + len(sss) + 1
-	sigs := make([]byte, n)
-	smpclib.ReadBits(r, sigs[0:len(rr)])
-	smpclib.ReadBits(s, sigs[len(rr):len(rr)+len(sss)])
+    n := len(rr) + len(sss) + 1
+    sigs := make([]byte, n)
+    smpclib.ReadBits(r, sigs[0:len(rr)])
+    smpclib.ReadBits(s, sigs[len(rr):len(rr)+len(sss)])
 
-	sigs[len(rr)+len(sss)] = byte(v)
-	ret := ToolDecimalByteSlice2HexString(sigs)
+    sigs[len(rr)+len(sss)] = byte(v)
+    ret := ToolDecimalByteSlice2HexString(sigs)
 
-	return ret
+    return ret
 }
 
 // DECDSASignVerifyRSV verify RSV
 func DECDSASignVerifyRSV(r *big.Int, s *big.Int, v int32, message string, pkx *big.Int, pky *big.Int) bool {
-	return smpclib.Verify2(r, s, v, message, pkx, pky)
+    return smpclib.Verify2(r, s, v, message, pkx, pky)
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1954,58 +2118,58 @@ func DECDSASignVerifyRSV(r *big.Int, s *big.Int, v int32, message string, pkx *b
 // signED execute the sign command with ed algorithm 
 func signED(msgprex string, txhash []string, save string, sku1 *big.Int, pk string, keytype string, ch chan interface{}) string {
 
-	tmp := make([]string, 0)
-	for _, v := range txhash {
-		txhashs := []rune(v)
-		if string(txhashs[0:2]) == "0x" {
-			tmp = append(tmp, string(txhashs[2:]))
-		} else {
-			tmp = append(tmp, string(txhashs))
-		}
+    tmp := make([]string, 0)
+    for _, v := range txhash {
+	    txhashs := []rune(v)
+	    if string(txhashs[0:2]) == "0x" {
+		    tmp = append(tmp, string(txhashs[2:]))
+	    } else {
+		    tmp = append(tmp, string(txhashs))
+	    }
 
-		//tmp = append(tmp, string(common.FromHex(v)))
-	}
+	    //tmp = append(tmp, string(common.FromHex(v)))
+    }
 
-	w, err := FindWorker(msgprex)
-	if w == nil || err != nil {
-		logs.Debug("===========get worker fail.=============")
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrNoFindWorker)}
-		ch <- res
-		return ""
-	}
-	id := w.id
+    w, err := FindWorker(msgprex)
+    if w == nil || err != nil {
+	    logs.Debug("===========get worker fail.=============")
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrNoFindWorker)}
+	    ch <- res
+	    return ""
+    }
+    id := w.id
 
-	curEnode = GetSelfEnode()
+    curEnode = GetSelfEnode()
 
-	var result string
-	var bakSig string
-	for _, v := range tmp {
-		var ch1 = make(chan interface{}, 1)
-		for i := 0; i < recalcTimes; i++ {
-			if len(ch1) != 0 {
-				<-ch1
-			}
+    var result string
+    var bakSig string
+    for _, v := range tmp {
+	    var ch1 = make(chan interface{}, 1)
+	    for i := 0; i < recalcTimes; i++ {
+		    if len(ch1) != 0 {
+			    <-ch1
+		    }
 
-			bakSig = SignED(msgprex, save, sku1, v, keytype, pk, ch1, id)
-			ret, _, cherr := GetChannelValue(cht, ch1)
-			if ret != "" && cherr == nil {
-				result += ret
-				result += ":"
-				break
-			}
+		    bakSig = SignED(msgprex, save, sku1, v, keytype, pk, ch1, id)
+		    ret, _, cherr := GetChannelValue(cht, ch1)
+		    if ret != "" && cherr == nil {
+			    result += ret
+			    result += ":"
+			    break
+		    }
 
-			time.Sleep(time.Duration(3) * time.Second)
-		}
-	}
+		    time.Sleep(time.Duration(3) * time.Second)
+	    }
+    }
 
-	result += "NULL"
-	tmps := strings.Split(result, ":")
-	if len(tmps) == (len(tmp) + 1) {
-		res := RPCSmpcRes{Ret: result, Tip: "", Err: nil}
-		ch <- res
-	}
+    result += "NULL"
+    tmps := strings.Split(result, ":")
+    if len(tmps) == (len(tmp) + 1) {
+	    res := RPCSmpcRes{Ret: result, Tip: "", Err: nil}
+	    ch <- res
+    }
 
-	return bakSig
+    return bakSig
 }
 
 //-----------------------------------------------------------------------------------------------------------------
@@ -2014,602 +2178,602 @@ func signED(msgprex string, txhash []string, save string, sku1 *big.Int, pk stri
 // msgprex = hash
 // return value is the backup for the smpc sign
 func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype string, pk string, ch chan interface{}, id int) string {
-	if id < 0 || id >= len(workers) || id >= RPCMaxWorker {
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrGetWorkerIDError)}
-		ch <- res
-		return ""
-	}
-
-	w := workers[id]
-	GroupID := w.groupid
-	if GroupID == "" {
-		res := RPCSmpcRes{Ret: "", Tip: "get group id fail", Err: fmt.Errorf("get group id fail")}
-		ch <- res
-		return ""
-	}
-
-	/*msgmap := make(map[string]string)
-	err := json.Unmarshal([]byte(save), &msgmap)
-	if err != nil {
-	    res := RPCSmpcRes{Ret: "", Tip: "ed presign get local save data fail", Err: fmt.Errorf("ed presign get local save data fail")}
+    if id < 0 || id >= len(workers) || id >= RPCMaxWorker {
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrGetWorkerIDError)}
 	    ch <- res
 	    return ""
-	}
-	kgsave := GetKGLocalDBSaveDataED(msgmap)
-	if kgsave == nil {
-	    res := RPCSmpcRes{Ret: "", Tip: "ed presign get local save data fail", Err: fmt.Errorf("ed presign get local save data fail")}
+    }
+
+    w := workers[id]
+    GroupID := w.groupid
+    if GroupID == "" {
+	    res := RPCSmpcRes{Ret: "", Tip: "get group id fail", Err: fmt.Errorf("get group id fail")}
 	    ch <- res
 	    return ""
-	}
-	sd := kgsave.Save*/
+    }
 
-	mm := strings.Split(save, common.Sep11)
-	if len(mm) == 0 {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("ed get save data fail")}
-		ch <- res
-		return ""
-	}
-
-	smpcpks, err := hex.DecodeString(w.SmpcFrom)
-	if err != nil {
-	    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
-	    ch <- res
-	    return ""
-	}
-
-	exsit, da := GetPubKeyData(smpcpks[:])
-	if !exsit || da == nil {
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("ed sign get local save data fail")}
-		ch <- res
-		return ""
-	}
-
-	pubs, ok := da.(*PubKeyData)
-	if !ok || pubs.GroupID == "" {
-		res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("ed sign get local save data fail")}
-		ch <- res
-		return ""
-	}
-
-	sd := &edkeygen.LocalDNodeSaveData{}
-
-	var sk [32]byte
-	va := sku1.Bytes()
-	if len(va) < 32 {
-	    diff := 32 - len(va)
-	    for i := 0;i<diff;i++ {
-		sk[i] = byte(0x00)
-	    }
-	    copy(sk[diff:], va[:])
-	} else {
-	    copy(sk[:], va[:32])
-	}
-
-	var tsk [32]byte
-	va = []byte(mm[2])
-	copy(tsk[:], va[:32])
-	var pkfinal [32]byte
-	va = []byte(mm[3])
-	copy(pkfinal[:], va[:32])
-
-	sd.Sk = sk
-	sd.TSk = tsk
-	sd.FinalPkBytes = pkfinal
-	sd.IDs = GetGroupNodeUIDs(cointype, pubs.GroupID,pubs.GroupID)
-	_,sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
-
-	msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
-	kgsave := &KGLocalDBSaveDataED{Save: sd, MsgToEnode: msgtoenode}
-
-	idsign := GetGroupNodeUIDs(cointype,pubs.GroupID,w.groupid)
-
-	//mMtA, _ := new(big.Int).SetString(message, 16)
-	mMtA := new(big.Int).SetBytes(common.FromHex(message))
-	if mMtA == nil {
-	    fmt.Errorf("==============SignED, w.groupid = %v, message = %v, message to []byte fail ==============\n", w.groupid, message)
-	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("message to []byte fail")}
-	    ch <- res
-	    return ""
-	}
-
-	commStopChan := make(chan struct{})
-	outCh := make(chan smpclib.Message, w.ThresHold)
-	endCh := make(chan edsigning.EdSignData, w.ThresHold)
-	finalizeendCh := make(chan *big.Int, w.ThresHold) //useness
-	errChan := make(chan struct{})
-	signDNode := edsigning.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, mMtA, finalizeendCh)
-	w.DNode = signDNode
-	_,UID := GetNodeUID(curEnode, "ED25519",pubs.GroupID)
-	signDNode.SetDNodeID(fmt.Sprintf("%v", UID))
-
-	var signWg sync.WaitGroup
-	signWg.Add(2)
-	go func() {
-		defer signWg.Done()
-		if err := signDNode.Start(); nil != err {
-			fmt.Printf("==========SignED, node start, key = %v, err = %v ==========\n", msgprex,err)
-			close(errChan)
-		}
-
-		exsit, da := GetPubKeyData([]byte(pubs.Key))
-		common.Debug("================SignED,get reqaddr info from pubkeydata db========================","key",msgprex,"exsit",exsit)
-		if exsit {
-			acceptreqdata, ok := da.(*AcceptReqAddrData)
-			if ok && acceptreqdata != nil {
-				common.Debug("================SignED,get reqaddr info from pubkeydata db========================","key",msgprex,"acceptreqdata",acceptreqdata)
-				HandleC1Data(acceptreqdata, msgprex) // fixed: must use sub-key `msgprex`, don't use `w.sid`
-			}
-		}
-	}()
-	go EdSignProcessInboundMessages(msgprex, commStopChan, errChan,&signWg, ch)
-	edrs, err := processSigned(msgprex, kgsave.MsgToEnode, errChan, outCh, endCh)
-	if err != nil || edrs == nil {
-		common.Debug("================SignED,process sign fail========================","key",msgprex,"err",err)
-		close(commStopChan)
-
-		if len(ch) == 0 {
-		    res := RPCSmpcRes{Ret: "", Err: err}
-		    ch <- res
-		}
-
-		return ""
-	}
-
-	close(commStopChan)
-	signWg.Wait()
-
-	signature := new([64]byte)
-	copy(signature[:], edrs.Rx[:])
-	copy(signature[32:], edrs.Sx[:])
-	sig := hex.EncodeToString(signature[:])
-	fmt.Printf("==================signED,get the sig = %v, signature = %v ===================\n", sig, signature)
-	res := RPCSmpcRes{Ret: sig, Tip: "", Err: nil}
+    /*msgmap := make(map[string]string)
+    err := json.Unmarshal([]byte(save), &msgmap)
+    if err != nil {
+	res := RPCSmpcRes{Ret: "", Tip: "ed presign get local save data fail", Err: fmt.Errorf("ed presign get local save data fail")}
 	ch <- res
 	return ""
+    }
+    kgsave := GetKGLocalDBSaveDataED(msgmap)
+    if kgsave == nil {
+	res := RPCSmpcRes{Ret: "", Tip: "ed presign get local save data fail", Err: fmt.Errorf("ed presign get local save data fail")}
+	ch <- res
+	return ""
+    }
+    sd := kgsave.Save*/
+
+    mm := strings.Split(save, common.Sep11)
+    if len(mm) == 0 {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("ed get save data fail")}
+	    ch <- res
+	    return ""
+    }
+
+    smpcpks, err := hex.DecodeString(w.SmpcFrom)
+    if err != nil {
+	res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
+	ch <- res
+	return ""
+    }
+
+    exsit, da := GetPubKeyData(smpcpks[:])
+    if !exsit || da == nil {
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("ed sign get local save data fail")}
+	    ch <- res
+	    return ""
+    }
+
+    pubs, ok := da.(*PubKeyData)
+    if !ok || pubs.GroupID == "" {
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("ed sign get local save data fail")}
+	    ch <- res
+	    return ""
+    }
+
+    sd := &edkeygen.LocalDNodeSaveData{}
+
+    var sk [32]byte
+    va := sku1.Bytes()
+    if len(va) < 32 {
+	diff := 32 - len(va)
+	for i := 0;i<diff;i++ {
+	    sk[i] = byte(0x00)
+	}
+	copy(sk[diff:], va[:])
+    } else {
+	copy(sk[:], va[:32])
+    }
+
+    var tsk [32]byte
+    va = []byte(mm[2])
+    copy(tsk[:], va[:32])
+    var pkfinal [32]byte
+    va = []byte(mm[3])
+    copy(pkfinal[:], va[:32])
+
+    sd.Sk = sk
+    sd.TSk = tsk
+    sd.FinalPkBytes = pkfinal
+    sd.IDs = GetGroupNodeUIDs(cointype, pubs.GroupID,pubs.GroupID)
+    _,sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
+
+    msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
+    kgsave := &KGLocalDBSaveDataED{Save: sd, MsgToEnode: msgtoenode}
+
+    idsign := GetGroupNodeUIDs(cointype,pubs.GroupID,w.groupid)
+
+    //mMtA, _ := new(big.Int).SetString(message, 16)
+    mMtA := new(big.Int).SetBytes(common.FromHex(message))
+    if mMtA == nil {
+	fmt.Errorf("==============SignED, w.groupid = %v, message = %v, message to []byte fail ==============\n", w.groupid, message)
+	res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("message to []byte fail")}
+	ch <- res
+	return ""
+    }
+
+    commStopChan := make(chan struct{})
+    outCh := make(chan smpclib.Message, w.ThresHold)
+    endCh := make(chan edsigning.EdSignData, w.ThresHold)
+    finalizeendCh := make(chan *big.Int, w.ThresHold) //useness
+    errChan := make(chan struct{})
+    signDNode := edsigning.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, mMtA, finalizeendCh)
+    w.DNode = signDNode
+    _,UID := GetNodeUID(curEnode, "ED25519",pubs.GroupID)
+    signDNode.SetDNodeID(fmt.Sprintf("%v", UID))
+
+    var signWg sync.WaitGroup
+    signWg.Add(2)
+    go func() {
+	    defer signWg.Done()
+	    if err := signDNode.Start(); nil != err {
+		    fmt.Printf("==========SignED, node start, key = %v, err = %v ==========\n", msgprex,err)
+		    close(errChan)
+	    }
+
+	    exsit, da := GetPubKeyData([]byte(pubs.Key))
+	    common.Debug("================SignED,get reqaddr info from pubkeydata db========================","key",msgprex,"exsit",exsit)
+	    if exsit {
+		    acceptreqdata, ok := da.(*AcceptReqAddrData)
+		    if ok && acceptreqdata != nil {
+			    common.Debug("================SignED,get reqaddr info from pubkeydata db========================","key",msgprex,"acceptreqdata",acceptreqdata)
+			    HandleC1Data(acceptreqdata, msgprex) // fixed: must use sub-key `msgprex`, don't use `w.sid`
+		    }
+	    }
+    }()
+    go EdSignProcessInboundMessages(msgprex, commStopChan, errChan,&signWg, ch)
+    edrs, err := processSigned(msgprex, kgsave.MsgToEnode, errChan, outCh, endCh)
+    if err != nil || edrs == nil {
+	    common.Debug("================SignED,process sign fail========================","key",msgprex,"err",err)
+	    close(commStopChan)
+
+	    if len(ch) == 0 {
+		res := RPCSmpcRes{Ret: "", Err: err}
+		ch <- res
+	    }
+
+	    return ""
+    }
+
+    close(commStopChan)
+    signWg.Wait()
+
+    signature := new([64]byte)
+    copy(signature[:], edrs.Rx[:])
+    copy(signature[32:], edrs.Sx[:])
+    sig := hex.EncodeToString(signature[:])
+    fmt.Printf("==================signED,get the sig = %v, signature = %v ===================\n", sig, signature)
+    res := RPCSmpcRes{Ret: sig, Tip: "", Err: nil}
+    ch <- res
+    return ""
 }
 
 //--------------------------------------------------------------------------------------------------------------------------
 
 /*func DECDSASignRoundSeven(msgprex string, r *big.Int, deltaGammaGy *big.Int, us1 *big.Int, w *RPCReqWorker, ch chan interface{}) (*ec2.Commitment, []string, *big.Int, *big.Int) {
-	if msgprex == "" || r == nil || deltaGammaGy == nil || us1 == nil || w == nil {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("param error")}
-		ch <- res
-		return nil, nil, nil, nil
-	}
+    if msgprex == "" || r == nil || deltaGammaGy == nil || us1 == nil || w == nil {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("param error")}
+	    ch <- res
+	    return nil, nil, nil, nil
+    }
 
-	commitBigVAB1, rho1, l1 := signing.DECDSA_Sign_Round_Seven(r, deltaGammaGy, us1)
+    commitBigVAB1, rho1, l1 := signing.DECDSA_Sign_Round_Seven(r, deltaGammaGy, us1)
 
-	mp := []string{msgprex, curEnode}
-	enode := strings.Join(mp, "-")
-	s0 := "CommitBigVAB"
-	s1 := string(commitBigVAB1.C.Bytes())
-	ss := enode + common.Sep + s0 + common.Sep + s1
-	SendMsgToSmpcGroup(ss, w.groupid)
-	DisMsg(ss)
+    mp := []string{msgprex, curEnode}
+    enode := strings.Join(mp, "-")
+    s0 := "CommitBigVAB"
+    s1 := string(commitBigVAB1.C.Bytes())
+    ss := enode + common.Sep + s0 + common.Sep + s1
+    SendMsgToSmpcGroup(ss, w.groupid)
+    DisMsg(ss)
 
-	common.Debug("===================send CommitBigVAB finish, ", "prex = ", msgprex, "", "====================")
-	_, tip, cherr := GetChannelValue(cht, w.bcommitbigvab)
-	common.Debug("===================finish get CommitBigVAB, ", "err = ", cherr, "prex = ", msgprex, "", "====================")
-	/////////////////////////request data from smpc group
-	suss := false
-	if cherr != nil {
-	    suss = ReqDataFromGroup(msgprex,w.id,"CommitBigVAB",reqdataTrytimes,reqdataTimeout)
-	} else {
-	    suss = true
-	}
-	///////////////////////////////////
+    common.Debug("===================send CommitBigVAB finish, ", "prex = ", msgprex, "", "====================")
+    _, tip, cherr := GetChannelValue(cht, w.bcommitbigvab)
+    common.Debug("===================finish get CommitBigVAB, ", "err = ", cherr, "prex = ", msgprex, "", "====================")
+    /////////////////////////request data from smpc group
+    suss := false
+    if cherr != nil {
+	suss = ReqDataFromGroup(msgprex,w.id,"CommitBigVAB",reqdataTrytimes,reqdataTimeout)
+    } else {
+	suss = true
+    }
+    ///////////////////////////////////
 
-	if !suss {
-		res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("get all CommitBigVAB timeout.")}
-		ch <- res
-		return nil, nil, nil, nil
-	}
+    if !suss {
+	    res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("get all CommitBigVAB timeout.")}
+	    ch <- res
+	    return nil, nil, nil, nil
+    }
 
-	commitbigvabs := make([]string, w.ThresHold)
-	if w.msgcommitbigvab.Len() != w.ThresHold {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get all CommitBigVAB fail.")}
-		ch <- res
-		return nil, nil, nil, nil
-	}
+    commitbigvabs := make([]string, w.ThresHold)
+    if w.msgcommitbigvab.Len() != w.ThresHold {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get all CommitBigVAB fail.")}
+	    ch <- res
+	    return nil, nil, nil, nil
+    }
 
-	itmp := 0
-	iter := w.msgcommitbigvab.Front()
-	for iter != nil {
-		mdss := iter.Value.(string)
-		commitbigvabs[itmp] = mdss
-		iter = iter.Next()
-		itmp++
-	}
+    itmp := 0
+    iter := w.msgcommitbigvab.Front()
+    for iter != nil {
+	    mdss := iter.Value.(string)
+	    commitbigvabs[itmp] = mdss
+	    iter = iter.Next()
+	    itmp++
+    }
 
-	return commitBigVAB1, commitbigvabs, rho1, l1
+    return commitBigVAB1, commitbigvabs, rho1, l1
 }
 
 func DECDSASignRoundEight(msgprex string, r *big.Int, deltaGammaGy *big.Int, us1 *big.Int, l1 *big.Int, rho1 *big.Int, w *RPCReqWorker, ch chan interface{}, commitBigVAB1 *ec2.Commitment) (*ec2.ZkABProof, []string) {
-	if msgprex == "" || r == nil || deltaGammaGy == nil || us1 == nil || w == nil || l1 == nil || rho1 == nil {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("param error")}
-		ch <- res
-		return nil, nil
-	}
+    if msgprex == "" || r == nil || deltaGammaGy == nil || us1 == nil || w == nil || l1 == nil || rho1 == nil {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("param error")}
+	    ch <- res
+	    return nil, nil
+    }
 
-	// *** Round 5B
-	u1zkABProof := signing.DECDSA_Sign_ZkABProve(rho1, l1, us1, []*big.Int{r, deltaGammaGy})
+    // *** Round 5B
+    u1zkABProof := signing.DECDSA_Sign_ZkABProve(rho1, l1, us1, []*big.Int{r, deltaGammaGy})
 
-	mp := []string{msgprex, curEnode}
-	enode := strings.Join(mp, "-")
-	s0 := "ZKABPROOF"
-	dlen := len(commitBigVAB1.D)
-	s1 := strconv.Itoa(dlen)
+    mp := []string{msgprex, curEnode}
+    enode := strings.Join(mp, "-")
+    s0 := "ZKABPROOF"
+    dlen := len(commitBigVAB1.D)
+    s1 := strconv.Itoa(dlen)
 
-	ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep
-	for _, d := range commitBigVAB1.D {
-		ss += string(d.Bytes())
-		ss += common.Sep
-	}
+    ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep
+    for _, d := range commitBigVAB1.D {
+	    ss += string(d.Bytes())
+	    ss += common.Sep
+    }
 
-	dlen = len(u1zkABProof.Alpha)
-	s22 := strconv.Itoa(dlen)
-	ss += (s22 + common.Sep)
-	for _, alp := range u1zkABProof.Alpha {
-		ss += string(alp.Bytes())
-		ss += common.Sep
-	}
+    dlen = len(u1zkABProof.Alpha)
+    s22 := strconv.Itoa(dlen)
+    ss += (s22 + common.Sep)
+    for _, alp := range u1zkABProof.Alpha {
+	    ss += string(alp.Bytes())
+	    ss += common.Sep
+    }
 
-	dlen = len(u1zkABProof.Beta)
-	s3 := strconv.Itoa(dlen)
-	ss += (s3 + common.Sep)
-	for _, bet := range u1zkABProof.Beta {
-		ss += string(bet.Bytes())
-		ss += common.Sep
-	}
+    dlen = len(u1zkABProof.Beta)
+    s3 := strconv.Itoa(dlen)
+    ss += (s3 + common.Sep)
+    for _, bet := range u1zkABProof.Beta {
+	    ss += string(bet.Bytes())
+	    ss += common.Sep
+    }
 
-	//ss = prex-enode:ZKABPROOF:dlen:d1:d2:...:dl:alplen:a1:a2:....aalp:betlen:b1:b2:...bbet:t:u:NULL
-	ss += (string(u1zkABProof.T.Bytes()) + common.Sep + string(u1zkABProof.U.Bytes()) + common.Sep)
-	ss = ss + "NULL"
-	SendMsgToSmpcGroup(ss, w.groupid)
-	DisMsg(ss)
+    //ss = prex-enode:ZKABPROOF:dlen:d1:d2:...:dl:alplen:a1:a2:....aalp:betlen:b1:b2:...bbet:t:u:NULL
+    ss += (string(u1zkABProof.T.Bytes()) + common.Sep + string(u1zkABProof.U.Bytes()) + common.Sep)
+    ss = ss + "NULL"
+    SendMsgToSmpcGroup(ss, w.groupid)
+    DisMsg(ss)
 
-	common.Debug("===================send ZKABPROOF finish, ", "prex = ", msgprex, "", "====================")
-	_, tip, cherr := GetChannelValue(cht, w.bzkabproof)
-	common.Debug("===================finish get ZKABPROOF, ", "err = ", cherr, "prex = ", msgprex, "", "====================")
-	/////////////////////////request data from smpc group
-	suss := false
-	if cherr != nil {
-	    suss = ReqDataFromGroup(msgprex,w.id,"ZKABPROOF",reqdataTrytimes,reqdataTimeout)
-	} else {
-	    suss = true
-	}
-	///////////////////////////////////
+    common.Debug("===================send ZKABPROOF finish, ", "prex = ", msgprex, "", "====================")
+    _, tip, cherr := GetChannelValue(cht, w.bzkabproof)
+    common.Debug("===================finish get ZKABPROOF, ", "err = ", cherr, "prex = ", msgprex, "", "====================")
+    /////////////////////////request data from smpc group
+    suss := false
+    if cherr != nil {
+	suss = ReqDataFromGroup(msgprex,w.id,"ZKABPROOF",reqdataTrytimes,reqdataTimeout)
+    } else {
+	suss = true
+    }
+    ///////////////////////////////////
 
-	if !suss {
-		res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("get all ZKABPROOF timeout.")}
-		ch <- res
-		return nil, nil
-	}
+    if !suss {
+	    res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("get all ZKABPROOF timeout.")}
+	    ch <- res
+	    return nil, nil
+    }
 
-	zkabproofs := make([]string, w.ThresHold)
-	if w.msgzkabproof.Len() != w.ThresHold {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get all ZKABPROOF fail.")}
-		ch <- res
-		return nil, nil
-	}
+    zkabproofs := make([]string, w.ThresHold)
+    if w.msgzkabproof.Len() != w.ThresHold {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get all ZKABPROOF fail.")}
+	    ch <- res
+	    return nil, nil
+    }
 
-	itmp := 0
-	iter := w.msgzkabproof.Front()
-	for iter != nil {
-		mdss := iter.Value.(string)
-		zkabproofs[itmp] = mdss
-		iter = iter.Next()
-		itmp++
-	}
+    itmp := 0
+    iter := w.msgzkabproof.Front()
+    for iter != nil {
+	    mdss := iter.Value.(string)
+	    zkabproofs[itmp] = mdss
+	    iter = iter.Next()
+	    itmp++
+    }
 
-	return u1zkABProof, zkabproofs
+    return u1zkABProof, zkabproofs
 }
 
 func DECDSASignVerifyBigVAB(cointype string, w *RPCReqWorker, commitbigvabs []string, zkabproofs []string, commitBigVAB1 *ec2.Commitment, u1zkABProof *ec2.ZkABProof, idSign sortableIDSSlice, r *big.Int, deltaGammaGy *big.Int, ch chan interface{}) (map[string]*ec2.Commitment, *big.Int, *big.Int) {
-	if len(commitbigvabs) == 0 || len(zkabproofs) == 0 || commitBigVAB1 == nil || u1zkABProof == nil || cointype == "" || w == nil || len(idSign) == 0 || r == nil || deltaGammaGy == nil {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("param error.")}
-		ch <- res
-		return nil, nil, nil
-	}
+    if len(commitbigvabs) == 0 || len(zkabproofs) == 0 || commitBigVAB1 == nil || u1zkABProof == nil || cointype == "" || w == nil || len(idSign) == 0 || r == nil || deltaGammaGy == nil {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("param error.")}
+	    ch <- res
+	    return nil, nil, nil
+    }
 
-	var commitbigcom = make(map[string]*ec2.Commitment)
-	for _, v := range commitbigvabs {
-		mm := strings.Split(v, common.Sep)
-		if len(mm) < 3 {
-			res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get msgcommitbigvab fail.")}
-			ch <- res
-			return nil, nil, nil
-		}
+    var commitbigcom = make(map[string]*ec2.Commitment)
+    for _, v := range commitbigvabs {
+	    mm := strings.Split(v, common.Sep)
+	    if len(mm) < 3 {
+		    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get msgcommitbigvab fail.")}
+		    ch <- res
+		    return nil, nil, nil
+	    }
 
-		prex := mm[0]
-		prexs := strings.Split(prex, "-")
-		for _, vv := range zkabproofs {
-			mmm := strings.Split(vv, common.Sep)
-			if len(mmm) < 3 {
-				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get msgzkabproof fail.")}
-				ch <- res
-				return nil, nil, nil
-			}
+	    prex := mm[0]
+	    prexs := strings.Split(prex, "-")
+	    for _, vv := range zkabproofs {
+		    mmm := strings.Split(vv, common.Sep)
+		    if len(mmm) < 3 {
+			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get msgzkabproof fail.")}
+			    ch <- res
+			    return nil, nil, nil
+		    }
 
-			prex2 := mmm[0]
-			prexs2 := strings.Split(prex2, "-")
-			if prexs[len(prexs)-1] == prexs2[len(prexs2)-1] {
-				dlen, _ := strconv.Atoi(mmm[2])
-				var gg = make([]*big.Int, 0)
-				l := 0
-				for j := 0; j < dlen; j++ {
-					l++
-					if len(mmm) < (3 + l) {
-						res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get msgzkabproof fail.")}
-						ch <- res
-						return nil, nil, nil
-					}
+		    prex2 := mmm[0]
+		    prexs2 := strings.Split(prex2, "-")
+		    if prexs[len(prexs)-1] == prexs2[len(prexs2)-1] {
+			    dlen, _ := strconv.Atoi(mmm[2])
+			    var gg = make([]*big.Int, 0)
+			    l := 0
+			    for j := 0; j < dlen; j++ {
+				    l++
+				    if len(mmm) < (3 + l) {
+					    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get msgzkabproof fail.")}
+					    ch <- res
+					    return nil, nil, nil
+				    }
 
-					gg = append(gg, new(big.Int).SetBytes([]byte(mmm[2+l])))
-				}
+				    gg = append(gg, new(big.Int).SetBytes([]byte(mmm[2+l])))
+			    }
 
-				deCommit := &ec2.Commitment{C: new(big.Int).SetBytes([]byte(mm[2])), D: gg}
-				commitbigcom[prexs[len(prexs)-1]] = deCommit
-				break
-			}
-		}
-	}
+			    deCommit := &ec2.Commitment{C: new(big.Int).SetBytes([]byte(mm[2])), D: gg}
+			    commitbigcom[prexs[len(prexs)-1]] = deCommit
+			    break
+		    }
+	    }
+    }
 
-	commitbigcom[curEnode] = commitBigVAB1
+    commitbigcom[curEnode] = commitBigVAB1
 
-	var zkabproofmap = make(map[string]*ec2.ZkABProof)
-	zkabproofmap[curEnode] = u1zkABProof
+    var zkabproofmap = make(map[string]*ec2.ZkABProof)
+    zkabproofmap[curEnode] = u1zkABProof
 
-	for _, vv := range zkabproofs {
-		mmm := strings.Split(vv, common.Sep)
-		prex2 := mmm[0]
-		prexs2 := strings.Split(prex2, "-")
+    for _, vv := range zkabproofs {
+	    mmm := strings.Split(vv, common.Sep)
+	    prex2 := mmm[0]
+	    prexs2 := strings.Split(prex2, "-")
 
-		//alpha
-		dlen, _ := strconv.Atoi(mmm[2])
-		alplen, _ := strconv.Atoi(mmm[3+dlen])
-		var alp = make([]*big.Int, 0)
-		l := 0
-		for j := 0; j < alplen; j++ {
-			l++
-			if len(mmm) < (4 + dlen + l) {
-				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get msgzkabproof fail.")}
-				ch <- res
-				return nil, nil, nil
-			}
+	    //alpha
+	    dlen, _ := strconv.Atoi(mmm[2])
+	    alplen, _ := strconv.Atoi(mmm[3+dlen])
+	    var alp = make([]*big.Int, 0)
+	    l := 0
+	    for j := 0; j < alplen; j++ {
+		    l++
+		    if len(mmm) < (4 + dlen + l) {
+			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get msgzkabproof fail.")}
+			    ch <- res
+			    return nil, nil, nil
+		    }
 
-			alp = append(alp, new(big.Int).SetBytes([]byte(mmm[3+dlen+l])))
-		}
+		    alp = append(alp, new(big.Int).SetBytes([]byte(mmm[3+dlen+l])))
+	    }
 
-		//beta
-		betlen, _ := strconv.Atoi(mmm[3+dlen+1+alplen])
-		var bet = make([]*big.Int, 0)
-		l = 0
-		for j := 0; j < betlen; j++ {
-			l++
-			if len(mmm) < (5 + dlen + alplen + l) {
-				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get msgzkabproof fail.")}
-				ch <- res
-				return nil, nil, nil
-			}
+	    //beta
+	    betlen, _ := strconv.Atoi(mmm[3+dlen+1+alplen])
+	    var bet = make([]*big.Int, 0)
+	    l = 0
+	    for j := 0; j < betlen; j++ {
+		    l++
+		    if len(mmm) < (5 + dlen + alplen + l) {
+			    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get msgzkabproof fail.")}
+			    ch <- res
+			    return nil, nil, nil
+		    }
 
-			bet = append(bet, new(big.Int).SetBytes([]byte(mmm[3+dlen+1+alplen+l])))
-		}
+		    bet = append(bet, new(big.Int).SetBytes([]byte(mmm[3+dlen+1+alplen+l])))
+	    }
 
-		t := new(big.Int).SetBytes([]byte(mmm[3+dlen+1+alplen+1+betlen]))
-		u := new(big.Int).SetBytes([]byte(mmm[3+dlen+1+alplen+1+betlen+1]))
+	    t := new(big.Int).SetBytes([]byte(mmm[3+dlen+1+alplen+1+betlen]))
+	    u := new(big.Int).SetBytes([]byte(mmm[3+dlen+1+alplen+1+betlen+1]))
 
-		zkABProof := &ec2.ZkABProof{Alpha: alp, Beta: bet, T: t, U: u}
-		zkabproofmap[prexs2[len(prexs2)-1]] = zkABProof
-	}
+	    zkABProof := &ec2.ZkABProof{Alpha: alp, Beta: bet, T: t, U: u}
+	    zkabproofmap[prexs2[len(prexs2)-1]] = zkABProof
+    }
 
-	var BigVx, BigVy *big.Int
-	for k, id := range idSign {
-		enodes := GetEnodesByUid(id, cointype, w.groupid)
-		////////bug
-		if len(enodes) < 9 {
-			res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get enodes error")}
-			ch <- res
-			return nil, nil, nil
-		}
-		////////
+    var BigVx, BigVy *big.Int
+    for k, id := range idSign {
+	    enodes := GetEnodesByUid(id, cointype, w.groupid)
+	    ////////bug
+	    if len(enodes) < 9 {
+		    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get enodes error")}
+		    ch <- res
+		    return nil, nil, nil
+	    }
+	    ////////
 
-		en := strings.Split(string(enodes[8:]), "@")
-		if !keygen.DECDSA_Key_Commitment_Verify(commitbigcom[en[0]]) {
-			res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify commitbigvab fail.")}
-			ch <- res
-			return nil, nil, nil
-		}
+	    en := strings.Split(string(enodes[8:]), "@")
+	    if !keygen.DECDSA_Key_Commitment_Verify(commitbigcom[en[0]]) {
+		    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify commitbigvab fail.")}
+		    ch <- res
+		    return nil, nil, nil
+	    }
 
-		_, BigVAB1 := signing.DECDSA_Key_DeCommit(commitbigcom[en[0]])
-		if !signing.DECDSA_Sign_ZkABVerify([]*big.Int{BigVAB1[2], BigVAB1[3]}, []*big.Int{BigVAB1[4], BigVAB1[5]}, []*big.Int{BigVAB1[0], BigVAB1[1]}, []*big.Int{r, deltaGammaGy}, zkabproofmap[en[0]]) {
-			res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify zkabproof fail.")}
-			ch <- res
-			return nil, nil, nil
-		}
+	    _, BigVAB1 := signing.DECDSA_Key_DeCommit(commitbigcom[en[0]])
+	    if !signing.DECDSA_Sign_ZkABVerify([]*big.Int{BigVAB1[2], BigVAB1[3]}, []*big.Int{BigVAB1[4], BigVAB1[5]}, []*big.Int{BigVAB1[0], BigVAB1[1]}, []*big.Int{r, deltaGammaGy}, zkabproofmap[en[0]]) {
+		    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify zkabproof fail.")}
+		    ch <- res
+		    return nil, nil, nil
+	    }
 
-		if k == 0 {
-			BigVx = BigVAB1[0]
-			BigVy = BigVAB1[1]
-			continue
-		}
+	    if k == 0 {
+		    BigVx = BigVAB1[0]
+		    BigVy = BigVAB1[1]
+		    continue
+	    }
 
-		BigVx, BigVy = secp256k1.S256().Add(BigVx, BigVy, BigVAB1[0], BigVAB1[1])
-	}
+	    BigVx, BigVy = secp256k1.S256().Add(BigVx, BigVy, BigVAB1[0], BigVAB1[1])
+    }
 
-	return commitbigcom, BigVx, BigVy
+    return commitbigcom, BigVx, BigVy
 }
 
 func DECDSASignRoundNine(msgprex string, cointype string, w *RPCReqWorker, idSign sortableIDSSlice, mMtA *big.Int, r *big.Int, pkx *big.Int, pky *big.Int, BigVx *big.Int, BigVy *big.Int, rho1 *big.Int, commitbigcom map[string]*ec2.Commitment, l1 *big.Int, ch chan interface{}) ([]string, *ec2.Commitment) {
-	//if len(idSign) == 0 || len(commitbigcom) == 0 || msgprex == "" || w == nil || cointype == "" || mMtA == nil || r == nil || pkx == nil || pky == nil || l1 == nil || rho1 == nil {
-	//	res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("param error.")}
-	//	ch <- res
-	//	return nil, nil
-	//}
+    //if len(idSign) == 0 || len(commitbigcom) == 0 || msgprex == "" || w == nil || cointype == "" || mMtA == nil || r == nil || pkx == nil || pky == nil || l1 == nil || rho1 == nil {
+    //	res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("param error.")}
+    //	ch <- res
+    //	return nil, nil
+    //}
 
-	bigU1x, bigU1y := signing.DECDSA_Sign_Round_Nine(mMtA, r, pkx, pky, BigVx, BigVy, rho1)
+    bigU1x, bigU1y := signing.DECDSA_Sign_Round_Nine(mMtA, r, pkx, pky, BigVx, BigVy, rho1)
 
-	// bigA23 = bigA2 + bigA3
-	var bigT1x, bigT1y *big.Int
-	var ind int
-	for k, id := range idSign {
-		enodes := GetEnodesByUid(id, cointype, w.groupid)
-		////////bug
-		if len(enodes) < 9 {
-			res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get enodes error")}
-			ch <- res
-			return nil, nil
-		}
-		////////
+    // bigA23 = bigA2 + bigA3
+    var bigT1x, bigT1y *big.Int
+    var ind int
+    for k, id := range idSign {
+	    enodes := GetEnodesByUid(id, cointype, w.groupid)
+	    ////////bug
+	    if len(enodes) < 9 {
+		    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get enodes error")}
+		    ch <- res
+		    return nil, nil
+	    }
+	    ////////
 
-		en := strings.Split(string(enodes[8:]), "@")
-		if IsCurNode(enodes, curEnode) {
-			continue
-		}
+	    en := strings.Split(string(enodes[8:]), "@")
+	    if IsCurNode(enodes, curEnode) {
+		    continue
+	    }
 
-		_, BigVAB1 := signing.DECDSA_Key_DeCommit(commitbigcom[en[0]])
-		bigT1x = BigVAB1[2]
-		bigT1y = BigVAB1[3]
-		ind = k
-		break
-	}
+	    _, BigVAB1 := signing.DECDSA_Key_DeCommit(commitbigcom[en[0]])
+	    bigT1x = BigVAB1[2]
+	    bigT1y = BigVAB1[3]
+	    ind = k
+	    break
+    }
 
-	for k, id := range idSign {
-		enodes := GetEnodesByUid(id, cointype, w.groupid)
-		////////bug
-		if len(enodes) < 9 {
-			res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get enodes error")}
-			ch <- res
-			return nil, nil
-		}
-		////////
-		en := strings.Split(string(enodes[8:]), "@")
-		if IsCurNode(enodes, curEnode) {
-			continue
-		}
+    for k, id := range idSign {
+	    enodes := GetEnodesByUid(id, cointype, w.groupid)
+	    ////////bug
+	    if len(enodes) < 9 {
+		    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get enodes error")}
+		    ch <- res
+		    return nil, nil
+	    }
+	    ////////
+	    en := strings.Split(string(enodes[8:]), "@")
+	    if IsCurNode(enodes, curEnode) {
+		    continue
+	    }
 
-		if k == ind {
-			continue
-		}
+	    if k == ind {
+		    continue
+	    }
 
-		_, BigVAB1 := signing.DECDSA_Key_DeCommit(commitbigcom[en[0]])
-		bigT1x, bigT1y = secp256k1.S256().Add(bigT1x, bigT1y, BigVAB1[2], BigVAB1[3])
-	}
+	    _, BigVAB1 := signing.DECDSA_Key_DeCommit(commitbigcom[en[0]])
+	    bigT1x, bigT1y = secp256k1.S256().Add(bigT1x, bigT1y, BigVAB1[2], BigVAB1[3])
+    }
 
-	commitBigUT1 := signing.DECDSA_Sign_Round_Nine_Commitment(bigT1x, bigT1y, l1, bigU1x, bigU1y)
+    commitBigUT1 := signing.DECDSA_Sign_Round_Nine_Commitment(bigT1x, bigT1y, l1, bigU1x, bigU1y)
 
-	// Broadcast commitBigUT1.C
-	mp := []string{msgprex, curEnode}
-	enode := strings.Join(mp, "-")
-	s0 := "CommitBigUT"
-	s1 := string(commitBigUT1.C.Bytes())
-	ss := enode + common.Sep + s0 + common.Sep + s1
-	SendMsgToSmpcGroup(ss, w.groupid)
-	DisMsg(ss)
+    // Broadcast commitBigUT1.C
+    mp := []string{msgprex, curEnode}
+    enode := strings.Join(mp, "-")
+    s0 := "CommitBigUT"
+    s1 := string(commitBigUT1.C.Bytes())
+    ss := enode + common.Sep + s0 + common.Sep + s1
+    SendMsgToSmpcGroup(ss, w.groupid)
+    DisMsg(ss)
 
-	common.Debug("===================send CommitBigUT finish, ", "prex = ", msgprex, "", "====================")
-	_, tip, cherr := GetChannelValue(cht, w.bcommitbigut)
-	common.Debug("===================finish get CommitBigUT, ", "err = ", cherr, "prex = ", msgprex, "", "====================")
-	/////////////////////////request data from smpc group
-	suss := false
-	if cherr != nil {
-	    suss = ReqDataFromGroup(msgprex,w.id,"CommitBigUT",reqdataTrytimes,reqdataTimeout)
-	} else {
-	    suss = true
-	}
-	///////////////////////////////////
+    common.Debug("===================send CommitBigUT finish, ", "prex = ", msgprex, "", "====================")
+    _, tip, cherr := GetChannelValue(cht, w.bcommitbigut)
+    common.Debug("===================finish get CommitBigUT, ", "err = ", cherr, "prex = ", msgprex, "", "====================")
+    /////////////////////////request data from smpc group
+    suss := false
+    if cherr != nil {
+	suss = ReqDataFromGroup(msgprex,w.id,"CommitBigUT",reqdataTrytimes,reqdataTimeout)
+    } else {
+	suss = true
+    }
+    ///////////////////////////////////
 
-	if !suss {
-		res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("get all CommitBigUT timeout.")}
-		ch <- res
-		return nil, nil
-	}
+    if !suss {
+	    res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("get all CommitBigUT timeout.")}
+	    ch <- res
+	    return nil, nil
+    }
 
-	commitbiguts := make([]string, w.ThresHold)
-	if w.msgcommitbigut.Len() != w.ThresHold {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get all CommitBigUT fail.")}
-		ch <- res
-		return nil, nil
-	}
+    commitbiguts := make([]string, w.ThresHold)
+    if w.msgcommitbigut.Len() != w.ThresHold {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get all CommitBigUT fail.")}
+	    ch <- res
+	    return nil, nil
+    }
 
-	itmp := 0
-	iter := w.msgcommitbigut.Front()
-	for iter != nil {
-		mdss := iter.Value.(string)
-		commitbiguts[itmp] = mdss
-		iter = iter.Next()
-		itmp++
-	}
+    itmp := 0
+    iter := w.msgcommitbigut.Front()
+    for iter != nil {
+	    mdss := iter.Value.(string)
+	    commitbiguts[itmp] = mdss
+	    iter = iter.Next()
+	    itmp++
+    }
 
-	return commitbiguts, commitBigUT1
+    return commitbiguts, commitBigUT1
 }
 
 func DECDSASignRoundTen(msgprex string, commitBigUT1 *ec2.Commitment, w *RPCReqWorker, ch chan interface{}) []string {
-	if msgprex == "" || commitBigUT1 == nil || w == nil {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("param error.")}
-		ch <- res
-		return nil
-	}
+    if msgprex == "" || commitBigUT1 == nil || w == nil {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("param error.")}
+	    ch <- res
+	    return nil
+    }
 
-	// *** Round 5D
-	// Broadcast
-	// commitBigUT1.D,  commitBigUT2.D,  commitBigUT3.D
-	mp := []string{msgprex, curEnode}
-	enode := strings.Join(mp, "-")
-	s0 := "CommitBigUTD11"
-	dlen := len(commitBigUT1.D)
-	s1 := strconv.Itoa(dlen)
+    // *** Round 5D
+    // Broadcast
+    // commitBigUT1.D,  commitBigUT2.D,  commitBigUT3.D
+    mp := []string{msgprex, curEnode}
+    enode := strings.Join(mp, "-")
+    s0 := "CommitBigUTD11"
+    dlen := len(commitBigUT1.D)
+    s1 := strconv.Itoa(dlen)
 
-	ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep
-	for _, d := range commitBigUT1.D {
-		ss += string(d.Bytes())
-		ss += common.Sep
-	}
-	ss = ss + "NULL"
-	SendMsgToSmpcGroup(ss, w.groupid)
-	DisMsg(ss)
+    ss := enode + common.Sep + s0 + common.Sep + s1 + common.Sep
+    for _, d := range commitBigUT1.D {
+	    ss += string(d.Bytes())
+	    ss += common.Sep
+    }
+    ss = ss + "NULL"
+    SendMsgToSmpcGroup(ss, w.groupid)
+    DisMsg(ss)
 
-	common.Debug("===================send CommitBigUTD11 finish, ", "prex = ", msgprex, "", "====================")
-	_, tip, cherr := GetChannelValue(cht, w.bcommitbigutd11)
-	common.Debug("===================finish get CommitBigUTD11, ", "err = ", cherr, "prex = ", msgprex, "", "====================")
-	/////////////////////////request data from smpc group
-	suss := false
-	if cherr != nil {
-	    suss = ReqDataFromGroup(msgprex,w.id,"CommitBigUTD11",reqdataTrytimes,reqdataTimeout)
-	} else {
-	    suss = true
-	}
-	///////////////////////////////////
+    common.Debug("===================send CommitBigUTD11 finish, ", "prex = ", msgprex, "", "====================")
+    _, tip, cherr := GetChannelValue(cht, w.bcommitbigutd11)
+    common.Debug("===================finish get CommitBigUTD11, ", "err = ", cherr, "prex = ", msgprex, "", "====================")
+    /////////////////////////request data from smpc group
+    suss := false
+    if cherr != nil {
+	suss = ReqDataFromGroup(msgprex,w.id,"CommitBigUTD11",reqdataTrytimes,reqdataTimeout)
+    } else {
+	suss = true
+    }
+    ///////////////////////////////////
 
-	if !suss {
-		res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("get all CommitBigUTD11 fail.")}
-		ch <- res
-		return nil
-	}
+    if !suss {
+	    res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("get all CommitBigUTD11 fail.")}
+	    ch <- res
+	    return nil
+    }
 
-	commitbigutd11s := make([]string, w.ThresHold)
-	if w.msgcommitbigutd11.Len() != w.ThresHold {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get all CommitBigUTD11 fail.")}
-		ch <- res
-		return nil
-	}
+    commitbigutd11s := make([]string, w.ThresHold)
+    if w.msgcommitbigutd11.Len() != w.ThresHold {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get all CommitBigUTD11 fail.")}
+	    ch <- res
+	    return nil
+    }
 
-	itmp := 0
-	iter := w.msgcommitbigutd11.Front()
-	for iter != nil {
-		mdss := iter.Value.(string)
-		commitbigutd11s[itmp] = mdss
-		iter = iter.Next()
-		itmp++
-	}
+    itmp := 0
+    iter := w.msgcommitbigutd11.Front()
+    for iter != nil {
+	    mdss := iter.Value.(string)
+	    commitbigutd11s[itmp] = mdss
+	    iter = iter.Next()
+	    itmp++
+    }
 
-	return commitbigutd11s
+    return commitbigutd11s
 }
 
 func DECDSASignVerifyBigUTCommitment(msgprex string,cointype string, commitbiguts []string, commitbigutd11s []string, commitBigUT1 *ec2.Commitment, w *RPCReqWorker, idSign sortableIDSSlice, ch chan interface{}, commitbigcom map[string]*ec2.Commitment) bool {
-	if msgprex == "" || cointype == "" || len(commitbiguts) == 0 || len(commitbigutd11s) == 0 || commitBigUT1 == nil || w == nil || len(idSign) == 0 || commitbigcom == nil {
-		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("param error.")}
-		ch <- res
+    if msgprex == "" || cointype == "" || len(commitbiguts) == 0 || len(commitbigutd11s) == 0 || commitBigUT1 == nil || w == nil || len(idSign) == 0 || commitbigcom == nil {
+	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("param error.")}
+	    ch <- res
 		return false
 	}
 

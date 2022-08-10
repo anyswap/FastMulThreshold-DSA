@@ -452,17 +452,17 @@ func UnCompressSignBrocastData(data string) (*SignBrocastData, error) {
 
 // GetPreSignKey get the key of level db that saving pre-sign data
 // strings.ToLower(256Hash(pubkey:inputcode:gid:index)) ---> PreSignData
-func GetPreSignKey(pubkey string, inputcode string, gid string, index int) (string, error) {
-	if pubkey == "" || gid == "" || index < 0 {
+func GetPreSignKey(pubkey string, inputcode string, gid string, index string) (string, error) {
+	if pubkey == "" || gid == "" || index == "" {
 		return "", fmt.Errorf("get pre-sign key fail,param error")
 	}
 
 	if inputcode != "" {
-		key := strings.ToLower(Keccak256Hash([]byte(strings.ToLower(pubkey + ":" + inputcode + ":" + gid + ":" + strconv.Itoa(index)))).Hex())
+		key := strings.ToLower(Keccak256Hash([]byte(strings.ToLower(pubkey + ":" + inputcode + ":" + gid + ":" + index))).Hex())
 		return key, nil
 	}
 
-	key := strings.ToLower(Keccak256Hash([]byte(strings.ToLower(pubkey + ":" + gid + ":" + strconv.Itoa(index)))).Hex())
+	key := strings.ToLower(Keccak256Hash([]byte(strings.ToLower(pubkey + ":" + gid + ":" + index))).Hex())
 	return key, nil
 }
 
@@ -481,7 +481,7 @@ func BinarySearchVacancy(pubkey string, inputcode string, gid string, start int,
 	}
 
 	if start == end {
-		key, err := GetPreSignKey(pubkey, inputcode, gid, start)
+		key, err := GetPreSignKey(pubkey, inputcode, gid, strconv.Itoa(start))
 		if err != nil {
 			return -1
 		}
@@ -540,7 +540,7 @@ func GetTotalCount(pubkey string, inputcode string, gid string) int {
 			go func(index int) {
 				defer wg.Done()
 
-				key, err := GetPreSignKey(pubkey, inputcode, gid, index)
+				key, err := GetPreSignKey(pubkey, inputcode, gid, strconv.Itoa(index))
 				if err != nil {
 					return
 				}
@@ -561,11 +561,18 @@ func GetTotalCount(pubkey string, inputcode string, gid string) int {
 
 // PutPreSignData put pre-sign data to local db under the specified pubkey/gid/inputcode
 func PutPreSignData(pubkey string, inputcode string, gid string, index int, val *PreSignData, force bool) error {
-	if predb == nil || val == nil || index < 0 {
+	if predb == nil || val == nil {
 		return fmt.Errorf("put pre-sign data fail,param error")
 	}
 
-	key, err := GetPreSignKey(pubkey, inputcode, gid, index)
+	var tmp string
+	if index < 0 {
+	    tmp = val.Key
+	} else {
+	    tmp = strconv.Itoa(index)
+	}
+
+	key, err := GetPreSignKey(pubkey, inputcode, gid, tmp)
 	if err != nil {
 		return err
 	}
@@ -583,7 +590,7 @@ func PutPreSignData(pubkey string, inputcode string, gid string, index int, val 
 			common.Error("====================PutPreSignData,put pre-sign data to db fail ======================", "pubkey", pubkey, "gid", gid, "index", index, "datakey", val.Key, "err", err)
 		}
 
-		//common.Debug("====================PutPreSignData,put pre-sign data to db success ======================","pubkey",pubkey,"gid",gid,"index",index,"datakey",val.Key)
+		common.Debug("====================PutPreSignData,put pre-sign data to db success ======================","pubkey",pubkey,"gid",gid,"index",index,"datakey",val.Key)
 		return err
 	}
 
@@ -600,7 +607,7 @@ func PutPreSignData(pubkey string, inputcode string, gid string, index int, val 
 			return nil //force update fail,but still return nil
 		}
 
-		//common.Debug("====================PutPreSignData,force update,put pre-sign data to db success ======================","pubkey",pubkey,"gid",gid,"index",index,"datakey",val.Key)
+		common.Debug("====================PutPreSignData,force update,put pre-sign data to db success ======================","pubkey",pubkey,"gid",gid,"index",index,"datakey",val.Key)
 		return nil
 	}
 
@@ -622,8 +629,9 @@ func BinarySearchPreSignData(pubkey string, inputcode string, gid string, datake
 	}
 
 	if start == end {
-		key, err := GetPreSignKey(pubkey, inputcode, gid, start)
+		key, err := GetPreSignKey(pubkey, inputcode, gid, strconv.Itoa(start))
 		if err != nil {
+		    common.Error("=======================BinarySearchPreSignData,get pre-sign key fail======================","err",err,"pubkey",pubkey,"gid",gid,"datakey",datakey,"start",start)
 			return -1, nil
 		}
 		da, err := predb.Get([]byte(key))
@@ -655,6 +663,26 @@ func GetPreSignData(pubkey string, inputcode string, gid string, datakey string)
 	}
 
 	_, data := BinarySearchPreSignData(pubkey, inputcode, gid, datakey, 0, PrePubDataCount-1)
+	//find in the other area
+	if data == nil {
+	    key, err := GetPreSignKey(pubkey, inputcode, gid, datakey)
+	    if err != nil {
+		    return nil
+	    }
+	    da, err := predb.Get([]byte(key))
+	    if da != nil && err == nil {
+		    psd := &PreSignData{}
+		    if err = psd.UnmarshalJSON(da); err == nil {
+			    if strings.EqualFold(psd.Key, datakey) {
+				    return psd
+			    }
+		    }
+	    }
+
+	    return nil
+	}
+	//
+
 	return data
 }
 
@@ -667,10 +695,32 @@ func DeletePreSignData(pubkey string, inputcode string, gid string, datakey stri
 
 	index, data := BinarySearchPreSignData(pubkey, inputcode, gid, datakey, 0, PrePubDataCount-1)
 	if data == nil || index < 0 {
-		return fmt.Errorf("pre-sign data was not found")
+	    //find in the other area
+	    key, err := GetPreSignKey(pubkey, inputcode, gid, datakey)
+	    if err != nil {
+		    return err
+	    }
+	    da, err := predb.Get([]byte(key))
+	    if da != nil && err == nil {
+		    psd := &PreSignData{}
+		    if err = psd.UnmarshalJSON(da); err == nil {
+			    if strings.EqualFold(psd.Key, datakey) {
+				    err = predb.Delete([]byte(key))
+				    if err != nil {
+					    common.Error("======================DeletePreSignData,delete pre-sign data from db fail.==========================", "pubkey", pubkey, "gid", gid, "index", index, "datakey", datakey, "err", err)
+					return err
+				    }
+
+				    return nil
+			    }
+		    }
+	    }
+	    //
+
+	    return fmt.Errorf("pre-sign data was not found")
 	}
 
-	key, err := GetPreSignKey(pubkey, inputcode, gid, index)
+	key, err := GetPreSignKey(pubkey, inputcode, gid, strconv.Itoa(index))
 	if err != nil {
 		return err
 	}
@@ -698,7 +748,7 @@ func BinarySearchPick(pubkey string, inputcode string, gid string, start int, en
 	}
 
 	if start == end {
-		key, err := GetPreSignKey(pubkey, inputcode, gid, start)
+		key, err := GetPreSignKey(pubkey, inputcode, gid, strconv.Itoa(start))
 		if err != nil {
 			return -1, nil
 		}
@@ -734,7 +784,7 @@ func PickPreSignData(pubkey string, inputcode string, gid string) *PreSignData {
 		return nil
 	}
 
-	key, err := GetPreSignKey(pubkey, inputcode, gid, index)
+	key, err := GetPreSignKey(pubkey, inputcode, gid, strconv.Itoa(index))
 	if err != nil {
 		return nil
 	}
@@ -970,7 +1020,7 @@ func NeedPreSignForBip32(pubkey string, inputcode string, gid string) (int, bool
 	for i := 0; i < PreBip32DataCount; i++ {
 		go func(index int) {
 
-			key, err := GetPreSignKey(pubkey, inputcode, gid, index)
+			key, err := GetPreSignKey(pubkey, inputcode, gid, strconv.Itoa(index))
 			if err != nil {
 				return
 			}

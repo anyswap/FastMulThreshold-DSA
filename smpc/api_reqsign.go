@@ -660,7 +660,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 			err = PutPreSignData(ps.Pub, ps.InputCode, ps.Gid, ps.Index, pre, true)
 			if err != nil {
-				common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time,put pre-sign data to local db fail. ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid, "err", err)
+				common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time,put pre-sign data to local db fail. ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid, "err", err,"index",pre.Index)
 				if syncpresign && !SynchronizePreSignData(w.sid, w.id, false) {
 					common.Info("================================PreSign at RecvMsg.Run, put pre-sign data to local db fail=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index, "err", err)
 					res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
@@ -688,7 +688,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				return false
 			}
 
-			common.Info("============================PreSign at RecvMsg.Run, pre-generated sign data succeeded.==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid)
+			common.Info("============================PreSign at RecvMsg.Run, pre-generated sign data succeeded.==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid,"index",ps.Index)
 			res := RPCSmpcRes{Ret: "success", Tip: "", Err: nil}
 			ch <- res
 			return true
@@ -697,7 +697,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 		if msgmap["Type"] == "ComSignBrocastData" {
 			signbrocast, err := UnCompressSignBrocastData(msgmap["ComSignBrocastData"])
 			if err != nil {
-			    fmt.Printf("=======================PreSign at RecvMsg.Run,uncompress sign brocast data fail,err = %v========================\n",err)
+			    log.Error("=======================DoReq,uncompress sign brocast data fail========================","err",err)
 			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			    ch <- res
 			    return false
@@ -716,14 +716,17 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			    ch <- res
 			    return false
 			}
-			
+		
+			//must delete the pre-sign data before continuing with the next checking
+			mutex.Lock()
 			pickdata := make([]*PickHashData, 0)
 			for _, vv := range signbrocast.PickHash {
 				pre := GetPreSignData(sig.PubKey, sig.InputCode, sig.GroupID, vv.PickKey)
 				if pre == nil {
-				    fmt.Printf("============================PreSign at RecvMsg.Run,get pre-sign data fail============================\n")
+				    log.Error("============================DoReq,get pre-sign data fail============================","pubkey",sig.PubKey,"gid",sig.GroupID,"data key",vv.PickKey)
 				    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get pre-sign data fail")}
 				    ch <- res
+				    mutex.Unlock()
 				    return false
 				}
 
@@ -731,12 +734,14 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				pickdata = append(pickdata, pd)
 				err = DeletePreSignData(sig.PubKey, sig.InputCode, sig.GroupID, vv.PickKey)
 				if err != nil {
-				    fmt.Printf("============================PreSign at RecvMsg.Run,delete pre-sign data fail,err = %v============================\n",err)
+				    log.Error("============================DoReq,delete pre-sign data fail============================","err",err,"pubkey",sig.PubKey,"gid",sig.GroupID,"data key",vv.PickKey)
 				    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 				    ch <- res
+				    mutex.Unlock()
 				    return false
 				}
 			}
+			mutex.Unlock()
 
 			signpick := &SignPickData{Raw: signbrocast.Raw, PickData: pickdata}
 			errtmp := DoSign(signpick, workid, sender, ch)
