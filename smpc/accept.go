@@ -168,7 +168,7 @@ func CheckAccept(pubkey string, mode string, account string) bool {
 							return true
 						}
 
-						if mode == "0" && CheckAcc(curEnode, account, ac.Sigs) {
+						if (mode == "0" || mode == "2") && CheckAcc(curEnode, account, ac.Sigs) {
 							return true
 						}
 					}

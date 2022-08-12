@@ -424,6 +424,9 @@ func GetGroupNodeUIDs(keytype string,gid string,subgid string) smpclib.SortableI
     }
 
     allids := GetIDs(keytype,gid)
+    if len(allids) == 0 {
+	return nil
+    }
 
     var ids smpclib.SortableIDSSlice
     _, nodes := GetGroup(subgid)
@@ -431,7 +434,15 @@ func GetGroupNodeUIDs(keytype string,gid string,subgid string) smpclib.SortableI
     for _, v := range others {
 	    node2 := ParseNode(v) //bug??
 	    id := DoubleHash(node2, keytype)
+	    if id == nil {
+		continue
+	    }
+
 	    for kk,vv := range allids {
+		if vv == nil {
+		    continue
+		}
+
 		if vv.Cmp(id) == 0 {
 		    ids = append(ids,big.NewInt(int64(kk+1)))
 		    break
@@ -799,5 +810,22 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	}
 	//
        return smpcreq.CheckTxData(data, from, nonce)
+}
+
+func IsInGroup(gid string) bool {
+    if gid == "" {
+	return false
+    }
+    
+    _, enodes := GetGroup(gid)
+    nodes := strings.Split(enodes, common.Sep2)
+    for _, node := range nodes {
+	node2 := ParseNode(node)
+	if strings.EqualFold(curEnode,node2) {
+	    return true 
+	}
+    }
+
+    return false
 }
 

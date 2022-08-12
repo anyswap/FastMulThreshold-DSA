@@ -586,7 +586,7 @@ func processReshare(msgprex string, groupid string, pubkey string, account strin
 				return nil, errors.New("save reqaddr accept data fail")
 			}
 
-			if mode == "0" {
+			if mode == "0" || mode == "2" {
 				sigs2 := strings.Split(ac.Sigs, common.Sep)
 				cnt, _ := strconv.Atoi(sigs2[0])
 				for j := 0; j < cnt; j++ {

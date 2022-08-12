@@ -191,6 +191,15 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 
 	req2, ok := txdata.(*TxDataReqAddr)
 	if ok {
+		//check current node whther in group
+		// cmd data default not to relay to other nodes
+		if !IsInGroup(req2.GroupID) {
+			res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("current node is not in group")}
+			ch <- res
+			return false
+		}
+		//
+
 		exsit, _ := GetReqAddrInfoData([]byte(key))
 		if exsit {
 		    res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("the pubkey requestion has already exsit")}
@@ -278,7 +287,7 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 		}
 
 		enode := curEnode
-		if ac.Mode == "0" {
+		if ac.Mode == "0" || ac.Mode == "2" {
 			enode = GetENodeByFrom(from,ac)
 			if enode == "" {
 				log.Error("================DoReq,get enode fail===============","keygen key",key,"from",from)
@@ -299,7 +308,7 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 		//AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "false", "Pending", "", "", "", arstmp, workid, "")
 		//
 		
-		if req2.Mode == "0" { // self-group
+		if req2.Mode == "0" || req2.Mode == "2" { // self-group
 			////
 			var reply bool
 			var keygentimeout bool

@@ -120,6 +120,8 @@ type RPCReqWorker struct {
 	ThresHold        int
 	sid              string //save the key
 	approved         bool
+	PickHash []*PickHashKey
+	subgid              string
 	//
 	msgacceptreqaddrres *list.List
 	msgacceptreshareres *list.List
@@ -153,6 +155,7 @@ type RPCReqWorker struct {
 	sku1   *list.List
 	bip32c *list.List
 
+	bgosign chan bool
 	bacceptreqaddrres chan bool
 	bacceptreshareres chan bool
 	bacceptsignres    chan bool
@@ -261,6 +264,7 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		sku1:   list.New(),
 		bip32c: list.New(),
 
+		bgosign: make(chan bool, 1),
 		bacceptreqaddrres: make(chan bool, 1),
 		bacceptreshareres: make(chan bool, 1),
 		bacceptsignres:    make(chan bool, 1),
@@ -315,6 +319,7 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		msgeds:      list.New(),
 
 		sid:       "",
+		subgid:       "",
 		approved:      false,
 		NodeCnt:   5,
 		ThresHold: 5,
@@ -332,6 +337,7 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		PreSaveSmpcMsg: make([]string, 0),
 		Msg2Peer: make([]string, 0),
 		ApprovReplys: make([]*ApprovReply, 0),
+		PickHash: make([]*PickHashKey, 0),
 		Msg56:     make(map[string]bool),
 	}
 }
@@ -342,6 +348,7 @@ func (w *RPCReqWorker) Clear() {
 	common.Debug("======================RpcReqWorker.Clear======================", "w.id", w.id, "w.groupid", w.groupid, "key", w.sid)
 
 	w.sid = ""
+	w.subgid = ""
 	w.approved = false
 	w.groupid = ""
 	w.limitnum = ""
@@ -532,6 +539,9 @@ func (w *RPCReqWorker) Clear() {
 	if len(w.bacceptreqaddrres) == 1 {
 		<-w.bacceptreqaddrres
 	}
+	if len(w.bgosign) == 1 {
+		<-w.bgosign
+	}
 	if len(w.bc1) == 1 {
 		<-w.bc1
 	}
@@ -690,6 +700,7 @@ func (w *RPCReqWorker) Clear() {
 	w.PreSaveSmpcMsg = make([]string, 0)
 	w.Msg2Peer = make([]string, 0)
 	w.ApprovReplys = make([]*ApprovReply, 0)
+	w.PickHash = make([]*PickHashKey, 0)
 	w.Msg56 = make(map[string]bool)
 }
 
@@ -880,6 +891,9 @@ func (w *RPCReqWorker) Clear2() {
 	if len(w.bacceptreqaddrres) == 1 {
 		<-w.bacceptreqaddrres
 	}
+	if len(w.bgosign) == 1 {
+		<-w.bgosign
+	}
 	if len(w.bc1) == 1 {
 		<-w.bc1
 	}
@@ -1038,6 +1052,7 @@ func (w *RPCReqWorker) Clear2() {
 	w.PreSaveSmpcMsg = make([]string, 0)
 	w.Msg2Peer = make([]string, 0)
 	w.ApprovReplys = make([]*ApprovReply, 0)
+	w.PickHash = make([]*PickHashKey, 0)
 	w.Msg56 = make(map[string]bool)
 }
 

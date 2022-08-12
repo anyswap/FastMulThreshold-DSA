@@ -718,7 +718,7 @@ func (recv *RecvMsg) Run(workid int, ch chan interface{}) bool {
 	msgmap := make(map[string]string)
 	err := json.Unmarshal([]byte(res), &msgmap)
 	if err == nil {
-		if msgmap["Type"] == "SignData" || msgmap["Type"] == "PreSign" || msgmap["Type"] == "ComSignBrocastData" || msgmap["Type"] == "ComSignData" {
+		if msgmap["Type"] == "SignData" || msgmap["Type"] == "PreSign" || msgmap["Type"] == "ComSignBrocastData" || msgmap["Type"] == "ComSignData" || msgmap["Type"] == "ComSignSubGidBrocastData" {
 			req = &ReqSmpcSign{}
 			return req.DoReq(res, workid, recv.sender, ch)
 		}
@@ -1118,7 +1118,7 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 		return "", nil
 	}
 
-	if mode == "0" && groupsigs == "" {
+	if (mode == "0" || mode == "2" ) && groupsigs == "" {
 		return "", fmt.Errorf("raw data error,must have sigs data when mode = 0")
 	}
 

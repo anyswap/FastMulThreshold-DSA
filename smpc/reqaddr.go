@@ -338,7 +338,7 @@ func ExecApproveKeyGen(raw string,from string,req *TxDataAcceptReqAddr,ac *Accep
     }
 
     enode := curEnode
-    if ac.Mode == "0" { 
+    if ac.Mode == "0" || ac.Mode == "2" { 
 	    enode = GetENodeByFrom(from,ac)
 	    if enode == "" {
 		return
@@ -584,7 +584,7 @@ func GetCurNodeReqAddrInfo(geteracc string) ([]*ReqAddrReply, string, error) {
 				return
 			}
 
-			if vv.Mode == "0" && !CheckAcc(curEnode, geteracc, vv.Sigs) {
+			if (vv.Mode == "0" || vv.Mode == "2") && !CheckAcc(curEnode, geteracc, vv.Sigs) {
 				return
 			}
 

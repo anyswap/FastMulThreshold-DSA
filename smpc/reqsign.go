@@ -195,7 +195,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 	}
 
 	enode := curEnode
-	if acceptreqdata.Mode == "0" {
+	if acceptreqdata.Mode == "0" || acceptreqdata.Mode == "2" {
 		enode = GetENodeByFrom(from,acceptreqdata)
 		if enode == "" {
 			log.Error("================DoSign,get enode fail===============","sign key",key,"keygen key",reqaddrkey)
@@ -216,7 +216,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 	//AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "false", "false", "Pending", "", "", "", arstmp, workid)
 	//
 	
-	if sig.Mode == "0" { // self-group
+	if sig.Mode == "0" || sig.Mode == "2" { // self-group
 		var reply bool
 		var tip string
 		var signtimeout bool
@@ -331,6 +331,20 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 	sign(w.sid, from, sig.PubKey, sig.InputCode, sig.MsgHash, sig.Keytype, nonce, sig.Mode, sbd.PickData, rch)
 	chret, tip, cherr := GetChannelValue(waitallgg20+20, rch)
 	if chret != "" {
+		_, reply := AcceptSign("", from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, w.limitnum, sig.Mode, "true", "true", "Success", chret, "", "", nil, w.id)
+		if reply != nil {
+		    ars := GetAllReplyFromGroup2(w.id,sender)
+		    errinfo := "Abnormal value in MPC calculation"
+		    if cherr.Error() == "signing timeout" {
+			errinfo = "Data network transmission failure in MPC calculation"
+		    }
+
+		    AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
+		    res := RPCSmpcRes{Ret: "", Tip: tip, Err: errors.New(errinfo)}
+		    ch <- res
+		    return errors.New(errinfo) 
+		}
+
 		res := RPCSmpcRes{Ret: chret, Tip: "", Err: nil}
 		ch <- res
 		return nil
@@ -480,7 +494,7 @@ func ExecApproveSigning(raw string,from string,sig *TxDataAcceptSign,ac *AcceptS
 	}
 
 	enode := curEnode
-	if acceptreqdata.Mode == "0" {
+	if acceptreqdata.Mode == "0" || acceptreqdata.Mode == "2" {
 		enode = GetENodeByFrom(from,acceptreqdata)
 		if enode == "" {
 		    return
@@ -493,6 +507,18 @@ func ExecApproveSigning(raw string,from string,sig *TxDataAcceptSign,ac *AcceptS
 	} else {
 	    w.ApprovReplys = append(w.ApprovReplys,reply)
 	}
+
+	///////
+	if ac.Mode == "2" {
+	    res := GetReply(w.id)
+	    if res == 0 || res == 1 {
+		w.approved = true
+		w.bacceptsignres <- true
+		workers[ac.WorkID].acceptSignChan <- "go on"
+	    }
+	    return
+	}
+	///////
 
 	if w.msgacceptsignres.Len() >= w.ThresHold {
 		//if !CheckReply(w.msgacceptsignres, RPCSIGN, sig.Key) {
@@ -554,6 +580,50 @@ func Sign(raw string) (string, string, error) {
 	}
 
 	common.Debug("=====================Sign================", "key", key, "from", from, "raw", raw)
+
+	/////
+	exsit, _ := GetSignInfoData([]byte(key))
+	if !exsit {
+		exsit, _ = GetPubKeyData([]byte(key))
+	}
+	if exsit {
+	    return "","",fmt.Errorf("The sign command already exist")
+	}
+
+	if sig.Mode == "2" {
+	    pickdata := make([]*PickHashData, 0)
+	    pickhash := make([]*PickHashKey, 0)
+	    m := make(map[string]string)
+	    send, err := CompressSignBrocastData(raw, pickhash)
+	    if err != nil || send == "" {
+		return "","",err
+	    }
+
+	    m["ComSignBrocastData"] = send
+	    m["Type"] = "ComSignBrocastData"
+	    val, err := json.Marshal(m)
+	    if err != nil {
+		return "", "",err 
+	    }
+
+	    SendMsgToSmpcGroup(string(val), sig.GroupID)
+
+	    m2 := make(map[string]string)
+	    selfsend, err := CompressSignData(raw, pickdata)
+	    if err != nil || selfsend == "" {
+		return "","",err
+	    }
+
+	    m2["ComSignData"] = selfsend
+	    m2["Type"] = "ComSignData"
+	    val2, err := json.Marshal(m2)
+	    if err != nil {
+		return "", "",err 
+	    }
+	    SetUpMsgList(string(val2), curEnode)
+	    return key,"",nil
+	}
+	/////
 
 	if sig.Keytype == "ED25519" {
 		pickdata := make([]*PickHashData, 0)
@@ -1234,22 +1304,22 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
     if result != "" {
 	    w, err := FindWorker(wsid)
 	    if w == nil || err != nil {
-		    common.Debug("==========sign,no find worker============", "err", err, "key", wsid)
+		    common.Debug("==========sign,not found worker============", "err", err, "key", wsid)
 		    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get worker error")}
 		    ch <- res
 		    return
 	    }
 
-	    common.Debug("================sign,success sign and call AcceptSign==============", "key", wsid)
-	    tip, reply := AcceptSign("", account, pubkey, unsignhash, keytype, w.groupid, nonce, w.limitnum, mode, "true", "true", "Success", result, "", "", nil, w.id)
-	    if reply != nil {
-		    res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("update sign status error")}
-		    ch <- res
-		    return
-	    }
+	    //common.Debug("================sign,success sign and call AcceptSign==============", "key", wsid)
+	    //tip, reply := AcceptSign("", account, pubkey, unsignhash, keytype, w.groupid, nonce, w.limitnum, mode, "true", "true", "Success", result, "", "", nil, w.id)
+	    //if reply != nil {
+	//	    res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("update sign status error")}
+	//	    ch <- res
+	//	    return
+	//    }
 
 	    common.Info("================sign,the terminal sign res is success==============", "key", wsid)
-	    res := RPCSmpcRes{Ret: result, Tip: tip, Err: err}
+	    res := RPCSmpcRes{Ret: result, Tip: "", Err: err}
 	    ch <- res
 	    return
     }

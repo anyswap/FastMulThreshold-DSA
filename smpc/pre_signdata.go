@@ -315,6 +315,76 @@ func (Sbd *SignBrocastData) UnmarshalJSON(raw []byte) error {
 
 //-------------------------------------------------------
 
+// SignSubGidBrocastData the data (sign raw + the key of picked pre-sign data ) brocast to group
+type SignSubGidBrocastData struct {
+	Raw      string
+	PickHash []*PickHashKey
+	SubGid string
+}
+
+// MarshalJSON marshal *SignSubGidBrocastData to json byte
+func (Sbd *SignSubGidBrocastData) MarshalJSON() ([]byte, error) {
+	ph := make([]string, 0)
+	for _, v := range Sbd.PickHash {
+		s, err := v.MarshalJSON()
+		if err != nil {
+			return nil, err
+		}
+
+		ph = append(ph, string(s))
+	}
+
+	var phs string
+
+	if len(ph) != 0 {
+	    phs = strings.Join(ph, "|")
+	}
+
+	return json.Marshal(struct {
+		Raw      string `json:"Raw"`
+		PickHash string `json:"PickHash"`
+		SubGid      string `json:"SubGid"`
+	}{
+		Raw:      Sbd.Raw,
+		PickHash: phs,
+		SubGid: Sbd.SubGid,
+	})
+}
+
+// UnmarshalJSON unmarshal json byte to *SignSubGidBrocastData
+func (Sbd *SignSubGidBrocastData) UnmarshalJSON(raw []byte) error {
+	var sbd struct {
+		Raw      string `json:"Raw"`
+		PickHash string `json:"PickHash"`
+		SubGid      string `json:"SubGid"`
+	}
+	if err := json.Unmarshal(raw, &sbd); err != nil {
+		return err
+	}
+
+	Sbd.Raw = sbd.Raw
+
+	pickhash := make([]*PickHashKey, 0)
+	var phs []string
+	if sbd.PickHash != "" {
+	    phs = strings.Split(sbd.PickHash, "|")
+	    for _, v := range phs {
+		    vv := &PickHashKey{}
+		    if err := vv.UnmarshalJSON([]byte(v)); err != nil {
+			    return err
+		    }
+
+		    pickhash = append(pickhash, vv)
+	    }
+	}
+
+	Sbd.PickHash = pickhash
+	Sbd.SubGid = sbd.SubGid
+	return nil
+}
+
+//-------------------------------------------------------
+
 // SignPickData raw + (hash,picked pre-sign data)
 type SignPickData struct {
 	Raw      string
@@ -441,6 +511,39 @@ func UnCompressSignBrocastData(data string) (*SignBrocastData, error) {
 	// uncompress ...
 
 	s := &SignBrocastData{}
+	if err := s.UnmarshalJSON([]byte(data)); err != nil {
+		return nil, err
+	}
+
+	return s, nil
+}
+
+// CompressSignSubGidBrocastData marshal *SignSubGidBrocastData to json string
+func CompressSignSubGidBrocastData(raw string, pickhash []*PickHashKey,subgid string) (string, error) {
+	if raw == "" || pickhash == nil || subgid == "" {
+		return "", fmt.Errorf("sign brocast data error")
+	}
+
+	s := &SignSubGidBrocastData{Raw: raw, PickHash: pickhash,SubGid:subgid}
+	data, err := s.MarshalJSON()
+	if err != nil {
+		return "", err
+	}
+
+	// compress ...
+
+	return string(data), nil
+}
+
+// UnCompressSignSubGidBrocastData unmarshal json string to *SignBrocastData
+func UnCompressSignSubGidBrocastData(data string) (*SignSubGidBrocastData, error) {
+	if data == "" {
+		return nil, fmt.Errorf("Sign Brocast Data error")
+	}
+
+	// uncompress ...
+
+	s := &SignSubGidBrocastData{}
 	if err := s.UnmarshalJSON([]byte(data)); err != nil {
 		return nil, err
 	}
