@@ -453,10 +453,12 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 			sd := &SignData{}
 			if err = sd.UnmarshalJSON([]byte(msgmap["SignData"])); err != nil {
+			    common.Error("===============ReqSmpcSign.DoReq,unmarshal sign data error===================","err",err)
 			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			    ch <- res
 			    return false
 			}
+			
 			common.Debug("===============ReqSmpcSign.DoReq,raw is signdata type===================", "msgprex", sd.MsgPrex, "key", sd.Key, "pkx", sd.Pkx, "pky", sd.Pky)
 			
 			//check current node whther in group
@@ -483,6 +485,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 			smpcpks, err := hex.DecodeString(pubkeyhex)
 			if err != nil {
+			    common.Error("===============ReqSmpcSign.DoReq,decode string fail===================", "msgprex", sd.MsgPrex, "key", sd.Key, "pkx", sd.Pkx, "pky", sd.Pky,"err",err)
 			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			    ch <- res
 			    return false
@@ -807,6 +810,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			
 			key, _, _, txdata, err := CheckRaw(signbrocast.Raw)
 			if err != nil {
+			    log.Error("=======================sign.DoReq,check sign bracast raw data fail========================","err",err)
 			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			    ch <- res
 			    return false
@@ -814,6 +818,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			
 			sig, ok := txdata.(*TxDataSign)
 			if !ok {
+			    log.Error("=======================sign.DoReq,check sign bracast raw data fail,sign data error========================")
 			    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign data error")}
 			    ch <- res
 			    return false
@@ -822,7 +827,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			//check current node whther in group
 			// cmd data default not to relay to other nodes
 			if !IsInGroup(signbrocast.SubGid) {
-				log.Debug("=======================sign.DoReq,get ComSignBrocastData2 data========================","key",key)
+				log.Debug("=======================sign.DoReq,get ComSignBrocastData2 data,not in group========================","key",key,"groupid",signbrocast.SubGid)
 				res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("current node is not in group")}
 				ch <- res
 				return false
@@ -832,6 +837,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			if sig.Mode == "2" {
 			    w, err := FindWorker(key)
 			    if err != nil {
+				log.Error("=======================sign.DoReq,not found worker========================","key",key,"subgid",signbrocast.SubGid)
 				res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 				ch <- res
 				return false
@@ -1049,6 +1055,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 			    _,_, cherr := GetChannelValue(60, w.bgosign)
 			    if cherr != nil {
+				    log.Error("============================DoReq,get go on signing timeout============================","pubkey",sig.PubKey,"key",key,"sig.GroupID",sig.GroupID,"Mode",sig.Mode)
 				    arstmp := GetAllReplyFromGroup2(w.id,sender)
 				    AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "timeout", "timeout", arstmp, workid)
 				res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("approval fail")}
@@ -1739,11 +1746,13 @@ func (req *ReqSmpcSign) GetGroupSigs(txdata []byte) (string, string, string, str
 // CheckTxData check sign/pre-sign command data and sign accept data
 func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (string, string, string, interface{}, error) {
 	if txdata == nil {
+	    log.Error("======================ReqSmpcSign.CheckTxData=========================","err","tx data is nil")
 		return "", "", "", nil, errors.New("tx data is nil")
 	}
 
 	sig := TxDataSign{}
 	err := json.Unmarshal(txdata, &sig)
+	log.Debug("======================ReqSmpcSign.CheckTxData=========================","err",err,"sig.TxType",sig.TxType)
 	if err == nil && sig.TxType == "SIGN" {
 		pubkey := sig.PubKey
 		inputcode := sig.InputCode
@@ -1755,6 +1764,7 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 		timestamp := sig.TimeStamp
 
 		if from == "" || pubkey == "" || hash == nil || keytype == "" || groupid == "" || threshold == "" || mode == "" || timestamp == "" {
+			log.Error("======================ReqSmpcSign.CheckTxData,param error from raw data=========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp)
 			return "", "", "", nil, fmt.Errorf("param error from raw data")
 		}
 
@@ -1762,66 +1772,79 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 		if inputcode != "" {
 			indexs := strings.Split(inputcode, "/")
 			if len(indexs) < 2 || indexs[0] != "m" {
+			    log.Error("======================ReqSmpcSign.CheckTxData,bip32,param error from raw data=========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp)
 				return "", "", "", nil, fmt.Errorf("param error from raw data")
 			}
 		}
 		//
 
 		if keytype != "EC256K1" && keytype != "ED25519" {
+		log.Error("======================ReqSmpcSign.CheckTxData,invalid keytype=========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp)
 		    return "","","",nil,fmt.Errorf("invalid keytype")
 		}
 
 		nums := strings.Split(threshold, "/")
 		if len(nums) != 2 {
+		    log.Error("======================ReqSmpcSign.CheckTxData,threshold is not right=========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp)
 			return "", "", "", nil, fmt.Errorf("threshold is not right")
 		}
 		nodecnt, err := strconv.Atoi(nums[1])
 		if err != nil {
+		    log.Error("======================ReqSmpcSign.CheckTxData=========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp,"err",err)
 			return "", "", "", nil, err
 		}
 		limit, err := strconv.Atoi(nums[0])
 		if err != nil {
+		    log.Error("======================ReqSmpcSign.CheckTxData=========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp,"err",err)
 			return "", "", "", nil, err
 		}
 		if nodecnt < limit || limit < 2 {
+		    log.Error("======================ReqSmpcSign.CheckTxData,threshold format error=========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp,"limit",limit,"nodecnt",nodecnt)
 			return "", "", "", nil, fmt.Errorf("threshold format error")
 		}
 
 		nc, _ := GetGroup(groupid)
 		if nc < limit || nc > nodecnt {
-			common.Info("==============ReqSmpcSign.CheckTxData, sign,check group node count error============", "limit ", limit, "nodecnt ", nodecnt, "nc ", nc, "groupid ", groupid)
+		    log.Error("======================ReqSmpcSign.CheckTxData,check group node count error=========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp,"limit",limit,"nodecnt",nodecnt,"nc",nc)
 			return "", "", "", nil, fmt.Errorf("check group node count error")
 		}
 
 		if !CheckGroupEnode(groupid) {
+		    log.Error("======================ReqSmpcSign.CheckTxData,there is same enodeID in group=========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp,"limit",limit,"nodecnt",nodecnt,"nc",nc)
 			return "", "", "", nil, fmt.Errorf("there is same enodeID in group")
 		}
 
 		//check mode
 		smpcpks, err := hex.DecodeString(pubkey)
 		if err != nil {
+		    log.Error("======================ReqSmpcSign.CheckTxData=========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp,"limit",limit,"nodecnt",nodecnt,"nc",nc,"err",err)
 			return "", "", "", nil, err 
 		}
 
 		exsit, da := GetPubKeyData([]byte(smpcpks[:]))
 		if !exsit {
+		    log.Error("======================ReqSmpcSign.CheckTxData,get pubkey data fail=========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp,"limit",limit,"nodecnt",nodecnt,"nc",nc)
 			return "", "", "", nil, fmt.Errorf("get data from db fail in func sign")
 		}
 
 		pubs, ok := da.(*PubKeyData)
 		if pubs == nil || !ok {
+		    log.Error("======================ReqSmpcSign.CheckTxData,get pubkey data fail in func sign=========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp,"limit",limit,"nodecnt",nodecnt,"nc",nc)
 			return "", "", "", nil, fmt.Errorf("get data from db fail in func sign")
 		}
 
 		if pubs.Mode != mode {
+		    log.Error("======================ReqSmpcSign.CheckTxData,can not sign with different mode in pubkey=========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp,"limit",limit,"nodecnt",nodecnt,"nc",nc,"pubs.Mode",pubs.Mode)
 			return "", "", "", nil, fmt.Errorf("can not sign with different mode in pubkey")
 		}
 
 		if len(sig.MsgContext) > 16 {
+		    log.Error("======================ReqSmpcSign.CheckTxData,=msgcontext counts must <= 16========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp,"limit",limit,"nodecnt",nodecnt,"nc",nc,"pubs.Mode",pubs.Mode)
 			return "", "", "", nil, fmt.Errorf("msgcontext counts must <= 16")
 		}
 		for _, item := range sig.MsgContext {
 			if len(item) > 1024*1024 {
+			    log.Error("======================ReqSmpcSign.CheckTxData,msgcontext item size must <= 1M========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp,"limit",limit,"nodecnt",nodecnt,"nc",nc,"pubs.Mode",pubs.Mode)
 				return "", "", "", nil, fmt.Errorf("msgcontext item size must <= 1M")
 			}
 		}
@@ -1831,13 +1854,16 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 			ato = 600
 		}
 		if ato <= 0 {
+			log.Error("======================ReqSmpcSign.CheckTxData,illegal agreed timeout========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp,"limit",limit,"nodecnt",nodecnt,"nc",nc,"pubs.Mode",pubs.Mode,"sig.AcceptTimeOut",sig.AcceptTimeOut,"ato",ato)
 			return "", "", "", nil, fmt.Errorf("illegal agreed timeout")
 		}
 
 		if ato > MaxAcceptTime {
+			log.Error("======================ReqSmpcSign.CheckTxData,greater than the agreed maximum timeout========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp,"limit",limit,"nodecnt",nodecnt,"nc",nc,"pubs.Mode",pubs.Mode,"sig.AcceptTimeOut",sig.AcceptTimeOut,"ato",ato,"MaxAcceptTime",MaxAcceptTime)
 			return "", "", "", nil, fmt.Errorf("greater than the agreed maximum timeout")
 		}
 
+		log.Info("======================ReqSmpcSign.CheckTxData,check txdata success========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp,"limit",limit,"nodecnt",nodecnt,"nc",nc,"pubs.Mode",pubs.Mode,"sig.AcceptTimeOut",sig.AcceptTimeOut,"ato",ato,"MaxAcceptTime",MaxAcceptTime)
 		key := Keccak256Hash([]byte(strings.ToLower(from + ":" + fmt.Sprintf("%v", nonce) + ":" + pubkey + ":" + getSignHash(hash, keytype) + ":" + keytype + ":" + groupid + ":" + threshold + ":" + mode))).Hex()
 		return key, from, fmt.Sprintf("%v", nonce), &sig, nil
 	}
