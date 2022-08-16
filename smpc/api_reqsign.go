@@ -1730,6 +1730,7 @@ func HandleRPCSign4(sig *TxDataSign,gid string,key string,raw string) ([]*PickHa
     }
 
     SendMsgToSmpcGroup(string(val), gid)
+    time.Sleep(time.Duration(5) * time.Second)  //wait for sign(...)
 
     return pickdata,nil
 }
