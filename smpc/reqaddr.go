@@ -632,7 +632,7 @@ type PubKeyData struct {
 // cointype = keytype    // EC256K1||ed25519
 func smpcGenPubKey(msgprex string, account string, cointype string, ch chan interface{}, mode string, nonce string) {
 	if msgprex == "" || account == "" || cointype == "" || mode == "" || nonce == "" {
-	    res := RPCSmpcRes{Ret: "", Tip: "param error", Err: errors.New("param error")}
+	    res := RPCSmpcRes{Ret: "", Tip: "", Err: errors.New("param error")}
 	    ch <- res
 	    return
 	}
@@ -660,7 +660,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 			}
 
 			wk.Clear2()
-			time.Sleep(time.Duration(3) * time.Second) //1000 == 1s
+			time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 		}
 
 		if !ok2 {
@@ -784,7 +784,8 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 	}
 
 	ok := false
-	for j := 0; j < recalcTimes; j++ { //try 20 times
+	for j := 0; j < recalcTimes; j++ {
+	    log.Debug("==========================smpcGenPubKey,recalc=============================","j",j,"recalc times",recalcTimes,"msgprex",msgprex,"cointype",cointype)
 		if len(ch) != 0 {
 			<-ch
 		}

@@ -2230,7 +2230,8 @@ func signED(msgprex string, txhash []string, save string, sku1 *big.Int, pk stri
 			    break
 		    }
 
-		    time.Sleep(time.Duration(3) * time.Second)
+		    w.Clear2()
+		    time.Sleep(time.Duration(1) * time.Second)
 	    }
     }
 

@@ -591,6 +591,8 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 					ch <- res2
 					return true
 				}
+				
+				w.Clear2()
 			}
 
 			_, _, cherr := GetChannelValue(WaitMsgTimeGG20+10, ch1)
