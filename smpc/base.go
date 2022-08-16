@@ -152,6 +152,7 @@ func Encode2(obj interface{}) (string, error) {
 	case *AcceptReqAddrData:
 		ret, err := json.Marshal(ch)
 		if err != nil {
+		    log.Error("========================Encode2,marshal AcceptReqAddrData type fail====================","err",err)
 			return "", err
 		}
 		return string(ret), nil
@@ -204,9 +205,11 @@ func Decode2(s string, datatype string) (interface{}, error) {
 		var m AcceptReqAddrData
 		err := json.Unmarshal([]byte(s), &m)
 		if err != nil {
+		    log.Error("========================Decode2,unmarshal AcceptReqAddrData type fail====================","err",err)
 			return nil, err
 		}
 
+		log.Debug("========================Decode2,unmarshal AcceptReqAddrData type success====================","m.FixedApprover",m.FixedApprover)
 		return &m, nil
 	}
 

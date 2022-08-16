@@ -226,7 +226,7 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 		ars := GetAllReplyFromGroup(workid,req2.GroupID,RPCREQADDR,sender)
 		sigs, err := GetGroupSigsDataByRaw(raw)
 		if err != nil {
-			common.Debug("=================DoReq================", "get group sigs ", sigs, "err ", err, "key ", key)
+			common.Error("=================DoReq================", "get group sigs ", sigs, "err ", err, "key ", key)
 			res := RPCSmpcRes{Ret: "", Tip: err.Error(), Err: err}
 			ch <- res
 			return false

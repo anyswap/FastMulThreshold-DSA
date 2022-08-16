@@ -559,6 +559,8 @@ type TxDataSign struct {
 	Mode       string
 	AcceptTimeOut      string
 	TimeStamp  string
+	FixedApprover  []string
+	Comment string
 }
 
 // Sign execute the sign command

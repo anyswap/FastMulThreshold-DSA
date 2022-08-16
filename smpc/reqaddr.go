@@ -98,9 +98,11 @@ type TxDataReqAddr struct {
 	GroupID   string
 	ThresHold string
 	Mode      string
+	FixedApprover []string
 	AcceptTimeOut      string
 	TimeStamp string
 	Sigs      string
+	Comment string
 }
 
 // GetSmpcAddr Obtain SMPC addresses in different currencies in pubkey
@@ -621,6 +623,7 @@ type PubKeyData struct {
 	Mode           string
 	KeyGenTime     string
 	RefReShareKeys string //key1:key2...
+	Comment string
 }
 
 // smpcGenPubKey generate the pubkey 

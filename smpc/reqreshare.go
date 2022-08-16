@@ -118,6 +118,8 @@ type TxDataReShare struct {
 	AcceptTimeOut      string
 	Sigs      string
 	TimeStamp string
+	FixedApprover []string
+	Comment string
 }
 
 // ReShare execute the reshare command

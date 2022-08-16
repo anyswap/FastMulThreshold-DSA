@@ -192,6 +192,7 @@ type AcceptReqAddrData struct {
 	LimitNum  string
 	Mode      string
 	TimeStamp string
+	FixedApprover  []string
 
 	Deal   string
 	Accept string
@@ -206,6 +207,7 @@ type AcceptReqAddrData struct {
 	WorkID int
 
 	Sigs string //5:enodeid1:account1:enodeid2:account2:enodeid3:account3:enodeid4:account4:enodeid5:account5
+	Comment string
 }
 
 // SaveAcceptReqAddrData save the reqaddr command data to local db
@@ -245,6 +247,8 @@ type TxDataAcceptReqAddr struct {
 	Key       string
 	Accept    string
 	TimeStamp string
+	FixedApprover []string
+	Comment string
 }
 
 // AcceptReqAddr  set the status of generating pubkey request 
@@ -402,6 +406,9 @@ type AcceptSignData struct {
 
 	AllReply []NodeReply
 	WorkID   int
+	
+	FixedApprover  []string
+	Comment string
 }
 
 // SaveAcceptSignData save the sign command data to local db
@@ -446,6 +453,8 @@ type TxDataAcceptSign struct {
 	MsgContext []string
 	Accept     string
 	TimeStamp  string
+	FixedApprover  []string
+	Comment string
 }
 
 // AcceptSign  set the status of signing request 
@@ -525,13 +534,13 @@ func AcceptSign(initiator string, account string, pubkey string, msghash []strin
 	e, err := Encode2(ac2)
 	if err != nil {
 		common.Error("=====================AcceptSign,encode fail=======================", "err", err, "key", key)
-		return "smpc back-end internal error:encode accept data fail", err
+		return "", err
 	}
 
 	es, err := Compress([]byte(e))
 	if err != nil {
 		common.Error("=====================AcceptSign,compress fail=======================", "err", err, "key", key)
-		return "smpc back-end internal error:compress accept data fail", err
+		return "", err
 	}
 
 	if ac2.Status != "Pending" {
@@ -593,6 +602,9 @@ type AcceptReShareData struct {
 
 	AllReply []NodeReply
 	WorkID   int
+	
+	FixedApprover  []string
+	Comment string
 }
 
 // SaveAcceptReShareData save the reshare command data to local db
@@ -634,6 +646,8 @@ type TxDataAcceptReShare struct {
 	Key       string
 	Accept    string
 	TimeStamp string
+	FixedApprover []string
+	Comment string
 }
 
 // AcceptReShare  set the status of reshare request 
