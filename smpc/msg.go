@@ -57,6 +57,12 @@ var (
 	//ed sign timeout
 	EdSignTimeout = 600
 
+	//wait for subgid sign data
+       SubGidSignDataTimeOut = 180
+
+       //wait for creating signing subgid
+       CreatingSignSubGidTimeOut = 8
+
 	// WaitMsgTimeGG20 wait msg timeout
 	WaitMsgTimeGG20 = 100
 

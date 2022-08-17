@@ -1055,7 +1055,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				return false
 			    }
 
-			    _,_, cherr := GetChannelValue(60, w.bgosign)
+			    _,_, cherr := GetChannelValue(SubGidSignDataTimeOut, w.bgosign)
 			    if cherr != nil {
 				    log.Error("============================DoReq,get go on signing timeout============================","pubkey",sig.PubKey,"key",key,"sig.GroupID",sig.GroupID,"Mode",sig.Mode)
 				    arstmp := GetAllReplyFromGroup2(w.id,sender)
@@ -1401,7 +1401,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				ch <- res
 				return false
 			    }
-			    time.Sleep(time.Duration(8) * time.Second)
+			    time.Sleep(time.Duration(CreatingSignSubGidTimeOut) * time.Second)
 
 			    //////choose pre-sign data
 			    pickdata,err := HandleRPCSign3(gid,sig,w.sid,signpick.Raw)
@@ -1599,6 +1599,7 @@ func HandleRPCSign3(gid string,sig *TxDataSign,key string,raw string) ([]*PickHa
 	}
 
 	SendMsgToSmpcGroup(string(val), gid)
+	time.Sleep(time.Duration(8) * time.Second)  //wait for sign(...)
 	return pickdata,nil
     }
 
@@ -1732,7 +1733,7 @@ func HandleRPCSign4(sig *TxDataSign,gid string,key string,raw string) ([]*PickHa
     }
 
     SendMsgToSmpcGroup(string(val), gid)
-    time.Sleep(time.Duration(5) * time.Second)  //wait for sign(...)
+    time.Sleep(time.Duration(8) * time.Second)  //wait for sign(...)
 
     return pickdata,nil
 }
