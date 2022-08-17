@@ -178,14 +178,14 @@ func Verify2(r *big.Int, s *big.Int, v int32, message string, pkx *big.Int, pky 
     u2 := new(big.Int).Mod(zz2, secp256k1.S256().N)
 
     if u1.Sign() == -1 {
-	    u1.Add(u1, secp256k1.S256().P)
+	    u1.Add(u1, secp256k1.S256().N)
     }
     ug := make([]byte, 32)
     ReadBits(u1, ug[:])
     ugx, ugy := secp256k1.KMulG(ug[:])
 
     if u2.Sign() == -1 {
-	    u2.Add(u2, secp256k1.S256().P)
+	    u2.Add(u2, secp256k1.S256().N)
     }
     upk := make([]byte, 32)
     ReadBits(u2, upk[:])
