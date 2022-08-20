@@ -334,9 +334,9 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 		_, reply := AcceptSign("", from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, w.limitnum, sig.Mode, "true", "true", "Success", chret, "", "", nil, w.id)
 		if reply != nil {
 		    ars := GetAllReplyFromGroup2(w.id,sender)
-		    errinfo := "Abnormal value in MPC calculation"
+		    errinfo := "Abnormal value in MPC calculation,please try again."
 		    if cherr.Error() == "signing timeout" {
-			errinfo = "Data network transmission failure in MPC calculation"
+			errinfo = "Data network transmission failure in MPC calculation,please try again."
 		    }
 
 		    AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
@@ -352,9 +352,9 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 
 	if cherr != nil {
 		ars := GetAllReplyFromGroup2(w.id,sender)
-		errinfo := "Abnormal value in MPC calculation"
+		errinfo := "Abnormal value in MPC calculation,please try again."
 		if cherr.Error() == "signing timeout" {
-		    errinfo = "Data network transmission failure in MPC calculation"
+		    errinfo = "Data network transmission failure in MPC calculation,please try again."
 		}
 
 		AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
@@ -364,7 +364,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 	}
 
 	ars = GetAllReplyFromGroup2(w.id,sender)
-	errinfo := "Abnormal value in MPC calculation"
+	errinfo := "Abnormal value in MPC calculation,please try again."
 	AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
 	res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf(errinfo)}
 	ch <- res

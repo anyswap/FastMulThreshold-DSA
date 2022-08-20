@@ -325,7 +325,7 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 				agreeWaitTimeOut := time.NewTicker(agreeWaitTime)
 				if wid < 0 || wid >= len(workers) || workers[wid] == nil {
 					ars := GetAllReplyFromGroup2(w.id,sender)
-					_, err = AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "false", "Failure", "", "Abnormal value in MPC calculation", "Abnormal value in MPC calculation", ars, wid, "")
+					_, err = AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "false", "Failure", "", "Abnormal value in MPC calculation,please try again.", "Abnormal value in MPC calculation,please try again.", ars, wid, "")
 					if err != nil {
 						reply = false
 						timeout <- true
@@ -420,9 +420,9 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 		chret, tip, cherr := GetChannelValue(waitall, rch)
 		if cherr != nil {
 			ars := GetAllReplyFromGroup2(w.id,sender)
-			errinfo := "Abnormal value in MPC calculation"
+			errinfo := "Abnormal value in MPC calculation,please try again."
 			if cherr.Error() == "keygen timeout" {
-			    errinfo = "Data network transmission failure in MPC calculation"
+			    errinfo = "Data network transmission failure in MPC calculation,please try again."
 			}
 			_, err = AcceptReqAddr(sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "", "Failure", "", tip, errinfo, ars, workid, "")
 			status,_,err3 := GetReqAddrStatus(w.sid)
@@ -451,7 +451,7 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 		if err != nil || w == nil {
 			c1data := strings.ToLower(acceptreq.Key + "-" + from)
 			C1Data.WriteMap(c1data, raw) // save the lastest accept msg??
-			res := RPCSmpcRes{Ret: "Failure", Tip: "get reqaddr accept data fail from db", Err: fmt.Errorf("get reqaddr accept data fail from db when no find worker")}
+			res := RPCSmpcRes{Ret: "Failure", Tip: "", Err: fmt.Errorf("not found worker")}
 			ch <- res
 			return false
 		}
