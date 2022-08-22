@@ -994,9 +994,19 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 	keyGenDNode := keygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048)
 	w.DNode = keyGenDNode
 	_,UID := GetNodeUID(curEnode, "EC256K1",w.groupid)
+	if UID == nil {
+		res := RPCSmpcRes{Ret: "", Err: errors.New("get node uid fail")}
+		ch <- res
+		return false
+	}
 	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 	//fmt.Printf("=========== KeyGenerateDECDSA, current node uid = %v ===========\n", keyGenDNode.DNodeID())
 
+	if w.DNode.DNodeID() == "" {
+		res := RPCSmpcRes{Ret: "", Err: errors.New("get node uid fail")}
+		ch <- res
+		return false
+	}
 	w.MsgToEnode[w.DNode.DNodeID()] = curEnode
 
 	var keyGenWg sync.WaitGroup
