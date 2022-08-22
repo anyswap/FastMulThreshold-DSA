@@ -667,17 +667,20 @@ func Sign(raw string) (string, string, error) {
 	return key, "", nil
 }
 
-func DoPreSign(pubkey string,gid string,hash string) string {
-    if pubkey == "" || gid == "" || hash == "" {
+func DoPreSign(pubkey string,gid string,hash string,mode string) string {
+    if pubkey == "" || gid == "" || hash == "" || mode == "" {
 	return ""
     }
     
     pub := Keccak256Hash([]byte(strings.ToLower(pubkey + ":" + gid))).Hex()
-    PutPreSigal(pub, true)
-    err := SavePrekeyToDb(pubkey, "", gid)
-    if err != nil {
-	    common.Error("=========================DoPreSign,save (pubkey,gid) to db fail=======================", "pubkey", pubkey, "gid", gid,"hash",hash, "err", err)
-	    return ""
+
+    if mode != "2" {
+	    PutPreSigal(pub, true)
+	    err := SavePrekeyToDb(pubkey, "", gid)
+	    if err != nil {
+		    common.Error("=========================DoPreSign,save (pubkey,gid) to db fail=======================", "pubkey", pubkey, "gid", gid,"hash",hash, "err", err)
+		    return ""
+	    }
     }
 
     tt := fmt.Sprintf("%v", time.Now().UnixNano()/1e6)
@@ -778,7 +781,7 @@ func HandleRPCSign2(rsd *RPCSignData) {
 		    return
 		}
 
-		datakey = DoPreSign(rsd.PubKey,rsd.GroupID,hashtmp)
+		datakey = DoPreSign(rsd.PubKey,rsd.GroupID,hashtmp,"0")
 		if datakey == "" {
 		    time.Sleep(time.Duration(1) * time.Second)
 		    continue

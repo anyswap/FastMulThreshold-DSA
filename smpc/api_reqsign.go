@@ -1641,7 +1641,7 @@ func HandleRPCSign4(sig *TxDataSign,gid string,key string,raw string) ([]*PickHa
 		    return
 		}
 
-		datakey = DoPreSign(sig.PubKey,gid,hashtmp)
+		datakey = DoPreSign(sig.PubKey,gid,hashtmp,"2")
 		if datakey == "" {
 		    time.Sleep(time.Duration(1) * time.Second)
 		    continue
