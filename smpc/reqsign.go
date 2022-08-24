@@ -57,6 +57,7 @@ func GetSignNonce(account string) (string, string, error) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	if account == "" {
+		log.Error("================GetSignNonce,invalid account==================")
 		return "", "", fmt.Errorf("invalid account")
 	}
 
@@ -66,9 +67,11 @@ func GetSignNonce(account string) (string, string, error) {
 		nonce := "0"
 		err := PutPubKeyData([]byte(key), []byte(nonce))
 		if err != nil {
+			log.Error("================GetSignNonce,nonce = 0,save nonce fail==================","err",err,"account",account,"accountkey",key)
 		    return "", "", err 
 		}
 
+		log.Info("================GetSignNonce,return 0==================","account",account,"accountkey",key)
 		return "0", "", nil
 	}
 
@@ -77,8 +80,11 @@ func GetSignNonce(account string) (string, string, error) {
 	nonce = new(big.Int).Add(nonce, one)
 	err := PutPubKeyData([]byte(key), []byte(fmt.Sprintf("%v", nonce)))
 	if err != nil {
+		log.Error("================GetSignNonce,put pubkey data error==================","err",err,"account",account,"accountkey",key,"nonce",nonce)
 	    return "", "", err 
 	}
+	
+	log.Debug("================GetSignNonce,put pubkey data success==================","account",account,"accountkey",key,"nonce",nonce)
 	return fmt.Sprintf("%v", nonce), "", nil
 }
 
