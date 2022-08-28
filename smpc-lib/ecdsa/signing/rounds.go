@@ -41,6 +41,7 @@ type (
 		predata           *PrePubData
 		txhash            *big.Int
 		finalizeend      chan<- *big.Int
+		keytype string
 	}
 	round1 struct {
 		*base

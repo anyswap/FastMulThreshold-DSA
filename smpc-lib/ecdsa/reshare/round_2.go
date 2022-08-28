@@ -57,7 +57,7 @@ func (round *round2) Start() error {
 	    return errors.New("node id error")
 	}
 
-	skP1Shares, err := round.temp.skP1Poly.Vss2(ids)
+	skP1Shares, err := round.temp.skP1Poly.Vss2(round.keytype,ids)
 	if err != nil {
 		return err
 	}

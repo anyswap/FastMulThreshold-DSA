@@ -31,10 +31,10 @@ var (
 	zero = big.NewInt(0)
 )
 
-func newRound1(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- PrePubData, kgid string, threshold int, paillierkeylength int) smpc.Round {
+func newRound1(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- PrePubData, kgid string, threshold int, paillierkeylength int,keytype string) smpc.Round {
 	finalizeendCh := make(chan *big.Int, threshold)
 	return &round1{
-		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, nil, nil, finalizeendCh}}
+		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, nil, nil, finalizeendCh,keytype}}
 }
 
 // Start calc w1 and u1Gamma k1
@@ -71,31 +71,31 @@ func (round *round1) Start() error {
 		}
 
 		sub := new(big.Int).Sub(v, self)
-		subInverse := new(big.Int).ModInverse(sub, secp256k1.S256().N)
+		subInverse := new(big.Int).ModInverse(sub, secp256k1.S256(round.keytype).N1())
 		if subInverse == nil {
 		    return errors.New("calc times fail")
 		}
 
 		times := new(big.Int).Mul(subInverse, v)
 		lambda1 = new(big.Int).Mul(lambda1, times)
-		lambda1 = new(big.Int).Mod(lambda1, secp256k1.S256().N)
+		lambda1 = new(big.Int).Mod(lambda1, secp256k1.S256(round.keytype).N1())
 	}
 	w1 := new(big.Int).Mul(lambda1, round.save.SkU1)
-	w1 = new(big.Int).Mod(w1, secp256k1.S256().N)
+	w1 = new(big.Int).Mod(w1, secp256k1.S256(round.keytype).N1())
 
 	round.temp.w1 = w1
 
-	u1K := random.GetRandomIntFromZn(secp256k1.S256().N)
-	u1Gamma := random.GetRandomIntFromZn(secp256k1.S256().N)
+	u1K := random.GetRandomIntFromZn(secp256k1.S256(round.keytype).N1())
+	u1Gamma := random.GetRandomIntFromZn(secp256k1.S256(round.keytype).N1())
 
-	u1GammaGx, u1GammaGy := secp256k1.S256().ScalarBaseMult(u1Gamma.Bytes())
+	u1GammaGx, u1GammaGy := secp256k1.S256(round.keytype).ScalarBaseMult(u1Gamma.Bytes())
 	commitU1GammaG := new(ec2.Commitment).Commit(u1GammaGx, u1GammaGy)
 	if commitU1GammaG == nil {
 		return errors.New(" Error generating commitment data in signing round 1")
 	}
 
 	// add for GG18 A.2 Respondent ZK Proof for MtAwc
-	wiGx, wiGy := secp256k1.S256().ScalarBaseMult(round.temp.w1.Bytes())
+	wiGx, wiGy := secp256k1.S256(round.keytype).ScalarBaseMult(round.temp.w1.Bytes())
 	commitwiG := new(ec2.Commitment).Commit(wiGx, wiGy)
 	if commitwiG == nil {
 	    return errors.New(" Error generating commitment data for wi")

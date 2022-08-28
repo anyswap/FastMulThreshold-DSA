@@ -96,7 +96,7 @@ func (round *round2) Start() error {
 	    return errors.New("node id error")
 	}
 
-	u1Shares, err := round.temp.u1Poly.Vss2(ids)
+	u1Shares, err := round.temp.u1Poly.Vss2(round.keytype,ids)
 	if err != nil {
 		return err
 	}

@@ -41,11 +41,11 @@ type MtARangeProof struct {
 // This proof is run by Alice (the initiator) in both MtA and MtAwc protocols.
 // The input for this proof is a Paillier public key (N,G) and a value c ∈ ZN^2.The prover knows m ∈ Zq and r ∈ Z* such that c = G^m*r^N mod N^2,where q is the order of the DSA group.
 // At the end of the protocol the Verifier is convinced that m ∈ [−q^3 , q^3]
-func MtARangeProofProve(c *big.Int,m *big.Int, r *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtARangeProof {
-	N3Ntilde := new(big.Int).Mul(s256.S256().N3(), ntildeH1H2.Ntilde)
-	NNtilde := new(big.Int).Mul(s256.S256().N, ntildeH1H2.Ntilde)
+func MtARangeProofProve(keytype string,c *big.Int,m *big.Int, r *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtARangeProof {
+	N3Ntilde := new(big.Int).Mul(s256.S256(keytype).N3(), ntildeH1H2.Ntilde)
+	NNtilde := new(big.Int).Mul(s256.S256(keytype).N1(), ntildeH1H2.Ntilde)
 
-	alpha := random.GetRandomIntFromZn(s256.S256().N3())
+	alpha := random.GetRandomIntFromZn(s256.S256(keytype).N3())
 	beta := random.GetRandomIntFromZnStar(publicKey.N)
 	gamma := random.GetRandomIntFromZn(N3Ntilde)
 	rho := random.GetRandomIntFromZn(NNtilde)
@@ -63,7 +63,7 @@ func MtARangeProofProve(c *big.Int,m *big.Int, r *big.Int, publicKey *PublicKey,
 	w = new(big.Int).Mod(w, ntildeH1H2.Ntilde)
 
 	e := Sha512_256(z,u,w,c,publicKey.N)
-	e = new(big.Int).Mod(e, s256.S256().N)
+	e = new(big.Int).Mod(e, s256.S256(keytype).N1())
 
 	s := new(big.Int).Exp(r, e, publicKey.N)
 	s = new(big.Int).Mul(s, beta)
@@ -84,7 +84,7 @@ func MtARangeProofProve(c *big.Int,m *big.Int, r *big.Int, publicKey *PublicKey,
 // The input for this proof is a Paillier public key (N,G) and a value c ∈ ZN^2.The prover knows m ∈ Zq and r ∈ Z* such that c = G^m*r^N mod N^2,where q is the order of the DSA group.
 // At the end of the protocol the Verifier is convinced that m ∈ [−q^3 , q^3]
 // The Verifier checks that s1 ≤ q^3, u = G^s1*s^N*c^-e mod N^2, h1^s1*h2^s2*z^-e = w mod Ntilde
-func (mtAZKProof *MtARangeProof) MtARangeProofVerify(c *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
+func (mtAZKProof *MtARangeProof) MtARangeProofVerify(keytype string,c *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
 	if c == nil || publicKey == nil || ntildeH1H2 == nil || mtAZKProof == nil || mtAZKProof.S1 == nil || mtAZKProof.Z == nil || mtAZKProof.W == nil || mtAZKProof.U == nil || mtAZKProof.S == nil {
 	    return false
 	}
@@ -97,7 +97,7 @@ func (mtAZKProof *MtARangeProof) MtARangeProofVerify(c *big.Int, publicKey *Publ
 	    return false
 	}
 	
-	if mtAZKProof.S1.Cmp(s256.S256().N3()) > 0 {
+	if mtAZKProof.S1.Cmp(s256.S256(keytype).N3()) > 0 {
 		return false
 	}
 
@@ -144,7 +144,7 @@ func (mtAZKProof *MtARangeProof) MtARangeProofVerify(c *big.Int, publicKey *Publ
 	N2 := new(big.Int).Mul(publicKey.N,publicKey.N)
 
 	e := Sha512_256(mtAZKProof.Z,mtAZKProof.U,mtAZKProof.W,c,publicKey.N)
-	e = new(big.Int).Mod(e, s256.S256().N)
+	e = new(big.Int).Mod(e, s256.S256(keytype).N1())
 
 	u2 := new(big.Int).Exp(G, mtAZKProof.S1, N2)
 	u2 = new(big.Int).Mul(u2, new(big.Int).Exp(mtAZKProof.S, publicKey.N, N2))

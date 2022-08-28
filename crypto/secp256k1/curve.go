@@ -310,6 +310,11 @@ func (BitCurve *BitCurve) Unmarshal(data []byte) (x, y *big.Int) {
 	return
 }
 
+//return value is normalized.
+func (BitCurve *BitCurve) KMulG(k []byte) (*big.Int, *big.Int) {
+	return BitCurve.ScalarBaseMult(k)
+}
+
 var theCurve = new(BitCurve)
 
 func init() {
@@ -325,8 +330,12 @@ func init() {
 }
 
 // S256 returns a BitCurve which implements secp256k1.
-func S256() *BitCurve {
-	return theCurve
+func S256(keytype string) EC256Curve {
+    if keytype == "EC256STARK" {
+	return curve
+    }
+
+    return theCurve
 }
 
 func (bitCurve *BitCurve) N3() *big.Int {
@@ -335,9 +344,25 @@ func (bitCurve *BitCurve) N3() *big.Int {
 	return N3
 }
 
-//return value is normalized.
-func KMulG(k []byte) (*big.Int, *big.Int) {
-	return S256().ScalarBaseMult(k)
+func (bitCurve *BitCurve) N1() *big.Int {
+    return bitCurve.N
+}
+
+func (bitCurve *BitCurve) GX() *big.Int {
+    return bitCurve.Gx
+}
+
+func (bitCurve *BitCurve) GY() *big.Int {
+    return bitCurve.Gy
+}
+
+// GetY get y^2
+func (bitCurve *BitCurve) GetY(x *big.Int) *big.Int {
+	// secp256k1: y^2 = x^3 + 7
+	x3 := new(big.Int).Mul(x, x)
+	x3.Mul(x3, x)
+	y2 := x3.Add(x3, big.NewInt(7))
+	return y2
 }
 
 // MathReadBits encodes the absolute value of bigint as big-endian bytes. Callers must ensure
@@ -366,3 +391,23 @@ func Get_ecdsa_sign_v(rx *big.Int, ry *big.Int) int {
 	res := int(C.smpc_secp256k1_get_ecdsa_sign_v(context, pointPtr, scalarPtr))
 	return res
 }
+
+//--------------------------------------------
+
+type EC256Curve interface {
+    Params() *elliptic.CurveParams
+    IsOnCurve(x, y *big.Int) bool
+    Add(x1, y1, x2, y2 *big.Int) (*big.Int, *big.Int)
+    Double(x1, y1 *big.Int) (*big.Int, *big.Int)
+    ScalarMult(Bx, By *big.Int, scalar []byte) (*big.Int, *big.Int)
+    ScalarBaseMult(k []byte) (*big.Int, *big.Int)
+    Marshal(x, y *big.Int) []byte
+    Unmarshal(data []byte) (x, y *big.Int)
+    KMulG(k []byte) (*big.Int, *big.Int)
+    N1() *big.Int
+    N3() *big.Int
+    GX() *big.Int
+    GY() *big.Int
+    GetY(x *big.Int) *big.Int 
+}
+

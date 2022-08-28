@@ -141,9 +141,9 @@ func DecompressPubkey(pubkey []byte) (x, y *big.Int) {
 }
 
 // CompressPubkey encodes a public key to 33-byte compressed format.
-func CompressPubkey(x, y *big.Int) []byte {
+func CompressPubkey(keytype string,x, y *big.Int) []byte {
 	var (
-		pubkey     = S256().Marshal(x, y)
+		pubkey     = S256(keytype).Marshal(x, y)
 		pubkeydata = (*C.uchar)(unsafe.Pointer(&pubkey[0]))
 		pubkeylen  = C.size_t(len(pubkey))
 		out        = make([]byte, 33)

@@ -29,10 +29,10 @@ import (
 //------------------------------------------------------------------------------------
 
 func TestZkUProveVerify(t *testing.T) {
-	u1 := random.GetRandomIntFromZn(secp256k1.S256().N)
+	u1 := random.GetRandomIntFromZn(secp256k1.S256(keytype).N)
 	u1zkUProof := ec2.ZkUProve(u1)
 	assert.NotZero(t, u1zkUProof)
-	u1Gx, u1Gy := secp256k1.S256().ScalarBaseMult(u1.Bytes())
+	u1Gx, u1Gy := secp256k1.S256(keytype).ScalarBaseMult(u1.Bytes())
 	u1Secrets := make([]*big.Int, 0)
 	u1Secrets = append(u1Secrets, u1Gx)
 	u1Secrets = append(u1Secrets, u1Gy)
@@ -52,10 +52,10 @@ func TestZkUProveVerify(t *testing.T) {
 }
 
 func TestZkXiProveVerify(t *testing.T) {
-	sk := random.GetRandomIntFromZn(secp256k1.S256().N)
+	sk := random.GetRandomIntFromZn(secp256k1.S256(keytype).N)
 	u1zkXiProof := ec2.ZkXiProve(sk)
 	assert.NotZero(t, u1zkXiProof)
-	xGx, xGy := secp256k1.S256().ScalarBaseMult(sk.Bytes())
+	xGx, xGy := secp256k1.S256(keytype).ScalarBaseMult(sk.Bytes())
 	u1Secrets := make([]*big.Int, 0)
 	u1Secrets = append(u1Secrets, xGx)
 	u1Secrets = append(u1Secrets, xGy)

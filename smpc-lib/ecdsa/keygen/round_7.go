@@ -49,14 +49,14 @@ func (round *round7) Start() error {
 		}
 
 		deCommit := &ec2.Commitment{C: msg4.ComXiC, D: msg5.ComXiGD}
-		_, xiG := deCommit.DeCommit()
+		_, xiG := deCommit.DeCommit(round.keytype)
 
 		msg6, ok := round.temp.kgRound6Messages[k].(*KGRound6Message)
 		if !ok {
 			return errors.New("round.Start get round6 msg fail")
 		}
 
-		if !ec2.ZkXiVerify(xiG, msg6.U1zkXiProof) {
+		if !ec2.ZkXiVerify(round.keytype,xiG, msg6.U1zkXiProof) {
 			fmt.Printf("========= round7 verify zkx fail, k = %v ==========\n", k)
 			return errors.New("verify zkx fail")
 		}

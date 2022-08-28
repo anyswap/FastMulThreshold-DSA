@@ -65,7 +65,7 @@ func (round *round5) Start() error {
 		u1PaillierPk := round.save.U1PaillierPk[oldindex]
 		u1nt := round.save.U1NtildeH1H2[index]
 		msg4, _ := round.temp.signRound4Messages[k].(*SignRound4Message)
-		rlt111 := msg4.U1u1MtAZK2Proof.MtARespZKProofVerify(round.temp.ukc, msg4.U1KGamma1Cipher, u1PaillierPk, u1nt)
+		rlt111 := msg4.U1u1MtAZK2Proof.MtARespZKProofVerify(round.keytype,round.temp.ukc, msg4.U1KGamma1Cipher, u1PaillierPk, u1nt)
 		if !rlt111 {
 			log.Error("=====================round5.start,verify mkg fail================","msg4",*msg4,"index",index,"oldindex",oldindex,"idsign",round.idsign,"save.IDs",round.save.IDs,"curIndex",curIndex,"k",k)
 			return errors.New("verify mkg fail")
@@ -75,10 +75,10 @@ func (round *round5) Start() error {
 		msg1, _ := round.temp.signRound1Messages[k].(*SignRound1Message)
 		msg3, _ := round.temp.signRound3Messages[k].(*SignRound3Message)
 		deCommit := &ec2.Commitment{C: msg1.ComWiC, D: msg3.ComWiD}
-		_,xG := deCommit.DeCommit()
+		_,xG := deCommit.DeCommit(round.keytype)
 
 		msg41, _ := round.temp.signRound4Messages1[k].(*SignRound4Message1)
-		rlt112 := msg41.U1u1MtAZK3Proof.MtAwcRespZKProofVefify(xG,round.temp.ukc, msg41.U1Kw1Cipher, u1PaillierPk, u1nt)
+		rlt112 := msg41.U1u1MtAZK3Proof.MtAwcRespZKProofVefify(round.keytype,xG,round.temp.ukc, msg41.U1Kw1Cipher, u1PaillierPk, u1nt)
 		if !rlt112 {
 			log.Error("=====================round5.start,verify mkw fail================","msg41",*msg41,"index",index,"oldindex",oldindex,"idsign",round.idsign,"save.IDs",round.save.IDs,"curIndex",curIndex,"k",k)
 			return errors.New("verify mkw fail")
@@ -102,7 +102,7 @@ func (round *round5) Start() error {
 	for i := 0; i < round.threshold; i++ {
 		delta1 = new(big.Int).Add(delta1, round.temp.betaU1[i])
 	}
-	delta1 = new(big.Int).Mod(delta1, secp256k1.S256().N)
+	delta1 = new(big.Int).Mod(delta1, secp256k1.S256(round.keytype).N1())
 	round.temp.delta1 = delta1
 
 	sigma1 := uu1[0]
@@ -115,22 +115,22 @@ func (round *round5) Start() error {
 	for i := 0; i < round.threshold; i++ {
 		sigma1 = new(big.Int).Add(sigma1, round.temp.vU1[i])
 	}
-	sigma1 = new(big.Int).Mod(sigma1, secp256k1.S256().N)
+	sigma1 = new(big.Int).Mod(sigma1, secp256k1.S256(round.keytype).N1())
 	round.temp.sigma1 = sigma1
 
 	// gg20: calculate T_i = g^sigma_i * h^l_i = sigma_i*G + l_i*h*G
-	l1 := random.GetRandomIntFromZn(secp256k1.S256().N)
-	hx,hy,err := ec2.CalcHPoint()
+	l1 := random.GetRandomIntFromZn(secp256k1.S256(round.keytype).N1())
+	hx,hy,err := ec2.CalcHPoint(round.keytype)
 	if err != nil {
 	    fmt.Printf("calc h point fail, err = %v",err)
 	    return err
 	}
 
-	l1Gx,l1Gy := secp256k1.S256().ScalarMult(hx,hy,l1.Bytes())
-	sigmaGx,sigmaGy := secp256k1.S256().ScalarBaseMult(sigma1.Bytes())
-	t1X,t1Y := secp256k1.S256().Add(sigmaGx,sigmaGy,l1Gx,l1Gy)
+	l1Gx,l1Gy := secp256k1.S256(round.keytype).ScalarMult(hx,hy,l1.Bytes())
+	sigmaGx,sigmaGy := secp256k1.S256(round.keytype).ScalarBaseMult(sigma1.Bytes())
+	t1X,t1Y := secp256k1.S256(round.keytype).Add(sigmaGx,sigmaGy,l1Gx,l1Gy)
 	// gg20: generate the ZK proof of T_i
-	tProof := ec2.TProve(t1X,t1Y,hx,hy,sigma1,l1)
+	tProof := ec2.TProve(round.keytype,t1X,t1Y,hx,hy,sigma1,l1)
 	if tProof == nil {
 	    return errors.New("prove Ti proof fail")
 	}

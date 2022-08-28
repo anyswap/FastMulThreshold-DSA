@@ -328,7 +328,7 @@ func Keccak256Hash(data ...[]byte) (h ByteHash) {
 
 // DoubleHash  The EnodeID is converted into a hash value according to different keytypes 
 func DoubleHash(id string, keytype string) *big.Int {
-    	if id == "" || keytype == "" {
+    	if id == "" {
 	    return nil
 	}
 
@@ -372,7 +372,7 @@ func DoubleHash(id string, keytype string) *big.Int {
 
 // GetIDs Convert each ID into a hash value according to different keytypes and put it into an array for sorting 
 func GetIDs(keytype string, groupid string) smpclib.SortableIDSSlice {
-    	if keytype == "" || groupid == "" {
+    	if groupid == "" {
 	    return nil
 	}
 
@@ -391,7 +391,7 @@ func GetIDs(keytype string, groupid string) smpclib.SortableIDSSlice {
 // GetNodeUID get current node uid,gid is the `keygen gid`
 // return (index,UID)
 func GetNodeUID(EnodeID string,keytype string,gid string) (int,*big.Int) {
-    if EnodeID == "" || keytype == "" || gid == "" {
+    if EnodeID == "" || gid == "" {
 	return -1,nil
     }
 
@@ -422,7 +422,7 @@ func GetNodeUID(EnodeID string,keytype string,gid string) (int,*big.Int) {
 // GetGroupNodeUIDs get the uids of node in group subgid
 // gid is the `keygen gid`
 func GetGroupNodeUIDs(keytype string,gid string,subgid string) smpclib.SortableIDSSlice {
-    if keytype == "" || gid == "" || subgid == "" {
+    if gid == "" || subgid == "" {
 	return nil
     }
 
@@ -561,6 +561,96 @@ func GetTxTypeFromData(txdata []byte) string {
 	return ""
 }
 
+// GetKeyTypeFromData get special tx data type from command data or accept data
+func GetKeyTypeFromData(txdata []byte) string {
+	if txdata == nil {
+		return ""
+	}
+
+	req := TxDataReqAddr{}
+	err := json.Unmarshal(txdata, &req)
+	if err == nil && req.TxType == "REQSMPCADDR" {
+		return req.Keytype
+	}
+
+	sig := TxDataSign{}
+	err = json.Unmarshal(txdata, &sig)
+	if err == nil && sig.TxType == "SIGN" {
+		return sig.Keytype
+	}
+
+	pre := TxDataPreSignData{}
+	err = json.Unmarshal(txdata, &pre)
+	if err == nil && pre.TxType == "PRESIGNDATA" {
+		return pre.KeyType 
+	}
+
+	rh := TxDataReShare{}
+	err = json.Unmarshal(txdata, &rh)
+	if err == nil && rh.TxType == "RESHARE" {
+		return rh.Keytype 
+	}
+
+	acceptreq := TxDataAcceptReqAddr{}
+	err = json.Unmarshal(txdata, &acceptreq)
+	if err == nil && acceptreq.TxType == "ACCEPTREQADDR" {
+	    exsit, da := GetPubKeyData([]byte(acceptreq.Key))
+	    if !exsit {
+		exsit, da = GetReqAddrInfoData([]byte(acceptreq.Key))
+		if !exsit {
+		    return ""
+		}
+	    }
+
+	    ac, ok := da.(*AcceptReqAddrData)
+	    if !ok {
+		return ""
+	    }
+
+	    return ac.Cointype
+	}
+
+	acceptsig := TxDataAcceptSign{}
+	err = json.Unmarshal(txdata, &acceptsig)
+	if err == nil && acceptsig.TxType == "ACCEPTSIGN" {
+	    exsit, da := GetPubKeyData([]byte(acceptsig.Key))
+	    if !exsit {
+		exsit, da = GetSignInfoData([]byte(acceptsig.Key))
+		if !exsit {
+		    return ""
+		}
+	    }
+
+	    ac, ok := da.(*AcceptSignData)
+	    if !ok {
+		return ""
+	    }
+
+	    return ac.Keytype
+	}
+
+	acceptrh := TxDataAcceptReShare{}
+	err = json.Unmarshal(txdata, &acceptrh)
+	if err == nil && acceptrh.TxType == "ACCEPTRESHARE" {
+	    exsit, da := GetPubKeyData([]byte(acceptrh.Key))
+	    if !exsit {
+		exsit, da = GetReShareInfoData([]byte(acceptrh.Key))
+		if !exsit {
+		    return ""
+		}
+	    }
+
+	    ac, ok := da.(*AcceptReShareData)
+	    if !ok {
+		return ""
+	    }
+
+	    return ac.Keytype
+	}
+
+	return ""
+}
+
 type MsgSig struct {
     Rsv string
     MsgType string
@@ -593,6 +683,7 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	var msgsig bool
 	var data []byte
 	var rsv string
+	var keytype string
 
 	m := MsgSig{}
        err := json.Unmarshal([]byte(raw), &m)
@@ -623,7 +714,8 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	    from = from2.Hex()
 	    msgsig = false 
 	    key = GetKeyFromData(data)
-	    log.Debug("======================CheckRaw,get raw tx data===================","from",from,"txtype",txtype,"data",string(data),"nonce",nonce,"msgsig",msgsig,"key",key,"raw",raw,"tx",*tx)
+	    keytype = GetKeyTypeFromData(data)
+	    log.Debug("======================CheckRaw,get raw tx data===================","from",from,"txtype",txtype,"data",string(data),"nonce",nonce,"msgsig",msgsig,"key",key,"raw",raw,"tx",*tx,"keytype",keytype)
        }
  
 	var smpcreq CmdReq
@@ -642,7 +734,9 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 		       } else {
 			   nonce = uint64(non)
 		       }
-			log.Debug("======================CheckRaw,get keygen tx data with msg sig===================","from",from,"data",string(data),"raw",raw,"nonce",nonce)
+
+		       keytype = req.Keytype
+			log.Debug("======================CheckRaw,get keygen tx data with msg sig===================","from",from,"data",string(data),"raw",raw,"nonce",nonce,"keytype",keytype)
 		   } else {
 			log.Error("======================CheckRaw,get keygen tx data with msg sig,unmarshal data error===================","from",from,"data",string(data),"err",err,"raw",raw)
 		   }
@@ -662,7 +756,9 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 			   } else {
 			       nonce = uint64(non)
 			   }
-			log.Debug("======================CheckRaw,get sign tx data with msg sig===================","from",from,"data",string(data),"raw",raw,"nonce",nonce)
+
+			   keytype = req.Keytype
+			log.Debug("======================CheckRaw,get sign tx data with msg sig===================","from",from,"data",string(data),"raw",raw,"nonce",nonce,"keytype",keytype)
 		       } else {
 			    log.Error("======================CheckRaw,get sign tx data with msg sig,unmarshal data error===================","from",from,"data",string(data),"err",err,"raw",raw)
 		       }
@@ -681,6 +777,9 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 		       } else {
 			   nonce = uint64(non)
 		       }
+
+		       keytype = req.KeyType
+			log.Debug("======================CheckRaw,get pre-sign data with msg sig===================","from",from,"data",string(data),"raw",raw,"nonce",nonce,"key",key,"keytype",keytype)
 		   }
 		}
 		break
@@ -697,6 +796,8 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 		       } else {
 			   nonce = uint64(non)
 		       }
+
+		       keytype = req.Keytype
 		   }
 		}
 		break
@@ -716,7 +817,8 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 		       }
 
 			key = req.Key
-			log.Debug("======================CheckRaw,get keygen accept data with msg sig===================","from",from,"data",string(data),"raw",raw,"nonce",nonce,"key",key)
+			keytype = GetKeyTypeFromData(data)
+			log.Debug("======================CheckRaw,get keygen accept data with msg sig===================","from",from,"data",string(data),"raw",raw,"nonce",nonce,"key",key,"keytype",keytype)
 		   } else {
 			log.Debug("======================CheckRaw,get keygen accept data with msg sig,unmarsh data error===================","from",from,"data",string(data),"raw",raw,"nonce",nonce,"key",key,"err",err)
 		   }
@@ -738,7 +840,8 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 		       }
 
 			key = req.Key
-			log.Debug("======================CheckRaw,get sign accept data with msg sig===================","from",from,"data",string(data),"raw",raw,"nonce",nonce,"key",key)
+			keytype = GetKeyTypeFromData(data)
+			log.Debug("======================CheckRaw,get sign accept data with msg sig===================","from",from,"data",string(data),"raw",raw,"nonce",nonce,"key",key,"keytype",keytype)
 		   } else {
 			log.Debug("======================CheckRaw,get sign accept data with msg sig,unmarsh data error===================","from",from,"data",string(data),"raw",raw,"nonce",nonce,"key",key,"err",err)
 		   }
@@ -758,6 +861,8 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 		       } else {
 			   nonce = uint64(non)
 		       }
+			
+		       keytype = GetKeyTypeFromData(data)
 		   }
 		}
 		break
@@ -782,7 +887,7 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	       return "", "", "", nil,err
 	   }
 
-	   pub := secp256k1.S256().Marshal(public.X,public.Y)
+	   pub := secp256k1.S256(keytype).Marshal(public.X,public.Y)
 	   pub2 := hex.EncodeToString(pub) // 04.....
 	   // pub2: 04730c8fc7142d15669e8329138953d9484fd4cce0c690e35e105a9714deb741f10b52be1c5d49eeeb6f00aab8f3d2dec4e3352d0bf    56bdbc2d86cb5f89c8e90d0
 	   h := coins.NewCryptocoinHandler("ETH")

@@ -50,6 +50,7 @@ type BaseDNode struct {
 	DNodeCountInGroup int
 	ThresHold         int
 	PaillierKeyLength int
+	KeyType           string
 }
 
 // -----

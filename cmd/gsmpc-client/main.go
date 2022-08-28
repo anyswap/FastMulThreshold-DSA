@@ -241,7 +241,7 @@ func init() {
 	memo = flag.String("memo", "smpcwallet.com", "Memo")
 	accept = flag.String("accept", "AGREE", "AGREE|DISAGREE")
 	key = flag.String("key", "", "Accept key")
-	keyType = flag.String("keytype", "EC256K1", "EC256K1|ED25519")
+	keyType = flag.String("keytype", "EC256K1", "EC256K1|ED25519|EC256STARK")
 	pubkey = flag.String("pubkey", "", "Smpc pubkey")
 	inputcode = flag.String("inputcode", "", "bip32 input code")
 	//msghash = flag.String("msghash", "", "msghash=Keccak256(unsignTX)")
@@ -853,6 +853,7 @@ func preSigning() {
                Nonce:"0",
 		PubKey: *pubkey,
 		SubGid: subgids,
+		KeyType: *keyType,
 	}
 	playload, err := json.Marshal(txdata)
        if err != nil {
@@ -880,6 +881,7 @@ func preGenSignData() {
 		TxType: "PRESIGNDATA",
 		PubKey: *pubkey,
 		SubGid: subgids,
+		KeyType: *keyType,
 	}
 	playload, _ := json.Marshal(txdata)
 	// sign tx
@@ -1541,6 +1543,7 @@ func resharing() {
 		AcceptTimeOut: "600",
 		Sigs:      sigs,
 		TimeStamp: timestamp,
+		KeyType:    *keyType,
 	}
 	playload, err := json.Marshal(txdata)
 	if err != nil {
@@ -1586,6 +1589,7 @@ func reshare() {
 		AcceptTimeOut: "600",
 		Sigs:      sigs,
 		TimeStamp: timestamp,
+		KeyType:    *keyType,
 	}
 	playload, err := json.Marshal(txdata)
 	if err != nil {
@@ -1989,6 +1993,7 @@ type preSignData struct {
        Nonce string `json:"Nonce"`
 	PubKey string   `json:"PubKey"`
 	SubGid []string `json:"SubGid"`
+	KeyType string   `json:"KeyType"`
 }
 type reshareData struct {
 	TxType    string `json:"TxType"`
@@ -2002,6 +2007,7 @@ type reshareData struct {
 	AcceptTimeOut  string `json:"AcceptTimeOut"` //unit: second
 	Sigs      string `json:"Sigs"`
 	TimeStamp string `json:"TimeStamp"`
+	KeyType    string `json:"KeyType"`
 }
 type reqAddrStatus struct {
 	Status    string      `json:"Status"`

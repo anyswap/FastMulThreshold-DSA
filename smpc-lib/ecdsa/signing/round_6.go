@@ -51,10 +51,10 @@ func (round *round6) Start() error {
 		msg5, _ := round.temp.signRound5Messages[k].(*SignRound5Message)
 		deltaSum = new(big.Int).Add(deltaSum, msg5.Delta1)
 	}
-	deltaSum = new(big.Int).Mod(deltaSum, secp256k1.S256().N)
+	deltaSum = new(big.Int).Mod(deltaSum, secp256k1.S256(round.keytype).N1())
 	round.temp.deltaSum = deltaSum
 
-	u1GammaZKProof := ec2.ZkUProve(round.temp.u1Gamma)
+	u1GammaZKProof := ec2.ZkUProve(round.keytype,round.temp.u1Gamma)
 
 	srm := &SignRound6Message{
 		SignRoundMessage: new(SignRoundMessage),

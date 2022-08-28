@@ -120,6 +120,7 @@ type TxDataReShare struct {
 	TimeStamp string
 	FixedApprover []string
 	Comment string
+	Keytype string
 }
 
 // ReShare execute the reshare command
@@ -310,10 +311,10 @@ func GetCurNodeReShareInfo() ([]*ReShareCurNodeInfo, string, error) {
 // _reshare execute reshare
 // param groupid is not subgroupid
 // w.groupid is subgroupid
-func _reshare(wsid string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{}) {
+func _reshare(wsid string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{},keytype string) {
 
 	rch := make(chan interface{}, 1)
-	smpcReshare(wsid, initator, groupid, pubkey, account, mode, sigs, rch)
+	smpcReshare(wsid, initator, groupid, pubkey, account, mode, sigs, rch,keytype)
 	ret, _, cherr := GetChannelValue(cht, rch)
 	if ret != "" {
 		w, err := FindWorker(wsid)
@@ -359,7 +360,7 @@ func _reshare(wsid string, initator string, groupid string, pubkey string, accou
 // ec2
 // msgprex = hash
 // return value is the backup for smpc sig.
-func smpcReshare(msgprex string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{}) {
+func smpcReshare(msgprex string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{},keytype string) {
 
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
@@ -375,7 +376,7 @@ func smpcReshare(msgprex string, initator string, groupid string, pubkey string,
 			<-ch1
 		}
 
-		ReShareEC2(msgprex, initator, groupid, pubkey, account, mode, sigs, ch1, id)
+		ReShareEC2(msgprex, initator, groupid, pubkey, account, mode, sigs, ch1, id,keytype)
 		ret, _, cherr := GetChannelValue(cht, ch1)
 		if ret != "" && cherr == nil {
 			res := RPCSmpcRes{Ret: ret, Tip: "", Err: cherr}
@@ -393,7 +394,7 @@ func smpcReshare(msgprex string, initator string, groupid string, pubkey string,
 // ReShareEC2 execute reshare
 // msgprex = hash
 // return value is the backup for the smpc sig
-func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{}, id int) {
+func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{}, id int,keytype string) {
 	if id < 0 || id >= len(workers) {
 		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("no find worker")}
 		ch <- res
@@ -459,11 +460,11 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 		}
 		//
 		sd.SkU1 = sku1
-		pkx, pky := secp256k1.S256().Unmarshal(smpcpks[:])
+		pkx, pky := secp256k1.S256(keytype).Unmarshal(smpcpks[:])
 		sd.Pkx = pkx
 		sd.Pky = pky
 
-		sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, (da.(*PubKeyData)).GroupID, "EC256K1")
+		sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, (da.(*PubKeyData)).GroupID, keytype)
 
 		U1PaillierPk := make([]*ec2.PublicKey, w.NodeCnt)
 		U1NtildeH1H2 := make([]*ec2.NtildeH1H2, w.NodeCnt)
@@ -474,15 +475,15 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 		sd.U1PaillierPk = U1PaillierPk
 		sd.U1NtildeH1H2 = U1NtildeH1H2
 
-		sd.IDs = GetGroupNodeUIDs("EC256K1",groupid,groupid) // 1,2,3,4,6
-		_,sd.CurDNodeID = GetNodeUID(curEnode,"EC256K1",groupid) 
+		sd.IDs = GetGroupNodeUIDs(keytype,groupid,groupid) // 1,2,3,4,6
+		_,sd.CurDNodeID = GetNodeUID(curEnode,keytype,groupid) 
 
 		//msgtoenode := GetMsgToEnode("EC256K1",(da.(*PubKeyData)).GroupID,(da.(*PubKeyData)).GroupID)
 		//kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
 
 		found := false
-		ids := GetGroupNodeUIDs("EC256K1",groupid,w.groupid)
-		_,uid := GetNodeUID(curEnode,"EC256K1",groupid)
+		ids := GetGroupNodeUIDs(keytype,groupid,w.groupid)
+		_,uid := GetNodeUID(curEnode,keytype,groupid)
 		for _,v := range ids {
 		    if v.Cmp(uid) == 0 {
 			found = true
@@ -497,7 +498,7 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 
 		if oldnode {
 		
-			oldindex,_ := GetNodeUID(curEnode,"EC256K1",(da.(*PubKeyData)).GroupID)
+			oldindex,_ := GetNodeUID(curEnode,keytype,(da.(*PubKeyData)).GroupID)
 			sd.U1NtildePrivData = GetNtildePrivDataByIndexFromSaveData(save,w.NodeCnt)
 			if sd.U1NtildePrivData == nil {
 				res := RPCSmpcRes{Ret: "", Tip: "get ntilde priv data fail", Err: fmt.Errorf("get ntilde priv data fail")}
@@ -510,9 +511,9 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 			outCh := make(chan smpclib.Message, ns)
 			endCh := make(chan keygen.LocalDNodeSaveData, ns)
 			errChan := make(chan struct{})
-			reshareDNode := reshare.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048, sd, true,oldindex)
+			reshareDNode := reshare.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048, sd, true,oldindex,keytype)
 			w.DNode = reshareDNode
-			_,UID := GetNodeUID(curEnode,"EC256K1",groupid)
+			_,UID := GetNodeUID(curEnode,keytype,groupid)
 			reshareDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 
 			uid, _ := new(big.Int).SetString(w.DNode.DNodeID(), 10)
@@ -529,8 +530,8 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 
 				HandleC1Data(nil, w.sid)
 			}()
-			go ReshareProcessInboundMessages(msgprex, commStopChan, errChan,&reshareWg, ch)
-			newsku1, err := processReshare(msgprex, groupid, pubkey, account, mode, sigs, errChan, outCh, endCh)
+			go ReshareProcessInboundMessages(msgprex, keytype,commStopChan, errChan,&reshareWg, ch)
+			newsku1, err := processReshare(msgprex, groupid, pubkey, account, mode, sigs, errChan, outCh, endCh,keytype)
 			if err != nil {
 				fmt.Printf("==========process reshare err = %v ==========\n", err)
 				close(commStopChan)
@@ -556,9 +557,9 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 	outCh := make(chan smpclib.Message, ns)
 	endCh := make(chan keygen.LocalDNodeSaveData, ns)
 	errChan := make(chan struct{})
-	reshareDNode := reshare.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048, nil, false,-1)
+	reshareDNode := reshare.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048, nil, false,-1,keytype)
 	w.DNode = reshareDNode
-	_,UID := GetNodeUID(curEnode,"EC256K1",groupid)
+	_,UID := GetNodeUID(curEnode,keytype,groupid)
 	reshareDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 
 	uid, _ := new(big.Int).SetString(w.DNode.DNodeID(), 10)
@@ -575,8 +576,8 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 
 		HandleC1Data(nil, w.sid)
 	}()
-	go ReshareProcessInboundMessages(msgprex, commStopChan, errChan,&reshareWg, ch)
-	newsku1, err := processReshare(msgprex, groupid, pubkey, account, mode, sigs, errChan, outCh, endCh)
+	go ReshareProcessInboundMessages(msgprex, keytype,commStopChan, errChan,&reshareWg, ch)
+	newsku1, err := processReshare(msgprex, groupid, pubkey, account, mode, sigs, errChan, outCh, endCh,keytype)
 	if err != nil {
 		fmt.Printf("==========process reshare err = %v ==========\n", err)
 		close(commStopChan)

@@ -357,7 +357,7 @@ func GetAccounts(geteracc, mode string) (interface{}, string, error) {
 // GetBip32ChildKey rootpubkey is the total public key of the root node
 // the inputcode format is "m / X1 / x2 /... / xn", where x1,..., xn is the index number of the child node of each level, which is in decimal format, for example: "m / 1234567890123456789012345678901234567890123456789012323455678901234" 
 // the return value is the sub public key of the X1 / x2 /... / xn sub node of the total public key of the root node.  
-func GetBip32ChildKey(rootpubkey string, inputcode string) (string, string, error) {
+func GetBip32ChildKey(rootpubkey string, inputcode string,keytype string,mode string) (string, string, error) {
 	if rootpubkey == "" || inputcode == "" {
 		return "", "param error", fmt.Errorf("param error")
 	}
@@ -385,7 +385,7 @@ func GetBip32ChildKey(rootpubkey string, inputcode string) (string, string, erro
 	}
 
 	smpcpub := (da.(*PubKeyData)).Pub
-	smpcpkx, smpcpky := secp256k1.S256().Unmarshal(([]byte(smpcpub))[:])
+	smpcpkx, smpcpky := secp256k1.S256(keytype).Unmarshal(([]byte(smpcpub))[:])
 
 	///sku1
 	da2 := getSkU1FromLocalDb(smpcpks[:])
@@ -429,13 +429,13 @@ func GetBip32ChildKey(rootpubkey string, inputcode string) (string, string, erro
 		TL := new(big.Int).SetBytes(T[:32])
 
 		childSKU1 = new(big.Int).Add(TL, childSKU1)
-		childSKU1 = new(big.Int).Mod(childSKU1, secp256k1.S256().N)
+		childSKU1 = new(big.Int).Mod(childSKU1, secp256k1.S256(keytype).N1())
 
-		TLGx, TLGy := secp256k1.S256().ScalarBaseMult(TL.Bytes())
-		childPKx, childPKy = secp256k1.S256().Add(TLGx, TLGy, childPKx, childPKy)
+		TLGx, TLGy := secp256k1.S256(keytype).ScalarBaseMult(TL.Bytes())
+		childPKx, childPKy = secp256k1.S256(keytype).Add(TLGx, TLGy, childPKx, childPKy)
 	}
 
-	ys := secp256k1.S256().Marshal(childPKx, childPKy)
+	ys := secp256k1.S256(keytype).Marshal(childPKx, childPKy)
 	pubkeyhex := hex.EncodeToString(ys)
 
 	///
@@ -449,19 +449,21 @@ func GetBip32ChildKey(rootpubkey string, inputcode string) (string, string, erro
 		go func(gg string) {
 			PutPreSigal(pub, true)
 
-			err := SavePrekeyToDb(rootpubkey, inputcode, gg)
-			if err != nil {
-				common.Error("=========================get bip32 child key,save (pubkey,inputcode,gid) to db fail.=======================", "pubkey", rootpubkey, "inputcode", inputcode, "gid", gg, "err", err)
-				return
+			if mode != "2" {
+			    err := SavePrekeyToDb(rootpubkey, inputcode, gg,keytype)
+			    if err != nil {
+				    common.Error("=========================get bip32 child key,save (pubkey,inputcode,gid) to db fail.=======================", "pubkey", rootpubkey, "inputcode", inputcode, "gid", gg, "err", err)
+				    return
+			    }
 			}
-
+			
 			common.Info("===================before generate pre-sign data for bip32===============", "current total number of the data ", GetTotalCount(rootpubkey, inputcode, gg), "the number of remaining pre-sign data", (PreBip32DataCount - GetTotalCount(rootpubkey, inputcode, gg)), "pub", pub, "pubkey", rootpubkey, "input code", inputcode, "sub-groupid", gg)
 			for {
 				index, need := NeedPreSignForBip32(rootpubkey, inputcode, gg)
 				if need && index != -1 && GetPreSigal(pub) {
 					tt := fmt.Sprintf("%v", time.Now().UnixNano()/1e6)
 					nonce := Keccak256Hash([]byte(strings.ToLower(pub + tt))).Hex()
-					ps := &PreSign{Pub: rootpubkey, InputCode: inputcode, Gid: gg, Nonce: nonce}
+					ps := &PreSign{Pub: rootpubkey, InputCode: inputcode, Gid: gg, Nonce: nonce,KeyType:keytype}
 
 					m := make(map[string]string)
 					psjson, err := ps.MarshalJSON()

@@ -36,17 +36,17 @@ func (round *round1) Start() error {
 	round.started = true
 	round.ResetOK()
 
-	u1 := random.GetRandomIntFromZn(secp256k1.S256().N)
-	c1 := random.GetRandomIntFromZn(secp256k1.S256().N)
+	u1 := random.GetRandomIntFromZn(secp256k1.S256(round.keytype).N1())
+	c1 := random.GetRandomIntFromZn(secp256k1.S256(round.keytype).N1())
 
 	if u1 == nil || c1 == nil || round.threshold <= 1 || round.threshold > round.dnodecount {
 	    return errors.New("round one fail")
 	}
 
-	u1Poly, u1PolyG, _ := ec2.Vss2Init(u1, round.threshold)
-	_, c1PolyG, _ := ec2.Vss2Init(c1, round.threshold)
+	u1Poly, u1PolyG, _ := ec2.Vss2Init(round.keytype,u1, round.threshold)
+	_, c1PolyG, _ := ec2.Vss2Init(round.keytype,c1, round.threshold)
 
-	u1Gx, u1Gy := secp256k1.S256().ScalarBaseMult(u1.Bytes())
+	u1Gx, u1Gy := secp256k1.S256(round.keytype).ScalarBaseMult(u1.Bytes())
 	u1Secrets := make([]*big.Int, 0)
 	u1Secrets = append(u1Secrets, u1Gx)
 	u1Secrets = append(u1Secrets, u1Gy)
@@ -57,7 +57,7 @@ func (round *round1) Start() error {
 	commitU1G := new(ec2.Commitment).Commit(u1Secrets...)
 
 	//bip32
-	c1Gx, c1Gy := secp256k1.S256().ScalarBaseMult(c1.Bytes())
+	c1Gx, c1Gy := secp256k1.S256(round.keytype).ScalarBaseMult(c1.Bytes())
 	c1Secrets := make([]*big.Int, 0)
 	c1Secrets = append(c1Secrets, c1Gx)
 	c1Secrets = append(c1Secrets, c1Gy)

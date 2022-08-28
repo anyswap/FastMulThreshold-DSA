@@ -38,7 +38,7 @@ import (
 //----------------------------------------------------ECDSA start----------------------------------------------------------
 
 // ReshareProcessInboundMessages Analyze the obtained P2P messages and enter next round
-func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, errChan chan struct{},wg *sync.WaitGroup, ch chan interface{}) {
+func ReshareProcessInboundMessages(msgprex string, keytype string,finishChan chan struct{}, errChan chan struct{},wg *sync.WaitGroup, ch chan interface{}) {
 	
 	if msgprex == "" {
 	    return
@@ -125,7 +125,7 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, err
 			}
 			
 			common.Debug("===============reshare,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
-			if !checkP2pSig(sig,mm,msgmap["ENode"]) {
+			if !checkP2pSig(keytype,sig,mm,msgmap["ENode"]) {
 			    common.Error("===============reshare,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
@@ -167,7 +167,7 @@ func ReshareProcessInboundMessages(msgprex string, finishChan chan struct{}, err
 			    return
 			}
 
-			_,ID := GetNodeUID(msgmap["ENode"], "EC256K1",pubs.GroupID)
+			_,ID := GetNodeUID(msgmap["ENode"], keytype,pubs.GroupID)
 			id := fmt.Sprintf("%v", ID)
 			uid := hex.EncodeToString([]byte(id))
 			if !strings.EqualFold(uid,mm.GetFromID()) {
@@ -413,7 +413,7 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 }
 
 // processReshare  Obtain the data to be sent in each round and send it to other nodes until the end of the reshare command 
-func processReshare(msgprex string, groupid string, pubkey string, account string, mode string, sigs string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan keygen.LocalDNodeSaveData) (*big.Int, error) {
+func processReshare(msgprex string, groupid string, pubkey string, account string, mode string, sigs string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan keygen.LocalDNodeSaveData,keytype string) (*big.Int, error) {
 	for {
 		select {
 		case <-errChan:
@@ -425,7 +425,7 @@ func processReshare(msgprex string, groupid string, pubkey string, account strin
 			// we bail out after KeyGenTimeoutSeconds
 			return nil, errors.New("reshare timeout")
 		case msg := <-outCh:
-			err := ReshareProcessOutCh(msgprex, groupid, msg)
+			err := ReshareProcessOutCh(msgprex, groupid, msg,keytype)
 			if err != nil {
 				fmt.Printf("======== processReshare,process outch err = %v ==========\n", err)
 				return nil, err
@@ -455,7 +455,7 @@ func processReshare(msgprex string, groupid string, pubkey string, account strin
 				return nil, err
 			}
 
-			ys := secp256k1.S256().Marshal(msg.Pkx, msg.Pky)
+			ys := secp256k1.S256(keytype).Marshal(msg.Pkx, msg.Pky)
 			pubkeyhex := hex.EncodeToString(ys)
 			if !strings.EqualFold(pubkey, pubkeyhex) {
 				common.Info("===================== reshare fail,new pubkey != old pubkey ====================", "old pubkey", pubkey, "new pubkey", pubkeyhex, "key", msgprex)
@@ -500,7 +500,7 @@ func processReshare(msgprex string, groupid string, pubkey string, account strin
 			//default EC256K1 for reshare
 			//ED25519 is not ready!!!
 
-			rk := Keccak256Hash([]byte(strings.ToLower(account + ":" + "EC256K1" + ":" + groupid + ":" + nonce + ":" + w.limitnum + ":" + mode))).Hex() //reqaddr key
+			rk := Keccak256Hash([]byte(strings.ToLower(account + ":" + keytype + ":" + groupid + ":" + nonce + ":" + w.limitnum + ":" + mode))).Hex() //reqaddr key
 			//**********************************
 
 			tt := fmt.Sprintf("%v", time.Now().UnixNano()/1e6)
@@ -580,7 +580,7 @@ func processReshare(msgprex string, groupid string, pubkey string, account strin
 				}
 			}
 
-			ac := &AcceptReqAddrData{Initiator: curEnode, Account: account, Cointype: "EC256K1", GroupID: groupid, Nonce: nonce, LimitNum: w.limitnum, Mode: mode, TimeStamp: tt, Deal: "true", Accept: "true", Status: "Success", PubKey: pubkey, Tip: "", Error: "", AllReply: allreply, WorkID: wid, Sigs: sigs}
+			ac := &AcceptReqAddrData{Initiator: curEnode, Account: account, Cointype: keytype, GroupID: groupid, Nonce: nonce, LimitNum: w.limitnum, Mode: mode, TimeStamp: tt, Deal: "true", Accept: "true", Status: "Success", PubKey: pubkey, Tip: "", Error: "", AllReply: allreply, WorkID: wid, Sigs: sigs}
 			err = SaveAcceptReqAddrData(ac)
 			if err != nil {
 				return nil, errors.New("save reqaddr accept data fail")
@@ -658,7 +658,7 @@ func processReshare(msgprex string, groupid string, pubkey string, account strin
 }
 
 // ReshareProcessOutCh send message to other node
-func ReshareProcessOutCh(msgprex string, groupid string, msg smpclib.Message) error {
+func ReshareProcessOutCh(msgprex string, groupid string, msg smpclib.Message,keytype string) error {
 	if msg == nil || msgprex == "" || groupid == "" {
 		return fmt.Errorf("smpc info error")
 	}
@@ -668,7 +668,7 @@ func ReshareProcessOutCh(msgprex string, groupid string, msg smpclib.Message) er
 		return fmt.Errorf("get worker fail")
 	}
 
-	sig,err := sigP2pMsg(msg,curEnode)
+	sig,err := sigP2pMsg(msg,curEnode,keytype)
 	if err != nil {
 	    return err
 	}

@@ -34,6 +34,8 @@ import (
 	"time"
 	"errors"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
+	ethcrypto "github.com/fsn-dev/cryptoCoins/tools/crypto"
+	"crypto/ecdsa"
 )
 
 var (
@@ -818,7 +820,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 	}
 	spky := iter.Value.(string)
 	pky, _ := new(big.Int).SetString(spky, 10)
-	ys := secp256k1.S256().Marshal(pkx, pky)
+	ys := secp256k1.S256(cointype).Marshal(pkx, pky)
 
 	iter = workers[id].save.Front()
 	if iter == nil {
@@ -914,10 +916,28 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 			continue
 		}
 
-		ctaddr, err := h.PublicKeyToAddress(pubkeyhex)
-		if err != nil {
+		common.Debug("================================smpc_genPubKey,pubkey to address=========================","pubkeyhex",pubkeyhex,"coin type",ct,"key", msgprex)
+
+		/////
+		var ctaddr string
+		if ct == "ERC20GUSD" || ct == "ERC20MKR" || ct == "ERC20HT" || ct == "ERC20BNB" || ct == "ERC20BNT" || ct == "ERC20RMBT" || ct == "ERC20USDT" {
+		    pubKeyHex := strings.TrimPrefix(pubkeyhex, "0x")
+		    erc20data := hexEncPubkey(pubKeyHex[2:])
+		    pub, err := decodePubkey(erc20data,cointype)
+		    if err != nil {
 			continue
+		    }
+		    ctaddr = ethcrypto.PubkeyToAddress(*pub).Hex()
+		    if ctaddr == "" {
+			continue
+		    }
+		} else {
+		    ctaddr, err = h.PublicKeyToAddress(pubkeyhex)
+		    if err != nil {
+			    continue
+		    }
 		}
+		/////
 
 		key := Keccak256Hash([]byte(strings.ToLower(ctaddr))).Hex()
 
@@ -958,6 +978,29 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 	ch <- res
 }
 
+func hexEncPubkey(h string) (ret [64]byte) {
+         b, err := hex.DecodeString(h)
+         if err != nil {
+                 panic(err)
+         }
+         if len(b) != len(ret) {
+                 panic("invalid length")
+         }
+         copy(ret[:], b)
+         return ret
+ }
+
+ func decodePubkey(e [64]byte,keytype string) (*ecdsa.PublicKey, error) {
+         p := &ecdsa.PublicKey{Curve: secp256k1.S256(keytype), X: new(big.Int), Y: new(big.Int)}
+         half := len(e) / 2
+         p.X.SetBytes(e[:half])
+         p.Y.SetBytes(e[half:])
+         if !p.Curve.IsOnCurve(p.X, p.Y) {
+                 return nil, errors.New("invalid secp256k1 curve point")
+         }
+         return p, nil
+}
+
 //-----------------------------------------------------------------------------------------------------------------------
 
 // KeyGenerateDECDSA generate the pubkey
@@ -991,9 +1034,9 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 	outCh := make(chan smpclib.Message, ns)
 	endCh := make(chan keygen.LocalDNodeSaveData, ns)
 	errChan := make(chan struct{})
-	keyGenDNode := keygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048)
+	keyGenDNode := keygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048,cointype)
 	w.DNode = keyGenDNode
-	_,UID := GetNodeUID(curEnode, "EC256K1",w.groupid)
+	_,UID := GetNodeUID(curEnode, cointype,w.groupid)
 	if UID == nil {
 		res := RPCSmpcRes{Ret: "", Err: errors.New("get node uid fail")}
 		ch <- res
@@ -1027,8 +1070,8 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 			}
 		}
 	}()
-	go ProcessInboundMessages(msgprex, commStopChan, errChan,&keyGenWg, ch)
-	err := processKeyGen(msgprex, errChan, outCh, endCh)
+	go ProcessInboundMessages(msgprex, cointype,commStopChan, errChan,&keyGenWg, ch)
+	err := processKeyGen(msgprex, errChan, outCh, endCh,cointype)
 	if err != nil {
 		if len(ch) == 0 {
 		    res := RPCSmpcRes{Ret: "", Err: err}
@@ -1079,7 +1122,7 @@ func KeyGenerateDEDDSA(msgprex string, ch chan interface{}, id int, cointype str
 	errChan := make(chan struct{})
 	keyGenDNode := edkeygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold)
 	w.DNode = keyGenDNode
-	_,UID := GetNodeUID(curEnode, "ED25519",w.groupid)
+	_,UID := GetNodeUID(curEnode, cointype,w.groupid)
 	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 	w.MsgToEnode[w.DNode.DNodeID()] = curEnode
 
@@ -1101,8 +1144,8 @@ func KeyGenerateDEDDSA(msgprex string, ch chan interface{}, id int, cointype str
 			}
 		}
 	}()
-	go ProcessInboundMessagesEDDSA(msgprex, commStopChan, errChan,&keyGenWg, ch)
-	err := processKeyGenEDDSA(msgprex, errChan, outCh, endCh)
+	go ProcessInboundMessagesEDDSA(msgprex, cointype,commStopChan, errChan,&keyGenWg, ch)
+	err := processKeyGenEDDSA(msgprex, errChan, outCh, endCh,cointype)
 	if err != nil {
 		log.Error("==========KeyGenerateDEDDSA,process ed keygen error==========","key",msgprex,"err",err)
 		close(commStopChan)

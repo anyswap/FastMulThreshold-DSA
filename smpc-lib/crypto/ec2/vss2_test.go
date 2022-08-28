@@ -29,23 +29,23 @@ import (
 )
 
 func TestVss2Init(t *testing.T) {
-	u1 := random.GetRandomIntFromZn(secp256k1.S256().N)
+	u1 := random.GetRandomIntFromZn(secp256k1.S256(keytype).N)
 	_, u1PolyG, _ := ec2.Vss2Init(u1, 3)
 	for i := 0; i < len(u1PolyG.PolyG); i++ {
 		assert.NotZero(t, u1PolyG.PolyG[i][0])
 		assert.NotZero(t, u1PolyG.PolyG[i][1])
-		ret := secp256k1.S256().IsOnCurve(u1PolyG.PolyG[i][0], u1PolyG.PolyG[i][1])
+		ret := secp256k1.S256(keytype).IsOnCurve(u1PolyG.PolyG[i][0], u1PolyG.PolyG[i][1])
 		assert.True(t, ret)
 	}
 }
 
 func TestVss2(t *testing.T) {
-	u1 := random.GetRandomIntFromZn(secp256k1.S256().N)
+	u1 := random.GetRandomIntFromZn(secp256k1.S256(keytype).N)
 	u1Poly, u1PolyG, _ := ec2.Vss2Init(u1, 3)
 	for i := 0; i < len(u1PolyG.PolyG); i++ {
 		assert.NotZero(t, u1PolyG.PolyG[i][0])
 		assert.NotZero(t, u1PolyG.PolyG[i][1])
-		ret := secp256k1.S256().IsOnCurve(u1PolyG.PolyG[i][0], u1PolyG.PolyG[i][1])
+		ret := secp256k1.S256(keytype).IsOnCurve(u1PolyG.PolyG[i][0], u1PolyG.PolyG[i][1])
 		assert.True(t, ret)
 	}
 
@@ -95,7 +95,7 @@ func TestCombine2(t *testing.T) {
 	sk = new(big.Int).Add(sk, u3)
 	sk = new(big.Int).Add(sk, u4)
 	sk = new(big.Int).Add(sk, u5)
-	sk = new(big.Int).Mod(sk, secp256k1.S256().N)
+	sk = new(big.Int).Mod(sk, secp256k1.S256(keytype).N)
 
 	shareU1 := &ec2.ShareStruct2{ID: id1, Share: sku1}
 	shareU2 := &ec2.ShareStruct2{ID: id2, Share: sku2}

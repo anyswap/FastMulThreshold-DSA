@@ -92,13 +92,14 @@ func NewLocalDNode(
 	sd *keygen.LocalDNodeSaveData,
 	oldnode bool,
 	oldindex int,
+	keytype string,
 ) smpc.DNode {
 
 	var id string
 	if sd != nil {
 		id = fmt.Sprintf("%v", sd.CurDNodeID)
 	} else {
-		uid := random.GetRandomIntFromZn(secp256k1.S256().N)
+		uid := random.GetRandomIntFromZn(secp256k1.S256(keytype).N1())
 		id = fmt.Sprintf("%v", uid)
 	}
 
@@ -123,6 +124,7 @@ func NewLocalDNode(
 	p.DNodeCountInGroup = DNodeCountInGroup
 	p.ThresHold = threshold
 	p.PaillierKeyLength = paillierkeylength
+	p.KeyType = keytype
 
 	p.temp.reshareRound0Messages = make([]smpc.Message, 0)
 	p.temp.reshareRound1Messages = make([]smpc.Message, threshold)
@@ -136,7 +138,7 @@ func NewLocalDNode(
 
 // FirstRound first round
 func (p *LocalDNode) FirstRound() smpc.Round {
-	fr := newRound0(p.data, &p.temp, p.out, p.end, p.ID, p.DNodeCountInGroup, p.ThresHold, p.PaillierKeyLength, p.oldnode,p.oldindex)
+	fr := newRound0(p.data, &p.temp, p.out, p.end, p.ID, p.DNodeCountInGroup, p.ThresHold, p.PaillierKeyLength, p.oldnode,p.oldindex,p.KeyType)
 	p.firstround = fr
 	return fr
 }

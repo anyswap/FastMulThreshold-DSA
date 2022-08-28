@@ -80,7 +80,7 @@ func (round *round8) Start() error {
 		    NTilde:     nt.Ntilde,
 	    }
 
-	    if !ec2.PDLwSlackVerify(pdlWSlackStatement,msg7.PdlwSlackPf) {
+	    if !ec2.PDLwSlackVerify(round.keytype,pdlWSlackStatement,msg7.PdlwSlackPf) {
 		log.Error("=======================signing round 8,failed to verify ZK proof of consistency between R_i and E_i(k_i) for Uid=========================","Uid",v)
 		return fmt.Errorf("failed to verify ZK proof of consistency between R_i and E_i(k_i) for Uid %v,k = %v", v,k)
 	    }
@@ -91,22 +91,22 @@ func (round *round8) Start() error {
 		continue
 	    }
 
-	    K1Rx,K1Ry = secp256k1.S256().Add(K1Rx,K1Ry,msg7.K1RX,msg7.K1RY)
+	    K1Rx,K1Ry = secp256k1.S256(round.keytype).Add(K1Rx,K1Ry,msg7.K1RX,msg7.K1RY)
 	}
 
-	if K1Rx.Cmp(secp256k1.S256().Gx) != 0 || K1Ry.Cmp(secp256k1.S256().Gy) != 0 {
+	if K1Rx.Cmp(secp256k1.S256(round.keytype).GX()) != 0 || K1Ry.Cmp(secp256k1.S256(round.keytype).GY()) != 0 {
 	    log.Error("==============================signing round 8,consistency check failed: g != R products==================================")
 	    return fmt.Errorf("consistency check failed: g != R products")
 	}
 
-	S1X,S1Y := secp256k1.S256().ScalarMult(round.temp.deltaGammaGx,round.temp.deltaGammaGy,round.temp.sigma1.Bytes())
-	hx,hy,err := ec2.CalcHPoint()
+	S1X,S1Y := secp256k1.S256(round.keytype).ScalarMult(round.temp.deltaGammaGx,round.temp.deltaGammaGy,round.temp.sigma1.Bytes())
+	hx,hy,err := ec2.CalcHPoint(round.keytype)
 	if err != nil {
 	    log.Error("=====================calc h point fail===================","err",err)
 	    return err 
 	}
 
-	stProof := ec2.NewSTProof(round.temp.t1X,round.temp.t1Y,S1X,S1Y,round.temp.deltaGammaGx,round.temp.deltaGammaGy,hx,hy,round.temp.sigma1,round.temp.l1)
+	stProof := ec2.NewSTProof(round.keytype,round.temp.t1X,round.temp.t1Y,S1X,S1Y,round.temp.deltaGammaGx,round.temp.deltaGammaGy,hx,hy,round.temp.sigma1,round.temp.l1)
 	if stProof == nil {
 	    return fmt.Errorf("new stproof fail")
 	}

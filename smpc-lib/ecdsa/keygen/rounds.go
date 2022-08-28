@@ -38,6 +38,7 @@ type (
 		dnodecount        int
 		threshold         int
 		paillierkeylength int
+		keytype           string
 	}
 	round0 struct {
 		*base

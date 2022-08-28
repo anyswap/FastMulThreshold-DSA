@@ -514,9 +514,9 @@ func (service *Service) PreGenSignData(raw string) map[string]interface{} {
 // Rootpubkey is the total public key pubkey of the root node
 // The inputcode format is "m / X1 / x2 /... / xn", where x1,..., xn is the index number of the child node of each level, which is in decimal format, for example: "m / 1234567890123456789012345678901234567890123456789012323455678901234"
 // inputcode = "m/x1/x2/..../xn"
-func (service *Service) GetBip32ChildKey(rootpubkey string, inputcode string) map[string]interface{} {
+func (service *Service) GetBip32ChildKey(rootpubkey string, inputcode string,keytype string,mode string) map[string]interface{} {
 	data := make(map[string]interface{})
-	pub, tip, err := smpc.GetBip32ChildKey(rootpubkey, inputcode)
+	pub, tip, err := smpc.GetBip32ChildKey(rootpubkey, inputcode,keytype,mode)
 	if err != nil {
 		data["result"] = ""
 		return map[string]interface{}{

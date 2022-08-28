@@ -71,7 +71,7 @@ func (round *round2) Start() error {
 		}
 
 		u1nt := round.save.U1NtildeH1H2[index]
-		u1u1MtAZK1Proof := ec2.MtARangeProofProve(round.temp.ukc,round.temp.u1K, round.temp.ukc2, u1PaillierPk, u1nt)
+		u1u1MtAZK1Proof := ec2.MtARangeProofProve(round.keytype,round.temp.ukc,round.temp.u1K, round.temp.ukc2, u1PaillierPk, u1nt)
 
 		srm := &SignRound2Message{
 			SignRoundMessage: new(SignRoundMessage),

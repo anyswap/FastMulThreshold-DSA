@@ -359,7 +359,7 @@ func (req *ReqSmpcReshare) DoReq(raw string, workid int, sender string, ch chan 
 		}
 
 		rch := make(chan interface{}, 1)
-		_reshare(w.sid, from, rh.GroupID, rh.PubKey, rh.Account, rh.Mode, sigs, rch)
+		_reshare(w.sid, from, rh.GroupID, rh.PubKey, rh.Account, rh.Mode, sigs, rch,rh.Keytype)
 		chret, tip, cherr := GetChannelValue(cht, rch)
 		if chret != "" {
 			res2 := RPCSmpcRes{Ret: chret, Tip: "", Err: nil}

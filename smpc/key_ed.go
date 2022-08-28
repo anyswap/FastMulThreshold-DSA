@@ -33,7 +33,7 @@ import (
 //---------------------------------------EDDSA start-----------------------------------------------------------------------
 
 // ProcessInboundMessagesEDDSA Analyze the obtained P2P messages and enter next round
-func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, errChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
+func ProcessInboundMessagesEDDSA(msgprex string, keytype string,finishChan chan struct{}, errChan chan struct{}, wg *sync.WaitGroup, ch chan interface{}) {
     	if msgprex == "" {
 	    return
 	}
@@ -118,7 +118,7 @@ func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, errCh
 			}
 			
 			common.Debug("===============keygen ed,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
-			if !checkP2pSig(sig,mm,msgmap["ENode"]) {
+			if !checkP2pSig(keytype,sig,mm,msgmap["ENode"]) {
 			    common.Error("===============keygen ed,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 
 			    if len(ch) == 0 {
@@ -130,7 +130,7 @@ func ProcessInboundMessagesEDDSA(msgprex string, finishChan chan struct{}, errCh
 			}
 			
 			// check fromID
-			_,UID := GetNodeUID(msgmap["ENode"], "ED25519",w.groupid)
+			_,UID := GetNodeUID(msgmap["ENode"], keytype,w.groupid)
 			id := fmt.Sprintf("%v", UID)
 			uid := hex.EncodeToString([]byte(id))
 			if !strings.EqualFold(uid,mm.GetFromID()) {
@@ -337,7 +337,7 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 }
 
 // processKeyGenEDDSA  Obtain the data to be sent in each round and send it to other nodes until the end of the request command 
-func processKeyGenEDDSA(msgprex string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan edkeygen.LocalDNodeSaveData) error {
+func processKeyGenEDDSA(msgprex string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan edkeygen.LocalDNodeSaveData,keytype string) error {
     	if msgprex == "" {
 	    return errors.New("param error")
 	}
@@ -352,7 +352,7 @@ func processKeyGenEDDSA(msgprex string, errChan chan struct{}, outCh <-chan smpc
 			fmt.Printf("====================== processKeyGenEDDSA,ed keygen timeout, key = %v ====================\n", msgprex)
 			return errors.New("keygen timeout")
 		case msg := <-outCh:
-			err := ProcessOutCh(msgprex, msg)
+			err := ProcessOutCh(msgprex, msg,keytype)
 			if err != nil {
 				fmt.Printf("================= processKeyGenEDDSA,process outch err = %v,key = %v ==========\n", err, msgprex)
 				return err

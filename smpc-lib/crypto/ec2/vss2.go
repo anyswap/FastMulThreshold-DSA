@@ -50,7 +50,7 @@ func GetSharesID(ss *ShareStruct2) *big.Int {
 }
 
 // Vss2Init  Initialize Lagrange polynomial coefficients 
-func Vss2Init(secret *big.Int, t int) (*PolyStruct2, *PolyGStruct2, error) {
+func Vss2Init(keytype string,secret *big.Int, t int) (*PolyStruct2, *PolyGStruct2, error) {
     	if secret == nil || t <= 1 {
 	    return nil,nil,errors.New("param error")
 	}
@@ -59,14 +59,14 @@ func Vss2Init(secret *big.Int, t int) (*PolyStruct2, *PolyGStruct2, error) {
 	polyG := make([][]*big.Int, 0)
 
 	poly = append(poly, secret)
-	pointX, pointY := s256.S256().ScalarBaseMult(secret.Bytes())
+	pointX, pointY := s256.S256(keytype).ScalarBaseMult(secret.Bytes())
 	polyG = append(polyG, []*big.Int{pointX, pointY})
 
 	for i := 0; i < t-1; i++ {
-		rndInt := random.GetRandomIntFromZn(s256.S256().N)
+		rndInt := random.GetRandomIntFromZn(s256.S256(keytype).N1())
 		poly = append(poly, rndInt)
 
-		pointX, pointY := s256.S256().ScalarBaseMult(rndInt.Bytes())
+		pointX, pointY := s256.S256(keytype).ScalarBaseMult(rndInt.Bytes())
 		polyG = append(polyG, []*big.Int{pointX, pointY})
 	}
 	polyStruct := &PolyStruct2{Poly: poly}
@@ -76,7 +76,7 @@ func Vss2Init(secret *big.Int, t int) (*PolyStruct2, *PolyGStruct2, error) {
 }
 
 // Vss2  Calculate Lagrange polynomial value 
-func (polyStruct *PolyStruct2) Vss2(ids []*big.Int) ([]*ShareStruct2, error) {
+func (polyStruct *PolyStruct2) Vss2(keytype string,ids []*big.Int) ([]*ShareStruct2, error) {
 	if ids == nil || len(ids) == 0 {
 	    return nil,errors.New("param error")
 	}
@@ -89,7 +89,7 @@ func (polyStruct *PolyStruct2) Vss2(ids []*big.Int) ([]*ShareStruct2, error) {
 	shares := make([]*ShareStruct2, 0)
 
 	for i := 0; i < len(ids); i++ {
-		shareVal,err := calculatePolynomial2(polyStruct.Poly, ids[i])
+		shareVal,err := calculatePolynomial2(keytype,polyStruct.Poly, ids[i])
 		if err != nil {
 		    return nil,err
 		}
@@ -102,21 +102,21 @@ func (polyStruct *PolyStruct2) Vss2(ids []*big.Int) ([]*ShareStruct2, error) {
 }
 
 // Verify2 Verify Lagrange polynomial value
-func (share *ShareStruct2) Verify2(polyG *PolyGStruct2) bool {
+func (share *ShareStruct2) Verify2(keytype string,polyG *PolyGStruct2) bool {
 
 	idVal := share.ID
 
 	computePointX, computePointY := polyG.PolyG[0][0], polyG.PolyG[0][1]
 
 	for i := 1; i < len(polyG.PolyG); i++ {
-		pointX, pointY := s256.S256().ScalarMult(polyG.PolyG[i][0], polyG.PolyG[i][1], idVal.Bytes())
+		pointX, pointY := s256.S256(keytype).ScalarMult(polyG.PolyG[i][0], polyG.PolyG[i][1], idVal.Bytes())
 
-		computePointX, computePointY = s256.S256().Add(computePointX, computePointY, pointX, pointY)
+		computePointX, computePointY = s256.S256(keytype).Add(computePointX, computePointY, pointX, pointY)
 		idVal = new(big.Int).Mul(idVal, share.ID)
-		idVal = new(big.Int).Mod(idVal, s256.S256().N)
+		idVal = new(big.Int).Mod(idVal, s256.S256(keytype).N1())
 	}
 
-	originalPointX, originalPointY := s256.S256().ScalarBaseMult(share.Share.Bytes())
+	originalPointX, originalPointY := s256.S256(keytype).ScalarBaseMult(share.Share.Bytes())
 
 	if computePointX.Cmp(originalPointX) == 0 && computePointY.Cmp(originalPointY) == 0 {
 		return true
@@ -126,7 +126,7 @@ func (share *ShareStruct2) Verify2(polyG *PolyGStruct2) bool {
 }
 
 // Combine2 Calculating Lagrange interpolation formula 
-func Combine2(shares []*ShareStruct2) (*big.Int, error) {
+func Combine2(keytype string,shares []*ShareStruct2) (*big.Int, error) {
     	if shares == nil || len(shares) == 0 {
 	    return nil,errors.New("param error")
 	}
@@ -147,31 +147,31 @@ func Combine2(shares []*ShareStruct2) (*big.Int, error) {
 		for j := 0; j < len(xSet); j++ {
 			if j != i {
 				sub := new(big.Int).Sub(xSet[j], share.ID)
-				subInverse := new(big.Int).ModInverse(sub, s256.S256().N)
+				subInverse := new(big.Int).ModInverse(sub, s256.S256(keytype).N1())
 				if subInverse == nil {
 				    return nil,errors.New("calc times fail")
 				}
 				div := new(big.Int).Mul(xSet[j], subInverse)
 				times = new(big.Int).Mul(times, div)
-				times = new(big.Int).Mod(times, s256.S256().N)
+				times = new(big.Int).Mod(times, s256.S256(keytype).N1())
 			}
 		}
 
 		// calculate sum(f(x) * times())
 		fTimes := new(big.Int).Mul(share.Share, times)
 		secret = new(big.Int).Add(secret, fTimes)
-		secret = new(big.Int).Mod(secret, s256.S256().N)
+		secret = new(big.Int).Mod(secret, s256.S256(keytype).N1())
 	}
 
 	return secret, nil
 }
 
-func calculatePolynomial2(poly []*big.Int, id *big.Int) (*big.Int,error) {
+func calculatePolynomial2(keytype string,poly []*big.Int, id *big.Int) (*big.Int,error) {
     if poly == nil || id == nil {
 	return nil,errors.New("param error")
     }
 
-    idnum := new(big.Int).Mod(id,s256.S256().N)
+    idnum := new(big.Int).Mod(id,s256.S256(keytype).N1())
     if idnum.Cmp(zero) == 0 || id.Cmp(zero) == 0 {
 	return nil,errors.New("id can not be equal to 0 or 0 modulo the order of the curve")
     }
@@ -182,7 +182,7 @@ func calculatePolynomial2(poly []*big.Int, id *big.Int) (*big.Int,error) {
 	for i := lastIndex - 1; i >= 0; i-- {
 		result = new(big.Int).Mul(result, id)
 		result = new(big.Int).Add(result, poly[i])
-		result = new(big.Int).Mod(result, s256.S256().N)
+		result = new(big.Int).Mod(result, s256.S256(keytype).N1())
 	}
 
 	return result,nil

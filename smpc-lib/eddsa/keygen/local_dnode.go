@@ -97,7 +97,7 @@ func NewLocalDNode(
 	ed.ScMulAdd(&id, &id, &one, &zero)
 
 	p.ID = hex.EncodeToString(id[:])
-	//uid := smpc.GetRandomIntFromZn(secp256k1.S256().N)
+	//uid := smpc.GetRandomIntFromZn(secp256k1.S256(keytype).N)
 	//p.ID = fmt.Sprintf("%v",uid)
 	//fmt.Printf("=========== ed,NewLocalDNode, id = %v, p.ID = %v =============\n", id, p.ID)
 

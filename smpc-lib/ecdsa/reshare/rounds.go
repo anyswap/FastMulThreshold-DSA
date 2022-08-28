@@ -43,6 +43,7 @@ type (
 		oldindex           int
 		//add for check msg0
 		idreshare smpc.SortableIDSSlice
+		keytype string
 	}
 	round0 struct {
 		*base

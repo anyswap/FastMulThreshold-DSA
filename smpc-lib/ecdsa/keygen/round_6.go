@@ -54,7 +54,7 @@ func (round *round6) Start() error {
 		}
 
 		deCommit := &ec2.Commitment{C: msg4.ComXiC, D: msg5.ComXiGD}
-		if !deCommit.Verify() {
+		if !deCommit.Verify(round.keytype) {
 			fmt.Printf("========= round6 verify commitment fail, k = %v ==========\n", k)
 			return errors.New("verify commitment fail")
 		}
@@ -113,7 +113,7 @@ func (round *round6) Start() error {
 	round.temp.p2 = nil 
 
 	// add prove for xi 
-	u1zkXiProof := ec2.ZkXiProve(round.Save.SkU1)
+	u1zkXiProof := ec2.ZkXiProve(round.keytype,round.Save.SkU1)
 	if u1zkXiProof == nil {
 		return errors.New("zkx prove fail")
 	}

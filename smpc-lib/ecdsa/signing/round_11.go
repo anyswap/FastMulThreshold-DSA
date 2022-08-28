@@ -46,7 +46,7 @@ func (round *round11) Start() error {
 		msg9, _ := round.temp.signRound9Messages[k].(*SignRound9Message)
 		s = new(big.Int).Add(s, msg9.Us1)
 	}
-	s = new(big.Int).Mod(s, secp256k1.S256().N)
+	s = new(big.Int).Mod(s, secp256k1.S256(round.keytype).N1())
 
 	round.finalizeend <- s
 	//fmt.Printf("============= round9.start success, current node id = %v =======\n", round.kgid)

@@ -36,7 +36,7 @@ import (
 //---------------------------------------ECDSA start-----------------------------------------------------------------------
 
 // ProcessInboundMessages Analyze the obtained P2P messages and enter next round
-func ProcessInboundMessages(msgprex string, finishChan chan struct{}, errChan chan struct{},wg *sync.WaitGroup, ch chan interface{}) {
+func ProcessInboundMessages(msgprex string, keytype string,finishChan chan struct{}, errChan chan struct{},wg *sync.WaitGroup, ch chan interface{}) {
     	if msgprex == "" {
 	    return
 	}
@@ -151,7 +151,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, errChan ch
 			    return
 			}
 			
-			if !checkP2pSig(sig,mm,msgmap["ENode"]) {
+			if !checkP2pSig(keytype,sig,mm,msgmap["ENode"]) {
 			    common.Error("===============keygen,check p2p msg fail===============","msg hash",hexs,"sender",msgmap["ENode"])
 			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
@@ -162,7 +162,7 @@ func ProcessInboundMessages(msgprex string, finishChan chan struct{}, errChan ch
 			}
 
 			// check fromID
-			_,UID := GetNodeUID(msgmap["ENode"], "EC256K1",w.groupid)
+			_,UID := GetNodeUID(msgmap["ENode"], keytype,w.groupid)
 			id := fmt.Sprintf("%v", UID)
 			uid := hex.EncodeToString([]byte(id))
 			if !strings.EqualFold(uid,mm.GetFromID()) {
@@ -577,7 +577,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 }
 
 // processKeyGen  Obtain the data to be sent in each round and send it to other nodes until the end of the request command 
-func processKeyGen(msgprex string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan keygen.LocalDNodeSaveData) error {
+func processKeyGen(msgprex string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan keygen.LocalDNodeSaveData,keytype string) error {
     	if msgprex == "" {
 	    return errors.New("param error")
 	}
@@ -592,7 +592,7 @@ func processKeyGen(msgprex string, errChan chan struct{}, outCh <-chan smpclib.M
 			log.Error("=========== processKeyGen,keygen timeout ============","key", msgprex)
 			return errors.New("keygen timeout")
 		case msg := <-outCh:
-			err := ProcessOutCh(msgprex, msg)
+			err := ProcessOutCh(msgprex, msg,keytype)
 			if err != nil {
 				log.Error("================ processKeyGen,process outch fail ================","err",err,"key",msgprex)
 				return err
@@ -680,7 +680,7 @@ func GetKGLocalDBSaveData(data map[string]string) *KGLocalDBSaveData {
 //---------------------------------------ECDSA end-----------------------------------------------------------------------
 
 // ProcessOutCh send message to other node
-func ProcessOutCh(msgprex string, msg smpclib.Message) error {
+func ProcessOutCh(msgprex string, msg smpclib.Message,keytype string) error {
 	if msg == nil {
 		return fmt.Errorf("smpc info error")
 	}
@@ -690,7 +690,7 @@ func ProcessOutCh(msgprex string, msg smpclib.Message) error {
 		return fmt.Errorf("get worker fail")
 	}
 
-	sig,err := sigP2pMsg(msg,curEnode)
+	sig,err := sigP2pMsg(msg,curEnode,keytype)
 	if err != nil {
 	    return err
 	}

@@ -45,11 +45,11 @@ type MtARespZKProof struct {
 // The input for this proof is a Paillier public key (N,G) and two values c1 , c2 ∈ ZN2.
 // The Prover knows x ∈ Zq , y ∈ ZN and r ∈ Z*,such that c2 = c1^x*G^y*r^N mod N^2, where q is the order of the DSA group.
 // At the end of the protocol the Verifier is convinced of the above and that x ∈ [−q^3 , q^3].
-func MtARespZKProofProve(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *big.Int,publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtARespZKProof {
-	q3Ntilde := new(big.Int).Mul(s256.S256().N3(), ntildeH1H2.Ntilde)
-	qNtilde := new(big.Int).Mul(s256.S256().N, ntildeH1H2.Ntilde)
+func MtARespZKProofProve(keytype string,x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *big.Int,publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtARespZKProof {
+	q3Ntilde := new(big.Int).Mul(s256.S256(keytype).N3(), ntildeH1H2.Ntilde)
+	qNtilde := new(big.Int).Mul(s256.S256(keytype).N1(), ntildeH1H2.Ntilde)
 
-	alpha := random.GetRandomIntFromZn(s256.S256().N3())
+	alpha := random.GetRandomIntFromZn(s256.S256(keytype).N3())
 	rho := random.GetRandomIntFromZn(qNtilde)
 	rhoBar := random.GetRandomIntFromZn(q3Ntilde)
 	sigma := random.GetRandomIntFromZn(qNtilde)
@@ -80,7 +80,7 @@ func MtARespZKProofProve(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *bi
 	w = new(big.Int).Mod(w, ntildeH1H2.Ntilde)
 
 	e := Sha512_256(z,zBar,t,v,w,c1,c2,publicKey.N)
-	e = new(big.Int).Mod(e, s256.S256().N)
+	e = new(big.Int).Mod(e, s256.S256(keytype).N1())
 
 	s := new(big.Int).Exp(r, e, publicKey.N)
 	s = new(big.Int).Mul(s, beta)
@@ -109,7 +109,7 @@ func MtARespZKProofProve(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *bi
 // The Prover knows x ∈ Zq , y ∈ ZN and r ∈ Z*,such that c2 = c1^x*G^y*r^N mod N^2, where q is the order of the DSA group.
 // At the end of the protocol the Verifier is convinced of the above and that x ∈ [−q^3 , q^3].
 // The Verifier checks that s1 ≤ q^3, h1^s1*h2^s2 = z^e*zBar mod Ntilde, h1^t1*h2^t2 = t^e*w mode Ntilde, c1^s1*s^N*G^t1 = c2^e*v mod N^2 
-func (mtAZK2Proof *MtARespZKProof) MtARespZKProofVerify(c1 *big.Int, c2 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
+func (mtAZK2Proof *MtARespZKProof) MtARespZKProofVerify(keytype string,c1 *big.Int, c2 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
 	if c1 == nil || c2 == nil || publicKey == nil || ntildeH1H2 == nil || mtAZK2Proof == nil || mtAZK2Proof.S1 == nil || mtAZK2Proof.Z == nil || mtAZK2Proof.ZBar == nil || mtAZK2Proof.T == nil || mtAZK2Proof.W == nil || mtAZK2Proof.V == nil || mtAZK2Proof.S == nil {
 	    return false
 	}
@@ -122,7 +122,7 @@ func (mtAZK2Proof *MtARespZKProof) MtARespZKProofVerify(c1 *big.Int, c2 *big.Int
 	    return false
 	}
 	
-	if mtAZK2Proof.S1.Cmp(s256.S256().N3()) > 0 {
+	if mtAZK2Proof.S1.Cmp(s256.S256(keytype).N3()) > 0 {
 		return false
 	}
 
@@ -180,7 +180,7 @@ func (mtAZK2Proof *MtARespZKProof) MtARespZKProofVerify(c1 *big.Int, c2 *big.Int
 	N2 := new(big.Int).Mul(publicKey.N,publicKey.N)
 
 	e := Sha512_256(mtAZK2Proof.Z,mtAZK2Proof.ZBar,mtAZK2Proof.T,mtAZK2Proof.V,mtAZK2Proof.W,c1,c2,publicKey.N)
-	e = new(big.Int).Mod(e, s256.S256().N)
+	e = new(big.Int).Mod(e, s256.S256(keytype).N1())
 
 	s12 := new(big.Int).Exp(ntildeH1H2.H1, mtAZK2Proof.S1, ntildeH1H2.Ntilde)
 	s12 = new(big.Int).Mul(s12, new(big.Int).Exp(ntildeH1H2.H2, mtAZK2Proof.S2, ntildeH1H2.Ntilde))

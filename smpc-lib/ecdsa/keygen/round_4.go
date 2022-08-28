@@ -66,7 +66,7 @@ func (round *round4) Start() error {
 		}
 
 		ps := &ec2.PolyGStruct2{PolyG: msg3.U1PolyGG}
-		if !ushare.Verify2(ps) {
+		if !ushare.Verify2(round.keytype,ps) {
 			fmt.Printf("========= round4 verify share fail, k = %v ==========\n", k)
 			return errors.New("verify share data fail")
 		}
@@ -78,25 +78,25 @@ func (round *round4) Start() error {
 		}
 
 		deCommit := &ec2.Commitment{C: msg1.ComC, D: msg3.ComU1GD}
-		if !deCommit.Verify() {
+		if !deCommit.Verify(round.keytype) {
 			fmt.Printf("========= round4 verify commitment fail, k = %v ==========\n", k)
 			return errors.New("verify commitment fail")
 		}
 
 		//verify bip32 commitment
 		deCommitBip32 := &ec2.Commitment{C: msg1.ComCBip32, D: msg3.ComC1GD}
-		if !deCommitBip32.Verify() {
+		if !deCommitBip32.Verify(round.keytype) {
 			fmt.Printf("========= round4 verify commitment for bip32 fail, k = %v ==========\n", k)
 			return errors.New("verify commitment fail")
 		}
 
-		_, c1G := deCommitBip32.DeCommit()
+		_, c1G := deCommitBip32.DeCommit(round.keytype)
 		msg21, ok := round.temp.kgRound2Messages1[k].(*KGRound2Message1)
 		if !ok {
 			return errors.New("round.Start get round2.1 msg fail")
 		}
 
-		cGVerifyx, cGVerifyy := secp256k1.S256().ScalarBaseMult(msg21.C1.Bytes())
+		cGVerifyx, cGVerifyy := secp256k1.S256(round.keytype).ScalarBaseMult(msg21.C1.Bytes())
 		if c1G[0].Cmp(cGVerifyx) == 0 && c1G[1].Cmp(cGVerifyy) == 0 {
 			//.....
 		} else {
@@ -117,7 +117,7 @@ func (round *round4) Start() error {
 		ushare := &ec2.ShareStruct2{ID: msg2.ID, Share: msg2.Share}
 
 		deCommit := &ec2.Commitment{C: msg1.ComC, D: msg3.ComU1GD}
-		_, u1G := deCommit.DeCommit()
+		_, u1G := deCommit.DeCommit(round.keytype)
 		pkx = u1G[0]
 		pky = u1G[1]
 
@@ -140,8 +140,8 @@ func (round *round4) Start() error {
 
 		deCommit := &ec2.Commitment{C: msg1.ComC, D: msg3.ComU1GD}
 
-		_, u1G := deCommit.DeCommit()
-		pkx, pky = secp256k1.S256().Add(pkx, pky, u1G[0], u1G[1])
+		_, u1G := deCommit.DeCommit(round.keytype)
+		pkx, pky = secp256k1.S256(round.keytype).Add(pkx, pky, u1G[0], u1G[1])
 
 		msg21, _ := round.temp.kgRound2Messages1[k].(*KGRound2Message1)
 
@@ -149,8 +149,8 @@ func (round *round4) Start() error {
 		skU1 = new(big.Int).Add(skU1, ushare.Share)
 	}
 
-	c = new(big.Int).Mod(c, secp256k1.S256().N)
-	skU1 = new(big.Int).Mod(skU1, secp256k1.S256().N)
+	c = new(big.Int).Mod(c, secp256k1.S256(round.keytype).N1())
+	skU1 = new(big.Int).Mod(skU1, secp256k1.S256(round.keytype).N1())
 
 	round.Save.SkU1 = skU1
 	round.Save.Pkx = pkx
@@ -158,7 +158,7 @@ func (round *round4) Start() error {
 	round.Save.C = c
 
 	// add commitment for sku1
-	xiGx, xiGy := secp256k1.S256().ScalarBaseMult(skU1.Bytes())
+	xiGx, xiGy := secp256k1.S256(round.keytype).ScalarBaseMult(skU1.Bytes())
 	u1Secrets := make([]*big.Int, 0)
 	u1Secrets = append(u1Secrets, xiGx)
 	u1Secrets = append(u1Secrets, xiGy)

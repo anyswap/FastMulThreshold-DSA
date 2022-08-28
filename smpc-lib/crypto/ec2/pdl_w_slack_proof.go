@@ -59,39 +59,39 @@ const (
 //------------------------------------------------------------------------------------
 
 // NewPDLwSlackProof new PDLwSlackProof
-func NewPDLwSlackProof(wit *PDLwSlackWitness, st *PDLwSlackStatement) *PDLwSlackProof {
+func NewPDLwSlackProof(keytype string,wit *PDLwSlackWitness, st *PDLwSlackStatement) *PDLwSlackProof {
     if wit == nil || st == nil {
 	return nil
     }
 
-    q3 := new(big.Int).Mul(secp256k1.S256().N, secp256k1.S256().N)
-    q3.Mul(q3, secp256k1.S256().N)
-    qNTilde := new(big.Int).Mul(secp256k1.S256().N, st.NTilde)
+    q3 := new(big.Int).Mul(secp256k1.S256(keytype).N1(), secp256k1.S256(keytype).N1())
+    q3.Mul(q3, secp256k1.S256(keytype).N1())
+    qNTilde := new(big.Int).Mul(secp256k1.S256(keytype).N1(), st.NTilde)
     q3NTilde := new(big.Int).Mul(q3, st.NTilde)
 
     alpha := random.GetRandomIntFromZn(q3)
-    alpha = new(big.Int).Mod(alpha,secp256k1.S256().N)
+    alpha = new(big.Int).Mod(alpha,secp256k1.S256(keytype).N1())
 
     nAddOne := new(big.Int).Add(st.PK.N, one)
     tmp := random.GetRandomIntFromZn(nAddOne)
-    tmp = new(big.Int).Mod(tmp,secp256k1.S256().N)
+    tmp = new(big.Int).Mod(tmp,secp256k1.S256(keytype).N1())
     beta := new(big.Int).Add(one,tmp)
     
     N2 := new(big.Int).Mul(st.PK.N,st.PK.N)
     
     rho := random.GetRandomIntFromZn(qNTilde)
-    rho = new(big.Int).Mod(rho,secp256k1.S256().N)
+    rho = new(big.Int).Mod(rho,secp256k1.S256(keytype).N1())
     
     gamma := random.GetRandomIntFromZn(q3NTilde)
-    gamma = new(big.Int).Mod(gamma,secp256k1.S256().N)
+    gamma = new(big.Int).Mod(gamma,secp256k1.S256(keytype).N1())
 
     z := commitmentUnknownOrder(st.H1, st.H2, st.NTilde, wit.K1, rho)
-    u1Gx,u1Gy := secp256k1.S256().ScalarMult(st.Rx,st.Ry,alpha.Bytes())
+    u1Gx,u1Gy := secp256k1.S256(keytype).ScalarMult(st.Rx,st.Ry,alpha.Bytes())
     u2 := commitmentUnknownOrder(nAddOne, beta, N2, alpha, st.PK.N)
     u3 := commitmentUnknownOrder(st.H1, st.H2, st.NTilde, alpha, gamma)
 
     e := Sha512_256(st.Rx, st.Ry, st.K1RX, st.K1RY, st.CipherText, z, u1Gx, u1Gy, u2, u3,st.PK.N,nAddOne,N2,st.H1,st.H2,st.NTilde)
-    e = new(big.Int).Mod(e, secp256k1.S256().N)
+    e = new(big.Int).Mod(e, secp256k1.S256(keytype).N1())
     if e == nil {
 	return nil
     }
@@ -122,7 +122,7 @@ func commitmentUnknownOrder(h1, h2, NTilde, x, r *big.Int) (com *big.Int) {
 //----------------------------------------------------------------------------------
 
 // PDLwSlackVerify verify PDLwSlackProof
-func PDLwSlackVerify(st *PDLwSlackStatement,p *PDLwSlackProof) bool {
+func PDLwSlackVerify(keytype string,st *PDLwSlackStatement,p *PDLwSlackProof) bool {
     if st == nil || p == nil {
 	return false
     }
@@ -166,15 +166,15 @@ func PDLwSlackVerify(st *PDLwSlackStatement,p *PDLwSlackProof) bool {
     nOne := new(big.Int).Add(st.PK.N, one)
 
     e := Sha512_256(st.Rx, st.Ry, st.K1RX, st.K1RY, st.CipherText, p.Z, p.U1X, p.U1Y, p.U2, p.U3,st.PK.N,nOne,N2,st.H1,st.H2,st.NTilde)
-    e = new(big.Int).Mod(e, secp256k1.S256().N)
+    e = new(big.Int).Mod(e, secp256k1.S256(keytype).N1())
 
     eNeg := new(big.Int).Neg(e)
-    tmp := new(big.Int).Mod(p.S1,secp256k1.S256().N)
-    gS1X,gS1Y := secp256k1.S256().ScalarMult(st.Rx, st.Ry,tmp.Bytes())
-    eFeNeg := new(big.Int).Sub(secp256k1.S256().N, e)
-    yMinusEX,yMinusEY := secp256k1.S256().ScalarMult(st.K1RX, st.K1RY,eFeNeg.Bytes())
-    u1TestX,u1TestY := secp256k1.S256().Add(gS1X,gS1Y,yMinusEX,yMinusEY)
-    if !secp256k1.S256().IsOnCurve(u1TestX,u1TestY) {
+    tmp := new(big.Int).Mod(p.S1,secp256k1.S256(keytype).N1())
+    gS1X,gS1Y := secp256k1.S256(keytype).ScalarMult(st.Rx, st.Ry,tmp.Bytes())
+    eFeNeg := new(big.Int).Sub(secp256k1.S256(keytype).N1(), e)
+    yMinusEX,yMinusEY := secp256k1.S256(keytype).ScalarMult(st.K1RX, st.K1RY,eFeNeg.Bytes())
+    u1TestX,u1TestY := secp256k1.S256(keytype).Add(gS1X,gS1Y,yMinusEX,yMinusEY)
+    if !secp256k1.S256(keytype).IsOnCurve(u1TestX,u1TestY) {
 	return false
     }
 

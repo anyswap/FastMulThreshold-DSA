@@ -25,9 +25,9 @@ import (
 	"math/big"
 )
 
-func newRound10(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- PrePubData, kgid string, threshold int, paillierkeylength int, predata *PrePubData, txhash *big.Int, finalizeend chan<- *big.Int) smpc.Round {
+func newRound10(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- PrePubData, kgid string, threshold int, paillierkeylength int, predata *PrePubData, txhash *big.Int, finalizeend chan<- *big.Int,keytype string) smpc.Round {
 	return &round10{
-		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, predata, txhash, finalizeend}}
+		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, predata, txhash, finalizeend,keytype}}
 }
 
 // Start broacast current node s to other nodes
@@ -49,7 +49,7 @@ func (round *round10) Start() error {
 	mk1 := new(big.Int).Mul(round.txhash, round.predata.K1)
 	rSigma1 := new(big.Int).Mul(round.predata.R, round.predata.Sigma1)
 	us1 := new(big.Int).Add(mk1, rSigma1)
-	us1 = new(big.Int).Mod(us1, secp256k1.S256().N)
+	us1 = new(big.Int).Mod(us1, secp256k1.S256(round.keytype).N1())
 
 	srm := &SignRound9Message{
 		SignRoundMessage: new(SignRoundMessage),

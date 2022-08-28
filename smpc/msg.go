@@ -869,6 +869,9 @@ func HandleC1Data(ac *AcceptReqAddrData, key string) {
 		_,uid := GetNodeUID(node2, "EC256K1",ac.GroupID)
 		HandleKG(key, uid)
 		HandleSign(key, uid)
+		_,uid = GetNodeUID(node2, "EC256STARK",ac.GroupID)
+		HandleKG(key, uid)
+		HandleSign(key, uid)
 		_,uid = GetNodeUID(node2, "ED25519",ac.GroupID)
 		HandleKG(key, uid)
 		HandleSign(key, uid)
@@ -1818,7 +1821,7 @@ func getUnSignMsgByte(msg smpclib.Message) ([]byte,error) {
 }
 
 // enodeID is the pubkey,corresponding to the private key reading from the 'KeyFile'
-func sigP2pMsg(msg smpclib.Message,enodeID string) ([]byte,error) {
+func sigP2pMsg(msg smpclib.Message,enodeID string,keytype string) ([]byte,error) {
     if msg == nil || enodeID == "" {
 	return nil,errors.New("param error")
     }
@@ -1843,14 +1846,14 @@ func sigP2pMsg(msg smpclib.Message,enodeID string) ([]byte,error) {
 	return nil,err
     }
 
-    if !checkP2pSig(sig,msg,enodeID) {
+    if !checkP2pSig(keytype,sig,msg,enodeID) {
 	return nil,errors.New("check sig error")
     }
 
     return sig,nil
 }
 
-func checkP2pSig(sig []byte,msg smpclib.Message,enodeID string) bool {
+func checkP2pSig(keytype string,sig []byte,msg smpclib.Message,enodeID string) bool {
     if sig == nil || msg == nil || enodeID == "" {
 	return false
     }
@@ -1866,7 +1869,7 @@ func checkP2pSig(sig []byte,msg smpclib.Message,enodeID string) bool {
 	return false
     }
 
-    pub := secp256k1.S256().Marshal(public.X,public.Y) 
+    pub := secp256k1.S256(keytype).Marshal(public.X,public.Y) 
     pub2 := hex.EncodeToString(pub) // 04.....
     s := []rune(pub2) // 04.....
     ss := string(s[2:])

@@ -33,7 +33,7 @@ import (
 //--------------------------------------------------------EDDSA start-------------------------------------------------------
 
 // EdSignProcessInboundMessages Analyze the obtained P2P messages and enter next round
-func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, errChan chan struct{},wg *sync.WaitGroup, ch chan interface{}) {
+func EdSignProcessInboundMessages(msgprex string, keytype string,finishChan chan struct{}, errChan chan struct{},wg *sync.WaitGroup, ch chan interface{}) {
 	if msgprex == "" {
 	    return
 	}
@@ -115,7 +115,7 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, errC
 			}
 			
 			common.Debug("===============sign ed,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
-			if !checkP2pSig(sig,mm,msgmap["ENode"]) {
+			if !checkP2pSig(keytype,sig,mm,msgmap["ENode"]) {
 			    common.Error("===============sign ed,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
@@ -157,7 +157,7 @@ func EdSignProcessInboundMessages(msgprex string, finishChan chan struct{}, errC
 			    return
 			}
 
-			_,ID := GetNodeUID(msgmap["ENode"], "ED25519",pubs.GroupID)
+			_,ID := GetNodeUID(msgmap["ENode"], keytype,pubs.GroupID)
 			id := fmt.Sprintf("%v",ID)
 			uid := hex.EncodeToString([]byte(id))
 			if !strings.EqualFold(uid,mm.GetFromID()) {
@@ -383,7 +383,7 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 }
 
 // processSigned  Obtain the data to be sent in each round and send it to other nodes until the end of the sign command 
-func processSigned(msgprex string, msgtoenode map[string]string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan edsigning.EdSignData) (*edsigning.EdSignData, error) {
+func processSigned(msgprex string, keytype string,msgtoenode map[string]string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan edsigning.EdSignData) (*edsigning.EdSignData, error) {
 	for {
 		select {
 		case <-errChan:
@@ -394,7 +394,7 @@ func processSigned(msgprex string, msgtoenode map[string]string, errChan chan st
 			fmt.Printf("========================== processSigned,sign timeout, key = %v ==========================\n", msgprex)
 			return nil, errors.New("signing timeout")
 		case msg := <-outCh:
-			err := SignProcessOutCh(msgprex, msgtoenode, msg, "")
+			err := SignProcessOutCh(msgprex, keytype,msgtoenode, msg, "")
 			if err != nil {
 				fmt.Printf("======================= processSigned, sign process outch err = %v, key = %v ====================\n", err, msgprex)
 				return nil, err

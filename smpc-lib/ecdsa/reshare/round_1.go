@@ -68,22 +68,22 @@ func (round *round1) Start() error {
 		}
 
 		sub := new(big.Int).Sub(v, self)
-		subInverse := new(big.Int).ModInverse(sub, secp256k1.S256().N)
+		subInverse := new(big.Int).ModInverse(sub, secp256k1.S256(round.keytype).N1())
 		if subInverse == nil {
 		    return errors.New("calc times fail")
 		}
 
 		times := new(big.Int).Mul(subInverse, v)
 		lambda1 = new(big.Int).Mul(lambda1, times)
-		lambda1 = new(big.Int).Mod(lambda1, secp256k1.S256().N)
+		lambda1 = new(big.Int).Mod(lambda1, secp256k1.S256(round.keytype).N1())
 	}
 	w1 := new(big.Int).Mul(lambda1, round.Save.SkU1)
-	w1 = new(big.Int).Mod(w1, secp256k1.S256().N)
+	w1 = new(big.Int).Mod(w1, secp256k1.S256(round.keytype).N1())
 
 	round.temp.w1 = w1
 
-	skP1Poly, skP1PolyG, _ := ec2.Vss2Init(w1, round.threshold)
-	skP1Gx, skP1Gy := secp256k1.S256().ScalarBaseMult(w1.Bytes())
+	skP1Poly, skP1PolyG, _ := ec2.Vss2Init(round.keytype,w1, round.threshold)
+	skP1Gx, skP1Gy := secp256k1.S256(round.keytype).ScalarBaseMult(w1.Bytes())
 	u1CommitValues := make([]*big.Int, 0)
 	u1CommitValues = append(u1CommitValues, skP1Gx)
 	u1CommitValues = append(u1CommitValues, skP1Gy)

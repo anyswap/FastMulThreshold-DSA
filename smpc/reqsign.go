@@ -548,6 +548,7 @@ type RPCSignData struct {
 	GroupID   string
 	MsgHash   []string
 	Key       string
+	KeyType       string
 }
 
 // TxDataSign the data of the special tx of sign 
@@ -665,7 +666,7 @@ func Sign(raw string) (string, string, error) {
 		}
 		SetUpMsgList(string(val2), curEnode)
 	} else {
-		rsd := &RPCSignData{Raw: raw, PubKey: sig.PubKey, InputCode: sig.InputCode, GroupID: sig.GroupID, MsgHash: sig.MsgHash, Key: key}
+	    rsd := &RPCSignData{Raw: raw, PubKey: sig.PubKey, InputCode: sig.InputCode, GroupID: sig.GroupID, MsgHash: sig.MsgHash, Key: key,KeyType:sig.Keytype}
 		SignChan <- rsd
 		//go HandleRPCSign2(rsd)
 	}
@@ -673,7 +674,7 @@ func Sign(raw string) (string, string, error) {
 	return key, "", nil
 }
 
-func DoPreSign(pubkey string,gid string,hash string,mode string) string {
+func DoPreSign(pubkey string,gid string,hash string,mode string,keytype string) string {
     if pubkey == "" || gid == "" || hash == "" || mode == "" {
 	return ""
     }
@@ -682,7 +683,7 @@ func DoPreSign(pubkey string,gid string,hash string,mode string) string {
 
     if mode != "2" {
 	    PutPreSigal(pub, true)
-	    err := SavePrekeyToDb(pubkey, "", gid)
+	    err := SavePrekeyToDb(pubkey, "", gid,keytype)
 	    if err != nil {
 		    common.Error("=========================DoPreSign,save (pubkey,gid) to db fail=======================", "pubkey", pubkey, "gid", gid,"hash",hash, "err", err)
 		    return ""
@@ -691,7 +692,7 @@ func DoPreSign(pubkey string,gid string,hash string,mode string) string {
 
     tt := fmt.Sprintf("%v", time.Now().UnixNano()/1e6)
     nonce := Keccak256Hash([]byte(strings.ToLower(pub + tt + hash))).Hex()
-    ps := &PreSign{Pub: pubkey, Gid: gid, Nonce: nonce,Index:-1}
+    ps := &PreSign{Pub: pubkey, Gid: gid, Nonce: nonce,Index:-1,KeyType:keytype}
 
     m := make(map[string]string)
     psjson, err := ps.MarshalJSON()
@@ -787,7 +788,7 @@ func HandleRPCSign2(rsd *RPCSignData) {
 		    return
 		}
 
-		datakey = DoPreSign(rsd.PubKey,rsd.GroupID,hashtmp,"0")
+		datakey = DoPreSign(rsd.PubKey,rsd.GroupID,hashtmp,"0",rsd.KeyType)
 		if datakey == "" {
 		    time.Sleep(time.Duration(1) * time.Second)
 		    continue
@@ -1218,7 +1219,7 @@ func GetCurNodeSignInfo(geteracc string) ([]*SignCurNodeInfo, string, error) {
 //----------------------------------------------------------------------------------------------------------
 
 // sign execut the sign command,including ec and ed.
-// keytype : EC256K1 || ED25519
+// keytype : EC256K1 || EC256STARK || ED25519
 func sign(wsid string, account string, pubkey string, inputcode string, unsignhash []string, keytype string, nonce string, mode string, pickdata []*PickHashData, ch chan interface{}) {
     smpcpks, err := hex.DecodeString(pubkey)
     if err != nil {
@@ -1248,9 +1249,9 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
 
     var smpcpkx *big.Int
     var smpcpky *big.Int
-    if keytype == "EC256K1" {
+    if keytype == "EC256K1" || keytype == "EC256STARK" {
 	    smpcpks := []byte(smpcpub)
-	    smpcpkx, smpcpky = secp256k1.S256().Unmarshal(smpcpks[:])
+	    smpcpkx, smpcpky = secp256k1.S256(keytype).Unmarshal(smpcpks[:])
     }
 
     ///sku1
@@ -1584,7 +1585,7 @@ func GetPaillierPkByIndexFromSaveData(save string, index int) *ec2.PublicKey {
 // GetCurNodeIndex get the serial number of uid of current node in group.
 // gid is the `keygen gid`
 func GetCurNodeIndex(gid string,subgid string,keytype string) int {
-    if gid == "" || subgid == "" || keytype == "" {
+    if gid == "" || subgid == "" {
 	    return -1
     }
 
@@ -1605,7 +1606,7 @@ func GetCurNodeIndex(gid string,subgid string,keytype string) int {
 // GetCurNodePaillierSkFromSaveData get current node's paillier private key from saved data that obtained when generating pubkey
 // gid is not the sub-gid
 func GetCurNodePaillierSkFromSaveData(save string, gid string, keytype string) *ec2.PrivateKey {
-    if save == "" || gid == "" || keytype == "" {
+    if save == "" || gid == "" {
 	    return nil
     }
 
@@ -1772,7 +1773,7 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
     endCh := make(chan signing.PrePubData, w.ThresHold)
     finalizeendCh := make(chan *big.Int, w.ThresHold)
     errChan := make(chan struct{})
-    signDNode := signing.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, nil, finalizeendCh)
+    signDNode := signing.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, nil, finalizeendCh,cointype)
     w.DNode = signDNode
     signDNode.SetDNodeID(fmt.Sprintf("%v", sd.CurDNodeID))
 
@@ -1794,8 +1795,8 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 		    }
 	    }
     }()
-    go SignProcessInboundMessages(msgprex, commStopChan, errChan,&signWg, ch)
-    pre, err := processSign(msgprex, kgsave.MsgToEnode, errChan, outCh, endCh)
+    go SignProcessInboundMessages(msgprex, cointype,commStopChan, errChan,&signWg, ch)
+    pre, err := processSign(msgprex, cointype,kgsave.MsgToEnode, errChan, outCh, endCh)
     if err != nil || pre == nil {
 	    common.Debug("==========================PreSignEC3,process sign fail===========================","key",msgprex,"err",err)
 
@@ -1854,7 +1855,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
     sd.Pkx = pkx
     sd.Pky = pky
 
-    ys := secp256k1.S256().Marshal(pkx, pky)
+    ys := secp256k1.S256(cointype).Marshal(pkx, pky)
     exsit, da := GetPubKeyData(ys)
     if !exsit || da == nil {
 	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get local pubkey data fail")}
@@ -1910,9 +1911,9 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
     finalizeendCh := make(chan *big.Int, w.ThresHold)
     errChan := make(chan struct{})
     predata := &signing.PrePubData{K1: pre.K1, R: pre.R, Ry: pre.Ry, Sigma1: pre.Sigma1}
-    signDNode := signing.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, true, predata, mMtA, finalizeendCh)
+    signDNode := signing.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, true, predata, mMtA, finalizeendCh,cointype)
     w.DNode = signDNode
-    _,UID := GetNodeUID(curEnode, "EC256K1",pubs.GroupID)
+    _,UID := GetNodeUID(curEnode, cointype,pubs.GroupID)
     signDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 
     var signWg sync.WaitGroup
@@ -1933,8 +1934,8 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 		    }
 	    }
     }()
-    go SignProcessInboundMessages(msgprex, commStopChan, errChan,&signWg, ch)
-    s, err := processSignFinalize(msgprex, kgsave.MsgToEnode, errChan, outCh, finalizeendCh, gid)
+    go SignProcessInboundMessages(msgprex, cointype,commStopChan, errChan,&signWg, ch)
+    s, err := processSignFinalize(msgprex, cointype,kgsave.MsgToEnode, errChan, outCh, finalizeendCh, gid)
     if err != nil || s == nil {
 	    common.Debug("=========================SignEC3,process sign fail==============================","key",msgprex,"err",err)
 	    if len(ch) == 0 {
@@ -2001,11 +2002,11 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
     //common.Debug("=====================SignEC3,calc s finish=================","key",msgprex)
 
     // 3. justify the s
-    bb := false
-    halfN := new(big.Int).Div(secp256k1.S256().N, big.NewInt(2))
+    //bb := false
+    halfN := new(big.Int).Div(secp256k1.S256(cointype).N1(), big.NewInt(2))
     if s.Cmp(halfN) > 0 {
-	    bb = true
-	    s = new(big.Int).Sub(secp256k1.S256().N, s)
+//	    bb = true
+	    s = new(big.Int).Sub(secp256k1.S256(cointype).N1(), s)
     }
 
     zero, _ := new(big.Int).SetString("0", 10)
@@ -2023,18 +2024,18 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
     signature.SetS(s)
 
     invert := false
-    if cointype == "ETH" && bb {
+    /*if cointype == "ETH" && bb {
 	    invert = true
     }
     if cointype == "BTC" && bb {
 	    invert = true
-    }
+    }*/
 
-    recid := smpclib.DECDSASignCalcv(pre.R, pre.Ry, pkx, pky, signature.GetR(), signature.GetS(), hashBytes, invert)
+    recid := smpclib.DECDSASignCalcv(cointype,pre.R, pre.Ry, pkx, pky, signature.GetR(), signature.GetS(), hashBytes, invert)
     common.Debug("=====================SignEC3,first get recid =================", "recid", recid, "key", msgprex)
 
     ////check v
-    ys = secp256k1.S256().Marshal(pkx, pky)
+    ys = secp256k1.S256(cointype).Marshal(pkx, pky)
     pubkeyhex := hex.EncodeToString(ys)
     pbhs := []rune(pubkeyhex)
     if string(pbhs[0:2]) == "0x" {
@@ -2060,7 +2061,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
     signature.SetRecoveryParam(int32(recid))
     common.Debug("=====================SignEC3,terminal get recid =================", "recid", signature.GetRecoveryParam(), "key", msgprex)
 
-    if !DECDSASignVerifyRSV(signature.GetR(), signature.GetS(), signature.GetRecoveryParam(), message, pkx, pky) {
+    if !DECDSASignVerifyRSV(cointype,signature.GetR(), signature.GetS(), signature.GetRecoveryParam(), message, pkx, pky) {
 	    common.Error("=================SignEC3,verify fail==============", "key", msgprex)
 	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("sign verify fail")}
 	    ch <- res
@@ -2190,8 +2191,8 @@ func GetSignString(r *big.Int, s *big.Int, v int) string {
 }
 
 // DECDSASignVerifyRSV verify RSV
-func DECDSASignVerifyRSV(r *big.Int, s *big.Int, v int32, message string, pkx *big.Int, pky *big.Int) bool {
-    return smpclib.Verify2(r, s, v, message, pkx, pky)
+func DECDSASignVerifyRSV(keytype string,r *big.Int, s *big.Int, v int32, message string, pkx *big.Int, pky *big.Int) bool {
+    return smpclib.Verify2(keytype,r, s, v, message, pkx, pky)
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -2365,7 +2366,7 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
     errChan := make(chan struct{})
     signDNode := edsigning.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, mMtA, finalizeendCh)
     w.DNode = signDNode
-    _,UID := GetNodeUID(curEnode, "ED25519",pubs.GroupID)
+    _,UID := GetNodeUID(curEnode, cointype,pubs.GroupID)
     signDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 
     var signWg sync.WaitGroup
@@ -2387,8 +2388,8 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 		    }
 	    }
     }()
-    go EdSignProcessInboundMessages(msgprex, commStopChan, errChan,&signWg, ch)
-    edrs, err := processSigned(msgprex, kgsave.MsgToEnode, errChan, outCh, endCh)
+    go EdSignProcessInboundMessages(msgprex, cointype,commStopChan, errChan,&signWg, ch)
+    edrs, err := processSigned(msgprex, cointype,kgsave.MsgToEnode, errChan, outCh, endCh)
     if err != nil || edrs == nil {
 	    common.Debug("================SignED,process sign fail========================","key",msgprex,"err",err)
 	    close(commStopChan)
@@ -2680,7 +2681,7 @@ func DECDSASignVerifyBigVAB(cointype string, w *RPCReqWorker, commitbigvabs []st
 		    continue
 	    }
 
-	    BigVx, BigVy = secp256k1.S256().Add(BigVx, BigVy, BigVAB1[0], BigVAB1[1])
+	    BigVx, BigVy = secp256k1.S256(keytype).Add(BigVx, BigVy, BigVAB1[0], BigVAB1[1])
     }
 
     return commitbigcom, BigVx, BigVy
@@ -2739,7 +2740,7 @@ func DECDSASignRoundNine(msgprex string, cointype string, w *RPCReqWorker, idSig
 	    }
 
 	    _, BigVAB1 := signing.DECDSA_Key_DeCommit(commitbigcom[en[0]])
-	    bigT1x, bigT1y = secp256k1.S256().Add(bigT1x, bigT1y, BigVAB1[2], BigVAB1[3])
+	    bigT1x, bigT1y = secp256k1.S256(keytype).Add(bigT1x, bigT1y, BigVAB1[2], BigVAB1[3])
     }
 
     commitBigUT1 := signing.DECDSA_Sign_Round_Nine_Commitment(bigT1x, bigT1y, l1, bigU1x, bigU1y)
@@ -2930,13 +2931,13 @@ func DECDSASignVerifyBigUTCommitment(msgprex string,cointype string, commitbigut
 			bigTBy = BigUT1[3]
 			bigUx = BigUT1[0]
 			bigUy = BigUT1[1]
-			bigTBx, bigTBy = secp256k1.S256().Add(bigTBx, bigTBy, BigVAB1[4], BigVAB1[5])
+			bigTBx, bigTBy = secp256k1.S256(keytype).Add(bigTBx, bigTBy, BigVAB1[4], BigVAB1[5])
 			continue
 		}
 
-		bigTBx, bigTBy = secp256k1.S256().Add(bigTBx, bigTBy, BigUT1[2], BigUT1[3])
-		bigTBx, bigTBy = secp256k1.S256().Add(bigTBx, bigTBy, BigVAB1[4], BigVAB1[5])
-		bigUx, bigUy = secp256k1.S256().Add(bigUx, bigUy, BigUT1[0], BigUT1[1])
+		bigTBx, bigTBy = secp256k1.S256(keytype).Add(bigTBx, bigTBy, BigUT1[2], BigUT1[3])
+		bigTBx, bigTBy = secp256k1.S256(keytype).Add(bigTBx, bigTBy, BigVAB1[4], BigVAB1[5])
+		bigUx, bigUy = secp256k1.S256(keytype).Add(bigUx, bigUy, BigUT1[0], BigUT1[1])
 	}
 
 	if bigTBx.Cmp(bigUx) != 0 || bigTBy.Cmp(bigUy) != 0 {

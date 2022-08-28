@@ -36,7 +36,7 @@ import (
 //--------------------------------------------ECDSA start----------------------------------------------------------
 
 // SignProcessInboundMessages Analyze the obtained P2P messages and enter next round
-func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, errChan chan struct{},wg *sync.WaitGroup, ch chan interface{}) {
+func SignProcessInboundMessages(msgprex string, keytype string,finishChan chan struct{}, errChan chan struct{},wg *sync.WaitGroup, ch chan interface{}) {
 	if msgprex == "" {
 	    return
 	}
@@ -131,7 +131,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, errCha
 			}
 			
 			//common.Debug("===============sign,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
-			if !checkP2pSig(sig,mm,msgmap["ENode"]) {
+			if !checkP2pSig(keytype,sig,mm,msgmap["ENode"]) {
 			    common.Error("===============sign,check p2p msg fail===============","sender",msgmap["ENode"],"msg hash",hexs)
 			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
@@ -173,7 +173,7 @@ func SignProcessInboundMessages(msgprex string, finishChan chan struct{}, errCha
 			    return
 			}
 
-			_,ID := GetNodeUID(msgmap["ENode"], "EC256K1",pubs.GroupID)
+			_,ID := GetNodeUID(msgmap["ENode"], keytype,pubs.GroupID)
 			id := fmt.Sprintf("%v", ID)
 			uid := hex.EncodeToString([]byte(id))
 			if !strings.EqualFold(uid,mm.GetFromID()) {
@@ -577,7 +577,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 }
 
 // processSign  Obtain the data to be sent in each round and send it to other nodes until the end of the sign command 
-func processSign(msgprex string, msgtoenode map[string]string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan signing.PrePubData) (*signing.PrePubData, error) {
+func processSign(msgprex string, keytype string,msgtoenode map[string]string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan signing.PrePubData) (*signing.PrePubData, error) {
 	for {
 		select {
 		case <-errChan:
@@ -588,7 +588,7 @@ func processSign(msgprex string, msgtoenode map[string]string, errChan chan stru
 			log.Error("========================== processSign,signing timeout=======================","key",msgprex)
 			return nil, errors.New("signing timeout")
 		case msg := <-outCh:
-			err := SignProcessOutCh(msgprex, msgtoenode, msg, "")
+			err := SignProcessOutCh(msgprex, keytype,msgtoenode, msg, "")
 			if err != nil {
 				log.Error("============================= processSign, sign process outch fail =======================","err",err,"key",msgprex)
 				return nil, err
@@ -611,7 +611,7 @@ func processSign(msgprex string, msgtoenode map[string]string, errChan chan stru
 }
 
 // processSignFinalize  Obtain the data to be sent in each round and send it to other nodes until the end of the sign command 
-func processSignFinalize(msgprex string, msgtoenode map[string]string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan *big.Int, gid string) (*big.Int, error) {
+func processSignFinalize(msgprex string, keytype string,msgtoenode map[string]string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan *big.Int, gid string) (*big.Int, error) {
 	for {
 		select {
 		case <-errChan:
@@ -622,7 +622,7 @@ func processSignFinalize(msgprex string, msgtoenode map[string]string, errChan c
 			log.Error("========================== processSignFinalize,sign timeout =====================","key", msgprex)
 			return nil, errors.New("signing timeout")
 		case msg := <-outCh:
-			err := SignProcessOutCh(msgprex, msgtoenode, msg, gid)
+			err := SignProcessOutCh(msgprex, keytype,msgtoenode, msg, gid)
 			if err != nil {
 				log.Error("================================= processSignFinalize, sign process outch fail ==============================","err",err,"key",msgprex)
 				return nil, err
@@ -642,7 +642,7 @@ func processSignFinalize(msgprex string, msgtoenode map[string]string, errChan c
 //--------------------------------------------------------ECDSA end-------------------------------------------------------
 
 // SignProcessOutCh send message to other node
-func SignProcessOutCh(msgprex string, msgtoenode map[string]string, msg smpclib.Message, gid string) error {
+func SignProcessOutCh(msgprex string, keytype string,msgtoenode map[string]string, msg smpclib.Message, gid string) error {
 	if msg == nil || msgprex == "" || msgtoenode == nil {
 		return fmt.Errorf("smpc info error")
 	}
@@ -652,7 +652,7 @@ func SignProcessOutCh(msgprex string, msgtoenode map[string]string, msg smpclib.
 		return fmt.Errorf("get worker fail")
 	}
 
-	sig,err := sigP2pMsg(msg,curEnode)
+	sig,err := sigP2pMsg(msg,curEnode,keytype)
 	if err != nil {
 	    return err
 	}

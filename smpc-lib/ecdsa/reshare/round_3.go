@@ -48,7 +48,7 @@ func (round *round3) Start() error {
 		}
 
 		ps := &ec2.PolyGStruct2{PolyG: msg21.SkP1PolyG}
-		if !ushare.Verify2(ps) {
+		if !ushare.Verify2(round.keytype,ps) {
 			fmt.Printf("========= round3 verify share fail, k = %v ==========\n", k)
 			return errors.New("verify share data fail")
 		}
@@ -60,7 +60,7 @@ func (round *round3) Start() error {
 		}
 
 		deCommit := &ec2.Commitment{C: msg1.ComC, D: msg21.ComD}
-		if !deCommit.Verify() {
+		if !deCommit.Verify(round.keytype) {
 			fmt.Printf("========= round3 verify commitment fail, k = %v ==========\n", k)
 			return errors.New("verify commitment fail")
 		}
@@ -77,7 +77,7 @@ func (round *round3) Start() error {
 		ushare := &ec2.ShareStruct2{ID: msg2.ID, Share: msg2.Share}
 
 		deCommit := &ec2.Commitment{C: msg1.ComC, D: msg21.ComD}
-		_, u1G := deCommit.DeCommit()
+		_, u1G := deCommit.DeCommit(round.keytype)
 		pkx = u1G[0]
 		pky = u1G[1]
 
@@ -97,13 +97,13 @@ func (round *round3) Start() error {
 
 		deCommit := &ec2.Commitment{C: msg1.ComC, D: msg21.ComD}
 
-		_, u1G := deCommit.DeCommit()
-		pkx, pky = secp256k1.S256().Add(pkx, pky, u1G[0], u1G[1])
+		_, u1G := deCommit.DeCommit(round.keytype)
+		pkx, pky = secp256k1.S256(round.keytype).Add(pkx, pky, u1G[0], u1G[1])
 
 		newskU1 = new(big.Int).Add(newskU1, ushare.Share)
 	}
 
-	newskU1 = new(big.Int).Mod(newskU1, secp256k1.S256().N)
+	newskU1 = new(big.Int).Mod(newskU1, secp256k1.S256(round.keytype).N1())
 
 	round.Save.SkU1 = newskU1
 	round.Save.Pkx = pkx

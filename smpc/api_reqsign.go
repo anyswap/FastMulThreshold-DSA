@@ -471,7 +471,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			}
 			//
 
-			ys := secp256k1.S256().Marshal(sd.Pkx, sd.Pky)
+			ys := secp256k1.S256(sd.Keytype).Marshal(sd.Pkx, sd.Pky)
 			pubkeyhex := hex.EncodeToString(ys)
 
 			w := workers[workid]
@@ -550,14 +550,14 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 					TL := new(big.Int).SetBytes(T[:32])
 
 					childSKU1 = new(big.Int).Add(TL, childSKU1)
-					childSKU1 = new(big.Int).Mod(childSKU1, secp256k1.S256().N)
+					childSKU1 = new(big.Int).Mod(childSKU1, secp256k1.S256(sd.Keytype).N1())
 
-					TLGx, TLGy := secp256k1.S256().ScalarBaseMult(TL.Bytes())
-					childPKx, childPKy = secp256k1.S256().Add(TLGx, TLGy, childPKx, childPKy)
+					TLGx, TLGy := secp256k1.S256(sd.Keytype).ScalarBaseMult(TL.Bytes())
+					childPKx, childPKy = secp256k1.S256(sd.Keytype).Add(TLGx, TLGy, childPKx, childPKy)
 				}
 			}
 
-			/*childpub := secp256k1.S256().Marshal(childPKx, childPKy)
+			/*childpub := secp256k1.S256(sd.Keytype).Marshal(childPKx, childPKy)
 			childpubkeyhex := hex.EncodeToString(childpub)
 			_, _, err = GetSmpcAddr(childpubkeyhex)
 			if err != nil {
@@ -609,11 +609,13 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 		if msgmap["Type"] == "PreSign" {
 			ps := &PreSign{}
 			if err = ps.UnmarshalJSON([]byte(msgmap["PreSign"])); err != nil {
-			    res2 := RPCSmpcRes{Ret: "", Tip: "unmarshal presign data fail", Err: fmt.Errorf("unmarshal presign data fail")}
+			    common.Error("===============ReqSmpcSign.DoReq,unmarshal pre-sign data fail===================", "err", err)
+			    res2 := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			    ch <- res2
 			    return false
 			}
 			
+			common.Debug("===============ReqSmpcSign.DoReq,unmarshal pre-sign data success===================", "keytype", ps.KeyType)
 			//check current node whther in group
 			// cmd data default not to relay to other nodes
 			if !IsInGroup(ps.Gid) {
@@ -675,7 +677,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 			childSKU1 := sku1
 			smpcpub := (da.(*PubKeyData)).Pub
-			smpcpkx, smpcpky := secp256k1.S256().Unmarshal(([]byte(smpcpub))[:])
+			smpcpkx, smpcpky := secp256k1.S256(ps.KeyType).Unmarshal(([]byte(smpcpub))[:])
 			childPKx := smpcpkx
 			childPKy := smpcpky
 			if ps.InputCode != "" {
@@ -719,10 +721,10 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 					TL := new(big.Int).SetBytes(T[:32])
 
 					childSKU1 = new(big.Int).Add(TL, childSKU1)
-					childSKU1 = new(big.Int).Mod(childSKU1, secp256k1.S256().N)
+					childSKU1 = new(big.Int).Mod(childSKU1, secp256k1.S256(ps.KeyType).N1())
 
-					TLGx, TLGy := secp256k1.S256().ScalarBaseMult(TL.Bytes())
-					childPKx, childPKy = secp256k1.S256().Add(TLGx, TLGy, childPKx, childPKy)
+					TLGx, TLGy := secp256k1.S256(ps.KeyType).ScalarBaseMult(TL.Bytes())
+					childPKx, childPKy = secp256k1.S256(ps.KeyType).Add(TLGx, TLGy, childPKx, childPKy)
 				}
 			}
 
@@ -734,9 +736,9 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 			var ch1 = make(chan interface{}, 1)
 			//pre := PreSignEC3(w.sid,save,sku1,"ECDSA",ch1,workid)
-			pre := PreSignEC3(w.sid, save, childSKU1, childPKx,childPKy,"EC256K1", ch1, workid)
+			pre := PreSignEC3(w.sid, save, childSKU1, childPKx,childPKy,ps.KeyType, ch1, workid)
 			if pre == nil {
-				common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid, "err", "return result is nil")
+				common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "keytype",ps.KeyType,"presign data key", w.sid, "err", "return result is nil")
 				if syncpresign && !SynchronizePreSignData(w.sid, w.id, false) {
 					_, _, cherr := GetChannelValue(waitall, ch1)
 					errinfo := "presign fail"
@@ -1641,7 +1643,7 @@ func HandleRPCSign4(sig *TxDataSign,gid string,key string,raw string) ([]*PickHa
 		    return
 		}
 
-		datakey = DoPreSign(sig.PubKey,gid,hashtmp,"2")
+		datakey = DoPreSign(sig.PubKey,gid,hashtmp,"2",sig.Keytype)
 		if datakey == "" {
 		    time.Sleep(time.Duration(1) * time.Second)
 		    continue
@@ -1782,7 +1784,7 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 		}
 		//
 
-		if keytype != "EC256K1" && keytype != "ED25519" {
+		if keytype != "EC256K1" && keytype != "EC256STARK" && keytype != "ED25519" {
 		log.Error("======================ReqSmpcSign.CheckTxData,invalid keytype=========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp)
 		    return "","","",nil,fmt.Errorf("invalid keytype")
 		}

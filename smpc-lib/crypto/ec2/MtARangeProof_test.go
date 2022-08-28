@@ -35,7 +35,7 @@ func TestMtAZK1Verify_nhh(t *testing.T) {
 	publicKey, privateKey := ec2.CreatPair(testPaillierKeyLength)
 	assert.NotZero(t, publicKey)
 	assert.NotZero(t, privateKey)
-	u1K := random.GetRandomIntFromZn(secp256k1.S256().N)
+	u1K := random.GetRandomIntFromZn(secp256k1.S256(keytype).N)
 	nt, _, _, _, _ := ec2.CreateNt(testNtildeLength)
 	assert.NotZero(t, nt)
 	u1KCipher, u1R, _ := publicKey.Encrypt(u1K)

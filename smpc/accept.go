@@ -605,6 +605,7 @@ type AcceptReShareData struct {
 	
 	FixedApprover  []string
 	Comment string
+	Keytype     string
 }
 
 // SaveAcceptReShareData save the reshare command data to local db

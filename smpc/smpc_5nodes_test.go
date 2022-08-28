@@ -100,11 +100,12 @@ func TestKeyGenAndSign(t *testing.T) {
     }()
 
     time.Sleep(time.Duration(20) * time.Second)
-   
+  
+    keytype := "EC256K1"
     succ := false
     go func() {
 	port := strconv.Itoa(5871)
-	cmd := exec.Command("/bin/sh",testSignSh,"..",port,"","EC256K1")
+	cmd := exec.Command("/bin/sh",testSignSh,"..",port,"",keytype)
 	bytes, err := cmd.Output()
 	if err != nil {
 	    t.Errorf("===================test Signing fail, err = %v=======================\n",err)

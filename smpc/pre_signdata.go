@@ -52,6 +52,7 @@ type PreSign struct {
 	Gid       string
 	Nonce     string
 	Index     int // pre-sign data index
+	KeyType string
 }
 
 // MarshalJSON marshal PreSign data struct to json byte
@@ -61,11 +62,13 @@ func (ps *PreSign) MarshalJSON() ([]byte, error) {
 		Gid   string `json:"Gid"`
 		Nonce string `json:"Nonce"`
 		Index string `json:"Index"`
+		KeyType string `json:"KeyType"`
 	}{
 		Pub:   ps.Pub,
 		Gid:   ps.Gid,
 		Nonce: ps.Nonce,
 		Index: strconv.Itoa(ps.Index),
+		KeyType: ps.KeyType,
 	})
 }
 
@@ -76,6 +79,7 @@ func (ps *PreSign) UnmarshalJSON(raw []byte) error {
 		Gid   string `json:"Gid"`
 		Nonce string `json:"Nonce"`
 		Index string `json:"Index"`
+		KeyType string `json:"KeyType"`
 	}
 	if err := json.Unmarshal(raw, &pre); err != nil {
 		return err
@@ -85,6 +89,7 @@ func (ps *PreSign) UnmarshalJSON(raw []byte) error {
 	ps.Gid = pre.Gid
 	ps.Nonce = pre.Nonce
 	ps.Index, _ = strconv.Atoi(pre.Index)
+	ps.KeyType = pre.KeyType
 	return nil
 }
 
@@ -910,6 +915,7 @@ type TxDataPreSignData struct {
 	Nonce string
 	PubKey string
 	SubGid []string
+	KeyType string
 }
 
 // PreGenSignData generate the pre-sign data under the specified pubkey/gid
@@ -936,18 +942,20 @@ func ExcutePreSignData(pre *TxDataPreSignData) {
 		return
 	}
 
+	common.Debug("=========================ExcutePreSignData=======================", "pubkey", pre.PubKey, "gid", pre.SubGid, "keytype", pre.KeyType)
+
 	for _, gid := range pre.SubGid {
 		go func(gg string) {
 			pub := Keccak256Hash([]byte(strings.ToLower(pre.PubKey + ":" + gg))).Hex()
 
 			PutPreSigal(pub, true)
-			err := SavePrekeyToDb(pre.PubKey, "", gg)
+			err := SavePrekeyToDb(pre.PubKey, "", gg,pre.KeyType)
 			if err != nil {
 				common.Error("=========================ExcutePreSignData,save (pubkey,gid) to db fail.=======================", "pubkey", pre.PubKey, "gid", gg, "err", err)
 				return
 			}
 
-			common.Info("================================ExcutePreSignData,before pre-generation of sign data ==================================", "current total number of the data ", GetTotalCount(pre.PubKey, "", gg), "pubkey", pre.PubKey, "sub-groupid", gg)
+			common.Info("================================ExcutePreSignData,before pre-generation of sign data ==================================", "current total number of the data ", GetTotalCount(pre.PubKey, "", gg), "pubkey", pre.PubKey, "sub-groupid", gg,"keytype",pre.KeyType)
 			for {
 				b := GetPreSigal(pub)
 				if b {
@@ -956,7 +964,7 @@ func ExcutePreSignData(pre *TxDataPreSignData) {
 					if need && index != -1 {
 						tt := fmt.Sprintf("%v", time.Now().UnixNano()/1e6)
 						nonce := Keccak256Hash([]byte(strings.ToLower(pub + tt + strconv.Itoa(index)))).Hex()
-						ps := &PreSign{Pub: pre.PubKey, Gid: gg, Nonce: nonce, Index: index}
+						ps := &PreSign{Pub: pre.PubKey, Gid: gg, Nonce: nonce, Index: index,KeyType:pre.KeyType}
 
 						m := make(map[string]string)
 						psjson, err := ps.MarshalJSON()
@@ -1025,14 +1033,14 @@ func AutoPreGenSignData() {
 
 		go func(val string) {
 			common.Debug("======================AutoPreGenSignData=========================", "val", val)
-			tmp := strings.Split(val, ":") // val = pubkey:gid
-			if len(tmp) < 2 || tmp[0] == "" || tmp[1] == "" {
+			tmp := strings.Split(val, ":") // val = pubkey:gid:keytype
+			if len(tmp) < 3 || tmp[0] == "" || tmp[1] == "" {
 				return
 			}
 
 			subgid := make([]string, 0)
 			subgid = append(subgid, tmp[1])
-			pre := &TxDataPreSignData{TxType: "PRESIGNDATA", PubKey: tmp[0], SubGid: subgid}
+			pre := &TxDataPreSignData{TxType: "PRESIGNDATA", PubKey: tmp[0], SubGid: subgid,KeyType:tmp[2]}
 			ExcutePreSignData(pre)
 		}(string(value))
 	}
@@ -1041,7 +1049,7 @@ func AutoPreGenSignData() {
 }
 
 // SavePrekeyToDb save pubkey gid information to the specified batabase
-func SavePrekeyToDb(pubkey string, inputcode string, gid string) error {
+func SavePrekeyToDb(pubkey string, inputcode string, gid string,keytype string) error {
 	if prekey == nil {
 		return fmt.Errorf("db open fail")
 	}
@@ -1050,10 +1058,10 @@ func SavePrekeyToDb(pubkey string, inputcode string, gid string) error {
 	var val string
 	if inputcode != "" {
 		pub = strings.ToLower(Keccak256Hash([]byte(strings.ToLower(pubkey + ":" + inputcode + ":" + gid))).Hex())
-		val = pubkey + ":" + inputcode + ":" + gid
+		val = pubkey + ":" + inputcode + ":" + gid + ":" + keytype
 	} else {
 		pub = strings.ToLower(Keccak256Hash([]byte(strings.ToLower(pubkey + ":" + gid))).Hex())
-		val = pubkey + ":" + gid
+		val = pubkey + ":" + gid + ":" + keytype
 	}
 
 	_, err := prekey.Get([]byte(pub))

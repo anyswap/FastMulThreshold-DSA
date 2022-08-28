@@ -297,12 +297,17 @@ $1/test/reqaddr.sh &
 sleep 30
 
 kttmp=EC256K1
+kttmp2=EC256STARK
 val=$(cat $1/test/tmp/fff)
 val=`echo ${val##*PubKey}`
 if [ "$kt" = "$kttmp" ];then
 pubkey=`echo ${val:5:130}`
+else 
+if [ "$kt" = "$kttmp2" ];then
+pubkey=`echo ${val:5:130}`
 else
 pubkey=`echo ${val:5:64}`
+fi
 fi
 
 echo

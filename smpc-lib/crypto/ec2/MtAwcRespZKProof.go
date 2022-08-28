@@ -47,11 +47,11 @@ type MtAwcRespZKProof struct {
 // The input for this proof is a Paillier public key (N,G) and two values c1, c2 ∈ ZN2, together with a value X in curve the DSA group.
 // The Prover knows x ∈ Zq , y ∈ ZN and r ∈ Z* such that c2 = c1^x*G^y*r^N mod N^2, and X = g^x on the curve, where q is the order of the DSA group.
 // At the end of the protocol the Verifier is convinced of the above and that x ∈ [−q^3 , q^3].
-func MtAwcRespZKProofProve(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *big.Int,publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtAwcRespZKProof {
-	q3Ntilde := new(big.Int).Mul(s256.S256().N3(), ntildeH1H2.Ntilde)
-	qNtilde := new(big.Int).Mul(s256.S256().N, ntildeH1H2.Ntilde)
+func MtAwcRespZKProofProve(keytype string,x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *big.Int,publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) *MtAwcRespZKProof {
+	q3Ntilde := new(big.Int).Mul(s256.S256(keytype).N3(), ntildeH1H2.Ntilde)
+	qNtilde := new(big.Int).Mul(s256.S256(keytype).N1(), ntildeH1H2.Ntilde)
 
-	alpha := random.GetRandomIntFromZn(s256.S256().N3())
+	alpha := random.GetRandomIntFromZn(s256.S256(keytype).N3())
 	rho := random.GetRandomIntFromZn(qNtilde)
 	rhoBar := random.GetRandomIntFromZn(q3Ntilde)
 	sigma := random.GetRandomIntFromZn(qNtilde)
@@ -59,13 +59,13 @@ func MtAwcRespZKProofProve(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *
 	gamma := random.GetRandomIntFromZnStar(publicKey.N)
 	delta := random.GetRandomIntFromZn(qNtilde)
 
-	tmp := new(big.Int).Mod(alpha,s256.S256().N)
-	ux, uy := s256.S256().ScalarBaseMult(tmp.Bytes())
-	xtmp := new(big.Int).Mod(x,s256.S256().N)
+	tmp := new(big.Int).Mod(alpha,s256.S256(keytype).N1())
+	ux, uy := s256.S256(keytype).ScalarBaseMult(tmp.Bytes())
+	xtmp := new(big.Int).Mod(x,s256.S256(keytype).N1())
 	if xtmp.Cmp(big.NewInt(0)) < 0 {
-	    xtmp = new(big.Int).Add(s256.S256().N,xtmp)
+	    xtmp = new(big.Int).Add(s256.S256(keytype).N1(),xtmp)
 	}
-	Xx, Xy := s256.S256().ScalarBaseMult(xtmp.Bytes())
+	Xx, Xy := s256.S256(keytype).ScalarBaseMult(xtmp.Bytes())
 
 	z := new(big.Int).Exp(ntildeH1H2.H1, x, ntildeH1H2.Ntilde)
 	z = new(big.Int).Mul(z, new(big.Int).Exp(ntildeH1H2.H2, rho, ntildeH1H2.Ntilde))
@@ -90,7 +90,7 @@ func MtAwcRespZKProofProve(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *
 	w = new(big.Int).Mod(w, ntildeH1H2.Ntilde)
 
 	e := Sha512_256(ux,uy,Xx,Xy,z,zBar,t,v,w,c1,c2,publicKey.N)
-	e = new(big.Int).Mod(e, s256.S256().N)
+	e = new(big.Int).Mod(e, s256.S256(keytype).N1())
 
 	s := new(big.Int).Exp(r, e, publicKey.N)
 	s = new(big.Int).Mul(s, beta)
@@ -119,7 +119,7 @@ func MtAwcRespZKProofProve(x *big.Int, y *big.Int, r *big.Int, c1 *big.Int, c2 *
 // The Prover knows x ∈ Zq , y ∈ ZN and r ∈ Z* such that c2 = c1^x*G^y*r^N mod N^2, and X = g^x on the curve, where q is the order of the DSA group.
 // At the end of the protocol the Verifier is convinced of the above and that x ∈ [−q^3 , q^3].
 // The Verifier checks that s1 ≤ q^3, g^s1 = X^e*u on the curve, h1^s1*h2^s2 = z^e*zBar mode Ntilde, h1^t1*h2^t2 = t^e*w mod Ntilde, and c1^s1*s^N*G^t1 = c2^e*v mod N^2.
-func (mtAZK3Proof *MtAwcRespZKProof) MtAwcRespZKProofVefify(xG []*big.Int,c1 *big.Int, c2 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
+func (mtAZK3Proof *MtAwcRespZKProof) MtAwcRespZKProofVefify(keytype string,xG []*big.Int,c1 *big.Int, c2 *big.Int, publicKey *PublicKey, ntildeH1H2 *NtildeH1H2) bool {
     	if xG == nil || len(xG) == 0 || c1 == nil || c2 == nil || publicKey == nil || ntildeH1H2 == nil || mtAZK3Proof == nil || mtAZK3Proof.S1 == nil || mtAZK3Proof.Z == nil || mtAZK3Proof.ZBar == nil || mtAZK3Proof.T == nil || mtAZK3Proof.W == nil || mtAZK3Proof.V == nil || mtAZK3Proof.S == nil {
 	    return false
 	}
@@ -132,7 +132,7 @@ func (mtAZK3Proof *MtAwcRespZKProof) MtAwcRespZKProofVefify(xG []*big.Int,c1 *bi
 	    return false
 	}
 	
-	if mtAZK3Proof.S1.Cmp(s256.S256().N3()) > 0 {
+	if mtAZK3Proof.S1.Cmp(s256.S256(keytype).N3()) > 0 {
 		return false
 	}
 
@@ -188,7 +188,7 @@ func (mtAZK3Proof *MtAwcRespZKProof) MtAwcRespZKProofVefify(xG []*big.Int,c1 *bi
 	if len(xG) != 2 || xG[0] == nil || xG[1] == nil {
 	    return false
 	}
-	if !checkPointOnCurve(xG) {
+	if !checkPointOnCurve(keytype,xG) {
 	    return false
 	}
 
@@ -198,18 +198,18 @@ func (mtAZK3Proof *MtAwcRespZKProof) MtAwcRespZKProofVefify(xG []*big.Int,c1 *bi
 	N2 := new(big.Int).Mul(publicKey.N,publicKey.N)
 
 	e := Sha512_256(mtAZK3Proof.Ux,mtAZK3Proof.Uy,xG[0],xG[1],mtAZK3Proof.Z,mtAZK3Proof.ZBar,mtAZK3Proof.T,mtAZK3Proof.V,mtAZK3Proof.W,c1,c2,publicKey.N)
-	e = new(big.Int).Mod(e, s256.S256().N)
+	e = new(big.Int).Mod(e, s256.S256(keytype).N1())
 
 	// check g^s1 == (X^e)u and on curve
-	tmp := new(big.Int).Mod(mtAZK3Proof.S1,s256.S256().N)
+	tmp := new(big.Int).Mod(mtAZK3Proof.S1,s256.S256(keytype).N1())
 	if tmp.Cmp(big.NewInt(0)) < 0 {
-	    tmp = new(big.Int).Add(s256.S256().N,tmp)
+	    tmp = new(big.Int).Add(s256.S256(keytype).N1(),tmp)
 	}
-	s1Gx, s1Gy := s256.S256().ScalarBaseMult(tmp.Bytes())
+	s1Gx, s1Gy := s256.S256(keytype).ScalarBaseMult(tmp.Bytes())
 
-	exGx, exGy := s256.S256().ScalarMult(xG[0],xG[1],e.Bytes())
-	uexGx, uexGy := s256.S256().Add(exGx,exGy,mtAZK3Proof.Ux,mtAZK3Proof.Uy)
-	if !s256.S256().IsOnCurve(s1Gx,s1Gy) || !s256.S256().IsOnCurve(uexGx,uexGy) || s1Gx.Cmp(uexGx) != 0 || s1Gy.Cmp(uexGy) != 0 {
+	exGx, exGy := s256.S256(keytype).ScalarMult(xG[0],xG[1],e.Bytes())
+	uexGx, uexGy := s256.S256(keytype).Add(exGx,exGy,mtAZK3Proof.Ux,mtAZK3Proof.Uy)
+	if !s256.S256(keytype).IsOnCurve(s1Gx,s1Gy) || !s256.S256(keytype).IsOnCurve(uexGx,uexGy) || s1Gx.Cmp(uexGx) != 0 || s1Gy.Cmp(uexGy) != 0 {
 	    return false
 	}
 

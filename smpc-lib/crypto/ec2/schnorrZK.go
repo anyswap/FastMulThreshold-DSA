@@ -35,13 +35,13 @@ type ZkUProof struct {
 }
 
 // ZkUProve create ZkUProof
-func ZkUProve(u *big.Int) *ZkUProof {
+func ZkUProve(keytype string,u *big.Int) *ZkUProof {
     	// R = r*G
-	r := random.GetRandomIntFromZn(s256.S256().N)
-	rGx, rGy := s256.S256().ScalarBaseMult(r.Bytes())
+	r := random.GetRandomIntFromZn(s256.S256(keytype).N1())
+	rGx, rGy := s256.S256(keytype).ScalarBaseMult(r.Bytes())
 
 	// U = u*G
-	uGx, uGy := s256.S256().ScalarBaseMult(u.Bytes())
+	uGx, uGy := s256.S256(keytype).ScalarBaseMult(u.Bytes())
 
 	// e = HASH(R||U)
 	e := Sha512_256(rGx,rGy,uGx,uGy)
@@ -49,7 +49,7 @@ func ZkUProve(u *big.Int) *ZkUProof {
 	// s = r + e*u mod q
 	s := new(big.Int).Mul(e, u)
 	s = new(big.Int).Add(r, s)
-	s = new(big.Int).Mod(s, s256.S256().N)
+	s = new(big.Int).Mod(s, s256.S256(keytype).N1())
 
 	// send (U,e,s) to verifier
 	zkUProof := &ZkUProof{E: e, S: s}
@@ -57,26 +57,26 @@ func ZkUProve(u *big.Int) *ZkUProof {
 }
 
 // ZkUVerify verify ZkUProof
-func ZkUVerify(uG []*big.Int, zkUProof *ZkUProof) bool {
+func ZkUVerify(keytype string,uG []*big.Int, zkUProof *ZkUProof) bool {
     	if uG == nil || len(uG) == 0 || zkUProof == nil || zkUProof.E == nil || zkUProof.S == nil {
 	    return false
 	}
 
 	// Check whether the point is on the curve
-	if !checkPointOnCurve(uG) {
+	if !checkPointOnCurve(keytype,uG) {
 		return false
 	}
 
 	// s*G
-	sGx, sGy := s256.S256().ScalarBaseMult(zkUProof.S.Bytes())
+	sGx, sGy := s256.S256(keytype).ScalarBaseMult(zkUProof.S.Bytes())
 
 	// -e*U
 	minusE := new(big.Int).Mul(big.NewInt(-1), zkUProof.E)
-	minusE = new(big.Int).Mod(minusE, s256.S256().N)
-	eUx, eUy := s256.S256().ScalarMult(uG[0], uG[1], minusE.Bytes())
+	minusE = new(big.Int).Mod(minusE, s256.S256(keytype).N1())
+	eUx, eUy := s256.S256(keytype).ScalarMult(uG[0], uG[1], minusE.Bytes())
 
 	// R = s*G - eU
-	rGx, rGy := s256.S256().Add(sGx, sGy, eUx, eUy)
+	rGx, rGy := s256.S256(keytype).Add(sGx, sGy, eUx, eUy)
 
 	// HASH(R||U)
 	e := Sha512_256(rGx,rGy,uG[0],uG[1])
@@ -129,13 +129,13 @@ type ZkXiProof struct {
 }
 
 // ZkXiProve create ZkXiProof
-func ZkXiProve(sku1 *big.Int) *ZkXiProof {
+func ZkXiProve(keytype string,sku1 *big.Int) *ZkXiProof {
     	// R = r*G
-	r := random.GetRandomIntFromZn(s256.S256().N)
-	rGx, rGy := s256.S256().ScalarBaseMult(r.Bytes())
+	r := random.GetRandomIntFromZn(s256.S256(keytype).N1())
+	rGx, rGy := s256.S256(keytype).ScalarBaseMult(r.Bytes())
 
 	// X = x*G
-	xGx, xGy := s256.S256().ScalarBaseMult(sku1.Bytes())
+	xGx, xGy := s256.S256(keytype).ScalarBaseMult(sku1.Bytes())
 
 	// e = HASH(R||X)
 	e := Sha512_256(rGx,rGy,xGx,xGy)
@@ -143,7 +143,7 @@ func ZkXiProve(sku1 *big.Int) *ZkXiProof {
 	// s = r + e*x
 	s := new(big.Int).Mul(e, sku1)
 	s = new(big.Int).Add(r, s)
-	s = new(big.Int).Mod(s, s256.S256().N)
+	s = new(big.Int).Mod(s, s256.S256(keytype).N1())
 
 	// send (X,e,s) to verifier
 	zkxiProof := &ZkXiProof{E: e, S: s}
@@ -151,26 +151,26 @@ func ZkXiProve(sku1 *big.Int) *ZkXiProof {
 }
 
 // ZkXiVerify verify ZkXiProof
-func ZkXiVerify(xiG []*big.Int, zkXiProof *ZkXiProof) bool {
+func ZkXiVerify(keytype string,xiG []*big.Int, zkXiProof *ZkXiProof) bool {
 	if xiG == nil || len(xiG) == 0 || zkXiProof == nil || zkXiProof.E == nil || zkXiProof.S == nil {
 	    return false
 	}
 
 	// Check whether the point is on the curve
-	if !checkPointOnCurve(xiG) {
+	if !checkPointOnCurve(keytype,xiG) {
 		return false
 	}
 
 	// s*G
-	sGx, sGy := s256.S256().ScalarBaseMult(zkXiProof.S.Bytes())
+	sGx, sGy := s256.S256(keytype).ScalarBaseMult(zkXiProof.S.Bytes())
 
 	// -e*X
 	minusE := new(big.Int).Mul(big.NewInt(-1), zkXiProof.E)
-	minusE = new(big.Int).Mod(minusE, s256.S256().N)
-	eUx, eUy := s256.S256().ScalarMult(xiG[0],xiG[1], minusE.Bytes())
+	minusE = new(big.Int).Mod(minusE, s256.S256(keytype).N1())
+	eUx, eUy := s256.S256(keytype).ScalarMult(xiG[0],xiG[1], minusE.Bytes())
 
 	// R = s*G - e*X
-	rGx, rGy := s256.S256().Add(sGx, sGy, eUx, eUy)
+	rGx, rGy := s256.S256(keytype).Add(sGx, sGy, eUx, eUy)
 
 	// HASH(R||X)
 	e := Sha512_256(rGx,rGy,xiG[0],xiG[1])

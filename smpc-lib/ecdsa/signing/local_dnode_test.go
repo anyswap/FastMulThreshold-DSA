@@ -34,9 +34,9 @@ func TestCheckFull(t *testing.T) {
     
     threshold := 3
     for i:=0;i<threshold;i++ {
-	u1Gamma := random.GetRandomIntFromZn(secp256k1.S256().N)
+	u1Gamma := random.GetRandomIntFromZn(secp256k1.S256(keytype).N)
 
-	u1GammaGx, u1GammaGy := secp256k1.S256().ScalarBaseMult(u1Gamma.Bytes())
+	u1GammaGx, u1GammaGy := secp256k1.S256(keytype).ScalarBaseMult(u1Gamma.Bytes())
 	commitU1GammaG := new(ec2.Commitment).Commit(u1GammaGx, u1GammaGy)
 	if commitU1GammaG == nil {
 		return

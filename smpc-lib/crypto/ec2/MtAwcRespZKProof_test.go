@@ -53,14 +53,14 @@ func TestMtAZK3Verify_nhh(t *testing.T) {
 		}
 
 		sub := new(big.Int).Sub(v, self)
-		subInverse := new(big.Int).ModInverse(sub, secp256k1.S256().N)
+		subInverse := new(big.Int).ModInverse(sub, secp256k1.S256(keytype).N)
 		assert.NotZero(t, subInverse)
 		times := new(big.Int).Mul(subInverse, v)
 		lambda1 = new(big.Int).Mul(lambda1, times)
-		lambda1 = new(big.Int).Mod(lambda1, secp256k1.S256().N)
+		lambda1 = new(big.Int).Mod(lambda1, secp256k1.S256(keytype).N)
 	}
 	w1 := new(big.Int).Mul(lambda1, sku1)
-	w1 = new(big.Int).Mod(w1, secp256k1.S256().N)
+	w1 = new(big.Int).Mod(w1, secp256k1.S256(keytype).N)
 
 	publicKey, privateKey := ec2.CreatPair(testPaillierKeyLength)
 	assert.NotZero(t, publicKey)
@@ -69,12 +69,12 @@ func TestMtAZK3Verify_nhh(t *testing.T) {
 	assert.NotZero(t, nt)
 
 	NSalt := new(big.Int).Lsh(big.NewInt(1), uint(testPaillierKeyLength-testPaillierKeyLength/10))
-	NSubN2 := new(big.Int).Mul(secp256k1.S256().N, secp256k1.S256().N)
+	NSubN2 := new(big.Int).Mul(secp256k1.S256(keytype).N, secp256k1.S256(keytype).N)
 	NSubN2 = new(big.Int).Sub(NSalt, NSubN2)
 
 	v1U1Star := random.GetRandomIntFromZn(NSubN2)
 
-	u1K := random.GetRandomIntFromZn(secp256k1.S256().N)
+	u1K := random.GetRandomIntFromZn(secp256k1.S256(keytype).N)
 	u1KCipher, _, _ := publicKey.Encrypt(u1K)
 	u1Kw1Cipher := publicKey.HomoMul(u1KCipher, w1)
 	v1U1StarCipher, u1VR1, _ := publicKey.Encrypt(v1U1Star)

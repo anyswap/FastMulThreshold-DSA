@@ -114,6 +114,7 @@ func NewLocalDNode(
 	predata *PrePubData,
 	txhash *big.Int,
 	finalizeend chan<- *big.Int,
+	keytype string,
 ) smpc.DNode {
 
 	p := &LocalDNode{
@@ -132,6 +133,7 @@ func NewLocalDNode(
 
 	p.ThresHold = threshold
 	p.PaillierKeyLength = paillierkeylength
+	p.KeyType = keytype
 
 	p.finalize = finalize
 
@@ -150,12 +152,12 @@ func NewLocalDNode(
 
 // FinalizeRound get finalize round
 func (p *LocalDNode) FinalizeRound() smpc.Round {
-	return newRound10(&p.temp, p.save, p.idsign, p.out, p.end, p.ID, p.ThresHold, p.PaillierKeyLength, p.predata, p.txhash, p.finalizeend)
+	return newRound10(&p.temp, p.save, p.idsign, p.out, p.end, p.ID, p.ThresHold, p.PaillierKeyLength, p.predata, p.txhash, p.finalizeend,p.KeyType)
 }
 
 // FirstRound first round
 func (p *LocalDNode) FirstRound() smpc.Round {
-	return newRound1(&p.temp, p.save, p.idsign, p.out, p.end, p.ID, p.ThresHold, p.PaillierKeyLength)
+	return newRound1(&p.temp, p.save, p.idsign, p.out, p.end, p.ID, p.ThresHold, p.PaillierKeyLength,p.KeyType)
 }
 
 // Start signing start 
@@ -342,13 +344,13 @@ func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 		m := msg.(*SignRound5Message)
 
 		// check tproof
-		hx,hy,err := ec2.CalcHPoint()
+		hx,hy,err := ec2.CalcHPoint(p.KeyType)
 		if err != nil {
 		    fmt.Printf("calc h point fail, err = %v",err)
 		    return false,err 
 		}
 
-		if !ec2.TVerify(m.T1X,m.T1Y,hx,hy,m.Tpf) {
+		if !ec2.TVerify(p.KeyType,m.T1X,m.T1Y,hx,hy,m.Tpf) {
 		    return false,fmt.Errorf("verify tproof fail")
 		}
 		//

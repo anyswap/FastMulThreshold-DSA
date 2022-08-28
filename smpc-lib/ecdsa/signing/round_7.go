@@ -46,12 +46,12 @@ func (round *round7) Start() error {
 		msg1, _ := round.temp.signRound1Messages[k].(*SignRound1Message)
 		msg6, _ := round.temp.signRound6Messages[k].(*SignRound6Message)
 		deCommit := &ec2.Commitment{C: msg1.C11, D: msg6.CommU1D}
-		if !deCommit.Verify() {
+		if !deCommit.Verify(round.keytype) {
 			return errors.New("verify commit fail")
 		}
 
-		_, u1GammaG := deCommit.DeCommit()
-		if !ec2.ZkUVerify(u1GammaG, msg6.U1GammaZKProof) {
+		_, u1GammaG := deCommit.DeCommit(round.keytype)
+		if !ec2.ZkUVerify(round.keytype,u1GammaG, msg6.U1GammaZKProof) {
 			return errors.New("verify zkuproof fail")
 		}
 
@@ -69,16 +69,16 @@ func (round *round7) Start() error {
 		msg1, _ := round.temp.signRound1Messages[k].(*SignRound1Message)
 		msg6, _ := round.temp.signRound6Messages[k].(*SignRound6Message)
 		deCommit := &ec2.Commitment{C: msg1.C11, D: msg6.CommU1D}
-		_, u1GammaG := deCommit.DeCommit()
-		GammaGSumx, GammaGSumy = secp256k1.S256().Add(GammaGSumx, GammaGSumy, u1GammaG[0], u1GammaG[1])
+		_, u1GammaG := deCommit.DeCommit(round.keytype)
+		GammaGSumx, GammaGSumy = secp256k1.S256(round.keytype).Add(GammaGSumx, GammaGSumy, u1GammaG[0], u1GammaG[1])
 	}
 	
-	deltaSumInverse := new(big.Int).ModInverse(round.temp.deltaSum, secp256k1.S256().N)
+	deltaSumInverse := new(big.Int).ModInverse(round.temp.deltaSum, secp256k1.S256(round.keytype).N1())
 	if deltaSumInverse == nil {
 	    return errors.New("calc deltaSum Inverse fail")
 	}
 
-	deltaGammaGx, deltaGammaGy := secp256k1.S256().ScalarMult(GammaGSumx, GammaGSumy, deltaSumInverse.Bytes())
+	deltaGammaGx, deltaGammaGy := secp256k1.S256(round.keytype).ScalarMult(GammaGSumx, GammaGSumy, deltaSumInverse.Bytes())
 
 	// 4. get r = deltaGammaGx
 	r := deltaGammaGx
@@ -95,7 +95,7 @@ func (round *round7) Start() error {
 	round.temp.deltaGammaGy = deltaGammaGy
 
 	// gg20: compute ZK proof of consistency between R_i and E_i(k_i) 
-	bigRK1Gx,bigRK1Gy := secp256k1.S256().ScalarMult(deltaGammaGx,deltaGammaGy,round.temp.u1K.Bytes())
+	bigRK1Gx,bigRK1Gy := secp256k1.S256(round.keytype).ScalarMult(deltaGammaGx,deltaGammaGy,round.temp.u1K.Bytes())
 
 	oldindex := -1
 	for k, v := range round.save.IDs {
@@ -135,7 +135,7 @@ func (round *round7) Start() error {
 		K1:  round.temp.u1K,
 		K1Ra:  round.temp.ukc2,
 	}
-	pdlWSlackPf := ec2.NewPDLwSlackProof(pdlWSlackWitness, pdlWSlackStatement)
+	pdlWSlackPf := ec2.NewPDLwSlackProof(round.keytype,pdlWSlackWitness, pdlWSlackStatement)
 	if pdlWSlackPf == nil {
 	    return errors.New("compute ZK proof of consistency between R_i and E_i(k_i) fail")
 	}

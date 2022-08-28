@@ -74,7 +74,7 @@ func (commitment *Commitment) Commit(secrets ...*big.Int) *Commitment {
 }
 
 // Verify  Verify commitment data 
-func (commitment *Commitment) Verify() bool {
+func (commitment *Commitment) Verify(keytype string) bool {
 	C := commitment.C
 	D := commitment.D
 
@@ -106,7 +106,7 @@ func (commitment *Commitment) Verify() bool {
 	}
 
 	// Check whether the point is on the curve
-	if !checkPointOnCurve(D[1:]) {
+	if !checkPointOnCurve(keytype,D[1:]) {
 		return false
 	}
 
@@ -114,8 +114,8 @@ func (commitment *Commitment) Verify() bool {
 }
 
 // DeCommit get commitment data secrets
-func (commitment *Commitment) DeCommit() (bool, []*big.Int) {
-	if commitment.Verify() {
+func (commitment *Commitment) DeCommit(keytype string) (bool, []*big.Int) {
+	if commitment.Verify(keytype) {
 		return true, commitment.D[1:]
 	}
 	
@@ -126,7 +126,7 @@ func (commitment *Commitment) DeCommit() (bool, []*big.Int) {
 //-----------------------------------------------------------
 
 // checkCommitmentGammaGOnCurve Check whether the point is on the curve
-func checkPointOnCurve(secrets []*big.Int) bool {
+func checkPointOnCurve(keytype string,secrets []*big.Int) bool {
 	if len(secrets) == 0 || (len(secrets)%2) != 0 {
 		return false
 	}
@@ -135,7 +135,7 @@ func checkPointOnCurve(secrets []*big.Int) bool {
 	for i := 0; i < l; i++ {
 		x := secrets[2*i]
 		y := secrets[2*i+1]
-		if x == nil || y == nil || !secp256k1.S256().IsOnCurve(x, y) {
+		if x == nil || y == nil || !secp256k1.S256(keytype).IsOnCurve(x, y) {
 			return false
 		}
 	}
