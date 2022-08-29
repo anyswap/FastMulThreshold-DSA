@@ -43,14 +43,14 @@ func BroadcastToGroup(gid discover.NodeID, msg string, p2pType int, myself bool)
 		common.Debug("==== BroadcastToGroup ====", "p2pType", p2pType, "is not exist", "")
 		return "", errors.New(e)
 	}
-	//groupTmp := *xvcGroup
+	groupTmp := *xvcGroup
 	//go p2pBroatcast(&groupTmp, msg, msgCode, myself)
-        go p2pBroatcastPeers(msg,msgCode,myself)
+        go p2pBroatcastPeers(&groupTmp,msg,msgCode,myself)
 	
 	return "BroadcastToGroup send end", nil
 }
 
-func p2pBroatcastPeers(msg string, msgCode int, myself bool) int {
+func p2pBroatcastPeers(dccpGroup *discover.Group,msg string, msgCode int, myself bool) int {
     if msg == "" {
 	return 0
     }
@@ -100,6 +100,8 @@ func p2pBroatcastPeers(msg string, msgCode int, myself bool) int {
 	    packet, err := json.Marshal(sbm)
 	    if err != nil {
 		common.Error("======================p2pBroatcastPeers,terminal send fail p2perror with tcp,and re-send with udp,but marshal object fail======================", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash", msghash,"err",err)
+
+		continue
 	    } else {
 		objmsghash := crypto.Keccak256Hash([]byte(strings.ToLower(string(packet)))).Hex()
 		common.Debug("======================p2pBroatcastPeers,terminal send fail p2perror with tcp,and re-send with udp======================", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash", msghash,"object msg hash",objmsghash)
@@ -110,6 +112,38 @@ func p2pBroatcastPeers(msg string, msgCode int, myself bool) int {
 	
 	time.Sleep(time.Duration(10) * time.Millisecond)
     }
+
+    if dccpGroup == nil {
+	return 1
+    }
+
+    for _, node := range dccpGroup.Nodes {
+	 if selfid == node.ID {
+	     continue
+	 }
+
+	 emitter.Lock()
+	 p := emitter.peers[node.ID]
+	 emitter.Unlock()
+	 if p != nil {
+	     continue
+	 }
+
+	sbm := &discover.SmpcBroadcastMsg{}
+	sbm.Data = msg
+	toaddr := &net.UDPAddr{IP: node.IP, Port: int(node.UDP)}
+	packet, err := json.Marshal(sbm)
+	if err != nil {
+	    common.Error("======================p2pBroatcastPeers,terminal send fail p2perror with tcp,and re-send with udp,but marshal object fail======================", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash", msghash,"err",err)
+	    
+	    continue
+	} else {
+	    objmsghash := crypto.Keccak256Hash([]byte(strings.ToLower(string(packet)))).Hex()
+	    common.Debug("======================p2pBroatcastPeers,terminal send fail p2perror with tcp,and re-send with udp======================", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg hash", msghash,"object msg hash",objmsghash)
+	}
+
+	discover.SendMsgSplitToPeerWithUDP(node.ID,toaddr,sbm,0,discover.Smpc_BroadcastMsgPacket)
+     }
 
     return 1
 }
