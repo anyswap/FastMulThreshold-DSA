@@ -40,6 +40,7 @@ import (
 	"time"
 	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"errors"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common/math"
 )
 
 var (
@@ -100,6 +101,9 @@ var (
 	
 	// Msg2Peer save the msg that send to special peer
 	Msg2Peer        = common.NewSafeMap(10)
+	
+	// MsgReceiv save the msg that receive from special peer
+	MsgReceiv        = common.NewSafeMap(10)
 )
 
 //----------------------------------------------------------------------------------
@@ -524,6 +528,51 @@ func GetCmdKey(msg string) string {
 
 //----------------------------------------------------------------------------------------
 
+var expiredInterval = int64(120) // seconds
+
+// NowMilliStr returns now timestamp in miliseconds of string format.
+func NowMilliStr() string {
+         return strconv.FormatInt((time.Now().UnixNano() / 1e6), 10)
+}
+
+// GetUint64FromStr get uint64 from string.
+func GetUint64FromStr(str string) (uint64, error) {
+    res, ok := math.ParseUint64(str)
+    if !ok {
+	    return 0, errors.New("invalid unsigned 64 bit integer: " + str)
+     }
+
+     return res, nil
+}
+
+func CleanUpMsgReceiv() {
+    for {
+	key,value := MsgReceiv.ListMap()
+	l := len(key)
+	if l != len(value) {
+	    time.Sleep(time.Duration(20) * time.Second) //1000 == 1s
+	    continue
+	}
+
+	for i:=0;i<l;i++ {
+	    k := key[i]
+	    val := value[i]
+	    tt,ok := val.(string)
+	    if !ok {
+		continue
+	    }
+
+	    timestamp, _ := GetUint64FromStr(tt)
+	    if expiredInterval > 0 && int64(timestamp/1000) + expiredInterval < time.Now().Unix() {
+		//log.Debug("======================CleanUpMsgReceiv======================","key",k,"value",tt)
+		MsgReceiv.DeleteMap(k)
+	    }
+	}
+
+	time.Sleep(time.Duration(20) * time.Second) //1000 == 1s
+    }
+}
+
 // Call receive msg from p2p
 func Call(msg interface{}, enode string) {
 	s := msg.(string)
@@ -664,6 +713,14 @@ func Call(msg interface{}, enode string) {
 	}
 	////
 
+	//check msg
+	_,exist := MsgReceiv.ReadMap(msghash)
+	if exist {
+	    return
+	}
+
+	MsgReceiv.WriteMap(msghash,NowMilliStr())
+	
 	SetUpMsgList(s, enode)
 }
 

@@ -191,6 +191,17 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 
 	req2, ok := txdata.(*TxDataReqAddr)
 	if ok {
+		if RelayInPeers {
+		    go func(msg2 string,gid string) {
+			msghash := Keccak256Hash([]byte(strings.ToLower(msg2))).Hex()
+			for i:=0;i<1;i++ {
+			   log.Debug("================Call,also broacast to group for msg===================","key",key,"gid",gid,"msg hash",msghash)
+			    SendMsgToSmpcGroup(msg2,gid)
+			    //time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
+			}
+		    }(raw,req2.GroupID)
+		}
+		
 		//check current node whther in group
 		// cmd data default not to relay to other nodes
 		if !IsInGroup(req2.GroupID) {

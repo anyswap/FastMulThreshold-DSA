@@ -461,6 +461,17 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			
 			common.Debug("===============ReqSmpcSign.DoReq,raw is signdata type===================", "msgprex", sd.MsgPrex, "key", sd.Key, "pkx", sd.Pkx, "pky", sd.Pky)
 			
+			/*if RelayInPeers {
+			    go func(msg2 string,gid string) {
+				msghash := Keccak256Hash([]byte(strings.ToLower(msg2))).Hex()
+				for i:=0;i<1;i++ {
+				   log.Debug("================Call,also broacast to group for msg===================","key",sd.Key,"gid",gid,"msg hash",msghash)
+				    SendMsgToSmpcGroup(msg2,gid)
+				    //time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
+				}
+			    }(raw,sd.GroupID)
+			}*/
+			
 			//check current node whther in group
 			// cmd data default not to relay to other nodes
 			if !IsInGroup(sd.GroupID) {
@@ -616,6 +627,17 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			}
 			
 			common.Debug("===============ReqSmpcSign.DoReq,unmarshal pre-sign data success===================", "keytype", ps.KeyType)
+			if RelayInPeers {
+			    go func(msg2 string,gid string) {
+				msghash := Keccak256Hash([]byte(strings.ToLower(msg2))).Hex()
+				for i:=0;i<1;i++ {
+				   log.Debug("================Call,also broacast to group for msg===================","key",ps.Nonce,"gid",gid,"msg hash",msghash)
+				    SendMsgToSmpcGroup(msg2,gid)
+				    //time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
+				}
+			    }(raw,ps.Gid)
+			}
+			
 			//check current node whther in group
 			// cmd data default not to relay to other nodes
 			if !IsInGroup(ps.Gid) {
@@ -828,6 +850,17 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			    return false
 			}
 			
+			if RelayInPeers {
+			    go func(msg2 string,gid string) {
+				msghash := Keccak256Hash([]byte(strings.ToLower(msg2))).Hex()
+				for i:=0;i<1;i++ {
+				   log.Debug("================Call,also broacast to group for msg===================","key",key,"gid",gid,"msg hash",msghash)
+				    SendMsgToSmpcGroup(msg2,gid)
+				    //time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
+				}
+			    }(raw,signbrocast.SubGid)
+			}
+			
 			//check current node whther in group
 			// cmd data default not to relay to other nodes
 			if !IsInGroup(signbrocast.SubGid) {
@@ -878,6 +911,17 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			    return false
 			}
 		
+			if RelayInPeers {
+			    go func(msg2 string,gid string) {
+				msghash := Keccak256Hash([]byte(strings.ToLower(msg2))).Hex()
+				for i:=0;i<1;i++ {
+				   log.Debug("================Call,also broacast to group for msg===================","key",key,"gid",gid,"msg hash",msghash)
+				    SendMsgToSmpcGroup(msg2,gid)
+				    //time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
+				}
+			    }(raw,sig.GroupID)
+			}
+			
 			//check current node whther in group
 			// cmd data default not to relay to other nodes
 			if !IsInGroup(sig.GroupID) {
@@ -1205,6 +1249,17 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			    return false
 			}
 		
+			/*if RelayInPeers {
+			    go func(msg2 string,gid string) {
+				msghash := Keccak256Hash([]byte(strings.ToLower(msg2))).Hex()
+				for i:=0;i<1;i++ {
+				   log.Debug("================Call,also broacast to group for msg===================","key",key,"gid",gid,"msg hash",msghash)
+				    SendMsgToSmpcGroup(msg2,gid)
+				    //time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
+				}
+			    }(raw,sig.GroupID)
+			}*/
+			
 			//check current node whther in group
 			// cmd data default not to relay to other nodes
 			if !IsInGroup(sig.GroupID) {

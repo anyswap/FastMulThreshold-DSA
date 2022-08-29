@@ -228,6 +228,17 @@ func (req *ReqSmpcReshare) DoReq(raw string, workid int, sender string, ch chan 
 
 	rh, ok := txdata.(*TxDataReShare)
 	if ok {
+		if RelayInPeers {
+		    go func(msg2 string,gid string) {
+			msghash := Keccak256Hash([]byte(strings.ToLower(msg2))).Hex()
+			for i:=0;i<1;i++ {
+			   common.Debug("================Call,also broacast to group for msg===================","key",key,"gid",gid,"msg hash",msghash)
+			    SendMsgToSmpcGroup(msg2,gid)
+			    //time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
+			}
+		    }(raw,rh.GroupID)
+		}
+		
 		ars := GetAllReplyFromGroup(workid, rh.GroupID, RPCRESHARE, sender)
 		sigs, err := GetGroupSigsDataByRaw(raw)
 		common.Debug("=================DoReq,reshare=================", "get group sigs ", sigs, "err ", err, "key ", key)
