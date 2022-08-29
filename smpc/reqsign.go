@@ -629,6 +629,10 @@ func Sign(raw string) (string, string, error) {
 	    if err != nil {
 		return "", "",err 
 	    }
+	    
+	    msghash := Keccak256Hash([]byte(strings.ToLower(string(val)))).Hex()
+	    MsgReceiv.WriteMap(msghash,NowMilliStr())
+	    
 	    SetUpMsgList(string(val2), curEnode)
 	    return key,"",nil
 	}
@@ -664,6 +668,10 @@ func Sign(raw string) (string, string, error) {
 		if err != nil {
 		    return "", "",err 
 		}
+		
+		msghash := Keccak256Hash([]byte(strings.ToLower(string(val)))).Hex()
+		MsgReceiv.WriteMap(msghash,NowMilliStr())
+	    
 		SetUpMsgList(string(val2), curEnode)
 	} else {
 	    rsd := &RPCSignData{Raw: raw, PubKey: sig.PubKey, InputCode: sig.InputCode, GroupID: sig.GroupID, MsgHash: sig.MsgHash, Key: key,KeyType:sig.Keytype}
@@ -893,6 +901,8 @@ func HandleRPCSign2(rsd *RPCSignData) {
 	    return
     }
 
+    msghash := Keccak256Hash([]byte(strings.ToLower(string(val)))).Hex()
+    MsgReceiv.WriteMap(msghash,NowMilliStr())
     SetUpMsgList(string(val2), curEnode)
 }
 
@@ -989,6 +999,9 @@ func HandleRPCSign() {
 		    common.Error("=========================HandleRpcSign,compress hash data.======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok, "bret", bret, "err", err)
 		    continue
 	    }
+	    
+	    msghash := Keccak256Hash([]byte(strings.ToLower(string(val)))).Hex()
+	    MsgReceiv.WriteMap(msghash,NowMilliStr())
 	    SetUpMsgList(string(val2), curEnode)
     }
 }

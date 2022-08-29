@@ -1656,6 +1656,10 @@ func HandleRPCSign3(gid string,sig *TxDataSign,key string,raw string) ([]*PickHa
 	}
 
 	SendMsgToSmpcGroup(string(val), gid)
+	
+	msghash := Keccak256Hash([]byte(strings.ToLower(string(val)))).Hex()
+	MsgReceiv.WriteMap(msghash,NowMilliStr())
+	
 	time.Sleep(time.Duration(8) * time.Second)  //wait for sign(...)
 	return pickdata,nil
     }
@@ -1790,6 +1794,10 @@ func HandleRPCSign4(sig *TxDataSign,gid string,key string,raw string) ([]*PickHa
     }
 
     SendMsgToSmpcGroup(string(val), gid)
+    
+    msghash := Keccak256Hash([]byte(strings.ToLower(string(val)))).Hex()
+    MsgReceiv.WriteMap(msghash,NowMilliStr())
+	
     time.Sleep(time.Duration(8) * time.Second)  //wait for sign(...)
 
     return pickdata,nil

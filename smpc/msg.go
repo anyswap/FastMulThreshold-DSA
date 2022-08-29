@@ -713,14 +713,6 @@ func Call(msg interface{}, enode string) {
 	}
 	////
 
-	//check msg
-	_,exist := MsgReceiv.ReadMap(msghash)
-	if exist {
-	    return
-	}
-
-	MsgReceiv.WriteMap(msghash,NowMilliStr())
-	
 	SetUpMsgList(s, enode)
 }
 
@@ -777,6 +769,15 @@ func (recv *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		res = msgdata
 	}
 
+	//check msg
+	msghash := Keccak256Hash([]byte(strings.ToLower(res))).Hex()
+	_,exist := MsgReceiv.ReadMap(msghash)
+	if exist {
+	    return true
+	}
+
+	MsgReceiv.WriteMap(msghash,NowMilliStr())
+	
 	var req CmdReq
 	msgmap := make(map[string]string)
 	err := json.Unmarshal([]byte(res), &msgmap)
