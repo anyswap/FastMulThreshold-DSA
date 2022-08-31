@@ -305,6 +305,8 @@ func ExecApproveKeyGen(raw string,from string,req *TxDataAcceptReqAddr,ac *Accep
 	    return
     }
 
+    w.msgacceptreqaddrres.PushBack(raw)
+    
     if check {
 	HandleC1Data(ac, req.Key)
     }
@@ -320,9 +322,7 @@ func ExecApproveKeyGen(raw string,from string,req *TxDataAcceptReqAddr,ac *Accep
     //}
 
     //AcceptReqAddr(ac.Initiator, ac.Account, ac.Cointype, ac.GroupID, ac.Nonce, ac.LimitNum, ac.Mode, "false", accept, status, "", "", "", nil, ac.WorkID, "")
-    
-    w.msgacceptreqaddrres.PushBack(raw)
-    
+     
     /////fix bug: miss accept msg for 7-11 test
     if RelayInPeers {
 	SendMsgToSmpcGroup(raw, ac.GroupID)
@@ -356,7 +356,7 @@ func ExecApproveKeyGen(raw string,from string,req *TxDataAcceptReqAddr,ac *Accep
 	w.ApprovReplys = append(w.ApprovReplys,reply)
     }
 
-    if w.msgacceptreqaddrres.Len() >= w.NodeCnt {
+    if w.msgacceptreqaddrres.Len() >= w.NodeCnt && len(w.ApprovReplys) >= w.NodeCnt {
 	//if !CheckReply(w.msgacceptreqaddrres, RPCREQADDR, req.Key) {
 	//	return
 	//}

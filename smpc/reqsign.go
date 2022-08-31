@@ -464,6 +464,8 @@ func ExecApproveSigning(raw string,from string,sig *TxDataAcceptSign,ac *AcceptS
 		return
 	}
 
+	w.msgacceptsignres.PushBack(raw)
+	
 	if check {
 	    HandleC1Data(acceptreqdata, sig.Key)
 	}
@@ -480,7 +482,6 @@ func ExecApproveSigning(raw string,from string,sig *TxDataAcceptSign,ac *AcceptS
 
 	//AcceptSign(ac.Initiator, ac.Account, ac.PubKey, ac.MsgHash, ac.Keytype, ac.GroupID, ac.Nonce, ac.LimitNum, ac.Mode, "false", accept, status, "", "", "", nil, ac.WorkID)
 	
-	w.msgacceptsignres.PushBack(raw)
 	/////fix bug: miss accept msg for 7-11 test
 	if RelayInPeers {
 	    SendMsgToSmpcGroup(raw, ac.GroupID)
@@ -526,7 +527,7 @@ func ExecApproveSigning(raw string,from string,sig *TxDataAcceptSign,ac *AcceptS
 	}
 	///////
 
-	if w.msgacceptsignres.Len() >= w.ThresHold {
+	if w.msgacceptsignres.Len() >= w.ThresHold && len(w.ApprovReplys) >= w.ThresHold {
 		//if !CheckReply(w.msgacceptsignres, RPCSIGN, sig.Key) {
 		//	common.Debug("=====================ExecApproveSigning,receive one msg, but Not all accept data has been received ===================", "raw", raw, "key", sig.Key)
 		//	return
