@@ -100,6 +100,7 @@ func StartSmpc(c *cli.Context) {
 
 	rpcsmpc.RPCInit(rpcport)
 
+	common.Info("=============================Start Gsmpc=================================","datadir",datadir,"waitmsg",waitmsg,"rotate",rotate,"maxage",maxage,"trytimes",trytimes,"presignnum",presignnum,"nonetrestrict",nonetrestrict,"relay",relayInPeers)
 	params := &smpc.LunchParams{WaitMsg: waitmsg, TryTimes: trytimes, PreSignNum: presignnum, MaxAcceptTime: maxaccepttime, Bip32Pre: bip32pre, SyncPreSign: syncpresign,RelayInPeers: relayInPeers}
 	smpc.Start(params)
 	select {} // note for server, or for client
@@ -181,13 +182,13 @@ func init() {
 		cli.Uint64Flag{Name: "rotate", Value: 2, Usage: "log rotation time (unit hour)", Destination: &rotate},
 		cli.Uint64Flag{Name: "maxage", Value: 72, Usage: "log max age (unit hour)", Destination: &maxage},
 		cli.Uint64Flag{Name: "verbosity", Value: 4, Usage: "log verbosity (0:panic, 1:fatal, 2:error, 3:warn, 4:info, 5:debug, 6:trace)", Destination: &verbosity},
-		cli.BoolFlag{Name: "nonetrestrict", Usage: "Not connectivity can be restricted to certain IP networks(without whitelist of static nodes)", Destination: &nonetrestrict},
+		cli.BoolTFlag{Name: "nonetrestrict", Usage: "Not connectivity can be restricted to certain IP networks(without whitelist of static nodes)", Destination: &nonetrestrict},
 		cli.BoolFlag{Name: "json", Usage: "output log in json format", Destination: &json},
 		cli.BoolFlag{Name: "color", Usage: "output log in color text format", Destination: &color},
-		cli.Uint64Flag{Name: "waitmsg", Value: 120, Usage: "the time to wait p2p msg", Destination: &waitmsg},
-		cli.Uint64Flag{Name: "trytimes", Value: 1, Usage: "the times to try key-gen/sign", Destination: &trytimes},
+		cli.Uint64Flag{Name: "waitmsg", Value: 100, Usage: "the time to wait p2p msg", Destination: &waitmsg},
+		cli.Uint64Flag{Name: "trytimes", Value: 3, Usage: "the times to try key-gen/sign", Destination: &trytimes},
 		cli.Uint64Flag{Name: "presignnum", Value: 10, Usage: "the total of pre-sign data", Destination: &presignnum},
-		cli.BoolFlag{Name: "relay", Usage: "relay msg in peers", Destination: &relayInPeers},
+		cli.BoolTFlag{Name: "relay", Usage: "relay msg in peers", Destination: &relayInPeers},
 		cli.Uint64Flag{Name: "maxaccepttime", Value: 604800, Usage: "the max time to wait for accept from all nodes", Destination: &maxaccepttime},
 		cli.Uint64Flag{Name: "bip32pre", Value: 4, Usage: "the total counts of pre-sign data for bip32 child pubkey", Destination: &bip32pre},
 		cli.StringFlag{Name: "sync-presign", Value: "true", Usage: "synchronize presign data between group nodes", Destination: &syncpresign},
