@@ -262,7 +262,7 @@ func (s *dialstate) newTasksStatic(nRunning int, peers map[discover.NodeID]*Peer
 	// Create dials for static nodes if they are not connected.
 	for id, t := range s.static {
 		err := s.checkDial(t.dest, peers)
-		common.Debug("=================dialstate.newTasksStatic,check dial====================", "t.dest", t.dest,"err",err)
+		//common.Debug("=================dialstate.newTasksStatic,check dial====================", "t.dest", t.dest,"err",err)
 		switch err {
 		case errNotWhitelisted, errSelf:
 			delete(s.static, t.dest.ID)
@@ -326,10 +326,10 @@ func (t *dialTask) Do(srv *Server) {
 	}
 	err := t.dial(srv, t.dest)
 	if err != nil {
-		common.Error("======================dialTask.Do, dial 1st failed================", "t.dest", t.dest, "err", err, "t.flags", t.flags, "staticDialedConn", staticDialedConn)
+		//common.Error("======================dialTask.Do, dial 1st failed================", "t.dest", t.dest, "err", err, "t.flags", t.flags, "staticDialedConn", staticDialedConn)
 		// Try resolving the ID of static nodes if dialing failed.
 		if _, ok := err.(*dialError); ok && t.flags&staticDialedConn != 0 {
-			common.Debug("===================dialTask.Do, 2st check err=================", "t.dest", t.dest, "t.flags", t.flags, "staticDialedConn", staticDialedConn)
+			//common.Debug("===================dialTask.Do, 2st check err=================", "t.dest", t.dest, "t.flags", t.flags, "staticDialedConn", staticDialedConn)
 			if t.resolve(srv) {
 				common.Debug("================dialTask.Do, 2st check resolve================", "t.dest", t.dest, "t.flags", t.flags, "staticDialedConn", staticDialedConn)
 			    err = t.dial(srv, t.dest)
@@ -340,10 +340,10 @@ func (t *dialTask) Do(srv *Server) {
 				common.Debug("===============dialTask.Do,dial 2st success===============", "t.dest", t.dest)
 			    }
 			} else {
-				common.Debug("===================dialTask.Do,dial 2st check failed resolve==============", "t.dest", t.dest, "t.flags", t.flags, "staticDialedConn", staticDialedConn)
+				//common.Debug("===================dialTask.Do,dial 2st check failed resolve==============", "t.dest", t.dest, "t.flags", t.flags, "staticDialedConn", staticDialedConn)
 			}
 		} else {
-			common.Debug("================dialTask.Do,dial 2st check failed dialError================", "t.dest", t.dest, "t.flags", t.flags, "staticDialedConn", staticDialedConn)
+			//common.Debug("================dialTask.Do,dial 2st check failed dialError================", "t.dest", t.dest, "t.flags", t.flags, "staticDialedConn", staticDialedConn)
 		}
 	}else {
 		common.Debug("======================dialTask.Do,dial 1st success=====================", "t.dest", t.dest)
@@ -389,7 +389,7 @@ type dialError struct {
 func (t *dialTask) dial(srv *Server, dest *discover.Node) error {
 	fd, err := srv.Dialer.Dial(dest)
 	if err != nil {
-		common.Debug("============dialTask.dial,get terminal dial res===============", "dest", dest, "err", err)
+		//common.Debug("============dialTask.dial,get terminal dial res===============", "dest", dest, "err", err)
 		return &dialError{err}
 	}
 	mfd := newMeteredConn(fd, false)

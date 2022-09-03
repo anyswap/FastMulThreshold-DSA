@@ -709,7 +709,7 @@ running:
 			dialstate.taskDone(t, time.Now())
 			delTask(t)
 			delTaskStatic(t)
-			common.Debug("==================server.run, taskdone==============", "t", t)
+			//common.Debug("==================server.run, taskdone==============", "t", t)
 		case c := <-srv.posthandshake:
 			// A connection has passed the encryption handshake so
 			// the remote identity is known (but hasn't been verified yet).
