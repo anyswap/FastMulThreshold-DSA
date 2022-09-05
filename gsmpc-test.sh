@@ -149,19 +149,19 @@ echo
 echo -------------------------------------------------- begin to start 5 gsmpc nodes ----------------------------------------------------
 
 gsmpc=$1/test/bin/gsmpctest
-$gsmpc --rpcport $port --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node1 --port 48541 --nodekey "$1/test/nodekey/node1.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 3 --verbosity 5 --log $1/test/log/node1.log --nonetrestrict true --relay true &
+$gsmpc --rpcport $port --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node1 --port 48541 --nodekey "$1/test/nodekey/node1.key" --verbosity 5 --log $1/test/log/node1.log --nonetrestrict=false &
 sleep 2 
 
-$gsmpc --rpcport $port2 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node2 --port 48542 --nodekey "$1/test/nodekey/node2.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 3 --verbosity 5 --log $1/test/log/node2.log --nonetrestrict true --relay true &
+$gsmpc --rpcport $port2 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node2 --port 48542 --nodekey "$1/test/nodekey/node2.key" --verbosity 5 --log $1/test/log/node2.log --nonetrestrict=false &
 sleep 2
 
-$gsmpc --rpcport $port3 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node3 --port 48543 --nodekey "$1/test/nodekey/node3.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 3 --verbosity 5 --log $1/test/log/node3.log --nonetrestrict true --relay true &
+$gsmpc --rpcport $port3 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node3 --port 48543 --nodekey "$1/test/nodekey/node3.key" --verbosity 5 --log $1/test/log/node3.log --nonetrestrict=false &
 sleep 2
 
-$gsmpc --rpcport $port4 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node4 --port 48544 --nodekey "$1/test/nodekey/node4.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 3 --verbosity 5 --log $1/test/log/node4.log --nonetrestrict true --relay true &
+$gsmpc --rpcport $port4 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node4 --port 48544 --nodekey "$1/test/nodekey/node4.key" --verbosity 5 --log $1/test/log/node4.log --nonetrestrict=false &
 sleep 2
 
-$gsmpc --rpcport $port5 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node5 --port 48545 --nodekey "$1/test/nodekey/node5.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 3 --verbosity 5 --log $1/test/log/node5.log --nonetrestrict true --relay true &
+$gsmpc --rpcport $port5 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node5 --port 48545 --nodekey "$1/test/nodekey/node5.key" --verbosity 5 --log $1/test/log/node5.log --nonetrestrict=false &
 sleep 12
 
 echo ------------------------------------------------ 5 gsmpc nodes start finish --------------------------------------------------------------
@@ -253,7 +253,7 @@ echo
 
 echo ------------------------------------------------------- begin to generate pubkey -----------------------------------------------------------------
 
-$1/test/bin/gsmpc-client-test -cmd REQSMPCADDR --keystore $keyfile1 --passwdfile $pf1 -ts 3/5 --keytype $kt -gid $gid -mode 0 -url http://127.0.0.1:$port -sig $nodesig1 -sig $nodesig2 -sig $nodesig3 -sig $nodesig4 -sig $nodesig5 > $1/test/tmp/eee &
+$1/test/bin/gsmpc-client-test -cmd REQSMPCADDR --keystore $keyfile1 --passwdfile $pf1 -ts 3/5 --keytype $kt -gid $gid -mode 0 -msgsig=true -url http://127.0.0.1:$port -sig $nodesig1 -sig $nodesig2 -sig $nodesig3 -sig $nodesig4 -sig $nodesig5 > $1/test/tmp/eee &
 sleep 60
 
 val=$(cat $1/test/tmp/eee)
@@ -261,19 +261,19 @@ val=`echo ${val##*=}`
 key=`echo ${val:0:66}`
 echo ----------------------------------------------------------- keygen cmd key : $key -----------------------------------------------------------------------------------
 
-$1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port --keystore $keyfile1 --passwdfile $pf1 -key $key &
+$1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port --keystore $keyfile1 --passwdfile $pf1 -key $key --keytype $kt -msgsig=true -mode 0 &
 sleep 3 
 
-$1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port2 --keystore $keyfile2 --passwdfile $pf2 -key $key &
+$1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port2 --keystore $keyfile2 --passwdfile $pf2 -key $key --keytype $kt -msgsig=true -mode 0 &
 sleep 3
 
-$1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port3 --keystore $keyfile3 --passwdfile $pf3 -key $key &
+$1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port3 --keystore $keyfile3 --passwdfile $pf3 -key $key --keytype $kt -msgsig=true -mode 0 &
 sleep 3
 
-$1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port4 --keystore $keyfile4 --passwdfile $pf4 -key $key &
+$1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port4 --keystore $keyfile4 --passwdfile $pf4 -key $key --keytype $kt -msgsig=true -mode 0 &
 sleep 3
 
-$1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port5 --keystore $keyfile5 --passwdfile $pf5 -key $key &
+$1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port5 --keystore $keyfile5 --passwdfile $pf5 -key $key --keytype $kt -msgsig=true -mode 0 &
 sleep 240
 
 touch test/reqaddr.sh
@@ -286,7 +286,7 @@ b="'"
 c='{"jsonrpc":"2.0","method":"smpc_getReqAddrStatus","params":["'
 d="$key"
 e='"],"id":67}'
-f=" http://127.0.0.1:$port"
+f=" http://127.0.0.1:$port  --noproxy 127.0.0.1 "
 g=" > $1/test/tmp/fff &"
 
 str=$a$b$c$d$e$b$f$g
@@ -314,13 +314,13 @@ echo
 echo ------------------------------------------------------------------ pubkey : $pubkey ------------------------------------------------------------
 
 if [ "$kt" = "$kttmp" ];then
-$1/test/bin/gsmpc-client-test -cmd PRESIGNDATA --keystore $keyfile1 --passwdfile $pf1 -pubkey $pubkey -subgid $subgid  -url  http://127.0.0.1:$port --keytype $kt &
+$1/test/bin/gsmpc-client-test -cmd PRESIGNDATA --keystore $keyfile1 --passwdfile $pf1 -pubkey $pubkey -subgid $subgid  -url  http://127.0.0.1:$port --keytype $kt -mode 0 -msgsig=true &
 sleep 100
 fi
 
 rm -rf $1/test/tmp/ggg
 
-$1/test/bin/gsmpc-client-test -cmd SIGN --loop 1 --n 1 -ts 3/5 --keystore $keyfile1 --passwdfile $pf1 --keytype $kt --logfilepath $1/test/tmp/logfile -gid $subgid -mode 0 -url http://127.0.0.1:$port -pubkey $pubkey -msghash 0x90e032be062dd0dc689fa23df8c044936a2478cb602b292c7397354238a67d88  -msgcontext '{"swapInfo":{"swapid":"0x4f62545cdd05cc346c75bb42f685a18a02621e91512e0806eac528d0b2f6aa5f","swaptype":1,"bind":"0x0520e8e5e08169c4dbc1580dc9bf56638532773a","identifier":"ssUSDT2FSN"},"extra":{"ethExtra":{"gas":90000,"gasPrice":10000000000,"nonce":1}}}' > $1/test/tmp/ggg &
+$1/test/bin/gsmpc-client-test -cmd SIGN --loop 1 --n 1 -ts 3/5 --keystore $keyfile1 --passwdfile $pf1 --keytype $kt --logfilepath $1/test/tmp/logfile -gid $subgid -mode 0 -msgsig=true -url http://127.0.0.1:$port -pubkey $pubkey -msghash 0x90e032be062dd0dc689fa23df8c044936a2478cb602b292c7397354238a67d88  -msgcontext '{"swapInfo":{"swapid":"0x4f62545cdd05cc346c75bb42f685a18a02621e91512e0806eac528d0b2f6aa5f","swaptype":1,"bind":"0x0520e8e5e08169c4dbc1580dc9bf56638532773a","identifier":"ssUSDT2FSN"},"extra":{"ethExtra":{"gas":90000,"gasPrice":10000000000,"nonce":1}}}' > $1/test/tmp/ggg &
 sleep 60
 
 val=$(cat $1/test/tmp/ggg)
@@ -331,13 +331,13 @@ echo ------------------------------------------------------------------sign cmd 
 
 rm -rf $1/test/tmp/hhh
 
-$1/test/bin/gsmpc-client-test -cmd ACCEPTSIGN  -url http://127.0.0.1:$port --keystore $keyfile1 --passwdfile $pf1 --key $signkey &
+$1/test/bin/gsmpc-client-test -cmd ACCEPTSIGN  -url http://127.0.0.1:$port --keystore $keyfile1 --passwdfile $pf1 --key $signkey --keytype $kt -msgsig=true -mode 0 &
 sleep 3
 
-$1/test/bin/gsmpc-client-test  -cmd ACCEPTSIGN -url http://127.0.0.1:$port2 --keystore $keyfile2 --passwdfile $pf2 --key $signkey &
+$1/test/bin/gsmpc-client-test  -cmd ACCEPTSIGN -url http://127.0.0.1:$port2 --keystore $keyfile2 --passwdfile $pf2 --key $signkey --keytype $kt -msgsig=true -mode 0 &
 sleep 3
 
-$1/test/bin/gsmpc-client-test  -cmd ACCEPTSIGN -url http://127.0.0.1:$port3 --keystore $keyfile3 --passwdfile $pf3 --key $signkey &
+$1/test/bin/gsmpc-client-test  -cmd ACCEPTSIGN -url http://127.0.0.1:$port3 --keystore $keyfile3 --passwdfile $pf3 --key $signkey --keytype $kt -msgsig=true -mode 0 &
 sleep 100
 
 touch test/sign.sh
@@ -350,7 +350,7 @@ b="'"
 c='{"jsonrpc":"2.0","method":"smpc_getSignStatus","params":["'
 d="$signkey"
 e='"],"id":67}'
-f=" http://127.0.0.1:$port"
+f=" http://127.0.0.1:$port  --noproxy 127.0.0.1 "
 g=" > $1/test/tmp/hhh &"
 
 str=$a$b$c$d$e$b$f$g

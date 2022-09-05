@@ -81,10 +81,10 @@ else
 fi
 
 gsmpc=$1/test/bin/gsmpctest
-$gsmpc --rpcport $port --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node1 --port 48541 --nodekey "$1/test/nodekey/node1.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 3 --verbosity 5 --log $1/test/log/node1.log --nonetrestrict true --relay true &
+$gsmpc --rpcport $port --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node1 --port 48541 --nodekey "$1/test/nodekey/node1.key" --verbosity 5 --log $1/test/log/node1.log --nonetrestrict=false &
 sleep 2 
 
-$gsmpc --rpcport $port2 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node2 --port 48542 --nodekey "$1/test/nodekey/node2.key" --waitmsg 100   --rotate 2  --maxage 72 --trytimes 1 --presignnum 3 --verbosity 5 --log $1/test/log/node2.log --nonetrestrict true --relay true &
+$gsmpc --rpcport $port2 --bootnodes "enode://$boot2@127.0.0.1:4440" --datadir $datadir/node2 --port 48542 --nodekey "$1/test/nodekey/node2.key" --verbosity 5 --log $1/test/log/node2.log --nonetrestrict=false &
 sleep 2
 
 echo
@@ -139,17 +139,17 @@ echo
 echo ============================= Start to KeyGen ====================================
 echo
 
-$1/test/bin/gsmpc-client-test -cmd REQSMPCADDR --keystore $keyfile1 --passwdfile $pf1 -ts 2/2 --keytype $kt -gid $gid -mode 0 -url http://127.0.0.1:$port -sig $nodesig1 -sig $nodesig2 > $1/test/tmp/eee &
+$1/test/bin/gsmpc-client-test -cmd REQSMPCADDR --keystore $keyfile1 --passwdfile $pf1 -ts 2/2 --keytype $kt -gid $gid -mode 0 -msgsig=true -url http://127.0.0.1:$port -sig $nodesig1 -sig $nodesig2 > $1/test/tmp/eee &
 sleep 60
 
 val=$(cat $1/test/tmp/eee)
 val=`echo ${val##*=}`
 key=`echo ${val:0:66}`
 
-$1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port --keystore $keyfile1 --passwdfile $pf1 -key $key &
+$1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port --keystore $keyfile1 --passwdfile $pf1 -key $key --keytype $kt -msgsig=true -mode 0 &
 sleep 3 
 
-$1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port2 --keystore $keyfile2 --passwdfile $pf2 -key $key &
+$1/test/bin/gsmpc-client-test -cmd ACCEPTREQADDR  -url http://127.0.0.1:$port2 --keystore $keyfile2 --passwdfile $pf2 -key $key --keytype $kt -msgsig=true -mode 0 &
 sleep 3
 
 sleep 240
@@ -164,7 +164,7 @@ b="'"
 c='{"jsonrpc":"2.0","method":"smpc_getReqAddrStatus","params":["'
 d="$key"
 e='"],"id":67}'
-f=" http://127.0.0.1:$port"
+f=" http://127.0.0.1:$port  --noproxy 127.0.0.1 "
 g=" > $1/test/tmp/fff &"
 
 str=$a$b$c$d$e$b$f$g
@@ -194,7 +194,7 @@ echo
 sleep 3
 
 if [ "$kt" = "$kttmp" ];then
-$1/test/bin/gsmpc-client-test -cmd PRESIGNDATA --keystore $keyfile1 --passwdfile $pf1 -pubkey $pubkey -subgid $subgid  -url  http://127.0.0.1:$port --keytype $kt &
+$1/test/bin/gsmpc-client-test -cmd PRESIGNDATA --keystore $keyfile1 --passwdfile $pf1 -pubkey $pubkey -subgid $subgid  -url  http://127.0.0.1:$port --keytype $kt -mode 0 -msgsig=true &
 sleep 100
 fi
 
