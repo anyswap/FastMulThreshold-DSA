@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 // Start verify commitment ...
@@ -79,7 +80,7 @@ func (round *round6) Start() error {
 	    }
 
 	    if !ec2.SquareFreeVerify(ntilde,msg52.Num,msg52.SfPf) {
-		fmt.Printf("==========================keygen round6,check that a zero-knowledge proof that ntilde is a square-free integer fail, k = %v,id = %v============================\n",k,ids[k])
+		log.Error("keygen round6,check that a zero-knowledge proof that ntilde is a square-free integer fail","k",k,"id",ids[k])
 		return errors.New("check that a zero-knowledge proof that ntilde is a square-free integer fail")
 	    }
 	}
@@ -103,7 +104,7 @@ func (round *round6) Start() error {
 	    }
 	    
 	    if !ec2.HvVerify(ntilde,msg51.Num,msg51.HvPf) {
-		fmt.Printf("==========================keygen round6,check that a zero-knowledge proof that ntilde is a valid RSA modulus from two safe primes fail, k = %v,id = %v============================\n",k,ids[k])
+		log.Error("keygen round6,check that a zero-knowledge proof that ntilde is a valid RSA modulus from two safe primes fail","k",k,"id",ids[k])
 		return errors.New("check that a zero-knowledge proof that ntilde is a valid RSA modulus from two safe primes fail")
 	    }
 	}

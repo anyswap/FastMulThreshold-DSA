@@ -18,9 +18,10 @@ package keygen
 
 import (
 	"errors"
-	"fmt"
+	//"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 // Start broacast commitment D 
@@ -61,7 +62,7 @@ func (round *round3) Start() error {
 	    }
 
 	    if !ec2.SquareFreeVerify(paiPk.N,msg22.Num,msg22.SfPf) {
-		fmt.Printf("==========================keygen round3,check that a zero-knowledge proof that paillier.N is a square-free integer fail, k = %v,id = %v============================\n",k,ids[k])
+		log.Error("keygen round3,check that a zero-knowledge proof that paillier.N is a square-free integer fail","k",ids[k])
 		return errors.New("check that a zero-knowledge proof that paillier.N is a square-free integer fail")
 	    }
 	}

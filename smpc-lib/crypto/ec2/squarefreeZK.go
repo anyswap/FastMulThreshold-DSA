@@ -22,6 +22,7 @@ import (
 	"sync"
 	"strings"
 	"math/big"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 const ( 
@@ -192,7 +193,8 @@ func SquareFreeVerify(n *big.Int,num *big.Int,proof *SquareFreeProof) bool {
 	    yn := new(big.Int).Exp(proof.Sigma[k],n,n)
 	    xn := new(big.Int).Mod(v,n)
 	    if yn.Cmp(xn) != 0 {
-		fmt.Printf("check that a zero-knowledge proof that paillier.N is a square-free integer fail\n")
+		//fmt.Printf("check that a zero-knowledge proof that paillier.N is a square-free integer fail\n")
+		log.Error("SquareFree Verify,check that a zero-knowledge proof that paillier.N is a square-free integer fail","n",n,"num",num)
 		return false
 	    }
 	}
