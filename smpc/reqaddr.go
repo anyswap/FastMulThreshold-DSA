@@ -1036,15 +1036,20 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 	errChan := make(chan struct{})
 	keyGenDNode := keygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048,cointype)
 	w.DNode = keyGenDNode
+	if w.DNode == nil {
+		res := RPCSmpcRes{Ret: "", Err: errors.New("new local dnode fail")}
+		ch <- res
+		return false
+	}
+
 	_,UID := GetNodeUID(curEnode, cointype,w.groupid)
 	if UID == nil {
 		res := RPCSmpcRes{Ret: "", Err: errors.New("get node uid fail")}
 		ch <- res
 		return false
 	}
-	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", UID))
-	//fmt.Printf("=========== KeyGenerateDECDSA, current node uid = %v ===========\n", keyGenDNode.DNodeID())
 
+	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 	if w.DNode.DNodeID() == "" {
 		res := RPCSmpcRes{Ret: "", Err: errors.New("get node uid fail")}
 		ch <- res
