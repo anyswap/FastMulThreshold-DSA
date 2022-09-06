@@ -31,10 +31,10 @@ var (
 	RPCReqQueueCache = make(chan RPCReq, RPCMaxQueue)
 
 	// RPCMaxWorker  max worker nums
-	RPCMaxWorker = 100 
+	RPCMaxWorker = 2000 
 
 	// RPCMaxQueue max counts of RPCReq in queue
-	RPCMaxQueue  = 1000
+	RPCMaxQueue  = 2000
 
 	// RPCReqQueue the channel of RPCReq
 	RPCReqQueue  chan RPCReq

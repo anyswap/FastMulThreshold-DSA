@@ -299,7 +299,7 @@ func SynchronizePreSignData(msgprex string, wid int, success bool) bool {
 	reply := false
 	timeout := make(chan bool, 1)
 	go func() {
-		syncWaitTime := 300 * time.Second
+		syncWaitTime := 600 * time.Second
 		syncWaitTimeOut := time.NewTicker(syncWaitTime)
 
 		for {
@@ -1737,7 +1737,7 @@ func HandleRPCSign4(sig *TxDataSign,gid string,key string,raw string) ([]*PickHa
 	}()
 
 	go func() {
-		syncWaitTime := 300 * time.Second
+		syncWaitTime := 600 * time.Second
 		syncWaitTimeOut := time.NewTicker(syncWaitTime)
 
 		for {

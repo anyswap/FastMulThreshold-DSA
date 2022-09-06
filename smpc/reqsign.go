@@ -722,7 +722,7 @@ func DoPreSign(pubkey string,gid string,hash string,mode string,keytype string) 
     reply := false
     timeout := make(chan bool, 1)
     go func() {
-	    syncWaitTime := 200 * time.Second
+	    syncWaitTime := 600 * time.Second
 	    syncWaitTimeOut := time.NewTicker(syncWaitTime)
 
 	    for {
@@ -832,7 +832,7 @@ func HandleRPCSign2(rsd *RPCSignData) {
 	}()
 
 	go func() {
-		syncWaitTime := 300 * time.Second
+		syncWaitTime := 600 * time.Second
 		syncWaitTimeOut := time.NewTicker(syncWaitTime)
 
 		for {
@@ -919,13 +919,11 @@ func HandleRPCSign() {
 	    }
 
 	    exsit, da := GetPubKeyData(smpcpks[:])
-	    common.Debug("=========================HandleRpcSign======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit)
 	    if !exsit {
 		continue
 	    }
 	    
 	    _, ok := da.(*PubKeyData)
-	    common.Debug("=========================HandleRpcSign======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "exsit", exsit, "ok", ok)
 	    if !ok {
 		continue
 	    }
@@ -943,12 +941,13 @@ func HandleRPCSign() {
 	    for _, vv := range rsd.MsgHash {
 			pick := PickPreSignData(rsd.PubKey, rsd.InputCode, rsd.GroupID)
 			if pick == nil {
+			    common.Debug("=========================HandleRpcSign,pick pre-sign fail and auto generate the pre-sign data by self======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key)
 			    go HandleRPCSign2(rsd)
 			    bret = true
 			    break
 			}
 			    
-			common.Info("========================HandleRpcSign,choose pickkey==================", "txhash", vv, "pickkey", pick.Key, "key", rsd.Key)
+			common.Info("========================HandleRpcSign,pick pre-sign data success,no need to generate pre-sign data by self==================", "txhash", vv, "pickkey", pick.Key, "key", rsd.Key)
 
 			ph := &PickHashKey{Hash: vv, PickKey: pick.Key}
 			pickhash = append(pickhash, ph)
