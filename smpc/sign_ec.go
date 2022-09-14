@@ -65,7 +65,8 @@ func SignProcessInboundMessages(msgprex string, keytype string,finishChan chan s
 
 			///dul?
 			hexs := Keccak256Hash([]byte(strings.ToLower(m))).Hex()
-			_, exist2 := w.Msg56[hexs]
+			//_, exist2 := w.Msg56[hexs]
+			_, exist2 := w.Msg56.ReadMap(hexs)
 			if exist2 {
 			   break 
 			}
@@ -222,7 +223,8 @@ func SignProcessInboundMessages(msgprex string, keytype string,finishChan chan s
 			
 			//log.Debug("========================SignProcessInboundMessages,update msg success====================","msg",m,"key",msgprex)
 			
-			w.Msg56[hexs] = true
+			//w.Msg56[hexs] = true
+			w.Msg56.WriteMap(hexs,true)
 			
 			//if !dul {
 			    //////also broacast to group for msg

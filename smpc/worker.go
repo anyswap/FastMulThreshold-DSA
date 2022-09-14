@@ -224,7 +224,8 @@ type RPCReqWorker struct {
 	PreSaveSmpcMsg []string
 	Msg2Peer []string
 	ApprovReplys []*ApprovReply
-	Msg56     map[string]bool
+	//Msg56     map[string]bool
+	Msg56    *common.SafeMap 
 }
 
 // NewRPCReqWorker new a RPCReqWorker
@@ -338,7 +339,7 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		Msg2Peer: make([]string, 0),
 		ApprovReplys: make([]*ApprovReply, 0),
 		PickHash: make([]*PickHashKey, 0),
-		Msg56:     make(map[string]bool),
+		Msg56:     common.NewSafeMap(10),
 	}
 }
 
@@ -701,7 +702,7 @@ func (w *RPCReqWorker) Clear() {
 	w.Msg2Peer = make([]string, 0)
 	w.ApprovReplys = make([]*ApprovReply, 0)
 	w.PickHash = make([]*PickHashKey, 0)
-	w.Msg56 = make(map[string]bool)
+	w.Msg56 = common.NewSafeMap(10)
 }
 
 // Clear2  reset RPCReqWorker object in some elements 
@@ -1053,7 +1054,7 @@ func (w *RPCReqWorker) Clear2() {
 	w.Msg2Peer = make([]string, 0)
 	w.ApprovReplys = make([]*ApprovReply, 0)
 	w.PickHash = make([]*PickHashKey, 0)
-	w.Msg56 = make(map[string]bool)
+	w.Msg56 = common.NewSafeMap(10)
 }
 
 // Start start the worker
