@@ -822,7 +822,7 @@ func signing() {
 		contexts = append(contexts, *memo)
 	}
 
-	signingMsgHash(hashs, contexts, -1)
+	signingMsgHash(hashs, contexts, 10)
 }
 
 // sign Execute MPC sign 
@@ -838,7 +838,7 @@ func sign() {
 		contexts = append(contexts, *memo)
 	}
 
-	signMsgHash(hashs, contexts, -1)
+	signMsgHash(hashs, contexts, 10)
 }
 
 //  preSigning Generate relevant data required for distributed sign in advance 
