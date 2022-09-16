@@ -100,8 +100,8 @@ func StartSmpc(c *cli.Context) {
 
 	rpcsmpc.RPCInit(rpcport)
 
-	common.Info("=============================Start Gsmpc=================================","datadir",datadir,"waitmsg",waitmsg,"rotate",rotate,"maxage",maxage,"trytimes",trytimes,"presignnum",presignnum,"nonetrestrict",nonetrestrict,"relay",relayInPeers)
-	params := &smpc.LunchParams{WaitMsg: waitmsg, TryTimes: trytimes, PreSignNum: presignnum, MaxAcceptTime: maxaccepttime, Bip32Pre: bip32pre, SyncPreSign: syncpresign,RelayInPeers: relayInPeers}
+	common.Info("=============================Start Gsmpc=================================","datadir",datadir,"waitmsg",waitmsg,"rotate",rotate,"maxage",maxage,"trytimes",trytimes,"presignnum",presignnum,"nonetrestrict",nonetrestrict,"relay",relayInPeers,"jobs",jobs)
+	params := &smpc.LunchParams{WaitMsg: waitmsg, TryTimes: trytimes, PreSignNum: presignnum, Jobs: jobs, MaxAcceptTime: maxaccepttime, Bip32Pre: bip32pre, SyncPreSign: syncpresign,RelayInPeers: relayInPeers}
 	smpc.Start(params)
 	select {} // note for server, or for client
 }
@@ -135,6 +135,7 @@ var (
 	waitmsg      uint64
 	trytimes     uint64
 	presignnum   uint64
+	jobs   uint64
 	maxaccepttime    uint64
 	bip32pre     uint64
 	syncpresign string
@@ -188,6 +189,7 @@ func init() {
 		cli.Uint64Flag{Name: "waitmsg", Value: 100, Usage: "the time to wait p2p msg", Destination: &waitmsg},
 		cli.Uint64Flag{Name: "trytimes", Value: 3, Usage: "the times to try key-gen/sign", Destination: &trytimes},
 		cli.Uint64Flag{Name: "presignnum", Value: 10, Usage: "the total of pre-sign data", Destination: &presignnum},
+		cli.Uint64Flag{Name: "jobs", Value: 5000, Usage: "the max worker numbers", Destination: &jobs},
 		cli.BoolTFlag{Name: "relay", Usage: "relay msg in peers", Destination: &relayInPeers},
 		cli.Uint64Flag{Name: "maxaccepttime", Value: 604800, Usage: "the max time to wait for accept from all nodes", Destination: &maxaccepttime},
 		cli.Uint64Flag{Name: "bip32pre", Value: 4, Usage: "the total counts of pre-sign data for bip32 child pubkey", Destination: &bip32pre},

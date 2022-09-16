@@ -60,6 +60,7 @@ type LunchParams struct {
 	WaitMsg      uint64
 	TryTimes     uint64
 	PreSignNum   uint64
+	Jobs   uint64
 	MaxAcceptTime    uint64
 	Bip32Pre     uint64
 	SyncPreSign string
@@ -131,6 +132,9 @@ func Start(params *LunchParams) {
 	InitMpcNodeInfo()
 
 	RelayInPeers = params.RelayInPeers
+
+	RPCMaxWorker = int(params.Jobs)
+	RPCMaxQueue = int(params.Jobs)
 
 	go CleanUpMsgReceiv()
 
