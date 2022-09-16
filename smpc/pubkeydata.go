@@ -545,7 +545,7 @@ func InitMpcNodeInfo() {
 	data,ok := da.([]byte)
 	if ok {
 	    num,err := strconv.Atoi(string(data))
-	    if err != nil {
+	    if err == nil {
 		keygen_num = num
 	    }
 	}
@@ -557,7 +557,7 @@ func InitMpcNodeInfo() {
 	data,ok := da.([]byte)
 	if ok {
 	    num,err := strconv.Atoi(string(data))
-	    if err != nil {
+	    if err == nil {
 		keygen_fail_num = num
 	    }
 	}
@@ -569,7 +569,7 @@ func InitMpcNodeInfo() {
 	data,ok := da.([]byte)
 	if ok {
 	    num,err := strconv.Atoi(string(data))
-	    if err != nil {
+	    if err == nil {
 		sign_num = num
 	    }
 	}
@@ -581,7 +581,7 @@ func InitMpcNodeInfo() {
 	data,ok := da.([]byte)
 	if ok {
 	    num,err := strconv.Atoi(string(data))
-	    if err != nil {
+	    if err == nil {
 		sign_fail_num = num
 	    }
 	}
