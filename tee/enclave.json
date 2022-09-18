@@ -1,0 +1,22 @@
+{
+    "exe": "gsmpc",
+    "key": "private.pem",
+    "debug": true,
+    "heapSize": 3584,
+    "productID": 1,
+    "securityVersion": 1,
+    "mounts": [
+        {
+            "source": "/home/user/smpc/datadir",
+            "target": "/smpc/datadir",
+            "type": "hostfs",
+            "readOnly": false
+        },
+        {
+            "source": "/home/user/smpc/logs",
+            "target": "/smpc/logs",
+            "type": "hostfs",
+            "readOnly": false
+        }
+    ]
+}

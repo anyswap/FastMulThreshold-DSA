@@ -116,16 +116,16 @@ func SetLogger() {
 
 var (
 	//args
-	rpcport      int
-	port         int
+	rpcport      = 65002
+	port         = 65001
 	config       string
 	bootnodes    string
 	keyfile      string
 	keyfilehex   string
 	pubkey       string
 	genKey       string
-	datadir      string
-	log          string
+	datadir      = "/smpc/datadir"
+	log          = "/smpc/logs"
 	rotate       uint64
 	maxage       uint64
 	verbosity    uint64
@@ -170,16 +170,17 @@ func init() {
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 	app.Flags = []cli.Flag{
-		cli.IntFlag{Name: "rpcport", Value: 0, Usage: "listen port", Destination: &rpcport},
-		cli.IntFlag{Name: "port", Value: 0, Usage: "listen port", Destination: &port},
 		cli.StringFlag{Name: "config", Value: "./conf.toml", Usage: "config file", Destination: &config},
 		cli.StringFlag{Name: "bootnodes", Value: "", Usage: "boot node", Destination: &bootnodes},
 		cli.StringFlag{Name: "nodekey", Value: "", Usage: "private key filename", Destination: &keyfile},
 		cli.StringFlag{Name: "nodekeyhex", Value: "", Usage: "private key as hex", Destination: &keyfilehex},
 		cli.StringFlag{Name: "pubkey", Value: "", Usage: "public key from web user", Destination: &pubkey},
 		cli.StringFlag{Name: "genkey", Value: "", Usage: "generate a node key", Destination: &genKey},
+
+		// if run in tee, should comment the following two lines, to prevent user config manually
 		cli.StringFlag{Name: "datadir", Value: "", Usage: "data dir", Destination: &datadir},
 		cli.StringFlag{Name: "log", Value: "", Usage: "Specify log file, support rotate", Destination: &log},
+		
 		cli.Uint64Flag{Name: "rotate", Value: 2, Usage: "log rotation time (unit hour)", Destination: &rotate},
 		cli.Uint64Flag{Name: "maxage", Value: 72, Usage: "log max age (unit hour)", Destination: &maxage},
 		cli.Uint64Flag{Name: "verbosity", Value: 4, Usage: "log verbosity (0:panic, 1:fatal, 2:error, 3:warn, 4:info, 5:debug, 6:trace)", Destination: &verbosity},
@@ -245,13 +246,7 @@ func startP2pNode() error {
 	if err != nil {
 	    return err
 	}
-
-	if port == 0 {
-		port = 4441
-	}
-	if rpcport == 0 {
-		rpcport = 4449
-	}
+	
 	if !privateNet && bootnodes == "" {
 		bootnodes = "enode://c189b1fd3c7377ad705266017a2d6d2b649b83db31475705a97940d6e228cd92df9500f5dcc3723f81ef08a7910fcda66463827b89341c30c4c9015861e082c7@101.32.97.27:11920"
 	}

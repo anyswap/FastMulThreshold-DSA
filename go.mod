@@ -18,6 +18,7 @@ require (
 	github.com/dfuse-io/binary v0.0.0-20210216024852-4ae6830a495d
 	github.com/dfuse-io/solana-go v0.2.0
 	github.com/docker/docker v1.13.1
+	github.com/edgelesssys/ego v1.0.1
 	github.com/ethereum/go-ethereum v1.9.14
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/fsn-dev/cryptoCoins v1.0.1
@@ -77,13 +78,11 @@ require (
 	github.com/whyrusleeping/go-smux-yamux v2.0.9+incompatible // indirect
 	github.com/whyrusleeping/yamux v1.2.0 // indirect
 	github.com/zondax/ledger-go v0.11.0 // indirect
-	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
+	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 	golang.org/x/mod v0.3.0 // indirect
-	golang.org/x/net v0.0.0-20200904194848-62affa334b73
-	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 // indirect
+	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
 	golang.org/x/tools v0.0.0-20200609164405-eb789aa7ce50 // indirect
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0
-	gopkg.in/yaml.v3 v3.0.0-20200605160147-a5ece683394c // indirect
 	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
 )
