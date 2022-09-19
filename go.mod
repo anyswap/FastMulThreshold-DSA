@@ -7,9 +7,6 @@ require (
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
 	github.com/aristanetworks/goarista v0.0.0-20191206003309-5d8d36c240c9
 	github.com/astaxie/beego v1.12.0
-	github.com/binance-chain/go-sdk v1.2.1
-	github.com/binance-chain/ledger-cosmos-go v0.9.9 // indirect
-	github.com/binance-chain/tss-lib v1.3.2
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v0.0.0-20191219182022-e17c9730c422
 	github.com/cosmos/ledger-cosmos-go v0.11.1 // indirect
@@ -26,7 +23,6 @@ require (
 	github.com/go-logfmt/logfmt v0.5.0 // indirect
 	github.com/golang/snappy v0.0.1
 	github.com/huin/goupnp v1.0.0
-	github.com/influxdata/influxdb v1.7.9
 	github.com/ipfs/go-cid v0.0.4 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.1 // indirect
 	github.com/ipfs/go-log v1.0.1
@@ -71,13 +67,13 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
+	github.com/stretchr/testify v1.8.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
 	github.com/whyrusleeping/go-logging v0.0.1
 	github.com/whyrusleeping/go-smux-multiplex v3.0.16+incompatible // indirect
 	github.com/whyrusleeping/go-smux-multistream v2.0.2+incompatible // indirect
 	github.com/whyrusleeping/go-smux-yamux v2.0.9+incompatible // indirect
 	github.com/whyrusleeping/yamux v1.2.0 // indirect
-	github.com/zondax/ledger-go v0.11.0 // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
