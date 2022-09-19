@@ -47,6 +47,7 @@ import (
 	rpcsmpc "github.com/anyswap/FastMulThreshold-DSA/rpc/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc"
 	comlog "github.com/anyswap/FastMulThreshold-DSA/log"
+	"github.com/anyswap/FastMulThreshold-DSA/tee"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -120,12 +121,13 @@ var (
 	port         int
 	config       string // in tee, not support config 
 	bootnodes    string
-	keyfile      = "./smpc/datadir/nodeKeyPair"
+	keyfile      = "/smpc/datadir/nodeKeyPair"
+	teeKeyInfoPath	= "/smpc/datadir/teeKeyInfo"
 	keyfilehex   string // in tee, always nil
 	pubkey       string
 	genKey       string
-	datadir      = "./smpc/datadir"
-	log          = "./smpc/logs"
+	datadir      = "/smpc/datadir"
+	log          = "/smpc/logs"
 	rotate       uint64
 	maxage       uint64
 	verbosity    uint64
@@ -195,6 +197,19 @@ func init() {
 		cli.StringFlag{Name: "sync-presign", Value: "true", Usage: "synchronize presign data between group nodes", Destination: &syncpresign},
 	}
 	gitVersion = params.VersionWithMeta
+
+	// save TeeKeyInfo
+	teeKeyInfo, err := tee.GetProductKeyInfo()
+	if err != nil {
+		comlog.Error("Gsmpc.Init, failed to get the product keyinfo in TEE, ", "err", err)
+		return
+	}
+	saveErr := ioutil.WriteFile(teeKeyInfoPath, teeKeyInfo, 0600)
+	if saveErr != nil {
+		comlog.Error("Gsmpc.Init, failed to save the product keyinfo to file system in TEE, ", "err", saveErr)
+		return
+	}
+	comlog.Info("Gsmpc.Init, success to save the product keyinfo to file system in TEE")
 }
 
 func getConfig() error {
