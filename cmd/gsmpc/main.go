@@ -116,8 +116,8 @@ func SetLogger() {
 
 var (
 	//args
-	rpcport      = 65002
-	port         = 65001
+	rpcport      int
+	port         int
 	config       string
 	bootnodes    string
 	keyfile      string
@@ -170,9 +170,10 @@ func init() {
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 	app.Flags = []cli.Flag{
+		cli.IntFlag{Name: "rpcport", Value: 0, Usage: "listen port", Destination: &rpcport},
+		cli.IntFlag{Name: "port", Value: 0, Usage: "listen port", Destination: &port},
 		cli.StringFlag{Name: "config", Value: "./conf.toml", Usage: "config file", Destination: &config},
 		cli.StringFlag{Name: "bootnodes", Value: "", Usage: "boot node", Destination: &bootnodes},
-		cli.StringFlag{Name: "nodekey", Value: "", Usage: "private key filename", Destination: &keyfile},
 		cli.StringFlag{Name: "nodekeyhex", Value: "", Usage: "private key as hex", Destination: &keyfilehex},
 		cli.StringFlag{Name: "pubkey", Value: "", Usage: "public key from web user", Destination: &pubkey},
 		cli.StringFlag{Name: "genkey", Value: "", Usage: "generate a node key", Destination: &genKey},
@@ -245,6 +246,13 @@ func startP2pNode() error {
 	err := getConfig()
 	if err != nil {
 	    return err
+	}
+
+	if port == 0 {
+		port = 4441
+	}
+	if rpcport == 0 {
+		rpcport = 4449
 	}
 	
 	if !privateNet && bootnodes == "" {

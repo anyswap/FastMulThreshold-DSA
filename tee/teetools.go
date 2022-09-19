@@ -1,4 +1,4 @@
-package smpctee
+package tee
 
 import (
 	"bytes"
@@ -14,13 +14,13 @@ import (
 	"github.com/edgelesssys/ego/ecrypto"
 )
 
-func CreateCertificate(pk []byte ) ([]byte, error) {
+func GetRemoteAttestationReport(pk []byte ) ([]byte, error) {
 	hash := sha256.Sum256(pk)
 	report, err := enclave.GetRemoteReport(hash[:])
 	return report, err
 }
 
-func VerifyReport(reportBytes, pk, expectedUniqueID []byte, expectedSecurityVersion, expectedProductID int, expectedDebugMode bool) (bool, error) {
+func VerifyRemoteAttestationReport(reportBytes, pk, expectedUniqueID []byte, expectedSecurityVersion, expectedProductID int, expectedDebugMode bool) (bool, error) {
 	report, err := eclient.VerifyRemoteReport(reportBytes)
 	if err == attestation.ErrTCBLevelInvalid {
 		fmt.Printf("Warning: TCB level is invalid: %v\n%v\n", report.TCBStatus, tcbstatus.Explain(report.TCBStatus))
@@ -49,6 +49,7 @@ func VerifyReport(reportBytes, pk, expectedUniqueID []byte, expectedSecurityVers
 	return true, nil
 }
 
+// productKey, related to signer and productId 
 func EncryptByProductKey(plaintext []byte) ([]byte, error){
 	return ecrypto.SealWithProductKey(plaintext, nil)
 }
@@ -57,7 +58,7 @@ func DecryptByProductKey(ciphertext []byte) ([]byte, error){
 	return ecrypto.Unseal(ciphertext, nil)
 }
 
-// must save keyInfo, which is used to retrieve the same key on a newer TEE CPU
+// keyInfo, retrieve key on a newer TEE CPU
 func GetProductKeyInfo() ([]byte, error){
 	_, keyInfo, err := enclave.GetProductSealKey()
 	return keyInfo, err

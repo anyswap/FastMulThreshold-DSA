@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/ethdb"
+	"github.com/anyswap/FastMulThreshold-DSA/tee"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common/fdlimit"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
@@ -167,10 +168,10 @@ func getSkU1FromLocalDb(key []byte) []byte {
 		return nil
 	}
 
-	sk, err := DecryptMsg(string(da))
+	sk, err := tee.DecryptByProductKey(da)
 	if err != nil {
-		common.Error("========================getSkU1FromLocalDb,decrypt sku1 data error.=========================", "err", err)
-		return da
+		common.Error("========================getSkU1FromLocalDb,decrypt sku1 data error by TEE.=========================", "err", err)
+		return nil
 	}
 
 	return []byte(sk)
@@ -190,10 +191,10 @@ func getBip32cFromLocalDb(key []byte) []byte {
 		return nil
 	}
 
-	c, err := DecryptMsg(string(da))
+	c, err := tee.DecryptByProductKey(da)
 	if err != nil {
-		common.Error("========================getBip32cFromLocalDb,decrypt bip32c data error.=========================", "err", err)
-		return da
+		common.Error("========================getBip32cFromLocalDb,decrypt bip32c data error by TEE.=========================", "err", err)
+		return nil
 	}
 
 	return []byte(c)
@@ -207,13 +208,13 @@ func putSkU1ToLocalDb(key []byte, value []byte) error {
 		return fmt.Errorf("put sku1 data to db fail")
 	}
 
-	cm, err := EncryptMsg(string(value), curEnode)
+	cm, err := tee.EncryptByProductKey(value)
 	if err != nil {
-		common.Error("===============putSkU1ToLocalDb, encrypt sku1 data fail.=================", "err", err)
+		common.Error("===============putSkU1ToLocalDb, encrypt sku1 data fail by TEE.=================", "err", err)
 		return err
 	}
 
-	err = dbsk.Put(key, []byte(cm))
+	err = dbsk.Put(key, cm)
 	if err == nil {
 		common.Debug("===============putSkU1ToLocalDb, put sku1 data into db success.=================")
 		return nil
@@ -231,9 +232,9 @@ func putBip32cToLocalDb(key []byte, value []byte) error {
 		return fmt.Errorf("put bip32c to db fail")
 	}
 
-	cm, err := EncryptMsg(string(value), curEnode)
+	cm, err := tee.EncryptByProductKey(value)
 	if err != nil {
-		common.Error("===============putBip32cToLocalDb, encrypt bip32c fail.=================", "err", err)
+		common.Error("===============putBip32cToLocalDb, encrypt bip32c fail by TEE.=================", "err", err)
 		return err
 	}
 

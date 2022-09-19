@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/anyswap/FastMulThreshold-DSA/tee"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	dberrors "github.com/syndtr/goleveldb/leveldb/errors"
 	"math/big"
@@ -693,7 +694,13 @@ func PutPreSignData(pubkey string, inputcode string, gid string, index int, val 
 			return err
 		}
 
-		err = predb.Put([]byte(key), value)
+		cipher, errEncrypt := tee.EncryptByProductKey(value)
+		if errEncrypt != nil {
+			common.Error("===============PutPreSignData, encrypt pre-sign data fail by TEE.=================", "pubkey", pubkey, "gid", gid, "index", index, "datakey", val.Key, "err", errEncrypt)
+			return err
+		}
+
+		err = predb.Put([]byte(key), cipher)
 		if err != nil {
 			common.Error("====================PutPreSignData,put pre-sign data to db fail ======================", "pubkey", pubkey, "gid", gid, "index", index, "datakey", val.Key, "err", err)
 		}
@@ -709,7 +716,13 @@ func PutPreSignData(pubkey string, inputcode string, gid string, index int, val 
 			return nil //force update fail,but still return nil
 		}
 
-		err = predb.Put([]byte(key), value)
+		cipher, errEncrypt := tee.EncryptByProductKey(value)
+		if errEncrypt != nil {
+			common.Error("===============PutPreSignData, force update, encrypt pre-sign data fail by TEE.=================", "pubkey", pubkey, "gid", gid, "index", index, "datakey", val.Key, "err", errEncrypt)
+			return err
+		}
+
+		err = predb.Put([]byte(key), cipher)
 		if err != nil {
 			common.Error("====================PutPreSignData,force update,put pre-sign data to db fail ======================", "pubkey", pubkey, "gid", gid, "index", index, "datakey", val.Key, "err", err)
 			return nil //force update fail,but still return nil
@@ -744,8 +757,14 @@ func BinarySearchPreSignData(pubkey string, inputcode string, gid string, datake
 		}
 		da, err := predb.Get([]byte(key))
 		if da != nil && err == nil {
+			daDecrypt, errDecrypt := tee.DecryptByProductKey(da)
+			if errDecrypt != nil {
+				common.Error("========================BinarySearchPreSignData, decrypt pre-sign data fail by TEE.=========================","err",err,"pubkey",pubkey,"gid",gid,"datakey",datakey,"start",start)
+				return -1, nil
+			}
+
 			psd := &PreSignData{}
-			if err = psd.UnmarshalJSON(da); err == nil {
+			if err = psd.UnmarshalJSON(daDecrypt); err == nil {
 				if strings.EqualFold(psd.Key, datakey) {
 					return start, psd
 				}
@@ -779,8 +798,14 @@ func GetPreSignData(pubkey string, inputcode string, gid string, datakey string)
 	    }
 	    da, err := predb.Get([]byte(key))
 	    if da != nil && err == nil {
+			daDecrypt, errDecrypt := tee.DecryptByProductKey(da)
+			if errDecrypt != nil {
+				common.Error("========================GetPreSignData, decrypt pre-sign data fail by TEE.=========================","pubkey",pubkey,"gid",gid,"datakey",datakey,"err",err)
+				return nil
+			}
+
 		    psd := &PreSignData{}
-		    if err = psd.UnmarshalJSON(da); err == nil {
+		    if err = psd.UnmarshalJSON(daDecrypt); err == nil {
 			    if strings.EqualFold(psd.Key, datakey) {
 				    return psd
 			    }
@@ -810,8 +835,14 @@ func DeletePreSignData(pubkey string, inputcode string, gid string, datakey stri
 	    }
 	    da, err := predb.Get([]byte(key))
 	    if da != nil && err == nil {
+			daDecrypt, errDecrypt := tee.DecryptByProductKey(da)
+			if errDecrypt != nil {
+				common.Error("========================DeletePreSignData, decrypt pre-sign data fail by TEE.=========================","pubkey", pubkey, "gid", gid, "index", index, "datakey", datakey, "err",err)
+				return nil
+			}
+
 		    psd := &PreSignData{}
-		    if err = psd.UnmarshalJSON(da); err == nil {
+		    if err = psd.UnmarshalJSON(daDecrypt); err == nil {
 			    if strings.EqualFold(psd.Key, datakey) {
 				    err = predb.Delete([]byte(key))
 				    if err != nil {
@@ -862,8 +893,14 @@ func BinarySearchPick(pubkey string, inputcode string, gid string, start int, en
 		}
 		da, err := predb.Get([]byte(key))
 		if da != nil && err == nil {
+			daDecrypt, errDecrypt := tee.DecryptByProductKey(da)
+			if errDecrypt != nil {
+				common.Error("========================BinarySearchPick, decrypt pre-sign data fail by TEE.=========================", "pubkey",pubkey,"gid",gid,"err",err)
+				return -1, nil
+			}
+
 			psd := &PreSignData{}
-			if err = psd.UnmarshalJSON(da); err == nil {
+			if err = psd.UnmarshalJSON(daDecrypt); err == nil {
 				return start, psd
 			}
 		}
