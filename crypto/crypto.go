@@ -31,6 +31,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/crypto/sha3"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common/math"
+	"github.com/anyswap/FastMulThreshold-DSA/tee"
 	"github.com/fsn-dev/cryptoCoins/tools/rlp"
 )
 
@@ -179,6 +180,36 @@ func LoadECDSA(file string) (*ecdsa.PrivateKey, error) {
 func SaveECDSA(file string, key *ecdsa.PrivateKey) error {
 	k := hex.EncodeToString(FromECDSA(key))
 	return ioutil.WriteFile(file, []byte(k), 0600)
+}
+
+// LoadECDSA loads a secp256k1 private key from the given file.
+func LoadECDSAInTEE(file string) (*ecdsa.PrivateKey, error) {
+	fd, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	defer fd.Close()
+	cipher, err := io.ReadAll(fd)
+	if err != nil {
+		return nil, err
+	}
+
+	key, errDecrypt := tee.DecryptByUniqueKey(cipher)
+	if errDecrypt != nil {
+		common.Error("===============LoadECDSAInTEE, decrypt node keypair fail by TEE.=================", "err", err)
+		return nil, err
+	}
+	return ToECDSA(key)
+}
+
+// SaveECDSA saves a secp256k1 private key to the given file with
+func SaveECDSAInTEE(file string, key *ecdsa.PrivateKey) error {
+	cipher, err := tee.EncryptByUniqueKey(FromECDSA(key))
+	if err != nil {
+		common.Error("===============SaveECDSAInTEE, encrypt node keypair fail by TEE.=================", "err", err)
+		return err
+	}
+	return ioutil.WriteFile(file, cipher, 0600)
 }
 
 func GenerateKey() (*ecdsa.PrivateKey, error) {

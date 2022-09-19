@@ -58,6 +58,15 @@ func DecryptByProductKey(ciphertext []byte) ([]byte, error){
 	return ecrypto.Unseal(ciphertext, nil)
 }
 
+// uniqueKey, related to uniqueId 
+func EncryptByUniqueKey(plaintext []byte) ([]byte, error){
+	return ecrypto.SealWithUniqueKey(plaintext, nil)
+}
+
+func DecryptByUniqueKey(ciphertext []byte) ([]byte, error){
+	return ecrypto.Unseal(ciphertext, nil)
+}
+
 // keyInfo, retrieve key on a newer TEE CPU
 func GetProductKeyInfo() ([]byte, error){
 	_, keyInfo, err := enclave.GetProductSealKey()

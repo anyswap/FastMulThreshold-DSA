@@ -118,14 +118,14 @@ var (
 	//args
 	rpcport      int
 	port         int
-	config       string
+	config       string // in tee, not support config 
 	bootnodes    string
-	keyfile      string
-	keyfilehex   string
+	keyfile      = "./smpc/datadir/nodeKeyPair"
+	keyfilehex   string // in tee, always nil
 	pubkey       string
 	genKey       string
-	datadir      = "/smpc/datadir"
-	log          = "/smpc/logs"
+	datadir      = "./smpc/datadir"
+	log          = "./smpc/logs"
 	rotate       uint64
 	maxage       uint64
 	verbosity    uint64
@@ -172,11 +172,8 @@ func init() {
 	app.Flags = []cli.Flag{
 		cli.IntFlag{Name: "rpcport", Value: 0, Usage: "listen port", Destination: &rpcport},
 		cli.IntFlag{Name: "port", Value: 0, Usage: "listen port", Destination: &port},
-		cli.StringFlag{Name: "config", Value: "./conf.toml", Usage: "config file", Destination: &config},
 		cli.StringFlag{Name: "bootnodes", Value: "", Usage: "boot node", Destination: &bootnodes},
-		cli.StringFlag{Name: "nodekeyhex", Value: "", Usage: "private key as hex", Destination: &keyfilehex},
 		cli.StringFlag{Name: "pubkey", Value: "", Usage: "public key from web user", Destination: &pubkey},
-		cli.StringFlag{Name: "genkey", Value: "", Usage: "generate a node key", Destination: &genKey},
 
 		// if run in tee, should comment the following two lines, to prevent user config manually
 		cli.StringFlag{Name: "datadir", Value: "", Usage: "data dir", Destination: &datadir},
@@ -297,27 +294,15 @@ func startP2pNode() error {
 		}
 		comlog.Info("start p2p","keyfilehex",keyfilehex,"bootnodes",bootnodes)
 	} else {
-		if keyfile == "" {
-			keyfile = fmt.Sprintf("node.key")
-		}
 		comlog.Info("start p2p","keyfilehex",keyfilehex,"bootnodes",bootnodes)
 		smpc.KeyFile = keyfile
-		nodeKey, errkey = crypto.LoadECDSA(keyfile)
+		nodeKey, errkey = crypto.LoadECDSAInTEE(keyfile)
 		if errkey != nil {
 			nodeKey, _ = crypto.GenerateKey()
-			err = crypto.SaveECDSA(keyfile, nodeKey)
+			err = crypto.SaveECDSAInTEE(keyfile, nodeKey)
 			if err != nil {
 			    os.Exit(1)
 			}
-
-			var kfd *os.File
-			kfd, _ = os.OpenFile(keyfile, os.O_WRONLY|os.O_APPEND, 0600)
-			_,err2 := kfd.WriteString(fmt.Sprintf("\nenode://%v\n", discover.PubkeyID(&nodeKey.PublicKey)))
-			if err2 != nil {
-			    kfd.Close()
-			    os.Exit(1)
-			}
-			kfd.Close()
 		}
 	}
 	nodeidString := discover.PubkeyID(&nodeKey.PublicKey).String()

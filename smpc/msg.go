@@ -286,7 +286,7 @@ func DecryptMsg(cm string) (string, error) {
 	    return "",errors.New("decrypt msg fail")
 	}
 
-	nodeKey, errkey := crypto.LoadECDSA(KeyFile)
+	nodeKey, errkey := crypto.LoadECDSAInTEE(KeyFile)
 	if errkey != nil {
 		return "", errkey
 	}
@@ -1848,7 +1848,7 @@ func testEq(a, b []string) bool {
 //----------------------------------------------------------------
 
 // for p2p msg sig
-
+// deprecated
 func getNodePrivate(keyfile string) (*ecdsa.PrivateKey,error) {
     if keyfile == "" {
 	return nil,errors.New("key file is invalid")
@@ -1884,7 +1884,7 @@ func sigP2pMsg(msg smpclib.Message,enodeID string,keytype string) ([]byte,error)
 	return nil,errors.New("param error")
     }
 
-    priv,err := getNodePrivate(KeyFile)
+    priv,err := crypto.LoadECDSAInTEE(KeyFile)
     if err != nil {
 	return nil,errors.New("get private fail")
     }
