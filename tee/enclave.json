@@ -7,14 +7,14 @@
     "securityVersion": 1,
     "mounts": [
         {
-            "source": "/home/user/smpc/datadir",
-            "target": "/smpc/datadir",
+            "source": "HOST_PATH_datadir",
+            "target": "/datadir",
             "type": "hostfs",
             "readOnly": false
         },
         {
-            "source": "/home/user/smpc/logs",
-            "target": "/smpc/logs",
+            "source": "HOST_PATH_logs",
+            "target": "/logs",
             "type": "hostfs",
             "readOnly": false
         }

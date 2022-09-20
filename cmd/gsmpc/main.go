@@ -121,13 +121,13 @@ var (
 	port         int
 	config       string // in tee, not support config 
 	bootnodes    string
-	keyfile      = "/smpc/datadir/nodeKeyPair"
-	teeKeyInfoPath	= "/smpc/datadir/teeKeyInfo"
+	keyfile      = "/datadir/nodeKeyPair"
+	teeKeyInfoPath	= "/datadir/teeKeyInfo"
 	keyfilehex   string // in tee, always nil
 	pubkey       string
 	genKey       string
-	datadir      = "/smpc/datadir"
-	log          = "/smpc/logs"
+	datadir      = "/datadir"
+	log          = "/logs"
 	rotate       uint64
 	maxage       uint64
 	verbosity    uint64
@@ -223,7 +223,7 @@ func getConfig() error {
 	bnodes := ""
 	pt := 0
 	rport := 0
-	if common.FileExist(path) {
+	if path != "" && common.FileExist(path) {
 		if _, err := toml.DecodeFile(path, &cf); err != nil {
 			fmt.Printf("DecodeFile %v: %v\n", path, err)
 			return err
