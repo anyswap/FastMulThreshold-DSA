@@ -557,7 +557,17 @@ func AcceptSign(initiator string, account string, pubkey string, msghash []strin
 		///get mpc node info
 		sign_num++
 		if ac2.Status == "Failure" {
-		    sign_fail_num++
+		    b := true
+		    for _,v := range arl {
+			if strings.EqualFold(v.Status,"DisAgree") {
+			    b = false
+			    break
+			}
+		    }
+
+		    if b {
+			sign_fail_num++
+		    }
 		}
 		keytmp := Keccak256Hash([]byte(strings.ToLower(curEnode + ":" + "SignNum"))).Hex()
 		s := strconv.Itoa(sign_num)
