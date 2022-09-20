@@ -9,7 +9,6 @@ import (
 
 	"github.com/edgelesssys/ego/attestation"
 	"github.com/edgelesssys/ego/attestation/tcbstatus"
-	"github.com/edgelesssys/ego/eclient"
 	"github.com/edgelesssys/ego/enclave"
 	"github.com/edgelesssys/ego/ecrypto"
 )
@@ -21,7 +20,7 @@ func GetRemoteAttestationReport(pk []byte ) ([]byte, error) {
 }
 
 func VerifyRemoteAttestationReport(reportBytes, pk, expectedUniqueID []byte, expectedSecurityVersion, expectedProductID int, expectedDebugMode bool) (bool, error) {
-	report, err := eclient.VerifyRemoteReport(reportBytes)
+	report, err := enclave.VerifyRemoteReport(reportBytes)
 	if err == attestation.ErrTCBLevelInvalid {
 		fmt.Printf("Warning: TCB level is invalid: %v\n%v\n", report.TCBStatus, tcbstatus.Explain(report.TCBStatus))
 	} else if err != nil {
