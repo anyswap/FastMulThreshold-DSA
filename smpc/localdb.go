@@ -493,12 +493,7 @@ func DeleteReShareInfoData(key []byte) error {
 // GetGroupDir get P2P group info database dir 
 func GetGroupDir() string { //TODO
 	dir := common.DefaultDataDir()
-	tmp := dir + "/dcrmdata/dcrmdb" + discover.GetLocalID().String() + "group"
-	if common.FileExist(tmp) == true {
-		return tmp
-	}
-
-	dir += "/smpcdata/smpcdb" + discover.GetLocalID().String() + "group"
+	dir += "/smpcdata/smpcdbgroup"
 	return dir
 }
 
@@ -507,12 +502,7 @@ func GetGroupDir() string { //TODO
 // GetDbDir get general database dir  
 func GetDbDir() string {
 	dir := common.DefaultDataDir()
-	tmp := dir + "/dcrmdata/dcrmdb" + curEnode
-	if common.FileExist(tmp) == true {
-		return tmp
-	}
-
-	dir += "/smpcdata/smpcdb" + curEnode
+	dir += "/smpcdata/smpcdb"
 	return dir
 }
 
@@ -533,12 +523,7 @@ func GetSmpcDb() *ethdb.LDBDatabase {
 // GetSkU1Dir get private key database dir  
 func GetSkU1Dir() string {
 	dir := common.DefaultDataDir()
-	tmp := dir + "/dcrmdata/sk" + curEnode
-	if common.FileExist(tmp) == true {
-		return tmp
-	}
-
-	dir += "/smpcdata/sk" + curEnode
+	dir += "/smpcdata/sk"
 	return dir
 }
 
@@ -559,7 +544,7 @@ func GetSmpcSkDb() *ethdb.LDBDatabase {
 // GetBip32CDir get bip32 c value database dir 
 func GetBip32CDir() string {
 	dir := common.DefaultDataDir()
-	dir += "/smpcdata/bip32" + curEnode
+	dir += "/smpcdata/bip32"
 	return dir
 }
 
@@ -580,7 +565,7 @@ func GetSmpcBip32Db() *ethdb.LDBDatabase {
 // GetPreDbDir get pre-sign data database dir
 func GetPreDbDir() string {
 	dir := common.DefaultDataDir()
-	dir += "/smpcdata/smpcpredb" + curEnode
+	dir += "/smpcdata/smpcpredb"
 	return dir
 }
 
@@ -601,7 +586,7 @@ func GetSmpcPreDb() *ethdb.LDBDatabase {
 // GetPreKeyDir get public key group information database dir
 func GetPreKeyDir() string {
 	dir := common.DefaultDataDir()
-	dir += "/smpcdata/smpcprekey" + curEnode
+	dir += "/smpcdata/smpcprekey"
 	return dir
 }
 
@@ -622,7 +607,7 @@ func GetSmpcPreKeyDb() *ethdb.LDBDatabase {
 // GetReqAddrInfoDir get dir of database for saving data related to generate pubkey command
 func GetReqAddrInfoDir() string {
 	dir := common.DefaultDataDir()
-	dir += "/smpcdata/smpcreqaddrinfo" + curEnode
+	dir += "/smpcdata/smpcreqaddrinfo"
 	return dir
 }
 
@@ -643,7 +628,7 @@ func GetCmdReqAddrInfoDb() *ethdb.LDBDatabase {
 // GetSignInfoDir get dir of database for saving data related to sign command
 func GetSignInfoDir() string {
 	dir := common.DefaultDataDir()
-	dir += "/smpcdata/smpcsigninfo" + curEnode
+	dir += "/smpcdata/smpcsigninfo"
 	return dir
 }
 
@@ -664,7 +649,7 @@ func GetSmpcSignInfoDb() *ethdb.LDBDatabase {
 // GetReShareInfoDir get dir of database for saving data related to reshare command
 func GetReShareInfoDir() string {
 	dir := common.DefaultDataDir()
-	dir += "/smpcdata/smpcreshareinfo" + curEnode
+	dir += "/smpcdata/smpcreshareinfo"
 	return dir
 }
 
@@ -899,12 +884,7 @@ func CleanUpAllReshareInfo() {
 // GetAccountsDir get dir of the database for saving all pubkeys  
 func GetAccountsDir() string {
 	dir := common.DefaultDataDir()
-	tmp := dir + "/dcrmdata/dcrmaccounts" + curEnode
-	if common.FileExist(tmp) == true {
-		return tmp
-	}
-
-	dir += "/smpcdata/smpcaccounts" + curEnode
+	dir += "/smpcdata/smpcaccounts"
 	return dir
 }
 

@@ -759,7 +759,7 @@ func BinarySearchPreSignData(pubkey string, inputcode string, gid string, datake
 		if da != nil && err == nil {
 			daDecrypt, errDecrypt := tee.DecryptByProductKey(da)
 			if errDecrypt != nil {
-				common.Error("========================BinarySearchPreSignData, decrypt pre-sign data fail by TEE.=========================","err",err,"pubkey",pubkey,"gid",gid,"datakey",datakey,"start",start)
+				common.Error("========================BinarySearchPreSignData, decrypt pre-sign data fail by TEE.=========================","err",errDecrypt,"pubkey",pubkey,"gid",gid,"datakey",datakey,"start",start)
 				return -1, nil
 			}
 
@@ -800,7 +800,7 @@ func GetPreSignData(pubkey string, inputcode string, gid string, datakey string)
 	    if da != nil && err == nil {
 			daDecrypt, errDecrypt := tee.DecryptByProductKey(da)
 			if errDecrypt != nil {
-				common.Error("========================GetPreSignData, decrypt pre-sign data fail by TEE.=========================","pubkey",pubkey,"gid",gid,"datakey",datakey,"err",err)
+				common.Error("========================GetPreSignData, decrypt pre-sign data fail by TEE.=========================","pubkey",pubkey,"gid",gid,"datakey",datakey,"err",errDecrypt)
 				return nil
 			}
 
@@ -837,7 +837,7 @@ func DeletePreSignData(pubkey string, inputcode string, gid string, datakey stri
 	    if da != nil && err == nil {
 			daDecrypt, errDecrypt := tee.DecryptByProductKey(da)
 			if errDecrypt != nil {
-				common.Error("========================DeletePreSignData, decrypt pre-sign data fail by TEE.=========================","pubkey", pubkey, "gid", gid, "index", index, "datakey", datakey, "err",err)
+				common.Error("========================DeletePreSignData, decrypt pre-sign data fail by TEE.=========================","pubkey", pubkey, "gid", gid, "index", index, "datakey", datakey, "err",errDecrypt)
 				return nil
 			}
 
@@ -895,7 +895,7 @@ func BinarySearchPick(pubkey string, inputcode string, gid string, start int, en
 		if da != nil && err == nil {
 			daDecrypt, errDecrypt := tee.DecryptByProductKey(da)
 			if errDecrypt != nil {
-				common.Error("========================BinarySearchPick, decrypt pre-sign data fail by TEE.=========================", "pubkey",pubkey,"gid",gid,"err",err)
+				common.Error("========================BinarySearchPick, decrypt pre-sign data fail by TEE.=========================", "pubkey",pubkey,"gid",gid,"err",errDecrypt)
 				return -1, nil
 			}
 

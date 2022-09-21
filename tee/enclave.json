@@ -7,13 +7,73 @@
     "securityVersion": 1,
     "mounts": [
         {
-            "source": "HOST_PATH_datadir",
+            "source": "/root/xchang_workspace/smpcdata/datadir",
             "target": "/datadir",
             "type": "hostfs",
             "readOnly": false
         },
         {
-            "source": "HOST_PATH_logs",
+            "source": "/root/xchang_workspace/smpcdata/datadir/smpcdata/smpcdbgroup",
+            "target": "/datadir/smpcdata/smpcdbgroup",
+            "type": "hostfs",
+            "readOnly": false
+        },
+        {
+            "source": "/root/xchang_workspace/smpcdata/datadir/smpcdata/smpcdb",
+            "target": "/datadir/smpcdata/smpcdb",
+            "type": "hostfs",
+            "readOnly": false
+        },
+        {
+            "source": "/root/xchang_workspace/smpcdata/datadir/smpcdata/sk",
+            "target": "/datadir/smpcdata/sk",
+            "type": "hostfs",
+            "readOnly": false
+        },
+        {
+            "source": "/root/xchang_workspace/smpcdata/datadir/smpcdata/bip32",
+            "target": "/datadir/smpcdata/bip32",
+            "type": "hostfs",
+            "readOnly": false
+        },
+        {
+            "source": "/root/xchang_workspace/smpcdata/datadir/smpcdata/smpcpredb",
+            "target": "/datadir/smpcdata/smpcpredb",
+            "type": "hostfs",
+            "readOnly": false
+        },
+        {
+            "source": "/root/xchang_workspace/smpcdata/datadir/smpcdata/smpcprekey",
+            "target": "/datadir/smpcdata/smpcprekey",
+            "type": "hostfs",
+            "readOnly": false
+        },
+        {
+            "source": "/root/xchang_workspace/smpcdata/datadir/smpcdata/smpcreqaddrinfo",
+            "target": "/datadir/smpcdata/smpcreqaddrinfo",
+            "type": "hostfs",
+            "readOnly": false
+        },
+        {
+            "source": "/root/xchang_workspace/smpcdata/datadir/smpcdata/smpcsigninfo",
+            "target": "/datadir/smpcdata/smpcsigninfo",
+            "type": "hostfs",
+            "readOnly": false
+        },
+        {
+            "source": "/root/xchang_workspace/smpcdata/datadir/smpcdata/smpcreshareinfo",
+            "target": "/datadir/smpcdata/smpcreshareinfo",
+            "type": "hostfs",
+            "readOnly": false
+        },
+        {
+            "source": "/root/xchang_workspace/smpcdata/datadir/smpcdata/smpcaccounts",
+            "target": "/datadir/smpcdata/smpcaccounts",
+            "type": "hostfs",
+            "readOnly": false
+        },
+        {
+            "source": "/root/xchang_workspace/smpcdata/logs",
             "target": "/logs",
             "type": "hostfs",
             "readOnly": false

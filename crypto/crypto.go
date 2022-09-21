@@ -196,7 +196,7 @@ func LoadECDSAInTEE(file string) (*ecdsa.PrivateKey, error) {
 
 	key, errDecrypt := tee.DecryptByUniqueKey(cipher)
 	if errDecrypt != nil {
-		common.Error("===============LoadECDSAInTEE, decrypt node keypair fail by TEE.=================", "err", err)
+		common.Error("===============LoadECDSAInTEE, decrypt node keypair fail by TEE.=================", "err", errDecrypt)
 		return nil, err
 	}
 	return ToECDSA(key)
