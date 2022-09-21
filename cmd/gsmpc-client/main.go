@@ -282,7 +282,7 @@ func init() {
 	} else {
 		keyjson = []byte(KEYFILE)
 	}
-	keyWrapper, err = keystore.DecryptKey(keyjson, *passwd)
+	keyWrapper, err = keystore.DecryptKey(keyjson, strings.TrimSpace(*passwd))
 	if err != nil {
 		if *passwdfile != "" {
 			pass, err := ioutil.ReadFile(*passwdfile)
@@ -291,7 +291,7 @@ func init() {
 				fmt.Println("Key decrypt error:")
 				panic(err)
 			} else {
-				keyWrapper, err = keystore.DecryptKey(keyjson, string(pass))
+				keyWrapper, err = keystore.DecryptKey(keyjson, strings.TrimSpace(string(pass)))
 				if err != nil {
 					fmt.Println("Key decrypt error:")
 					panic(err)
