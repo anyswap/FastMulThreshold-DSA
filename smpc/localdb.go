@@ -29,7 +29,7 @@ import (
 
 var (
 	cache   = (75 * 1024) / 1000
-	handles = makeDatabaseHandles()
+	handles = 1024
 
 	db      *ethdb.LDBDatabase
 	dbsk    *ethdb.LDBDatabase
@@ -48,7 +48,7 @@ var (
 func makeDatabaseHandles() int {
 	limit, err := fdlimit.Current()
 	if err != nil {
-		common.Info("Failed to retrieve file descriptor allowance: " + err.Error())
+		common.Error("Failed to retrieve file descriptor allowance: " + err.Error())
 		return 0
 	}
 	if limit < 2048 {
