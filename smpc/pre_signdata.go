@@ -947,13 +947,14 @@ func ExcutePreSignData(pre *TxDataPreSignData) {
 	for _, gid := range pre.SubGid {
 		go func(gg string) {
 			pub := Keccak256Hash([]byte(strings.ToLower(pre.PubKey + ":" + gg))).Hex()
-
 			PutPreSigal(pub, true)
 			err := SavePrekeyToDb(pre.PubKey, "", gg,pre.KeyType)
 			if err != nil {
 				common.Error("=========================ExcutePreSignData,save (pubkey,gid) to db fail.=======================", "pubkey", pre.PubKey, "gid", gg, "err", err)
 				return
 			}
+
+			var contfail int = 0
 
 			common.Info("================================ExcutePreSignData,before pre-generation of sign data ==================================", "current total number of the data ", GetTotalCount(pre.PubKey, "", gg), "pubkey", pre.PubKey, "sub-groupid", gg,"keytype",pre.KeyType)
 			for {
@@ -982,7 +983,7 @@ func ExcutePreSignData(pre *TxDataPreSignData) {
 						rch := make(chan interface{}, 1)
 						SetUpMsgList3(string(val), curEnode, rch)
 
-						reply := false
+						/*reply := false
 						timeout := make(chan bool, 1)
 						go func() {
 							syncWaitTime := 600 * time.Second
@@ -1000,14 +1001,55 @@ func ExcutePreSignData(pre *TxDataPreSignData) {
 									return
 								}
 							}
+						}()*/
+						reply := false
+						timeout := make(chan bool, 1)
+						go func() {
+							syncWaitTime := 600 * time.Second
+							syncWaitTimeOut := time.NewTicker(syncWaitTime)
+
+							for {
+								select {
+								case v := <-rch:
+									ret, ok := v.(RPCSmpcRes)
+									if ok {
+										if ret.Err != nil {
+										    reply = false 
+										    timeout <- false
+										} else {
+										    reply = true 
+										    timeout <- false
+										}
+									} else {
+									    reply = false
+									    timeout <- false
+									}
+
+									return
+								case <-syncWaitTimeOut.C:
+									reply = false
+									timeout <- true
+									return
+								}
+							}
 						}()
 						<-timeout
 
 						if !reply {
-							common.Error("=====================ExcutePreSignData, failed to pre-generate sign data.========================", "pubkey", pre.PubKey, "sub-groupid", gg, "Index", index)
+						    contfail++
+						    if contfail == 20 {
+							common.Error("=====================ExcutePreSignData, failed to pre-generate sign data.delete the prekey and exit the loop.========================", "pubkey", pre.PubKey, "sub-groupid", gg, "Index", index)
+							DelPrekeyFromDb(pre.PubKey, "", gg,pre.KeyType)
+							DeletePreSignData(pre.PubKey, "", gg, nonce)
+							return
+						    }
+
+							common.Error("=====================ExcutePreSignData, failed to pre-generate sign data and continue.========================", "pubkey", pre.PubKey, "sub-groupid", gg, "Index", index,"contfail",contfail)
+							time.Sleep(time.Duration(1000000))
 							continue
 						}
 
+						contfail = 0
 						common.Info("================================ExcutePreSignData,after pre-generation of sign data==================================", "current total number of the data ", GetTotalCount(pre.PubKey, "", gg), "pubkey", pre.PubKey, "sub-groupid", gg, "Index", index)
 					}
 				}
@@ -1072,6 +1114,33 @@ func SavePrekeyToDb(pubkey string, inputcode string, gid string,keytype string) 
 			common.Error("==================SavePrekeyToDb, put prekey to db fail.=====================", "pub", pub, "pubkey", pubkey, "gid", gid, "err", err)
 			return err
 		}
+	}
+
+	return nil
+}
+
+// DelPrekeyFromDb delete pubkey gid information to the specified batabase
+func DelPrekeyFromDb(pubkey string, inputcode string, gid string,keytype string) error {
+	if prekey == nil {
+		return fmt.Errorf("db open fail")
+	}
+
+	var pub string
+	if inputcode != "" {
+		pub = strings.ToLower(Keccak256Hash([]byte(strings.ToLower(pubkey + ":" + inputcode + ":" + gid))).Hex())
+	} else {
+		pub = strings.ToLower(Keccak256Hash([]byte(strings.ToLower(pubkey + ":" + gid))).Hex())
+	}
+
+	_, err := prekey.Get([]byte(pub))
+	if IsNotFoundErr(err) {
+	    return nil
+	}
+
+	err = prekey.Delete([]byte(pub))
+	if err != nil {
+		common.Error("==================DelPrekeyFromDb, delete prekey from db fail.=====================", "pub", pub, "pubkey", pubkey, "gid", gid, "err", err)
+		return err
 	}
 
 	return nil

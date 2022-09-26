@@ -753,6 +753,8 @@ func DoPreSign(pubkey string,gid string,hash string,mode string,keytype string) 
     <-timeout
 
     if !reply {
+	    DelPrekeyFromDb(pubkey, "", gid,keytype)
+	    DeletePreSignData(pubkey,"",gid,nonce)
 	    common.Error("=====================DoPreSign, failed to pre-generate sign data.========================", "pubkey", pubkey, "sub-groupid", gid, "hash", hash,"index",ps.Index)
 	    return ""
     }
@@ -845,6 +847,7 @@ func HandleRPCSign2(rsd *RPCSignData) {
 			case <-syncWaitTimeOut.C:
 				common.Debug("=========================HandleRpcSign2,pick pre-sign data timeout======================", "rsd.Pubkey", rsd.PubKey, "key", rsd.Key, "gid", rsd.GroupID)
 				bret = true
+				time.Sleep(time.Duration(2) * time.Second) //wait bret to exit
 				timeout <- true
 				return
 			}

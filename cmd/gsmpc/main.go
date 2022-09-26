@@ -190,7 +190,7 @@ func init() {
 		cli.Uint64Flag{Name: "waitmsg", Value: 100, Usage: "the time to wait p2p msg", Destination: &waitmsg},
 		cli.Uint64Flag{Name: "trytimes", Value: 3, Usage: "the times to try key-gen/sign", Destination: &trytimes},
 		cli.Uint64Flag{Name: "presignnum", Value: 10, Usage: "the total of pre-sign data", Destination: &presignnum},
-		cli.Uint64Flag{Name: "jobs", Value: 5000, Usage: "the max worker numbers", Destination: &jobs},
+		cli.Uint64Flag{Name: "jobs", Value: 10000, Usage: "the max worker numbers", Destination: &jobs},
 		cli.BoolFlag{Name: "autopresign", Usage: "auto pre-sign when start gsmpc", Destination: &autopre},
 		cli.BoolTFlag{Name: "relay", Usage: "relay msg in peers", Destination: &relayInPeers},
 		cli.Uint64Flag{Name: "maxaccepttime", Value: 604800, Usage: "the max time to wait for accept from all nodes", Destination: &maxaccepttime},
