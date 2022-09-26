@@ -65,6 +65,7 @@ type LunchParams struct {
 	Bip32Pre     uint64
 	SyncPreSign string
 	RelayInPeers bool
+	AutoPreSign bool
 }
 
 // Start init gsmpc
@@ -116,7 +117,9 @@ func Start(params *LunchParams) {
 		syncpresign = false
 	}
 
-	AutoPreGenSignData()
+	if params.AutoPreSign {
+	    AutoPreGenSignData()
+	}
 
 	go HandleRPCSign()
 

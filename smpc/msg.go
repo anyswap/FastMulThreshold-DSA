@@ -751,14 +751,14 @@ type RecvMsg struct {
 // Run Implement keygen/sign/reshare command and Process accept data
 func (recv *RecvMsg) Run(workid int, ch chan interface{}) bool {
 	if workid < 0 || workid >= RPCMaxWorker {
-		res2 := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get worker id fail", Err: fmt.Errorf("worker was not found")}
+		res2 := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("worker id error")}
 		ch <- res2
 		return false
 	}
 
 	res := recv.msg
 	if res == "" {
-		res2 := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get data fail in RecvMsg.Run", Err: fmt.Errorf("worker was not found")}
+		res2 := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("msg error")}
 		ch <- res2
 		return false
 	}

@@ -638,10 +638,10 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			    }(raw,ps.Gid)
 			}
 			
-			//check current node whther in group
+			//check current node whether in group
 			// cmd data default not to relay to other nodes
 			if !IsInGroup(ps.Gid) {
-				common.Debug("===============ReqSmpcSign.DoReq,presign,current node is not in group===================", "presign data key", ps.Nonce)
+				common.Info("===============ReqSmpcSign.DoReq,presign,current node is not in group===================", "presign data key", ps.Nonce,"Gid",ps.Gid)
 				res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("current node is not in group")}
 				ch <- res
 				return false
@@ -664,7 +664,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 			exsit, da := GetPubKeyData(smpcpks[:])
 			if !exsit {
-				common.Debug("============================PreSign at ReqSmpcSign.DoReq,not exist presign data===========================", "pubkey", ps.Pub)
+				common.Error("============================PreSign at ReqSmpcSign.DoReq,not exist presign data===========================", "pubkey", ps.Pub)
 				res := RPCSmpcRes{Ret: "", Tip: "get pubkey data from db fail", Err: fmt.Errorf("get pubkey data from db fail")}
 				ch <- res
 				return false
@@ -672,8 +672,8 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 			pd, ok := da.(*PubKeyData)
 			if !ok {
-				common.Debug("============================PreSign at ReqSmpcSign.DoReq,presign data error==========================", "pubkey", ps.Pub)
-				res := RPCSmpcRes{Ret: "", Tip: "smpc back-end internal error:get presign data from db fail", Err: fmt.Errorf("get presign data from db fail")}
+				common.Error("============================PreSign at ReqSmpcSign.DoReq,presign data error==========================", "pubkey", ps.Pub)
+				res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get presign data from db fail")}
 				ch <- res
 				return false
 			}
@@ -760,7 +760,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			//pre := PreSignEC3(w.sid,save,sku1,"ECDSA",ch1,workid)
 			pre := PreSignEC3(w.sid, save, childSKU1, childPKx,childPKy,ps.KeyType, ch1, workid)
 			if pre == nil {
-				common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "keytype",ps.KeyType,"presign data key", w.sid, "err", "return result is nil")
+				common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "keytype",ps.KeyType,"presign data key", w.sid,"worker id",workid)
 				if syncpresign && !SynchronizePreSignData(w.sid, w.id, false) {
 					_, _, cherr := GetChannelValue(waitall, ch1)
 					errinfo := "presign fail"
@@ -791,7 +791,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 			err = PutPreSignData(ps.Pub, ps.InputCode, ps.Gid, ps.Index, pre, true)
 			if err != nil {
-				common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time,put pre-sign data to local db fail. ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid, "err", err,"index",pre.Index)
+				common.Info("============================PreSign at RecvMsg.Run, failed to generate the presign data this time,put pre-sign data to local db fail. ==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid, "err", err,"index",pre.Index,"worker id",workid)
 				if syncpresign && !SynchronizePreSignData(w.sid, w.id, false) {
 					common.Info("================================PreSign at RecvMsg.Run, put pre-sign data to local db fail=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index, "err", err)
 					res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
@@ -808,18 +808,18 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			if syncpresign && !SynchronizePreSignData(w.sid, w.id, true) {
 				err = DeletePreSignData(ps.Pub, ps.InputCode, ps.Gid, pre.Key)
 				if err == nil {
-					common.Debug("================================PreSign at RecvMsg.Run, delete pre-sign data from local db success=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index)
+					common.Debug("================================PreSign at RecvMsg.Run, first put pre-sign data success and then sync fail,so delete pre-sign data from local db success=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index,"worker id",workid)
 				} else {
 					//.........
-					common.Info("================================PreSign at RecvMsg.Run, delete pre-sign data from local db fail=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index, "err", err)
+					common.Info("================================PreSign at RecvMsg.Run, first put pre-sign data success and then sync fail,so delete pre-sign data from local db fail=====================", "pick key", pre.Key, "pubkey", ps.Pub, "gid", ps.Gid, "index", ps.Index, "err", err)
 				}
 
-				res := RPCSmpcRes{Ret: "", Tip: "presign fail", Err: fmt.Errorf("presign fail")}
+				res := RPCSmpcRes{Ret: "", Tip: "sync fail", Err: fmt.Errorf("sync fail")}
 				ch <- res
 				return false
 			}
 
-			common.Info("============================PreSign at RecvMsg.Run, pre-generated sign data succeeded.==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid,"index",ps.Index)
+			common.Info("============================PreSign at RecvMsg.Run, pre-generated sign data succeeded.==========================", "pubkey", ps.Pub, "gid", ps.Gid, "presign data key", w.sid,"index",ps.Index,"worker id",workid)
 			res := RPCSmpcRes{Ret: "success", Tip: "", Err: nil}
 			ch <- res
 			return true
