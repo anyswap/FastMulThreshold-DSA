@@ -1050,6 +1050,13 @@ type SignStatus struct {
     Error     string
     AllReply  []NodeReply
     TimeStamp string
+
+    Initiator  string //enode id
+    PubKey     string
+    Keytype    string
+    Mode       string
+    FixedApprover  []string
+    Comment string
 }
 
 // GetSignStatus get the result of the sign request by key
@@ -1074,7 +1081,7 @@ func GetSignStatus(key string) (string, string, error) {
 	}
 
 	rsvs := strings.Split(ac.Rsv, ":")
-	los := &SignStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,ThresHold:ac.LimitNum,MsgHash:ac.MsgHash,MsgContext:ac.MsgContext,Status: ac.Status, Rsv: rsvs[:len(rsvs)-1], Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp}
+	los := &SignStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,ThresHold:ac.LimitNum,MsgHash:ac.MsgHash,MsgContext:ac.MsgContext,Status: ac.Status, Rsv: rsvs[:len(rsvs)-1], Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp, Initiator: ac.Initiator, PubKey: ac.PubKey, Keytype: ac.Keytype, Mode: ac.Mode, FixedApprover: ac.FixedApprover, Comment: ac.Comment}
 	ret, _ := json.Marshal(los)
 	return string(ret), "", nil
     }
@@ -1098,7 +1105,7 @@ func GetSignStatus(key string) (string, string, error) {
     }
 
     rsvs := strings.Split(ac.Rsv, ":")
-    los := &SignStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,ThresHold:ac.LimitNum,MsgHash:ac.MsgHash,MsgContext:ac.MsgContext,Status: ac.Status, Rsv: rsvs[:len(rsvs)-1], Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp}
+    los := &SignStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,ThresHold:ac.LimitNum,MsgHash:ac.MsgHash,MsgContext:ac.MsgContext,Status: ac.Status, Rsv: rsvs[:len(rsvs)-1], Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp, Initiator: ac.Initiator, PubKey: ac.PubKey, Keytype: ac.Keytype, Mode: ac.Mode, FixedApprover: ac.FixedApprover, Comment: ac.Comment}
     ret, _ := json.Marshal(los)
     return string(ret), "", nil
 }

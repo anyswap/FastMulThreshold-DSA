@@ -381,6 +381,13 @@ type ReqAddrStatus struct {
 	Error     string
 	AllReply  []NodeReply
 	TimeStamp string
+
+	Initiator string //enode id
+	Keytype  string
+	Mode      string
+	FixedApprover  []string
+	Sigs string //5:enodeid1:account1:enodeid2:account2:enodeid3:account3:enodeid4:account4:enodeid5:account5
+	Comment string
 }
 
 func GetApproverByReqAddrKey(key string,enodeID string) string {
@@ -456,7 +463,7 @@ func GetReqAddrStatus(key string) (string, string, error) {
 		rep = append(rep,nr)
 	    }
 
-	    los := &ReqAddrStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,Status: ac.Status, PubKey: ac.PubKey, ThresHold:ac.LimitNum,Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp}
+	    los := &ReqAddrStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,Status: ac.Status, PubKey: ac.PubKey, ThresHold:ac.LimitNum,Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp, Initiator: ac.Initiator, Keytype: ac.Cointype, Mode: ac.Mode, FixedApprover: ac.FixedApprover, Sigs: ac.Sigs, Comment: ac.Comment}
 	    ret, _ := json.Marshal(los)
 	    return string(ret), "", nil
 	}
@@ -478,7 +485,7 @@ func GetReqAddrStatus(key string) (string, string, error) {
 	    rep = append(rep,nr)
 	}
 
-	los := &ReqAddrStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,Status: ac.Status, PubKey: ac.PubKey, ThresHold:ac.LimitNum,Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp}
+	los := &ReqAddrStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,Status: ac.Status, PubKey: ac.PubKey, ThresHold:ac.LimitNum,Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp, Initiator: ac.Initiator, Keytype: ac.Cointype, Mode: ac.Mode, FixedApprover: ac.FixedApprover, Sigs: ac.Sigs, Comment: ac.Comment}
 	ret, _ := json.Marshal(los)
 	return string(ret), "", nil
 }
