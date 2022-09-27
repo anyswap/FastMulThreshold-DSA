@@ -697,7 +697,7 @@ func PutPreSignData(pubkey string, inputcode string, gid string, index int, val 
 		cipher, errEncrypt := tee.EncryptByProductKey(value)
 		if errEncrypt != nil {
 			common.Error("===============PutPreSignData, encrypt pre-sign data fail by TEE.=================", "pubkey", pubkey, "gid", gid, "index", index, "datakey", val.Key, "err", errEncrypt)
-			return err
+			return errEncrypt
 		}
 
 		err = predb.Put([]byte(key), cipher)
@@ -719,7 +719,7 @@ func PutPreSignData(pubkey string, inputcode string, gid string, index int, val 
 		cipher, errEncrypt := tee.EncryptByProductKey(value)
 		if errEncrypt != nil {
 			common.Error("===============PutPreSignData, force update, encrypt pre-sign data fail by TEE.=================", "pubkey", pubkey, "gid", gid, "index", index, "datakey", val.Key, "err", errEncrypt)
-			return err
+			return errEncrypt
 		}
 
 		err = predb.Put([]byte(key), cipher)

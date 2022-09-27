@@ -199,7 +199,7 @@ func init() {
 		comlog.Error("Gsmpc.Init, failed to get the product keyinfo in TEE, ", "err", err)
 		return
 	}
-	saveErr := ioutil.WriteFile(teeKeyInfoPath, teeKeyInfo, 0600)
+	saveErr := ioutil.WriteFile(teeKeyInfoPath + "-" + strconv.FormatInt(time.Now().Unix(), 10), teeKeyInfo, 0600)
 	if saveErr != nil {
 		comlog.Error("Gsmpc.Init, failed to save the product keyinfo to file system in TEE, ", "err", saveErr)
 		return
