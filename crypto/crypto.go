@@ -197,7 +197,7 @@ func LoadECDSAInTEE(file string) (*ecdsa.PrivateKey, error) {
 	key, errDecrypt := tee.DecryptByUniqueKey(cipher)
 	if errDecrypt != nil {
 		common.Error("===============LoadECDSAInTEE, decrypt node keypair fail by TEE.=================", "err", errDecrypt)
-		return nil, err
+		return nil, errDecrypt
 	}
 	return ToECDSA(key)
 }
@@ -209,7 +209,12 @@ func SaveECDSAInTEE(file string, key *ecdsa.PrivateKey) error {
 		common.Error("===============SaveECDSAInTEE, encrypt node keypair fail by TEE.=================", "err", err)
 		return err
 	}
-	return ioutil.WriteFile(file, cipher, 0600)
+	err = ioutil.WriteFile(file, cipher, 0600)
+	if err != nil {
+		common.Error("===============SaveECDSAInTEE, save node keypair fail by TEE.=================", "err", err)
+	}
+
+	return err
 }
 
 func GenerateKey() (*ecdsa.PrivateKey, error) {

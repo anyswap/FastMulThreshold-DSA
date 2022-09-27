@@ -102,6 +102,11 @@ func (n *Node) validateComplete() error {
 // The string representation of a Node is a URL.
 // Please see ParseNode for a description of the format.
 func (n *Node) String() string {
+	if n == nil {
+		common.Error("============ failed, node is nil, node.go String() ===========")
+		return ""
+	}
+
 	u := url.URL{Scheme: "enode"}
 	if n.Incomplete() {
 		u.Host = fmt.Sprintf("%x", n.ID[:])

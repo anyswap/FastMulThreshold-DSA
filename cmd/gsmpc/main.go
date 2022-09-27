@@ -307,6 +307,10 @@ func startP2pNode() error {
 		comlog.Info("start p2p","keyfilehex",keyfilehex,"bootnodes",bootnodes)
 		smpc.KeyFile = keyfile
 		nodeKey, errkey = crypto.LoadECDSAInTEE(keyfile)
+
+		if errkey != nil && strings.Contains(errkey.Error(), "message authentication failed") {
+			os.Exit(1)
+		}
 		if errkey != nil {
 			nodeKey, _ = crypto.GenerateKey()
 			err = crypto.SaveECDSAInTEE(keyfile, nodeKey)
