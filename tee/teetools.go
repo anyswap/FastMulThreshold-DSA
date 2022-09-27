@@ -32,18 +32,18 @@ func VerifyRemoteAttestationReport(reportBytes, pk, expectedUniqueID []byte, exp
 		return false, errors.New("report data does not match the certificate's hash")
 	}
 
-	if !bytes.Equal(report.UniqueID, expectedUniqueID) {
-		return false, errors.New("invalid uniqueID")
-	}
-	if report.SecurityVersion < uint(expectedSecurityVersion) {
-		return false, errors.New("invalid security version")
-	}
-	if binary.LittleEndian.Uint16(report.ProductID) != uint16(expectedProductID) {
-		return false, errors.New("invalid productID")
-	}
-	if report.Debug != expectedDebugMode {
-		return false, errors.New("invalid debug mode")
-	}
+	// if !bytes.Equal(report.UniqueID, expectedUniqueID) {
+	// 	return false, errors.New("invalid uniqueID")
+	// }
+	// if report.SecurityVersion < uint(expectedSecurityVersion) {
+	// 	return false, errors.New("invalid security version")
+	// }
+	// if binary.LittleEndian.Uint16(report.ProductID) != uint16(expectedProductID) {
+	// 	return false, errors.New("invalid productID")
+	// }
+	// if report.Debug != expectedDebugMode {
+	// 	return false, errors.New("invalid debug mode")
+	// }
 
 	return true, nil
 }

@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
+	"github.com/anyswap/FastMulThreshold-DSA/tee"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/ecdsa/keygen"
 	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
@@ -131,6 +132,16 @@ func ProcessInboundMessages(msgprex string, keytype string,finishChan chan struc
 				return
 			}
 
+			if msgmap["Attestation"] == "" {
+				log.Error("======================ProcessInboundMessages,verify sig fail, no TEE attestation=====================","key",msgprex,"msg hash",hexs)
+				if len(ch) == 0 {
+				    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail, TEE attestation error")}
+				    ch <- res
+				}
+				
+				return
+			}
+
 			if msgmap["ENode"] == "" {
 				log.Error("======================ProcessInboundMessages,verify sig fail=====================","key",msgprex,"msg hash",hexs)
 				if len(ch) == 0 {
@@ -151,11 +162,33 @@ func ProcessInboundMessages(msgprex string, keytype string,finishChan chan struc
 			    
 			    return
 			}
+
+			attestation, err := hex.DecodeString(msgmap["Attestation"])
+			if err != nil {
+			    common.Error("[KEYGEN] decode msg TEE attestation data error","err",err,"key",msgprex,"msg hash",hexs)
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Err: err}
+				ch <- res
+			    }
+			    
+			    return
+			}
 			
-			if !checkP2pSig(keytype,sig,mm,msgmap["ENode"]) {
+			if !checkP2pSig(keytype,sig,mm,msgmap["ENode"], attestation) {
 			    common.Error("===============keygen,check p2p msg fail===============","msg hash",hexs,"sender",msgmap["ENode"])
 			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
+				ch <- res
+			    }
+
+			    return
+			}
+
+			rlt, err := tee.VerifyRemoteAttestationReport(attestation, []byte(msgmap["ENode"]), nil, 0, 0, true)
+			if !rlt {
+			    common.Error("===============keygen,check p2p msg fail, check TEE Attestation Report failed===============","msg hash",hexs,"sender",msgmap["ENode"])
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail, TEE attestation not valid")}
 				ch <- res
 			    }
 
@@ -691,7 +724,14 @@ func ProcessOutCh(msgprex string, msg smpclib.Message,keytype string) error {
 		return fmt.Errorf("get worker fail")
 	}
 
-	sig,err := sigP2pMsg(msg,curEnode,keytype)
+	fmt.Println("== curEnode ==", "curEnode", curEnode)
+
+	attestation, err := tee.GetRemoteAttestationReport([]byte(curEnode))
+	if err != nil {
+		return fmt.Errorf("failed to get attestation report in TEE, key_ec.go")
+	}
+
+	sig,err := sigP2pMsg(msg,curEnode,keytype, attestation)
 	if err != nil {
 	    return err
 	}
@@ -700,6 +740,7 @@ func ProcessOutCh(msgprex string, msg smpclib.Message,keytype string) error {
 	msgmap["Key"] = msgprex
 	msgmap["ENode"] = curEnode
 	msgmap["Sig"] = hex.EncodeToString(sig)
+	msgmap["Attestation"] = hex.EncodeToString(attestation)
 	s, err := json.Marshal(msgmap)
 	if err != nil {
 		log.Error("====================ProcessOutCh, marshal fail=================","err",err,"key",msgprex)

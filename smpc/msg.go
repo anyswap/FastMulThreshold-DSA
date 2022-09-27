@@ -1863,7 +1863,7 @@ func getNodePrivate(keyfile string) (*ecdsa.PrivateKey,error) {
     return nodeKey,nil
 }
 
-func getUnSignMsgByte(msg smpclib.Message) ([]byte,error) {
+func getUnSignMsgByte(msg smpclib.Message, attestation []byte) ([]byte,error) {
     if msg == nil {
 	return nil,errors.New("msg error")
     }
@@ -1873,13 +1873,14 @@ func getUnSignMsgByte(msg smpclib.Message) ([]byte,error) {
 	log.Error("====================getUnSignMsgByte fail========================","err",err)
 	    return nil,err
     }
+	s = append(s, attestation...)
 
     hash := crypto.Keccak256(s)
     return hash,nil
 }
 
 // enodeID is the pubkey,corresponding to the private key reading from the 'KeyFile'
-func sigP2pMsg(msg smpclib.Message,enodeID string,keytype string) ([]byte,error) {
+func sigP2pMsg(msg smpclib.Message,enodeID string,keytype string, attestation []byte) ([]byte,error) {
     if msg == nil || enodeID == "" {
 	return nil,errors.New("param error")
     }
@@ -1889,7 +1890,7 @@ func sigP2pMsg(msg smpclib.Message,enodeID string,keytype string) ([]byte,error)
 	return nil,errors.New("get private fail")
     }
 
-    hash,err := getUnSignMsgByte(msg)
+    hash,err := getUnSignMsgByte(msg, attestation)
     if err != nil {
 	return nil,err
     }
@@ -1904,19 +1905,19 @@ func sigP2pMsg(msg smpclib.Message,enodeID string,keytype string) ([]byte,error)
 	return nil,err
     }
 
-    if !checkP2pSig(keytype,sig,msg,enodeID) {
+    if !checkP2pSig(keytype,sig,msg,enodeID, attestation) {
 	return nil,errors.New("check sig error")
     }
 
     return sig,nil
 }
 
-func checkP2pSig(keytype string,sig []byte,msg smpclib.Message,enodeID string) bool {
+func checkP2pSig(keytype string,sig []byte,msg smpclib.Message,enodeID string, attestation []byte) bool {
     if sig == nil || msg == nil || enodeID == "" {
 	return false
     }
     
-    hash,err := getUnSignMsgByte(msg)
+    hash,err := getUnSignMsgByte(msg, attestation)
     if err != nil {
 	return false 
     }

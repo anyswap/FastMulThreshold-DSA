@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/anyswap/FastMulThreshold-DSA/tee"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/ecdsa/signing"
@@ -111,6 +112,16 @@ func SignProcessInboundMessages(msgprex string, keytype string,finishChan chan s
 			    return
 			}
 
+			if msgmap["Attestation"] == "" {
+				log.Error("======================ProcessInboundMessages,verify sig fail, no TEE attestation=====================","key",msgprex,"msg hash",hexs)
+				if len(ch) == 0 {
+				    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail, TEE attestation error")}
+				    ch <- res
+				}
+				
+				return
+			}
+
 			if msgmap["ENode"] == "" {
 			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail")}
@@ -131,11 +142,33 @@ func SignProcessInboundMessages(msgprex string, keytype string,finishChan chan s
 			    return
 			}
 			
+			attestation, err := hex.DecodeString(msgmap["Attestation"])
+			if err != nil {
+			    common.Error("[SIGN] decode msg TEE attestation data error","err",err,"key",msgprex,"msg hash",hexs)
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Err: err}
+				ch <- res
+			    }
+			    
+			    return
+			}
+
 			//common.Debug("===============sign,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
-			if !checkP2pSig(keytype,sig,mm,msgmap["ENode"]) {
+			if !checkP2pSig(keytype,sig,mm,msgmap["ENode"], attestation) {
 			    common.Error("===============sign,check p2p msg fail===============","sender",msgmap["ENode"],"msg hash",hexs)
 			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
+				ch <- res
+			    }
+
+			    return
+			}
+
+			rlt, err := tee.VerifyRemoteAttestationReport(attestation, []byte(msgmap["ENode"]), nil, 0, 0, true)
+			if !rlt {
+			    common.Error("===============sign,check p2p msg fail, check TEE Attestation Report failed===============","msg hash",hexs,"sender",msgmap["ENode"])
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail, TEE attestation not valid")}
 				ch <- res
 			    }
 
@@ -654,7 +687,12 @@ func SignProcessOutCh(msgprex string, keytype string,msgtoenode map[string]strin
 		return fmt.Errorf("get worker fail")
 	}
 
-	sig,err := sigP2pMsg(msg,curEnode,keytype)
+	attestation, err := tee.GetRemoteAttestationReport([]byte(curEnode))
+	if err != nil {
+		return fmt.Errorf("failed to get attestation report in TEE, sign_ec.go")
+	}
+
+	sig,err := sigP2pMsg(msg,curEnode,keytype, attestation)
 	if err != nil {
 	    return err
 	}
@@ -663,6 +701,7 @@ func SignProcessOutCh(msgprex string, keytype string,msgtoenode map[string]strin
 	msgmap["Key"] = msgprex
 	msgmap["ENode"] = curEnode
 	msgmap["Sig"] = hex.EncodeToString(sig)
+	msgmap["Attestation"] = hex.EncodeToString(attestation)
 	s, err := json.Marshal(msgmap)
 	if err != nil {
 		return err
