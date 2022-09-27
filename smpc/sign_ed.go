@@ -28,6 +28,7 @@ import (
 	"sync"
 	"time"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/tee"
 )
 
 //--------------------------------------------------------EDDSA start-------------------------------------------------------
@@ -94,6 +95,16 @@ func EdSignProcessInboundMessages(msgprex string, keytype string,finishChan chan
 			    return
 			}
 
+			if msgmap["Attestation"] == "" {
+				common.Error("======================ProcessInboundMessages,verify sig fail, no TEE attestation=====================","key",msgprex)
+				if len(ch) == 0 {
+				    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail, TEE attestation error")}
+				    ch <- res
+				}
+				
+				return
+			}
+
 			if msgmap["ENode"] == "" {
 			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("verify sig fail")}
@@ -114,11 +125,33 @@ func EdSignProcessInboundMessages(msgprex string, keytype string,finishChan chan
 			    return
 			}
 			
+			attestation, err := hex.DecodeString(msgmap["Attestation"])
+			if err != nil {
+			    common.Error("[SIGN] decode msg TEE attestation data error","err",err,"key",msgprex)
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Err: err}
+				ch <- res
+			    }
+			    
+			    return
+			}
+			
 			common.Debug("===============sign ed,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
-			if !checkP2pSig(keytype,sig,mm,msgmap["ENode"]) {
+			if !checkP2pSig(keytype,sig,mm,msgmap["ENode"], attestation) {
 			    common.Error("===============sign ed,check p2p msg fail===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
+				ch <- res
+			    }
+
+			    return
+			}
+
+			rlt, err := tee.VerifyRemoteAttestationReport(attestation, []byte(msgmap["ENode"]), nil, 0, 0, true)
+			if !rlt {
+			    common.Error("===============sign,check p2p msg fail, check TEE Attestation Report failed===============","sender",msgmap["ENode"])
+			    if len(ch) == 0 {
+				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail, TEE attestation not valid")}
 				ch <- res
 			    }
 
