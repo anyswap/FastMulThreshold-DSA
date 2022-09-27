@@ -127,7 +127,7 @@ var (
 	pubkey       string
 	genKey       string
 	datadir      = "/datadir"
-	log          = "/logs"
+	log          = "" // print to screen, need to redirect to file
 	rotate       uint64
 	maxage       uint64
 	verbosity    uint64

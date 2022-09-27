@@ -295,7 +295,7 @@ func GetReqAddrInfoData(key []byte) (bool, interface{}) {
 
 	da, err := reqaddrinfodb.Get(key)
 	if da == nil || err != nil {
-		common.Debug("========================GetReqAddrInfoData, get reqaddr info from local db fail =======================", "key", string(key))
+		common.Debug("========================GetReqAddrInfoData, get reqaddr info from local db fail =======================", "key", string(key), "err", err)
 		return false, nil
 	}
 
@@ -363,7 +363,7 @@ func GetSignInfoData(key []byte) (bool, interface{}) {
 
 	da, err := signinfodb.Get(key)
 	if da == nil || err != nil {
-		common.Debug("========================GetSignInfoData, get sign info from local db fail =======================", "key", string(key))
+		common.Debug("========================GetSignInfoData, get sign info from local db fail =======================", "key", string(key), "err", err)
 		return false, nil
 	}
 
@@ -431,7 +431,7 @@ func GetReShareInfoData(key []byte) (bool, interface{}) {
 
 	da, err := reshareinfodb.Get(key)
 	if da == nil || err != nil {
-		common.Debug("========================GetReShareInfoData, get reshare info from local db fail =======================", "key", string(key))
+		common.Debug("========================GetReShareInfoData, get reshare info from local db fail =======================", "key", string(key), "err", err)
 		return false, nil
 	}
 
@@ -971,7 +971,7 @@ func GetAccountFromDb(key []byte) (bool, interface{}) {
 
 	da, err := accountsdb.Get(key)
 	if da == nil || err != nil {
-		common.Error("========================GetAccountFromDb, get account from local db fail =======================", "key", string(key))
+		common.Error("========================GetAccountFromDb, get account from local db fail =======================", "key", string(key), "err", err)
 		return false, nil
 	}
 
