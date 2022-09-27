@@ -103,7 +103,6 @@ func (n *Node) validateComplete() error {
 // Please see ParseNode for a description of the format.
 func (n *Node) String() string {
 	if n == nil {
-		common.Error("============ failed, node is nil, node.go String() ===========")
 		return ""
 	}
 
