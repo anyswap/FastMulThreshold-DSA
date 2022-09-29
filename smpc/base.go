@@ -388,8 +388,28 @@ func GetIDs(keytype string, groupid string) smpclib.SortableIDSSlice {
 	return ids
 }
 
-// GetNodeUID get current node uid,gid is the `keygen gid`
+// GetCurNodeUID get current node uid,gid is the `keygen gid`
 // return (index,UID)
+func GetCurNodeUID(EnodeID string, keytype string, gid string) (int,*big.Int) {
+	UID, err := crypto.LoadDNodeIDInTEE(IdFile)
+	if err != nil {
+		if strings.Contains(err.Error(), "no such file or directory"){
+			k, UID := GetNodeUID(EnodeID, keytype, gid)
+			err = crypto.SaveDNodeIDInTEE(IdFile, UID)
+			if err != nil {
+				common.Error("==========GetCurNodeUID, save dnodeid failed in TEE============","err",err)
+				return -1, nil
+			}
+			return k, UID
+		}else{
+			common.Error("==========GetCurNodeUID, load dnodeid failed in TEE============","err",err)
+			return -1, nil
+		}
+	} else {
+		return 0, UID
+	}
+}
+
 func GetNodeUID(EnodeID string,keytype string,gid string) (int,*big.Int) {
     if EnodeID == "" || gid == "" {
 	return -1,nil

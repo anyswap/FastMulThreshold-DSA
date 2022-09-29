@@ -122,6 +122,7 @@ var (
 	config       string // in tee, not support config 
 	bootnodes    string
 	keyfile      = "/datadir/nodeKeyPair"
+	idfile		 = "/datadir/id"
 	teeKeyInfoPath	= "/datadir/teeKeyInfo"
 	keyfilehex   string // in tee, always nil
 	pubkey       string
@@ -306,12 +307,14 @@ func startP2pNode() error {
 	} else {
 		comlog.Info("start p2p","keyfilehex",keyfilehex,"bootnodes",bootnodes)
 		smpc.KeyFile = keyfile
+		smpc.IdFile = idfile
 		nodeKey, errkey = crypto.LoadECDSAInTEE(keyfile)
 
 		if errkey != nil && strings.Contains(errkey.Error(), "message authentication failed") {
 			os.Exit(1)
 		}
 		if errkey != nil {
+			comlog.Info("load nodeKeyPair failed in TEE", "err", errkey)
 			nodeKey, _ = crypto.GenerateKey()
 			err = crypto.SaveECDSAInTEE(keyfile, nodeKey)
 			if err != nil {

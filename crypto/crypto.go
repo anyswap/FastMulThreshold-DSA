@@ -186,11 +186,13 @@ func SaveECDSA(file string, key *ecdsa.PrivateKey) error {
 func LoadECDSAInTEE(file string) (*ecdsa.PrivateKey, error) {
 	fd, err := os.Open(file)
 	if err != nil {
+		common.Info("===============LoadECDSAInTEE, open file fail by TEE, it's by design if run first time.=================", "err", err)
 		return nil, err
 	}
 	defer fd.Close()
 	cipher, err := io.ReadAll(fd)
 	if err != nil {
+		common.Error("===============LoadECDSAInTEE, read file fail by TEE.=================", "err", err)
 		return nil, err
 	}
 
@@ -212,6 +214,42 @@ func SaveECDSAInTEE(file string, key *ecdsa.PrivateKey) error {
 	err = ioutil.WriteFile(file, cipher, 0600)
 	if err != nil {
 		common.Error("===============SaveECDSAInTEE, save node keypair fail by TEE.=================", "err", err)
+	}
+
+	return err
+}
+
+func LoadDNodeIDInTEE(file string) (*big.Int, error) {
+	fd, err := os.Open(file)
+	if err != nil {
+		common.Info("===============LoadDNodeIDInTEE, open file fail by TEE, it's by design if run first time.=================", "err", err)
+		return nil, err
+	}
+	defer fd.Close()
+	cipher, err := io.ReadAll(fd)
+	if err != nil {
+		common.Error("===============LoadDNodeIDInTEE, read file fail by TEE.=================", "err", err)
+		return nil, err
+	}
+
+	idBytes, errDecrypt := tee.DecryptByUniqueKey(cipher)
+	if errDecrypt != nil {
+		common.Error("===============LoadDNodeIDInTEE, decrypt dnodeid fail by TEE.=================", "err", errDecrypt)
+		return nil, errDecrypt
+	}
+	return new(big.Int).SetBytes(idBytes), nil
+}
+
+// SaveECDSA saves a secp256k1 private key to the given file with
+func SaveDNodeIDInTEE(file string, dnodeid *big.Int) error {
+	cipher, err := tee.EncryptByUniqueKey(dnodeid.Bytes())
+	if err != nil {
+		common.Error("===============SaveDNodeIDInTEE, encrypt dnodeid fail by TEE.=================", "err", err)
+		return err
+	}
+	err = ioutil.WriteFile(file, cipher, 0600)
+	if err != nil {
+		common.Error("===============SaveDNodeIDInTEE, save dnodeid fail by TEE.=================", "err", err)
 	}
 
 	return err

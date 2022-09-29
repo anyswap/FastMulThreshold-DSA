@@ -1042,7 +1042,7 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 		return false
 	}
 
-	_,UID := GetNodeUID(curEnode, cointype,w.groupid)
+	_,UID := GetCurNodeUID(curEnode, cointype,w.groupid)
 	if UID == nil {
 		res := RPCSmpcRes{Ret: "", Err: errors.New("get node uid fail")}
 		ch <- res
@@ -1127,7 +1127,7 @@ func KeyGenerateDEDDSA(msgprex string, ch chan interface{}, id int, cointype str
 	errChan := make(chan struct{})
 	keyGenDNode := edkeygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold)
 	w.DNode = keyGenDNode
-	_,UID := GetNodeUID(curEnode, cointype,w.groupid)
+	_,UID := GetCurNodeUID(curEnode, cointype,w.groupid)
 	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 	w.MsgToEnode[w.DNode.DNodeID()] = curEnode
 

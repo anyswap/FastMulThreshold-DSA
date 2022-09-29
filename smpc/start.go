@@ -34,7 +34,7 @@ var (
 
 	// KeyFile bootnode keyfile
 	KeyFile      string
-	
+	IdFile	string
 	RelayInPeers      bool
 )
 

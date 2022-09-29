@@ -1602,7 +1602,7 @@ func GetCurNodeIndex(gid string,subgid string,keytype string) int {
 	    return -1
     }
 
-    _,uid := GetNodeUID(curEnode, keytype,gid)
+    _,uid := GetCurNodeUID(curEnode, keytype,gid)
     ids := GetGroupNodeUIDs(keytype, gid,subgid)
 
     for k, v := range ids {
@@ -1772,7 +1772,7 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
     sd.U1NtildeH1H2 = U1NtildeH1H2
 
     sd.IDs = GetGroupNodeUIDs(cointype,pubs.GroupID,pubs.GroupID)
-    _,sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
+    _,sd.CurDNodeID = GetCurNodeUID(curEnode, cointype,pubs.GroupID)
 
     msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
     kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
@@ -1911,7 +1911,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
     sd.U1NtildeH1H2 = U1NtildeH1H2
 
     sd.IDs = GetGroupNodeUIDs(cointype, pubs.GroupID,pubs.GroupID)
-    _,sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
+    _,sd.CurDNodeID = GetCurNodeUID(curEnode, cointype,pubs.GroupID)
 
     msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
     kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
@@ -1926,7 +1926,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
     predata := &signing.PrePubData{K1: pre.K1, R: pre.R, Ry: pre.Ry, Sigma1: pre.Sigma1}
     signDNode := signing.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, true, predata, mMtA, finalizeendCh,cointype)
     w.DNode = signDNode
-    _,UID := GetNodeUID(curEnode, cointype,pubs.GroupID)
+    _,UID := GetCurNodeUID(curEnode, cointype,pubs.GroupID)
     signDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 
     var signWg sync.WaitGroup
@@ -2356,7 +2356,7 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
     sd.TSk = tsk
     sd.FinalPkBytes = pkfinal
     sd.IDs = GetGroupNodeUIDs(cointype, pubs.GroupID,pubs.GroupID)
-    _,sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
+    _,sd.CurDNodeID = GetCurNodeUID(curEnode, cointype,pubs.GroupID)
 
     msgtoenode := GetMsgToEnode(cointype, pubs.GroupID,pubs.GroupID)
     kgsave := &KGLocalDBSaveDataED{Save: sd, MsgToEnode: msgtoenode}
@@ -2379,7 +2379,7 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
     errChan := make(chan struct{})
     signDNode := edsigning.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, mMtA, finalizeendCh)
     w.DNode = signDNode
-    _,UID := GetNodeUID(curEnode, cointype,pubs.GroupID)
+    _,UID := GetCurNodeUID(curEnode, cointype,pubs.GroupID)
     signDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 
     var signWg sync.WaitGroup
