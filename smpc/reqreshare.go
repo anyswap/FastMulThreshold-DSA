@@ -476,14 +476,14 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 		sd.U1NtildeH1H2 = U1NtildeH1H2
 
 		sd.IDs = GetGroupNodeUIDs(keytype,groupid,groupid) // 1,2,3,4,6
-		_,sd.CurDNodeID = GetCurNodeUID(curEnode,keytype,groupid) 
+		_,sd.CurDNodeID = GetNodeUID(curEnode,keytype,groupid) 
 
 		//msgtoenode := GetMsgToEnode("EC256K1",(da.(*PubKeyData)).GroupID,(da.(*PubKeyData)).GroupID)
 		//kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
 
 		found := false
 		ids := GetGroupNodeUIDs(keytype,groupid,w.groupid)
-		_,uid := GetCurNodeUID(curEnode,keytype,groupid)
+		_,uid := GetNodeUID(curEnode,keytype,groupid)
 		for _,v := range ids {
 		    if v.Cmp(uid) == 0 {
 			found = true
@@ -498,7 +498,7 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 
 		if oldnode {
 		
-			oldindex,_ := GetCurNodeUID(curEnode,keytype,(da.(*PubKeyData)).GroupID)
+			oldindex,_ := GetNodeUID(curEnode,keytype,(da.(*PubKeyData)).GroupID)
 			sd.U1NtildePrivData = GetNtildePrivDataByIndexFromSaveData(save,w.NodeCnt)
 			if sd.U1NtildePrivData == nil {
 				res := RPCSmpcRes{Ret: "", Tip: "get ntilde priv data fail", Err: fmt.Errorf("get ntilde priv data fail")}
@@ -513,7 +513,7 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 			errChan := make(chan struct{})
 			reshareDNode := reshare.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048, sd, true,oldindex,keytype)
 			w.DNode = reshareDNode
-			_,UID := GetCurNodeUID(curEnode,keytype,groupid)
+			_,UID := GetNodeUID(curEnode,keytype,groupid)
 			reshareDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 
 			uid, _ := new(big.Int).SetString(w.DNode.DNodeID(), 10)
@@ -559,7 +559,7 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 	errChan := make(chan struct{})
 	reshareDNode := reshare.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048, nil, false,-1,keytype)
 	w.DNode = reshareDNode
-	_,UID := GetCurNodeUID(curEnode,keytype,groupid)
+	_,UID := GetNodeUID(curEnode,keytype,groupid)
 	reshareDNode.SetDNodeID(fmt.Sprintf("%v", UID))
 
 	uid, _ := new(big.Int).SetString(w.DNode.DNodeID(), 10)
