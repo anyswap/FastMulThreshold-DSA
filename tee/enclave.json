@@ -1,22 +1,22 @@
 {
     "exe": "gsmpc",
     "key": "private.pem",
-    "debug": true,
-    "heapSize": 3584,
+    "debug": false,
+    "heapSize": 2048,
     "productID": 1,
     "securityVersion": 1,
     "mounts": [
         {
-            "source": "/root/xchang_workspace/smpcdata/datadir",
+            "source": "HOST_PATH/datadir",
             "target": "/datadir",
             "type": "hostfs",
             "readOnly": false
-        },
+        }
+    ],
+    "env": [
         {
-            "source": "/root/xchang_workspace/smpcdata/logs",
-            "target": "/logs",
-            "type": "hostfs",
-            "readOnly": false
+            "name": "ExpectedUniqueID",
+            "value": "EXPECTED_UNIQUE_ID_OFFICIAL_RELEASED"
         }
     ]
 }

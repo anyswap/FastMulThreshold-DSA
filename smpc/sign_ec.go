@@ -164,7 +164,7 @@ func SignProcessInboundMessages(msgprex string, keytype string,finishChan chan s
 			    return
 			}
 
-			rlt, err := tee.VerifyRemoteAttestationReport(attestation, []byte(msgmap["ENode"]), nil, 0, 0, true)
+			rlt, err := tee.VerifyRemoteAttestationReport(attestation, []byte(msgmap["ENode"]))
 			if !rlt {
 			    common.Error("===============sign,check p2p msg fail, check TEE Attestation Report failed===============","msg hash",hexs,"sender",msgmap["ENode"])
 			    if len(ch) == 0 {

@@ -27,8 +27,8 @@ ARG smpcver=support-tee
 RUN git clone --branch ${smpcver} --depth=1 https://github.com/anyswap/FastMulThreshold-DSA \
   && cd FastMulThreshold-DSA \
   && ego-go build -trimpath -v -o gsmpc ./cmd/gsmpc
-RUN --mount=type=secret,id=signingkey,dst=/private.pem,required=true ego sign gsmpc
+RUN --mount=type=secret,id=signingkey,dst=/private.pem,required=true ego sign /FastMulThreshold-DSA/gsmpc
 
 # Export the binary smpc app
 FROM scratch AS export
-COPY --from=build /smpc /
+COPY --from=build /FastMulThreshold-DSA/gsmpc /

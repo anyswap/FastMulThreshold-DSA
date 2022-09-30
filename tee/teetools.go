@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/edgelesssys/ego/attestation"
 	"github.com/edgelesssys/ego/attestation/tcbstatus"
@@ -18,7 +19,7 @@ func GetRemoteAttestationReport(pk []byte ) ([]byte, error) {
 	return report, err
 }
 
-func VerifyRemoteAttestationReport(reportBytes, pk, expectedUniqueID []byte, expectedSecurityVersion, expectedProductID int, expectedDebugMode bool) (bool, error) {
+func VerifyRemoteAttestationReport(reportBytes, pk []byte) (bool, error) {
 	report, err := enclave.VerifyRemoteReport(reportBytes)
 	if err == attestation.ErrTCBLevelInvalid {
 		fmt.Printf("Warning: TCB level is invalid: %v\n%v\n", report.TCBStatus, tcbstatus.Explain(report.TCBStatus))
@@ -31,18 +32,22 @@ func VerifyRemoteAttestationReport(reportBytes, pk, expectedUniqueID []byte, exp
 		return false, errors.New("report data does not match the certificate's hash")
 	}
 
-	// if !bytes.Equal(report.UniqueID, expectedUniqueID) {
-	// 	return false, errors.New("invalid uniqueID")
-	// }
+	expectedUniqueID := os.Getenv("ExpectedUniqueID")
+
+	if !bytes.Equal(report.UniqueID, []byte(expectedUniqueID)) {
+		return false, errors.New("invalid uniqueID")
+	}
+
 	// if report.SecurityVersion < uint(expectedSecurityVersion) {
 	// 	return false, errors.New("invalid security version")
 	// }
 	// if binary.LittleEndian.Uint16(report.ProductID) != uint16(expectedProductID) {
 	// 	return false, errors.New("invalid productID")
 	// }
-	// if report.Debug != expectedDebugMode {
-	// 	return false, errors.New("invalid debug mode")
-	// }
+
+	if !report.Debug {
+		return false, errors.New("invalid debug mode")
+	}
 
 	return true, nil
 }

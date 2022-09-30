@@ -151,7 +151,7 @@ func ProcessInboundMessagesEDDSA(msgprex string, keytype string,finishChan chan 
 			    return
 			}
 			
-			rlt, err := tee.VerifyRemoteAttestationReport(attestation, []byte(msgmap["ENode"]), nil, 0, 0, true)
+			rlt, err := tee.VerifyRemoteAttestationReport(attestation, []byte(msgmap["ENode"]))
 			if !rlt {
 			    common.Error("===============keygen,check p2p msg fail, check TEE Attestation Report failed===============","sender",msgmap["ENode"])
 			    if len(ch) == 0 {
