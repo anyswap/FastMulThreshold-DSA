@@ -528,7 +528,7 @@ func GetCmdKey(msg string) string {
 
 //----------------------------------------------------------------------------------------
 
-var expiredInterval = int64(120) // seconds
+var expiredInterval = int64(720) // seconds
 
 // NowMilliStr returns now timestamp in miliseconds of string format.
 func NowMilliStr() string {
@@ -674,6 +674,35 @@ func Call(msg interface{}, enode string) {
 
 		    return
 	    }
+	    
+	    //fix bug:don't relay PreSign data in worker thread, it may cause a death loop.
+	    if msgmap["Type"] == "PreSign" {
+		//check msg
+		msghash := Keccak256Hash([]byte(strings.ToLower(s))).Hex()
+		_,exist := MsgReceiv.ReadMap(msghash)
+		if exist {
+		    return
+		}
+
+		MsgReceiv.WriteMap(msghash,NowMilliStr())
+
+		ps := &PreSign{}
+		if err = ps.UnmarshalJSON([]byte(msgmap["PreSign"])); err != nil {
+		    return
+		}
+
+		if RelayInPeers {
+		    go func(msg2 string,gid string) {
+			msghash := Keccak256Hash([]byte(strings.ToLower(msg2))).Hex()
+			for i:=0;i<1;i++ {
+			   log.Debug("================Call,also broacast to group for msg===================","key",ps.Nonce,"gid",gid,"msg hash",msghash)
+			    SendMsgToSmpcGroup(msg2,gid)
+			    //time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
+			}
+		    }(s,ps.Gid)
+		}
+		
+	    }
 	}
 
 	////
@@ -769,18 +798,28 @@ func (recv *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		res = msgdata
 	}
 
-	//check msg
-	msghash := Keccak256Hash([]byte(strings.ToLower(res))).Hex()
-	_,exist := MsgReceiv.ReadMap(msghash)
-	if exist {
-	    return true
-	}
-
-	MsgReceiv.WriteMap(msghash,NowMilliStr())
-	
 	var req CmdReq
 	msgmap := make(map[string]string)
 	err := json.Unmarshal([]byte(res), &msgmap)
+	bpre := false
+	if err == nil {
+	    if msgmap["Type"] == "PreSign" {
+		bpre = true
+	    }
+	}
+
+	//fix bug: don't write map for PreSign data in worker thread, it may cause a death loop.
+	if !bpre {
+	    //check msg
+	    msghash := Keccak256Hash([]byte(strings.ToLower(res))).Hex()
+	    _,exist := MsgReceiv.ReadMap(msghash)
+	    if exist {
+		return true
+	    }
+
+	    MsgReceiv.WriteMap(msghash,NowMilliStr())
+	}
+	
 	if err == nil {
 		if msgmap["Type"] == "SignData" || msgmap["Type"] == "PreSign" || msgmap["Type"] == "ComSignBrocastData" || msgmap["Type"] == "ComSignData" || msgmap["Type"] == "ComSignSubGidBrocastData" {
 			req = &ReqSmpcSign{}

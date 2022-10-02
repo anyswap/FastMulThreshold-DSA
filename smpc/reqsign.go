@@ -715,6 +715,14 @@ func DoPreSign(pubkey string,gid string,hash string,mode string,keytype string) 
     }
 
     SendMsgToSmpcGroup(string(val), gid)
+    //check msg
+    msghash := Keccak256Hash([]byte(strings.ToLower(string(val)))).Hex()
+    _,exist := MsgReceiv.ReadMap(msghash)
+    if exist {
+	return ""
+    }
+
+    MsgReceiv.WriteMap(msghash,NowMilliStr())
 
     rch := make(chan interface{}, 1)
     SetUpMsgList3(string(val), curEnode, rch)

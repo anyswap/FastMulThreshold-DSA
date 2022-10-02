@@ -477,6 +477,14 @@ func GetBip32ChildKey(rootpubkey string, inputcode string,keytype string,mode st
 						continue
 					}
 					SendMsgToSmpcGroup(string(val), gg)
+					//check msg
+					msghash := Keccak256Hash([]byte(strings.ToLower(string(val)))).Hex()
+					_,exist := MsgReceiv.ReadMap(msghash)
+					if exist {
+					    continue
+					}
+
+					MsgReceiv.WriteMap(msghash,NowMilliStr())
 
 					rch := make(chan interface{}, 1)
 					SetUpMsgList3(string(val), curEnode, rch)

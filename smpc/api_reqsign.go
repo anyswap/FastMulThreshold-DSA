@@ -627,7 +627,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			}
 			
 			common.Debug("===============ReqSmpcSign.DoReq,unmarshal pre-sign data success===================", "keytype", ps.KeyType)
-			if RelayInPeers {
+			/*if RelayInPeers {
 			    go func(msg2 string,gid string) {
 				msghash := Keccak256Hash([]byte(strings.ToLower(msg2))).Hex()
 				for i:=0;i<1;i++ {
@@ -636,7 +636,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				    //time.Sleep(time.Duration(1) * time.Second) //1000 == 1s
 				}
 			    }(raw,ps.Gid)
-			}
+			}*/////do not relay in worker thread,it may be cause a death loop
 			
 			//check current node whether in group
 			// cmd data default not to relay to other nodes
