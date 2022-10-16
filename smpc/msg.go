@@ -65,7 +65,7 @@ var (
        CreatingSignSubGidTimeOut = 8
 
 	// WaitMsgTimeGG20 wait msg timeout
-	WaitMsgTimeGG20 = 100
+	WaitMsgTimeGG20 = 180
 
 	waitall         = cht * recalcTimes
 	waitallgg20     = WaitMsgTimeGG20 * recalcTimes
@@ -528,7 +528,7 @@ func GetCmdKey(msg string) string {
 
 //----------------------------------------------------------------------------------------
 
-var expiredInterval = int64(720) // seconds
+var expiredInterval = int64(3600) // seconds
 
 // NowMilliStr returns now timestamp in miliseconds of string format.
 func NowMilliStr() string {
@@ -559,12 +559,13 @@ func CleanUpMsgReceiv() {
 	    val := value[i]
 	    tt,ok := val.(string)
 	    if !ok {
+		time.Sleep(time.Duration(20) * time.Second) //1000 == 1s
 		continue
 	    }
 
 	    timestamp, _ := GetUint64FromStr(tt)
 	    if expiredInterval > 0 && int64(timestamp/1000) + expiredInterval < time.Now().Unix() {
-		//log.Debug("======================CleanUpMsgReceiv======================","key",k,"value",tt)
+		log.Debug("==CleanUpMsgReceiv==","key",k)
 		MsgReceiv.DeleteMap(k)
 	    }
 	}
@@ -643,6 +644,7 @@ func Call(msg interface{}, enode string) {
 				    msgtype := msgmap["Type"]
 				    key := strings.ToLower(val + "-" + from + "-" + msgtype)
 				    C1Data.WriteMap(key, s)
+				    //TODO relay the msg
 				    log.Debug("===============================Call, pre-save p2p msg, worker found=============", "key",val,"fromID",from,"orig msg hash",shash,"msg hash",msghash)
 			    }
 		    } else {
@@ -650,6 +652,7 @@ func Call(msg interface{}, enode string) {
 			    msgtype := msgmap["Type"]
 			    key := strings.ToLower(val + "-" + from + "-" + msgtype)
 			    C1Data.WriteMap(key, s)
+			    //TODO relay the msg
 			    log.Debug("===============================Call, pre-save p2p msg, worker not found============","key",val,"fromID",from,"orig msg hash",shash,"msg hash",msghash)
 		    }
 
@@ -666,6 +669,7 @@ func Call(msg interface{}, enode string) {
 						    w.msgsyncpresign.PushBack(s)
 						    if w.msgsyncpresign.Len() == w.ThresHold {
 							    w.bsyncpresign <- true
+							    //TODO relay the msg
 						    }
 					    }
 				    }

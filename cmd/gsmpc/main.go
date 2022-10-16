@@ -187,7 +187,7 @@ func init() {
 		cli.BoolTFlag{Name: "nonetrestrict", Usage: "Not connectivity can be restricted to certain IP networks(without whitelist of static nodes)", Destination: &nonetrestrict},
 		cli.BoolFlag{Name: "json", Usage: "output log in json format", Destination: &json},
 		cli.BoolFlag{Name: "color", Usage: "output log in color text format", Destination: &color},
-		cli.Uint64Flag{Name: "waitmsg", Value: 100, Usage: "the time to wait p2p msg", Destination: &waitmsg},
+		cli.Uint64Flag{Name: "waitmsg", Value: 180, Usage: "the time to wait p2p msg", Destination: &waitmsg},
 		cli.Uint64Flag{Name: "trytimes", Value: 3, Usage: "the times to try key-gen/sign", Destination: &trytimes},
 		cli.Uint64Flag{Name: "presignnum", Value: 10, Usage: "the total of pre-sign data", Destination: &presignnum},
 		cli.Uint64Flag{Name: "jobs", Value: 10000, Usage: "the max worker numbers", Destination: &jobs},

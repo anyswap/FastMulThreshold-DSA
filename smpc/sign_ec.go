@@ -635,7 +635,7 @@ func processSignFinalize(msgprex string, keytype string,msgtoenode map[string]st
 				return nil, fmt.Errorf("get worker fail")
 			}
 
-			log.Info("=======================signing finished successfully=======================\n","key",msgprex)
+			log.Info("=======================signing finished successfully=======================","key",msgprex)
 			return msg, nil
 		}
 	}
@@ -646,16 +646,19 @@ func processSignFinalize(msgprex string, keytype string,msgtoenode map[string]st
 // SignProcessOutCh send message to other node
 func SignProcessOutCh(msgprex string, keytype string,msgtoenode map[string]string, msg smpclib.Message, gid string) error {
 	if msg == nil || msgprex == "" || msgtoenode == nil {
+		log.Error("=======================SignProcessOutCh,smpc info error=======================","key",msgprex)
 		return fmt.Errorf("smpc info error")
 	}
 
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
+		log.Error("=======================SignProcessOutCh,get worker fail=======================","key",msgprex,"err",err)
 		return fmt.Errorf("get worker fail")
 	}
 
 	sig,err := sigP2pMsg(msg,curEnode,keytype)
 	if err != nil {
+		log.Error("=======================SignProcessOutCh,sign p2p message error=======================","key",msgprex,"err",err)
 	    return err
 	}
 
@@ -665,6 +668,7 @@ func SignProcessOutCh(msgprex string, keytype string,msgtoenode map[string]strin
 	msgmap["Sig"] = hex.EncodeToString(sig)
 	s, err := json.Marshal(msgmap)
 	if err != nil {
+		log.Error("=======================SignProcessOutCh,marshal msg error=======================","key",msgprex,"err",err)
 		return err
 	}
 
@@ -672,7 +676,9 @@ func SignProcessOutCh(msgprex string, keytype string,msgtoenode map[string]strin
 		gid = w.groupid
 	}
 
+	msghash := Keccak256Hash([]byte(strings.ToLower(string(s)))).Hex()
 	if msg.IsBroadcast() {
+		log.Debug("=======================SignProcessOutCh,send msg to mpc group=======================","key",msgprex,"gid",gid,"msg hash",msghash)
 		SendMsgToSmpcGroup(string(s), gid)
 	} else {
 		for _, v := range msg.GetToID() {
@@ -683,6 +689,7 @@ func SignProcessOutCh(msgprex string, keytype string,msgtoenode map[string]strin
 				node2 := ParseNode(node)
 				if strings.EqualFold(enode, node2) {
 					//SendMsgToPeer(node, string(s))
+					log.Debug("=======================SignProcessOutCh,send msg to mpc group with entrycry=======================","key",msgprex,"gid",gid,"msg hash",msghash)
 					SendMsgToPeerWithBrodcast(msgprex,node,string(s),gid)
 					break
 				}

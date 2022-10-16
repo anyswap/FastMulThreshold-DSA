@@ -23,6 +23,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/ecdsa/keygen"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"math/big"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 func newRound10(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- PrePubData, kgid string, threshold int, paillierkeylength int, predata *PrePubData, txhash *big.Int, finalizeend chan<- *big.Int,keytype string) smpc.Round {
@@ -61,7 +62,7 @@ func (round *round10) Start() error {
 	round.temp.signRound9Messages[curIndex] = srm
 	round.out <- srm
 
-	//fmt.Printf("============= round8.start success, current node id = %v =======\n", round.kgid)
+	log.Debug("============= fillize start success, ==============","current node id",round.kgid)
 	return nil
 }
 

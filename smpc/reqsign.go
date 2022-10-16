@@ -1852,6 +1852,7 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 // return value is the backup for the smpc sign
 func SignEC3(msgprex string, message string, cointype string, save string, pkx *big.Int, pky *big.Int, ch chan interface{}, id int, pre *PreSignData) string {
     if id < 0 || id >= len(workers) {
+	    log.Error("===================SignEC3,worker id error.===========================","msgprex",msgprex,"worker id",id)
 	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("not find worker")}
 	    ch <- res
 	    return ""
@@ -1860,6 +1861,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
     gid := w.groupid
 
     if w.groupid == "" {
+	    log.Error("===================SignEC3,get group id fail===========================","msgprex",msgprex,"worker id",id)
 	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get group id fail")}
 	    ch <- res
 	    return ""
@@ -1867,6 +1869,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 
     hashBytes, err2 := hex.DecodeString(message)
     if err2 != nil {
+	    log.Error("===================SignEC3,decode string fail===========================","msgprex",msgprex,"worker id",id,"message",message,"err",err2)
 	    res := RPCSmpcRes{Ret: "", Err: err2}
 	    ch <- res
 	    return ""
@@ -1877,6 +1880,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
     mMtA, _ := new(big.Int).SetString(message, 16)
     mm := strings.Split(save, common.SepSave)
     if len(mm) == 0 {
+	    log.Error("===================SignEC3,get save data fail===========================","msgprex",msgprex,"worker id",id,"save",save)
 	    res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("get save data fail")}
 	    ch <- res
 	    return ""
@@ -1889,6 +1893,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
     ys := secp256k1.S256(cointype).Marshal(pkx, pky)
     exsit, da := GetPubKeyData(ys)
     if !exsit || da == nil {
+	    log.Error("===================SignEC3,get local pubkey data fail==========================","msgprex",msgprex,"worker id",id,"pkx",pkx,"pky",pky)
 	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get local pubkey data fail")}
 	    ch <- res
 	    return ""
@@ -1896,6 +1901,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 
     pubs, ok := da.(*PubKeyData)
     if !ok || pubs.GroupID == "" {
+	    log.Error("===================SignEC3,get local save data fail==========================","msgprex",msgprex,"worker id",id,"gid",pubs.GroupID)
 	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("presign get local save data fail")}
 	    ch <- res
 	    return ""
@@ -1904,12 +1910,14 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
     ///sku1
     da2 := getSkU1FromLocalDb(ys)
     if da2 == nil {
+	    log.Error("===================SignEC3,get sku1 fail==========================","msgprex",msgprex,"worker id",id,"gid",pubs.GroupID)
 	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
 	    ch <- res
 	    return ""
     }
     sku1 := new(big.Int).SetBytes(da2)
     if sku1 == nil {
+	    log.Error("===================SignEC3,set byte for sku1 fail==========================","msgprex",msgprex,"worker id",id,"gid",pubs.GroupID)
 	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
 	    ch <- res
 	    return ""
@@ -1952,7 +1960,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
     go func() {
 	    defer signWg.Done()
 	    if err := signDNode.Start(); nil != err {
-		    fmt.Printf("==========SignEC3, node start, key = %v, err = %v ==========\n", msgprex,err)
+		    log.Error("===================SignEC3,node start error==========================","msgprex",msgprex,"worker id",id,"gid",pubs.GroupID,"err",err)
 		    close(errChan)
 	    }
 
@@ -1965,10 +1973,11 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
 		    }
 	    }
     }()
+
     go SignProcessInboundMessages(msgprex, cointype,commStopChan, errChan,&signWg, ch)
     s, err := processSignFinalize(msgprex, cointype,kgsave.MsgToEnode, errChan, outCh, finalizeendCh, gid)
     if err != nil || s == nil {
-	    common.Debug("=========================SignEC3,process sign fail==============================","key",msgprex,"err",err)
+	    common.Error("=========================SignEC3,process sign fail==============================","key",msgprex,"err",err)
 	    if len(ch) == 0 {
 		res := RPCSmpcRes{Ret: "", Err: err}
 		ch <- res
