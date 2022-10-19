@@ -1047,7 +1047,7 @@ func (w *RPCReqWorker) Clear2() {
 		<-w.acceptWaitSignChan
 	}
 
-	w.SmpcMsg = make(chan string, 100)
+	w.SmpcMsg = make(chan string, 200)
 	w.DNode = nil
 	w.MsgToEnode = make(map[string]string)
 	w.PreSaveSmpcMsg = make([]string, 0)

@@ -112,6 +112,7 @@ func SetSignNonce(account string, nonce string) (string, error) {
 // ch : the channel to save the sign result or error info.
 func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) error {
 	if sbd == nil || workid < 0 || sender == "" || sbd.Raw == "" || sbd.PickData == nil {
+		common.Error("=====================DoSign,param error ================", "workid", workid, "sender", sender, "raw", sbd.Raw)
 		res := RPCSmpcRes{Ret: "", Tip: "do sign fail.", Err: fmt.Errorf("do sign fail")}
 		ch <- res
 		return fmt.Errorf("do sign fail")
@@ -128,6 +129,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 
 	sig, ok := txdata.(*TxDataSign)
 	if !ok {
+		common.Error("===============DoSign,sign data error===================","key", key, "from", from, "raw", sbd.Raw)
 		res := RPCSmpcRes{Ret: "", Tip:"sign data error", Err: fmt.Errorf("sign data error")}
 		ch <- res
 		return fmt.Errorf("sign data error") 
@@ -135,6 +137,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 
 	exsit, _ := GetSignInfoData([]byte(key))
 	if exsit {
+		common.Error("===============DoSign,the sign cmd has handled before===================","key", key, "from", from, "raw", sbd.Raw)
 		res := RPCSmpcRes{Ret: "", Tip:"the sign cmd has handled before", Err: fmt.Errorf("the sign cmd has handled before")}
 		ch <- res
 		return fmt.Errorf("the sign cmd has handled before")
@@ -144,6 +147,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 	ac := &AcceptSignData{Raw:sbd.Raw,Initiator: sender, Account: from, GroupID: sig.GroupID, Nonce: nonce, PubKey: sig.PubKey, MsgHash: sig.MsgHash, MsgContext: sig.MsgContext, Keytype: sig.Keytype, LimitNum: sig.ThresHold, Mode: sig.Mode, TimeStamp: sig.TimeStamp, Deal: "false", Accept: "false", Status: "Pending", Rsv: "", Tip: "", Error: "", AllReply: ars, WorkID: workid}
 	err = SaveAcceptSignData(ac)
 	if err != nil {
+		common.Error("===============DoSign,save sign accept data fail===================","err",err,"key", key, "from", from, "raw", sbd.Raw)
 		res := RPCSmpcRes{Ret: "", Tip:"save sign accept data fail", Err: fmt.Errorf("save sign accept data fail")}
 		ch <- res
 		return fmt.Errorf("save sign accept data fail")
@@ -339,6 +343,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 	if chret != "" {
 		_, reply := AcceptSign("", from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, w.limitnum, sig.Mode, "true", "true", "Success", chret, "", "", nil, w.id)
 		if reply != nil {
+		    common.Error("=====================DoSign,accept sign fail ================", "key", key, "from", from, "gid",sig.GroupID)
 		    ars := GetAllReplyFromGroup2(w.id,sender)
 		    errinfo := "Abnormal value in MPC calculation,please try again."
 		    if cherr.Error() == "signing timeout" {
@@ -357,6 +362,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 	}
 
 	if cherr != nil {
+		common.Error("=====================DoSign,sign fail ================", "key", key, "from", from, "gid", sig.GroupID)
 		ars := GetAllReplyFromGroup2(w.id,sender)
 		errinfo := "Abnormal value in MPC calculation,please try again."
 		if cherr.Error() == "signing timeout" {
@@ -369,6 +375,7 @@ func DoSign(sbd *SignPickData, workid int, sender string, ch chan interface{}) e
 		return cherr
 	}
 
+	common.Error("=====================DoSign,sign fail,Abnormal value ================", "key", key, "from", from, "gid", sig.GroupID)
 	ars = GetAllReplyFromGroup2(w.id,sender)
 	errinfo := "Abnormal value in MPC calculation,please try again."
 	AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
@@ -597,6 +604,7 @@ func Sign(raw string) (string, string, error) {
 		exsit, _ = GetPubKeyData([]byte(key))
 	}
 	if exsit {
+	    common.Debug("=====================Sign,The sign command already exist================", "key", key, "from", from, "raw", raw)
 	    return "","",fmt.Errorf("The sign command already exist")
 	}
 
@@ -931,11 +939,13 @@ func HandleRPCSign() {
 
 	    exsit, da := GetPubKeyData(smpcpks[:])
 	    if !exsit {
+		common.Debug("=====================HandleRPCSign,sign cmd not in pubkeydata================", "key",rsd.Key, "pubkey", rsd.PubKey)
 		continue
 	    }
 	    
 	    _, ok := da.(*PubKeyData)
 	    if !ok {
+		common.Debug("=====================HandleRPCSign,sign cmd data error================", "key",rsd.Key, "pubkey", rsd.PubKey)
 		continue
 	    }
 	    
@@ -982,6 +992,7 @@ func HandleRPCSign() {
 	    }
 
 	    if bret {
+		    common.Debug("=====================HandleRPCSign,return is true================", "key",rsd.Key, "pubkey", rsd.PubKey)
 		    continue
 	    }
 
@@ -1014,6 +1025,7 @@ func HandleRPCSign() {
 	    msghash := Keccak256Hash([]byte(strings.ToLower(string(val)))).Hex()
 	    MsgReceiv.WriteMap(msghash,NowMilliStr())
 	    SetUpMsgList(string(val2), curEnode)
+	    common.Debug("=====================HandleRPCSign,end the function================", "key",rsd.Key, "msghash",msghash)
     }
 }
 
@@ -1254,6 +1266,7 @@ func GetCurNodeSignInfo(geteracc string) ([]*SignCurNodeInfo, string, error) {
 func sign(wsid string, account string, pubkey string, inputcode string, unsignhash []string, keytype string, nonce string, mode string, pickdata []*PickHashData, ch chan interface{}) {
     smpcpks, err := hex.DecodeString(pubkey)
     if err != nil {
+	common.Error("============================sign,decode string error===========================", "pubkey", pubkey, "key", wsid)
 	res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 	ch <- res
 	return
@@ -1288,12 +1301,14 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
     ///sku1
     da2 := getSkU1FromLocalDb(smpcpks[:])
     if da2 == nil {
+	    common.Error("============================sign,get sku1 fail===========================", "pubkey", pubkey, "key", wsid)
 	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
 	    ch <- res
 	    return
     }
     sku1 := new(big.Int).SetBytes(da2)
     if sku1 == nil {
+	    common.Error("============================sign,get sku1 error===========================", "pubkey", pubkey, "key", wsid)
 	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
 	    ch <- res
 	    return
@@ -1338,6 +1353,7 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
 	    //bug
 	    rets := []rune(rsv)
 	    if keytype != "ED25519" && len(rets) != 130 {
+		    common.Error("==========sign,check rsv size fail============", "err", GetRetErr(ErrSmpcSigWrongSize), "key", wsid)
 		    res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrSmpcSigWrongSize)}
 		    ch <- res
 		    return
@@ -1347,7 +1363,7 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
     if result != "" {
 	    w, err := FindWorker(wsid)
 	    if w == nil || err != nil {
-		    common.Debug("==========sign,not found worker============", "err", err, "key", wsid)
+		    common.Error("==========sign,not found worker============", "err", err, "key", wsid)
 		    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get worker error")}
 		    ch <- res
 		    return
@@ -1368,7 +1384,7 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
     }
 
     if cherrtmp != nil {
-	    common.Info("================sign,the terminal sign res is failure================", "err", cherrtmp, "key", wsid)
+	    common.Error("================sign,the terminal sign res is failure================", "err", cherrtmp, "key", wsid)
 	    res := RPCSmpcRes{Ret: "", Tip: "", Err: cherrtmp}
 	    ch <- res
 	    return
@@ -1509,7 +1525,7 @@ func signEC(msgprex string, txhash []string, save string, sku1 *big.Int, smpcpkx
 
     w, err := FindWorker(msgprex)
     if w == nil || err != nil {
-	    common.Debug("==========smpc_sign,no find worker===========", "key", msgprex, "err", err)
+	    common.Error("==========smpc_sign,not find worker===========", "key", msgprex, "err", err)
 	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("not find worker")}
 	    ch <- res
 	    return ""
@@ -1532,11 +1548,11 @@ func signEC(msgprex string, txhash []string, save string, sku1 *big.Int, smpcpkx
 			    }
 		    }
 		    if pick == nil {
+			    common.Error("==========smpc_sign,check pickkey fail===========", "key", msgprex,"tx hash",vv)
 			    return
 		    }
 		    //
 
-		    fmt.Printf("============================signEC,pkx = %v,pky = %v =============================\n", smpcpkx, smpcpky)
 		    key := Keccak256Hash([]byte(strings.ToLower(msgprex + "-" + vv))).Hex()
 		    sd := &SignData{MsgPrex: msgprex, Key: key, InputCodeT: inputcode, Save: save, Sku1: sku1, Txhash: vv, GroupID: w.groupid, NodeCnt: w.NodeCnt, ThresHold: w.ThresHold, SmpcFrom: w.SmpcFrom, Keytype: keytype, Cointype: "", Pkx: smpcpkx, Pky: smpcpky, Pre: pick}
 
@@ -1576,8 +1592,8 @@ func signEC(msgprex string, txhash []string, save string, sku1 *big.Int, smpcpkx
 
     ret += "NULL"
     tmps := strings.Split(ret, ":")
-    common.Debug("======================signEC=====================", "return result", ret, "len(tmps)", len(tmps), "len(tmp)", len(tmp), "key", msgprex)
     if len(tmps) == (len(tmp) + 1) {
+	    common.Debug("======================signEC,sign success=====================", "return result", ret, "len(tmps)", len(tmps), "len(tmp)", len(tmp), "key", msgprex)
 	    res := RPCSmpcRes{Ret: ret, Tip: "", Err: nil}
 	    ch <- res
 	    return ""

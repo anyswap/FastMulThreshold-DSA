@@ -65,7 +65,7 @@ var (
        CreatingSignSubGidTimeOut = 8
 
 	// WaitMsgTimeGG20 wait msg timeout
-	WaitMsgTimeGG20 = 180
+	WaitMsgTimeGG20 = 300
 
 	waitall         = cht * recalcTimes
 	waitallgg20     = WaitMsgTimeGG20 * recalcTimes
@@ -784,6 +784,7 @@ type RecvMsg struct {
 // Run Implement keygen/sign/reshare command and Process accept data
 func (recv *RecvMsg) Run(workid int, ch chan interface{}) bool {
 	if workid < 0 || workid >= RPCMaxWorker {
+		common.Error("================RecvMsg.Run, worker id error=================", "worker id", workid)
 		res2 := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("worker id error")}
 		ch <- res2
 		return false
@@ -791,6 +792,7 @@ func (recv *RecvMsg) Run(workid int, ch chan interface{}) bool {
 
 	res := recv.msg
 	if res == "" {
+		common.Error("================RecvMsg.Run, msg error=================", "msg",recv.msg)
 		res2 := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("msg error")}
 		ch <- res2
 		return false
@@ -818,6 +820,7 @@ func (recv *RecvMsg) Run(workid int, ch chan interface{}) bool {
 	    msghash := Keccak256Hash([]byte(strings.ToLower(res))).Hex()
 	    _,exist := MsgReceiv.ReadMap(msghash)
 	    if exist {
+		log.Debug("===================RecvMsg.Run,already exist the msg hash====================","msghash",msghash,"worker id",workid)
 		return true
 	    }
 

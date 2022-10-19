@@ -49,6 +49,7 @@ func SignProcessInboundMessages(msgprex string, keytype string,finishChan chan s
 
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
+	    log.Error("========================SignProcessInboundMessages,not find worker====================","key",msgprex)
 	    if len(ch) == 0 {
 		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to sign process inbound messages")}
 		ch <- res
@@ -68,6 +69,7 @@ func SignProcessInboundMessages(msgprex string, keytype string,finishChan chan s
 			//_, exist2 := w.Msg56[hexs]
 			_, exist2 := w.Msg56.ReadMap(hexs)
 			if exist2 {
+			    log.Debug("========================SignProcessInboundMessages,the msg hash already exist and return====================","msg hash",hexs,"key",msgprex)
 			   break 
 			}
 			///
@@ -76,6 +78,7 @@ func SignProcessInboundMessages(msgprex string, keytype string,finishChan chan s
 			msgmap := make(map[string]string)
 			err := json.Unmarshal([]byte(m), &msgmap)
 			if err != nil {
+			    log.Error("========================SignProcessInboundMessages,unmarshal the msg fail====================","msg hash",hexs,"key",msgprex,"err",err)
 			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
@@ -86,6 +89,7 @@ func SignProcessInboundMessages(msgprex string, keytype string,finishChan chan s
 
 			mm := SignGetRealMessage(msgmap)
 			if mm == nil {
+			    log.Error("========================SignProcessInboundMessages,get real msg fail====================","msg hash",hexs,"key",msgprex)
 			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("fail to sign process inbound messages")}
 				ch <- res
@@ -133,7 +137,7 @@ func SignProcessInboundMessages(msgprex string, keytype string,finishChan chan s
 			
 			//common.Debug("===============sign,check p2p msg===============","sig",sig,"sender",msgmap["ENode"],"msg type",msgmap["Type"])
 			if !checkP2pSig(keytype,sig,mm,msgmap["ENode"]) {
-			    common.Error("===============sign,check p2p msg fail===============","sender",msgmap["ENode"],"msg hash",hexs)
+			    common.Error("===============sign,check p2p msg fail===============","sender",msgmap["ENode"],"msg hash",hexs,"key",msgprex)
 			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
 				ch <- res
@@ -178,7 +182,7 @@ func SignProcessInboundMessages(msgprex string, keytype string,finishChan chan s
 			id := fmt.Sprintf("%v", ID)
 			uid := hex.EncodeToString([]byte(id))
 			if !strings.EqualFold(uid,mm.GetFromID()) {
-			    common.Error("===============sign,check p2p msg fail===============","sender",msgmap["ENode"],"msg hash",hexs,"err","check from ID fail")
+			    common.Error("===============sign,check p2p msg fail===============","sender",msgmap["ENode"],"msg hash",hexs,"err","check from ID fail","key",msgprex)
 			    if len(ch) == 0 {
 				res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check from ID fail")}
 				ch <- res
@@ -212,7 +216,7 @@ func SignProcessInboundMessages(msgprex string, keytype string,finishChan chan s
 
 			_, err = w.DNode.Update(mm)
 			if err != nil {
-				log.Error("========== SignProcessInboundMessages, dnode update fail===========","msg hash",hexs,"err",err)
+				log.Error("========== SignProcessInboundMessages, dnode update fail===========","msg hash",hexs,"err",err,"key",msgprex)
 				if len(ch) == 0 {
 				    res := RPCSmpcRes{Ret: "", Err: err}
 				    ch <- res
@@ -221,9 +225,6 @@ func SignProcessInboundMessages(msgprex string, keytype string,finishChan chan s
 				return
 			}
 			
-			//log.Debug("========================SignProcessInboundMessages,update msg success====================","msg",m,"key",msgprex)
-			
-			//w.Msg56[hexs] = true
 			w.Msg56.WriteMap(hexs,true)
 			
 			//if !dul {

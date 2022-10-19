@@ -441,6 +441,7 @@ func GetEnodesForSubGroup(id int,gid string) []string {
 // DoReq   1.Parse the sign or pre-sign command and implement the process 2.analyze the accept data   
 func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan interface{}) bool {
 	if raw == "" || workid < 0 || sender == "" {
+		common.Error("===============ReqSmpcSign.DoReq,param error===================","worker id",workid,"sender",sender,"raw",raw)
 		res := RPCSmpcRes{Ret: "", Tip: "do req fail.", Err: fmt.Errorf("do req fail")}
 		ch <- res
 		return false
@@ -453,13 +454,13 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 			sd := &SignData{}
 			if err = sd.UnmarshalJSON([]byte(msgmap["SignData"])); err != nil {
-			    common.Error("===============ReqSmpcSign.DoReq,unmarshal sign data error===================","err",err)
+			    common.Error("===============ReqSmpcSign.DoReq,unmarshal sign data error===================","err",err,"worker id",workid)
 			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			    ch <- res
 			    return false
 			}
 			
-			common.Debug("===============ReqSmpcSign.DoReq,raw is signdata type===================", "msgprex", sd.MsgPrex, "key", sd.Key, "pkx", sd.Pkx, "pky", sd.Pky)
+			common.Debug("===============ReqSmpcSign.DoReq,get SignData===================", "msgprex", sd.MsgPrex, "key", sd.Key, "pkx", sd.Pkx, "pky", sd.Pky)
 			
 			/*if RelayInPeers {
 			    go func(msg2 string,gid string) {
@@ -475,7 +476,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			//check current node whther in group
 			// cmd data default not to relay to other nodes
 			if !IsInGroup(sd.GroupID) {
-				common.Debug("===============ReqSmpcSign.DoReq,current node is not in group===================", "msgprex", sd.MsgPrex, "key", sd.Key)
+				common.Debug("===============ReqSmpcSign.DoReq,get SignData,current node is not in group===================", "msgprex", sd.MsgPrex, "key", sd.Key)
 				res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("current node is not in group")}
 				ch <- res
 				return false
@@ -496,7 +497,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 			smpcpks, err := hex.DecodeString(pubkeyhex)
 			if err != nil {
-			    common.Error("===============ReqSmpcSign.DoReq,decode string fail===================", "msgprex", sd.MsgPrex, "key", sd.Key, "pkx", sd.Pkx, "pky", sd.Pky,"err",err)
+			    common.Error("===============ReqSmpcSign.DoReq,get SignData,decode string fail===================", "msgprex", sd.MsgPrex, "key", sd.Key, "pkx", sd.Pkx, "pky", sd.Pky,"err",err)
 			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			    ch <- res
 			    return false
@@ -522,12 +523,14 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			if sd.InputCodeT != "" {
 				da3 := getBip32cFromLocalDb(smpcpks[:])
 				if da3 == nil {
+					common.Error("===============ReqSmpcSign.DoReq,presign get bip32 fail===================", "msgprex", sd.MsgPrex, "key", sd.Key, "pkx", sd.Pkx, "pky", sd.Pky)
 					res := RPCSmpcRes{Ret: "", Tip: "presign get bip32 fail", Err: fmt.Errorf("presign get bip32 fail")}
 					ch <- res
 					return false
 				}
 				bip32c := new(big.Int).SetBytes(da3)
 				if bip32c == nil {
+					common.Error("===============ReqSmpcSign.DoReq,presign get bip32 error===================", "msgprex", sd.MsgPrex, "key", sd.Key, "pkx", sd.Pkx, "pky", sd.Pky)
 					res := RPCSmpcRes{Ret: "", Tip: "presign get bip32 error", Err: fmt.Errorf("presign get bip32 error")}
 					ch <- res
 					return false
@@ -579,7 +582,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 			var ch1 = make(chan interface{}, 1)
 			for i := 0; i < recalcTimes; i++ {
-				common.Debug("===============ReqSmpcSign.DoReq,sign recalc===================", "i", i, "msgprex", sd.MsgPrex, "key", sd.Key)
+				common.Debug("===============ReqSmpcSign.DoReq,get SignData,sign recalc===================", "i", i, "msgprex", sd.MsgPrex, "key", sd.Key)
 				if len(ch1) != 0 {
 					<-ch1
 				}
@@ -592,6 +595,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 					ww, err2 := FindWorker(sd.MsgPrex)
 					if err2 != nil || ww == nil {
+						common.Error("===============ReqSmpcSign.DoReq,get SignData,sign finish and not find worker===================", "i", i, "msgprex", sd.MsgPrex, "key", sd.Key)
 						res2 := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("not find worker")}
 						ch <- res2
 						return false
@@ -603,6 +607,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 					return true
 				}
 				
+				common.Debug("===============ReqSmpcSign.DoReq,get SignData,sign fail and will try again===================", "i", i, "msgprex", sd.MsgPrex, "key", sd.Key)
 				w.Clear2()
 			}
 
@@ -612,6 +617,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			    errinfo = cherr.Error()
 			}
 
+			common.Debug("===============ReqSmpcSign.DoReq,get SignData,sign fail===================","msgprex", sd.MsgPrex, "key", sd.Key)
 			res2 := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf(errinfo)}
 			ch <- res2
 			return false
@@ -899,6 +905,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			
 			key, from, nonce, txdata, err := CheckRaw(signbrocast.Raw)
 			if err != nil {
+			    log.Error("=======================DoReq,check raw data fail========================","err",err)
 			    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 			    ch <- res
 			    return false
@@ -906,6 +913,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			
 			sig, ok := txdata.(*TxDataSign)
 			if !ok {
+			    log.Error("=======================DoReq,sign raw data fail========================","key",key)
 			    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign data error")}
 			    ch <- res
 			    return false
@@ -925,6 +933,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			//check current node whther in group
 			// cmd data default not to relay to other nodes
 			if !IsInGroup(sig.GroupID) {
+				log.Error("=======================DoReq,current node is not in group========================","gid",sig.GroupID,"key",key)
 				res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("current node is not in group")}
 				ch <- res
 				return false
@@ -1195,7 +1204,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			for _, vv := range signbrocast.PickHash {
 				pre := GetPreSignData(sig.PubKey, sig.InputCode, sig.GroupID, vv.PickKey)
 				if pre == nil {
-				    log.Error("============================DoReq,get pre-sign data fail============================","pubkey",sig.PubKey,"gid",sig.GroupID,"data key",vv.PickKey)
+				    log.Error("============================DoReq,get pre-sign data fail============================","pubkey",sig.PubKey,"gid",sig.GroupID,"data key",vv.PickKey,"key",key)
 				    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get pre-sign data fail")}
 				    ch <- res
 				    mutex.Unlock()
@@ -1206,7 +1215,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				pickdata = append(pickdata, pd)
 				err = DeletePreSignData(sig.PubKey, sig.InputCode, sig.GroupID, vv.PickKey)
 				if err != nil {
-				    log.Error("============================DoReq,delete pre-sign data fail============================","err",err,"pubkey",sig.PubKey,"gid",sig.GroupID,"data key",vv.PickKey)
+				    log.Error("============================DoReq,delete pre-sign data fail============================","err",err,"pubkey",sig.PubKey,"gid",sig.GroupID,"data key",vv.PickKey,"key",key)
 				    res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 				    ch <- res
 				    mutex.Unlock()
@@ -1244,6 +1253,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 			sig, ok := txdata.(*TxDataSign)
 			if !ok {
+			    log.Error("=========================DoReq,sign data fail=========================","err",err,"key",key)
 			    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign data error")}
 			    ch <- res
 			    return false
@@ -1263,6 +1273,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			//check current node whther in group
 			// cmd data default not to relay to other nodes
 			if !IsInGroup(sig.GroupID) {
+				log.Error("=========================DoReq,current node is not in group=========================","group id",sig.GroupID,"key",key)
 				res := RPCSmpcRes{Ret: "", Tip:"", Err: fmt.Errorf("current node is not in group")}
 				ch <- res
 				return false
