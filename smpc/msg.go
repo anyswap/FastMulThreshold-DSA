@@ -1999,4 +1999,83 @@ func checkP2pSig(keytype string,sig []byte,msg smpclib.Message,enodeID string) b
     return false
 }
 
+//--------------------------------------------------------------------
+
+func sigPubKey(pubkey,enodeID string,keytype string) ([]byte,error) {
+    if pubkey == "" || enodeID == "" {
+	return nil,errors.New("param error")
+    }
+
+    priv,err := getNodePrivate(KeyFile)
+    if err != nil {
+	return nil,errors.New("get private fail")
+    }
+
+    pub, err := hex.DecodeString(pubkey)
+    if err != nil {
+	return nil,err
+    }
+
+    hash := crypto.Keccak256(pub)
+
+    if len(hash) != 32 {
+	return nil,errors.New("hash len != 32")
+    }
+
+    sig,err := crypto.Sign(hash,priv)
+    if err != nil {
+	log.Error("====================sigPubKey fail=======================","err",err)
+	return nil,err
+    }
+
+    if !checkPubKeySig(keytype,sig,pubkey,enodeID) {
+	return nil,errors.New("check sig error")
+    }
+
+    return sig,nil
+}
+
+func checkPubKeySig(keytype string,sig []byte,pubkey string,enodeID string) bool {
+    if sig == nil || pubkey == "" || enodeID == "" {
+	return false
+    }
+    
+    pubbyte, err := hex.DecodeString(pubkey)
+    if err != nil {
+	return false 
+    }
+
+    hash := crypto.Keccak256(pubbyte)
+
+    public,err := crypto.SigToPub(hash,sig)
+    if err != nil {
+	log.Error("====================checkPubKeySig fail=======================","err",err)
+	return false
+    }
+
+    pub := secp256k1.S256(keytype).Marshal(public.X,public.Y) 
+    pub2 := hex.EncodeToString(pub) // 04.....
+    s := []rune(pub2) // 04.....
+    ss := string(s[2:])
+    // pub2: 04730c8fc7142d15669e8329138953d9484fd4cce0c690e35e105a9714deb741f10b52be1c5d49eeeb6f00aab8f3d2dec4e3352d0bf56bdbc2d86cb5f89c8e90d0
+    // ss: 730c8fc7142d15669e8329138953d9484fd4cce0c690e35e105a9714deb741f10b52be1c5d49eeeb6f00aab8f3d2dec4e3352d0bf56bdbc2d86cb5f89c8e90d0
+    // enodeID: 730c8fc7142d15669e8329138953d9484fd4cce0c690e35e105a9714deb741f10b52be1c5d49eeeb6f00aab8f3d2dec4e3352d0bf56bdbc2d86cb5f89c8e90d0
+    if ss == enodeID {
+	return true
+    }
+
+    tmp := "04" + enodeID
+    pubkey2, err := hex.DecodeString(tmp)
+    if err != nil {
+	common.Error("check p2p sig error(decode enode ID error)","enodeID",enodeID,"err",err)
+	return false
+    }
+
+    if !crypto.VerifySignature(pubkey2,hash,sig) {
+	return false
+    }
+
+    return false
+}
+
 

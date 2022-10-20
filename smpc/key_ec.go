@@ -31,6 +31,7 @@ import (
 	"sync"
 	"time"
 	"encoding/hex"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
 )
 
 //---------------------------------------ECDSA start-----------------------------------------------------------------------
@@ -197,6 +198,31 @@ func ProcessInboundMessages(msgprex string, keytype string,finishChan chan struc
 				
 				return
 			}
+
+			////////check pubkey sig
+			if msgmap["Type"] == "KGRound4Message" && msgmap["PubKeyX"] != "" && msgmap["PubKeyY"] != "" { //4 message
+			    pubx2,_ := new(big.Int).SetString(msgmap["PubKeyX"],10)
+			    puby2,_ := new(big.Int).SetString(msgmap["PubKeyY"],10)
+			    ys := secp256k1.S256(keytype).Marshal(pubx2,puby2)
+			    pubkeyhex := hex.EncodeToString(ys)
+			    pubsig, err := hex.DecodeString(msgmap["PubKeySig"])
+			    if err == nil {
+				if !checkPubKeySig(keytype,pubsig,pubkeyhex,msgmap["ENode"]) {
+				    common.Error("===============keygen,check pubkey msg fail===============","msg hash",hexs,"sender",msgmap["ENode"])
+				    if len(ch) == 0 {
+					res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("check msg sig fail")}
+					ch <- res
+				    }
+
+				    return
+				}
+				
+				if !Find(w.pubkeysig,msgmap["PubKeySig"]) {
+				    w.pubkeysig.PushBack(msgmap["PubKeySig"])
+				}
+			    }
+			}
+			////////////////////////
 
 			_, err = w.DNode.Update(mm)
 			if err != nil {
@@ -442,8 +468,13 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 				    if msg["ComXiC"] == "" {
 					return nil
 				    }
-
 				    comxic,_ := new(big.Int).SetString(msg["ComXiC"],10)
+				    
+				    var pubx,puby *big.Int
+				    if msg["PubKeyX"] != "" && msg["PubKeyY"] != "" {
+					pubx,_ = new(big.Int).SetString(msg["PubKeyX"],10)
+					puby,_ = new(big.Int).SetString(msg["PubKeyY"],10)
+				    }
 				    
 					kg := &keygen.KGRound4Message{
 						KGRoundMessage: new(keygen.KGRoundMessage),
@@ -451,6 +482,8 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 						NtildeProof1:   pf1,
 						NtildeProof2:   pf2,
 						ComXiC:		comxic,
+						PubKeyX:	pubx,
+						PubKeyY:	puby,
 					}
 					kg.SetFromID(from)
 					kg.SetFromIndex(index)
@@ -691,15 +724,32 @@ func ProcessOutCh(msgprex string, msg smpclib.Message,keytype string) error {
 		return fmt.Errorf("get worker fail")
 	}
 
+	msgmap := msg.OutMap()
+
+	///////////////////////////////
+	if msg.GetMsgType() == "KGRound4Message" && msgmap["PubKeyX"] != "" && msgmap["PubKeyY"] != "" {
+	    pubx,_ := new(big.Int).SetString(msgmap["PubKeyX"],10)
+	    puby,_ := new(big.Int).SetString(msgmap["PubKeyY"],10)
+	    ys := secp256k1.S256(keytype).Marshal(pubx,puby)
+	    pubkeyhex := hex.EncodeToString(ys)
+	    pubsig,err := sigPubKey(pubkeyhex,curEnode,keytype)
+	    if err != nil {
+		return err
+	    }
+	    msgmap["PubKeySig"] = hex.EncodeToString(pubsig)
+	    w.pubkeysig.PushBack(msgmap["PubKeySig"])
+	}
+	///////////////////////////////
+
+	msgmap["Key"] = msgprex
+	msgmap["ENode"] = curEnode
+	
 	sig,err := sigP2pMsg(msg,curEnode,keytype)
 	if err != nil {
 	    return err
 	}
-
-	msgmap := msg.OutMap()
-	msgmap["Key"] = msgprex
-	msgmap["ENode"] = curEnode
 	msgmap["Sig"] = hex.EncodeToString(sig)
+	
 	s, err := json.Marshal(msgmap)
 	if err != nil {
 		log.Error("====================ProcessOutCh, marshal fail=================","err",err,"key",msgprex)

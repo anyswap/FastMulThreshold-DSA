@@ -193,6 +193,7 @@ type AcceptReqAddrData struct {
 	Mode      string
 	TimeStamp string
 	FixedApprover  []string
+	PubKeySig  []string
 
 	Deal   string
 	Accept string
@@ -327,18 +328,43 @@ func AcceptReqAddr(initiator string, account string, cointype string, groupid st
 		gs = sigs
 	}
 
-	ac2 := &AcceptReqAddrData{Initiator: in, Account: ac.Account, Cointype: ac.Cointype, GroupID: ac.GroupID, Nonce: ac.Nonce, LimitNum: ac.LimitNum, Mode: ac.Mode, TimeStamp: ac.TimeStamp, Deal: de, Accept: acp, Status: sts, PubKey: pk, Tip: ttip, Error: eif, AllReply: arl, WorkID: wid, Sigs: gs}
+	//////////////save pubkey sig also
+	pubkeysig := ac.PubKeySig
+	if workid >= 0 {
+	    w := workers[workid]
+	    if w != nil && w.pubkeysig != nil && w.pubkeysig.Len() != 0 {
+		var next *list.Element
+		for e := w.pubkeysig.Front(); e != nil; e = next {
+			next = e.Next()
+
+			if e.Value == nil {
+				continue
+			}
+
+			s := e.Value.(string)
+
+			if s == "" {
+				continue
+			}
+
+			pubkeysig = append(pubkeysig,s)
+		}
+	    }
+	}
+	//////////////////////////////////
+
+	ac2 := &AcceptReqAddrData{Initiator: in, Account: ac.Account, Cointype: ac.Cointype, GroupID: ac.GroupID, Nonce: ac.Nonce, LimitNum: ac.LimitNum, Mode: ac.Mode, TimeStamp: ac.TimeStamp, Deal: de, Accept: acp, Status: sts, PubKey: pk, Tip: ttip, Error: eif, AllReply: arl, WorkID: wid, Sigs: gs, PubKeySig:pubkeysig}
 
 	e, err := Encode2(ac2)
 	if err != nil {
 		common.Debug("=====================AcceptReqAddr,encode fail=======================", "err", err, "key", key)
-		return "smpc back-end internal error:encode reqaddr accept data fail", err
+		return "", err
 	}
 
 	es, err := Compress([]byte(e))
 	if err != nil {
 		common.Debug("=====================AcceptReqAddr,compress fail=======================", "err", err, "key", key)
-		return "smpc back-end internal error:compress reqaddr accept data fail", err
+		return "", err
 	}
 
 	if ac2.Status != "Pending" {

@@ -417,6 +417,10 @@ type KGRound4Message struct {
 
 	// add for xi commitment
 	ComXiC *big.Int
+	
+	//pubkey
+	PubKeyX *big.Int
+	PubKeyY *big.Int
 }
 
 // GetFromID get the ID of sending nodes in the group
@@ -465,6 +469,8 @@ func (kg *KGRound4Message) OutMap() map[string]string {
 	m["NtildeProof2"] = string(pf2)
 
 	m["ComXiC"] = fmt.Sprintf("%v",kg.ComXiC)
+	m["PubKeyX"] = fmt.Sprintf("%v",kg.PubKeyX)
+	m["PubKeyY"] = fmt.Sprintf("%v",kg.PubKeyY)
 	m["Type"] = "KGRound4Message"
 	return m
 }

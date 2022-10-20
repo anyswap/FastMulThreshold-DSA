@@ -36,6 +36,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/log"
 	ethcrypto "github.com/fsn-dev/cryptoCoins/tools/crypto"
 	"crypto/ecdsa"
+	"github.com/anyswap/FastMulThreshold-DSA/crypto"
 )
 
 var (
@@ -386,6 +387,7 @@ type ReqAddrStatus struct {
 	Keytype  string
 	Mode      string
 	FixedApprover  []string
+	PubKeySig  []string
 	Sigs string //5:enodeid1:account1:enodeid2:account2:enodeid3:account3:enodeid4:account4:enodeid5:account5
 	Comment string
 }
@@ -443,6 +445,48 @@ func GetApproverByReqAddrKey(key string,enodeID string) string {
     return ""
 }
 
+func checkPubKey(pubkey string,keytype string,gid string,pubsig []string) bool {
+    pub, err := hex.DecodeString(pubkey)
+    if err != nil {
+	return false 
+    }
+
+    hash := crypto.Keccak256(pub)
+
+    for _,sig := range pubsig {
+	sig2, err := hex.DecodeString(sig)
+	if err != nil {
+	    return false
+	}
+
+	public,err := crypto.SigToPub(hash,sig2)
+	if err != nil {
+	   return false 
+	}
+	
+	pub := secp256k1.S256(keytype).Marshal(public.X,public.Y) 
+	pub2 := hex.EncodeToString(pub) // 04.....
+	s := []rune(pub2) // 04.....
+	ss := string(s[2:])
+	
+	ns, nodes := GetGroup(gid)
+	if ns != len(pubsig) {
+	    return false
+	}
+
+	others := strings.Split(nodes, common.Sep2)
+	for _, v := range others {
+	    node2 := ParseNode(v)
+	    if strings.EqualFold(ss,node2) {
+		log.Debug("==============checkPubKey,verify pubkey sig success==================","pubkey",pubkey)
+		return true
+	    }
+	}
+    }
+
+    return false
+}
+
 // GetReqAddrStatus get the result of the keygen request by key
 func GetReqAddrStatus(key string) (string, string, error) {
 	if key == "" {
@@ -463,7 +507,16 @@ func GetReqAddrStatus(key string) (string, string, error) {
 		rep = append(rep,nr)
 	    }
 
-	    los := &ReqAddrStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,Status: ac.Status, PubKey: ac.PubKey, ThresHold:ac.LimitNum,Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp, Initiator: ac.Initiator, Keytype: ac.Cointype, Mode: ac.Mode, FixedApprover: ac.FixedApprover, Sigs: ac.Sigs, Comment: ac.Comment}
+	    status := ac.Status
+	    pubkey := ac.PubKey
+	    errorinfo := ac.Error
+	    if pubkey != "" && !checkPubKey(pubkey,ac.Cointype,ac.GroupID,ac.PubKeySig) {
+		status = "Failure"
+		pubkey = ""
+		errorinfo = "verify pubkey sig fail"
+	    }
+	    
+	    los := &ReqAddrStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,Status: status, PubKey: pubkey, ThresHold:ac.LimitNum,Tip: ac.Tip, Error: errorinfo, AllReply: rep, TimeStamp: ac.TimeStamp, Initiator: ac.Initiator, Keytype: ac.Cointype, Mode: ac.Mode, FixedApprover: ac.FixedApprover, Sigs: ac.Sigs, Comment: ac.Comment, PubKeySig: ac.PubKeySig}
 	    ret, _ := json.Marshal(los)
 	    return string(ret), "", nil
 	}
@@ -485,7 +538,16 @@ func GetReqAddrStatus(key string) (string, string, error) {
 	    rep = append(rep,nr)
 	}
 
-	los := &ReqAddrStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,Status: ac.Status, PubKey: ac.PubKey, ThresHold:ac.LimitNum,Tip: ac.Tip, Error: ac.Error, AllReply: rep, TimeStamp: ac.TimeStamp, Initiator: ac.Initiator, Keytype: ac.Cointype, Mode: ac.Mode, FixedApprover: ac.FixedApprover, Sigs: ac.Sigs, Comment: ac.Comment}
+	status := ac.Status
+	pubkey := ac.PubKey
+	errorinfo := ac.Error
+	if pubkey != "" && !checkPubKey(pubkey,ac.Cointype,ac.GroupID,ac.PubKeySig) {
+	    status = "Failure"
+	    pubkey = ""
+	    errorinfo = "verify pubkey sig fail"
+	}
+	
+	los := &ReqAddrStatus{KeyID:key,From:ac.Account,GroupID:ac.GroupID,Status: status, PubKey: pubkey, ThresHold:ac.LimitNum,Tip: ac.Tip, Error: errorinfo, AllReply: rep, TimeStamp: ac.TimeStamp, Initiator: ac.Initiator, Keytype: ac.Cointype, Mode: ac.Mode, FixedApprover: ac.FixedApprover, Sigs: ac.Sigs, Comment: ac.Comment, PubKeySig: ac.PubKeySig}
 	ret, _ := json.Marshal(los)
 	return string(ret), "", nil
 }

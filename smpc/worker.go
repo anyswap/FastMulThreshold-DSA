@@ -151,6 +151,7 @@ type RPCReqWorker struct {
 	rsv    *list.List
 	pkx    *list.List
 	pky    *list.List
+	pubkeysig    *list.List
 	save   *list.List
 	sku1   *list.List
 	bip32c *list.List
@@ -261,6 +262,7 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		rsv:    list.New(),
 		pkx:    list.New(),
 		pky:    list.New(),
+		pubkeysig:    list.New(),
 		save:   list.New(),
 		sku1:   list.New(),
 		bip32c: list.New(),
@@ -487,6 +489,11 @@ func (w *RPCReqWorker) Clear() {
 	for e := w.pky.Front(); e != nil; e = next {
 		next = e.Next()
 		w.pky.Remove(e)
+	}
+
+	for e := w.pubkeysig.Front(); e != nil; e = next {
+		next = e.Next()
+		w.pubkeysig.Remove(e)
 	}
 
 	for e := w.save.Front(); e != nil; e = next {
@@ -839,6 +846,11 @@ func (w *RPCReqWorker) Clear2() {
 	for e := w.pky.Front(); e != nil; e = next {
 		next = e.Next()
 		w.pky.Remove(e)
+	}
+
+	for e := w.pubkeysig.Front(); e != nil; e = next {
+		next = e.Next()
+		w.pubkeysig.Remove(e)
 	}
 
 	for e := w.save.Front(); e != nil; e = next {

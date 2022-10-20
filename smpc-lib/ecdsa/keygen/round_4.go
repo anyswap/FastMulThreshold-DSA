@@ -192,6 +192,8 @@ func (round *round4) Start() error {
 		NtildeProof1:   ntildeProof1,
 		NtildeProof2:   ntildeProof2,
 		ComXiC:		commitXiG.C,
+		PubKeyX:        pkx,
+		PubKeyY:        pky,
 	}
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(curIndex)
