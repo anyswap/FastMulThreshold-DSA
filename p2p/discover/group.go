@@ -130,8 +130,22 @@ var (
 )
 
 // GetSmpcGidDb open database for group db
-func GetSmpcGidDb() error {
-	dir := GetGroupDir()
+func GetSmpcGidDb(eid string) error {
+	if eid == "" {
+		return errors.New("enode id error")
+	}
+
+	if giddb != nil {
+		return nil
+	}
+
+	dir := common.DefaultDataDir()
+	if setgroup != 0 {
+		dir = filepath.Join(dir, p2pSuffix, "bootnode-"+eid)
+	} else {
+		dir = filepath.Join(dir, p2pSuffix, eid)
+	}
+	common.Debug("==== GetSmpcGidDb ====", "dir", dir)
 	db, err := ethdb.NewLDBDatabase(dir, 76, 512)
 	if err != nil {
 		common.Error("======================GetSmpcGidDb,open giddb fail======================", "err", err, "dir", dir)
@@ -139,7 +153,6 @@ func GetSmpcGidDb() error {
 	}
 
 	giddb = db
-
 	return nil
 }
 
@@ -1941,8 +1954,14 @@ func StoreGroupToDb(groupInfo *Group) error { //nooo
 
 	// fix bug:resource temporarily unavailable
 	if giddb == nil {
-	    common.Error("===================StoreGroupToDb,init group db fail=====================")
-	    return errors.New("init group db fail") 
+		dir := getGroupDir()
+		//db, err := leveldb.OpenFile(dir, nil)
+		db, err := ethdb.NewLDBDatabase(dir, 76, 512)
+		if err != nil {
+		    common.Error("===================StoreGroupToDb,init group db fail=====================","dir",dir,"err",err)
+		   return err
+		}
+		giddb = db
 	}
 
 	//dir := getGroupDir()
@@ -1966,15 +1985,15 @@ func StoreGroupToDb(groupInfo *Group) error { //nooo
 	alos, err := Encode2(ac)
 	if err != nil {
 		//db.Close()
-		giddb.Close()
-		common.Error("===================StoreGroupToDb=====================","err",err)
+		//giddb.Close()
+		common.Error("===================StoreGroupToDb,encode fail=====================","err",err)
 		return err
 	}
 	ss, err := Compress([]byte(alos))
 	if err != nil {
 		//db.Close()
-		giddb.Close()
-		common.Error("===================StoreGroupToDb=====================","err",err)
+		//giddb.Close()
+		common.Error("===================StoreGroupToDb,compress fail=====================","err",err)
 		return err
 	}
 
@@ -1982,13 +2001,13 @@ func StoreGroupToDb(groupInfo *Group) error { //nooo
 	err = giddb.Put([]byte(key), []byte(ss))
 	if err != nil {
 	    //db.Close()
-	    giddb.Close()
-	    common.Error("===================StoreGroupToDb=====================","err",err)
+	    //giddb.Close()
+	    common.Error("===================StoreGroupToDb,put data to db fail=====================","err",err)
 	    return err
 	}
 
 	//db.Close()
-	giddb.Close()
+	//giddb.Close()
 	common.Debug("================ StoreGroupInfo,success save the group info ================ ")
 	return nil
 }
@@ -1997,34 +2016,40 @@ func RecoverGroupByGID(gid NodeID) (*Group, error) {
 	groupDbLock.Lock()
 	defer groupDbLock.Unlock()
 
-	dir := getGroupDir()
-	db, err := leveldb.OpenFile(dir, nil)
-	if err != nil {
-		return nil, err
+	if giddb == nil {
+		dir := getGroupDir()
+		db, err := ethdb.NewLDBDatabase(dir, 76, 512)
+		//db, err := leveldb.OpenFile(dir, nil)
+		if err != nil {
+			common.Error("======RecoverGroupByGID=======","open db error",err)
+			return nil, err
+		}
+		giddb = db
 	}
 
 	key := crypto.Keccak256Hash([]byte(strings.ToLower(fmt.Sprintf("%v", gid)))).Hex()
-	da, err := db.Get([]byte(key), nil)
+	//da, err := db.Get([]byte(key), nil)
+	da, err := giddb.Get([]byte(key))
 	if err == nil {
 		ds, err := UnCompress(string(da))
 		if err != nil {
-			db.Close()
+			//db.Close()
 			return nil, err
 		}
 
 		dss, err := Decode2(ds, "Group")
 		if err != nil {
 			common.Debug("==== GetGroupInfo() ====", "error", "decode group data fail")
-			db.Close()
+			//db.Close()
 			return nil, err
 		}
 
 		ac := dss.(*Group)
 		common.Debug("==== GetGroupInfo() ====", "ac", ac)
-		db.Close()
+		//db.Close()
 		return ac, nil
 	}
-	db.Close()
+	//db.Close()
 	return nil, err
 }
 
@@ -2106,7 +2131,7 @@ func GetGroupDir() string {
 }
 
 func getGroupDir() string {
-	dir := p2pDir
+	dir := common.DefaultDataDir()
 	if setgroup != 0 {
 		dir = filepath.Join(dir, p2pSuffix, "bootnode-"+SelfID)
 	} else {
@@ -2214,15 +2239,20 @@ func RecoverGroupAll(SdkGroup map[NodeID]*Group) error { //nooo
 	groupDbLock.Lock()
 	defer groupDbLock.Unlock()
 
-	dir := getGroupDir()
-	common.Debug("==== getGroupFromDb() ====", "dir", dir)
-	db, err := leveldb.OpenFile(dir, nil)
-	if err != nil {
-		common.Debug("==== getGroupFromDb() ====", "db open err", err)
-		return err
+	if giddb == nil {
+		dir := getGroupDir()
+		common.Debug("==== getGroupFromDb() ====", "dir", dir)
+		//db, err := leveldb.OpenFile(dir, nil)
+		db, err := ethdb.NewLDBDatabase(dir, 76, 512)
+		if err != nil {
+			common.Debug("==== getGroupFromDb() ====", "db open err", err)
+			return err
+		}
+		giddb = db
 	}
 
-	iter := db.NewIterator(nil, nil)
+	//iter := db.NewIterator(nil, nil)
+	iter := giddb.NewIterator()
 	for iter.Next() {
 		value := string(iter.Value())
 		ss, err := UnCompress(value)
@@ -2251,7 +2281,7 @@ func RecoverGroupAll(SdkGroup map[NodeID]*Group) error { //nooo
 		common.Debug("==== getGroupFromDb() ====", "nodes", groupTmp.Nodes)
 		common.Debug("==== getGroupFromDb() ====", "SdkGroup", SdkGroup[gm.ID])
 	}
-	db.Close()
+	//db.Close()
 	return nil
 }
 

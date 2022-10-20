@@ -538,6 +538,7 @@ func recvGroupInfo(gid discover.NodeID, mode string, req interface{}, p2pType in
 	common.Debug("==== recvGroupInfo() ====", "Store Group", xvcGroup)
 	err := discover.StoreGroupToDb(xvcGroup)
 	if err != nil {
+		common.Error("==== recvGroupInfo(),store group to db error ====", "Store Group", xvcGroup,"err",err)
 	    return
 	}
 

@@ -95,7 +95,7 @@ func Start(params *LunchParams) {
 	}
 
 	//get p2p group db
-	err = discover.GetSmpcGidDb()
+	err = discover.GetSmpcGidDb(curEnode)
 	if err != nil {
 		info := "======================smpc.Start," + err.Error() + ",so terminate smpc node startup"
 		common.Error(info)
