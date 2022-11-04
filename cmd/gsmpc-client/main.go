@@ -14,7 +14,7 @@
  *
  */
 
-// Package main  Gsmpc-client main program 
+// Package main  Gsmpc-client main program
 package main
 
 import (
@@ -30,6 +30,13 @@ import (
 	"time"
 
 	"encoding/hex"
+	"log"
+	"os"
+	"os/user"
+	"path/filepath"
+	"runtime"
+	"sync"
+
 	"github.com/anyswap/FastMulThreshold-DSA/crypto/sha3"
 	"github.com/anyswap/FastMulThreshold-DSA/ethdb"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common/hexutil"
@@ -43,23 +50,17 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/onrik/ethrpc"
-	"log"
-	"os"
-	"os/user"
-	"path/filepath"
-	"runtime"
-	"sync"
 )
 
 const (
-    	// KEYFILE keystore file
-	KEYFILE      = `{"version":3,"id":"16b5e31c-cd1a-4cdc-87a6-fc4164766698","address":"00c37841378920e2ba5151a5d1e074cf367586c4","crypto":{"ciphertext":"2070bf8491759f01b4f3f4d6d4b2e274f105be8dc01edd1ebce8d7d954eb64bd","cipherparams":{"iv":"03263465543e4631db50ecfc6b75a74f"},"cipher":"aes-128-ctr","kdf":"scrypt","kdfparams":{"dklen":32,"salt":"9c7b6430552524f0bc1b47bed69e34b0595bc29af4d12e65ec966b16af9c2cf6","n":8192,"r":8,"p":1},"mac":"44d1b7106c28711b06cda116205ee741cba90ab3df0776d59c246b876ded0e97"}}`
-	
+	// KEYFILE keystore file
+	KEYFILE = `{"version":3,"id":"16b5e31c-cd1a-4cdc-87a6-fc4164766698","address":"00c37841378920e2ba5151a5d1e074cf367586c4","crypto":{"ciphertext":"2070bf8491759f01b4f3f4d6d4b2e274f105be8dc01edd1ebce8d7d954eb64bd","cipherparams":{"iv":"03263465543e4631db50ecfc6b75a74f"},"cipher":"aes-128-ctr","kdf":"scrypt","kdfparams":{"dklen":32,"salt":"9c7b6430552524f0bc1b47bed69e34b0595bc29af4d12e65ec966b16af9c2cf6","n":8192,"r":8,"p":1},"mac":"44d1b7106c28711b06cda116205ee741cba90ab3df0776d59c246b876ded0e97"}}`
+
 	// SmpcToAddr smpc tx to addr
 	SmpcToAddr = `0x00000000000000000000000000000000000000dc`
 
 	// CHID smpc wallet service ID
-	CHID     = 30400 //SMPC_walletService  ID
+	CHID = 30400 //SMPC_walletService  ID
 )
 
 var (
@@ -312,7 +313,7 @@ func enodeSig() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("\nenodeSig self = \n%s\n\n", enodeJSON.Enode+common.ToHex(sig))
+	fmt.Printf("\nenodeSig self = \n%s\n\n", enodeJSON.Enode+common.Bytes2Hex(sig))
 }
 
 // setGroup set group info
@@ -358,7 +359,7 @@ func setGroup() {
 	fmt.Printf("\nGid = %s\n\n", groupJSON.Gid)
 }
 
-// reqSmpcAddr  Execute generate pubkey 
+// reqSmpcAddr  Execute generate pubkey
 func reqSmpcAddr() {
 	// get nonce
 	reqAddrNonce, err := client.Call("smpc_getReqAddrNonce", keyWrapper.Address.String())
@@ -379,14 +380,14 @@ func reqSmpcAddr() {
 	// build tx data
 	timestamp := strconv.FormatInt((time.Now().UnixNano() / 1e6), 10)
 	txdata := reqAddrData{
-		TxType:    *cmd,
-		Keytype:   *keyType,
-		GroupID:   *gid,
-		ThresHold: *ts,
-		Mode:      *mode,
+		TxType:        *cmd,
+		Keytype:       *keyType,
+		GroupID:       *gid,
+		ThresHold:     *ts,
+		Mode:          *mode,
 		AcceptTimeOut: "600",
-		TimeStamp: timestamp,
-		Sigs:      sigs,
+		TimeStamp:     timestamp,
+		Sigs:          sigs,
 	}
 	playload, _ := json.Marshal(txdata)
 
@@ -442,7 +443,7 @@ func reqSmpcAddr() {
 	}
 }
 
-// acceptReqAddr  Agree to generate pubkey 
+// acceptReqAddr  Agree to generate pubkey
 func acceptReqAddr() {
 	// get reqAddr account list
 	reqListRep, err := client.Call("smpc_getCurNodeReqAddrInfo", keyWrapper.Address.String())
@@ -625,13 +626,13 @@ func acceptLockOut() {
 	}
 }
 
-// sign Execute MPC sign 
+// sign Execute MPC sign
 func sign() {
 	//if *msghash == "" {
 	//	*msghash = common.ToHex(crypto.Keccak256([]byte(*memo)))
 	//}
 	if len(hashs) == 0 {
-		hashs = append(hashs, common.ToHex(crypto.Keccak256([]byte(*memo))))
+		hashs = append(hashs, common.Bytes2Hex(crypto.Keccak256([]byte(*memo))))
 	}
 
 	if len(contexts) == 0 {
@@ -641,7 +642,7 @@ func sign() {
 	signMsgHash(hashs, contexts, -1)
 }
 
-//  preGenSignData Generate relevant data required for distributed sign in advance 
+// preGenSignData Generate relevant data required for distributed sign in advance
 func preGenSignData() {
 	if len(subgids) == 0 {
 		panic(fmt.Errorf("error:sub group id array is empty"))
@@ -698,7 +699,7 @@ func homeDir() string {
 	return ""
 }
 
-// GetPreDbDir Obtain the database path to store the relevant data required by the distributed sign 
+// GetPreDbDir Obtain the database path to store the relevant data required by the distributed sign
 func GetPreDbDir(eid string, datadir string) string {
 	dir := DefaultDataDir(datadir)
 	dir += "/smpcdata/smpcpredb" + eid
@@ -772,7 +773,7 @@ func Keccak256Hash(data ...[]byte) (h MPCHash) {
 	return h
 }
 
-// delPreSignData Delete the relevant data required by the distributed sign through pubkey and group ID  
+// delPreSignData Delete the relevant data required by the distributed sign through pubkey and group ID
 func delPreSignData() {
 	enodeRep, err := client.Call("smpc_getEnode")
 	if err != nil {
@@ -840,7 +841,7 @@ func delPreSignData() {
 	iter.Release()
 }
 
-// getPreSignData get the relevant data required by the distributed sign through pubkey and group ID  
+// getPreSignData get the relevant data required by the distributed sign through pubkey and group ID
 func getPreSignData() {
 	enodeRep, err := client.Call("smpc_getEnode")
 	if err != nil {
@@ -970,17 +971,17 @@ func signMsgHash(hashs []string, contexts []string, loopCount int) (rsv []string
 	// build tx data
 	timestamp := strconv.FormatInt((time.Now().UnixNano() / 1e6), 10)
 	txdata := signData{
-		TxType:     "SIGN",
-		PubKey:     *pubkey,
-		InputCode:  *inputcode,
-		MsgContext: contexts,
-		MsgHash:    hashs,
-		Keytype:    *keyType,
-		GroupID:    *gid,
-		ThresHold:  *ts,
-		Mode:       *mode,
+		TxType:        "SIGN",
+		PubKey:        *pubkey,
+		InputCode:     *inputcode,
+		MsgContext:    contexts,
+		MsgHash:       hashs,
+		Keytype:       *keyType,
+		GroupID:       *gid,
+		ThresHold:     *ts,
+		Mode:          *mode,
 		AcceptTimeOut: "600",
-		TimeStamp:  timestamp,
+		TimeStamp:     timestamp,
 	}
 	playload, _ := json.Marshal(txdata)
 	// sign tx
@@ -1067,7 +1068,7 @@ func acceptSign() {
 		var msgContext []string
 
 		if len(hashs) == 0 {
-			hashs = append(hashs, common.ToHex(crypto.Keccak256([]byte(*memo))))
+			hashs = append(hashs, common.Bytes2Hex(crypto.Keccak256([]byte(*memo))))
 		}
 
 		if len(contexts) == 0 {
@@ -1117,7 +1118,7 @@ func acceptSign() {
 	}
 }
 
-// reshare  Execute Reshare 
+// reshare  Execute Reshare
 func reshare() {
 	// build tx data
 	sigs := ""
@@ -1128,16 +1129,16 @@ func reshare() {
 	sigs = sigs + enodesSig[len(enodesSig)-1]
 	timestamp := strconv.FormatInt((time.Now().UnixNano() / 1e6), 10)
 	txdata := reshareData{
-		TxType:    *cmd,
-		PubKey:    *pubkey,
-		GroupID:   *gid,
-		TSGroupID: *tsgid,
-		ThresHold: *ts,
-		Account:   keyWrapper.Address.String(),
-		Mode:      *mode,
+		TxType:        *cmd,
+		PubKey:        *pubkey,
+		GroupID:       *gid,
+		TSGroupID:     *tsgid,
+		ThresHold:     *ts,
+		Account:       keyWrapper.Address.String(),
+		Mode:          *mode,
 		AcceptTimeOut: "600",
-		Sigs:      sigs,
-		TimeStamp: timestamp,
+		Sigs:          sigs,
+		TimeStamp:     timestamp,
 	}
 	playload, err := json.Marshal(txdata)
 	if err != nil {
@@ -1368,7 +1369,7 @@ func signTX(signer types.EIP155Signer, privatekey *ecdsa.PrivateKey, nonce uint6
 	if txerr != nil {
 		panic(txerr)
 	}
-	rawTX := common.ToHex(txdata)
+	rawTX := common.Bytes2Hex(txdata)
 	fmt.Printf("\nSignTx:\nChainId\t\t=%s\nGas\t\t=%d\nGasPrice\t=%s\nNonce\t\t=%d\nToAddr\t\t=%s\nHash\t\t=%s\nData\t\t=%s\n",
 		sigTx.ChainId(), sigTx.Gas(), sigTx.GasPrice(), sigTx.Nonce(), sigTx.To().String(), sigTx.Hash().Hex(), sigTx.Data())
 	fmt.Printf("RawTransaction = %+v\n", rawTX)
@@ -1394,14 +1395,14 @@ type groupInfo struct {
 	Enodes interface{} `json:"Enodes"`
 }
 type reqAddrData struct {
-	TxType    string `json:"TxType"`
-	Keytype   string `json:"Keytype"`
-	GroupID   string `json:"GroupId"`
-	ThresHold string `json:"ThresHold"`
-	Mode      string `json:"Mode"`
-	AcceptTimeOut  string `json:"AcceptTimeOut"` //unit: second
-	TimeStamp string `json:"TimeStamp"`
-	Sigs      string `json:"Sigs"`
+	TxType        string `json:"TxType"`
+	Keytype       string `json:"Keytype"`
+	GroupID       string `json:"GroupId"`
+	ThresHold     string `json:"ThresHold"`
+	Mode          string `json:"Mode"`
+	AcceptTimeOut string `json:"AcceptTimeOut"` //unit: second
+	TimeStamp     string `json:"TimeStamp"`
+	Sigs          string `json:"Sigs"`
 }
 type acceptData struct {
 	TxType    string `json:"TxType"`
@@ -1430,17 +1431,17 @@ type lockoutData struct {
 	Memo      string `json:"Memo"`
 }
 type signData struct {
-	TxType     string   `json:"TxType"`
-	PubKey     string   `json:"PubKey"`
-	InputCode  string   `json:"InputCode"`
-	MsgContext []string `json:"MsgContext"`
-	MsgHash    []string `json:"MsgHash"`
-	Keytype    string   `json:"Keytype"`
-	GroupID    string   `json:"GroupId"`
-	ThresHold  string   `json:"ThresHold"`
-	Mode       string   `json:"Mode"`
-	AcceptTimeOut  string `json:"AcceptTimeOut"` //unit: second
-	TimeStamp  string   `json:"TimeStamp"`
+	TxType        string   `json:"TxType"`
+	PubKey        string   `json:"PubKey"`
+	InputCode     string   `json:"InputCode"`
+	MsgContext    []string `json:"MsgContext"`
+	MsgHash       []string `json:"MsgHash"`
+	Keytype       string   `json:"Keytype"`
+	GroupID       string   `json:"GroupId"`
+	ThresHold     string   `json:"ThresHold"`
+	Mode          string   `json:"Mode"`
+	AcceptTimeOut string   `json:"AcceptTimeOut"` //unit: second
+	TimeStamp     string   `json:"TimeStamp"`
 }
 type preSignData struct {
 	TxType string   `json:"TxType"`
@@ -1448,16 +1449,16 @@ type preSignData struct {
 	SubGid []string `json:"SubGid"`
 }
 type reshareData struct {
-	TxType    string `json:"TxType"`
-	PubKey    string `json:"PubKey"`
-	GroupID   string `json:"GroupId"`
-	TSGroupID string `json:"TSGroupId"`
-	ThresHold string `json:"ThresHold"`
-	Account   string `json:"Account"`
-	Mode      string `json:"Mode"`
-	AcceptTimeOut  string `json:"AcceptTimeOut"` //unit: second
-	Sigs      string `json:"Sigs"`
-	TimeStamp string `json:"TimeStamp"`
+	TxType        string `json:"TxType"`
+	PubKey        string `json:"PubKey"`
+	GroupID       string `json:"GroupId"`
+	TSGroupID     string `json:"TSGroupId"`
+	ThresHold     string `json:"ThresHold"`
+	Account       string `json:"Account"`
+	Mode          string `json:"Mode"`
+	AcceptTimeOut string `json:"AcceptTimeOut"` //unit: second
+	Sigs          string `json:"Sigs"`
+	TimeStamp     string `json:"TimeStamp"`
 }
 type reqAddrStatus struct {
 	Status    string      `json:"Status"`

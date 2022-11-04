@@ -15,11 +15,12 @@ require (
 	github.com/dfuse-io/binary v0.0.0-20210216024852-4ae6830a495d
 	github.com/dfuse-io/solana-go v0.2.0
 	github.com/docker/docker v1.13.1
-	github.com/ethereum/go-ethereum v1.10.17
+	github.com/ethereum/go-ethereum v1.10.16
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/fsn-dev/cryptoCoins v1.0.0
 	github.com/go-logfmt/logfmt v0.5.0 // indirect
 	github.com/golang/snappy v0.0.4
+	github.com/google/uuid v1.2.0 // indirect
 	github.com/huin/goupnp v1.0.3-0.20220313090229-ca81a64b4204
 	github.com/ipfs/go-cid v0.0.4 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.1 // indirect
@@ -70,6 +71,8 @@ require (
 	github.com/whyrusleeping/go-smux-yamux v2.0.9+incompatible // indirect
 	github.com/whyrusleeping/yamux v1.2.0 // indirect
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
+	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

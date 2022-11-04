@@ -18,42 +18,41 @@
 package signing_test
 
 import (
-	"github.com/stretchr/testify/assert"
-	"testing"
+	cryptorand "crypto/rand"
 	"io"
+	"testing"
+
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/eddsa/signing"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
-	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
-	cryptorand "crypto/rand"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCheckFull(t *testing.T) {
-    signSigniMessages := make([]smpc.Message, 0)
-    succ := signing.CheckFull(signSigniMessages)
-    assert.False(t, succ, "fail")
-    
-    threshold := 3
-    for i:=0;i<threshold;i++ {
-	rand := cryptorand.Reader
-	var tmp [32]byte
-	if _, err := io.ReadFull(rand, tmp[:]); err != nil {
-		return
+	signSigniMessages := make([]smpc.Message, 0)
+	succ := signing.CheckFull(signSigniMessages)
+	assert.False(t, succ, "fail")
+
+	threshold := 3
+	for i := 0; i < threshold; i++ {
+		rand := cryptorand.Reader
+		var tmp [32]byte
+		if _, err := io.ReadFull(rand, tmp[:]); err != nil {
+			return
+		}
+
+		comC, _, _ := ed.Commit(tmp)
+
+		srm := &signing.SignRound1Message{
+			SignRoundMessage: new(signing.SignRoundMessage),
+			CR:               comC,
+		}
+		srm.SetFromID("62472382178168225119626719865491481459304781844424379027070392269894567214882")
+		srm.SetFromIndex(i)
+
+		signSigniMessages = append(signSigniMessages, srm)
 	}
 
-	comC,_ := ed.Commit(tmp)
-
-	srm := &signing.SignRound1Message{
-		SignRoundMessage: new(signing.SignRoundMessage),
-		CR:               comC,
-	}
-	srm.SetFromID("62472382178168225119626719865491481459304781844424379027070392269894567214882")
-	srm.SetFromIndex(i)
-
-	signSigniMessages = append(signSigniMessages,srm)
-    }
-
-    succ = signing.CheckFull(signSigniMessages)
-    assert.True(t, succ, "success")
+	succ = signing.CheckFull(signSigniMessages)
+	assert.True(t, succ, "success")
 }
-
-
