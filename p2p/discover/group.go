@@ -38,6 +38,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/rlp"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/anyswap/FastMulThreshold-DSA/ethdb"
+	"os"
 )
 
 var (
@@ -1959,6 +1960,7 @@ func StoreGroupToDb(groupInfo *Group) error { //nooo
 		db, err := ethdb.NewLDBDatabase(dir, 76, 512)
 		if err != nil {
 		    common.Error("===================StoreGroupToDb,init group db fail=====================","dir",dir,"err",err)
+		    os.Exit(1) //if open group info fail,exit the start.
 		   return err
 		}
 		giddb = db
@@ -2022,6 +2024,7 @@ func RecoverGroupByGID(gid NodeID) (*Group, error) {
 		//db, err := leveldb.OpenFile(dir, nil)
 		if err != nil {
 			common.Error("======RecoverGroupByGID=======","open db error",err)
+			os.Exit(1) //if open group info fail,exit the start.
 			return nil, err
 		}
 		giddb = db
@@ -2246,6 +2249,7 @@ func RecoverGroupAll(SdkGroup map[NodeID]*Group) error { //nooo
 		db, err := ethdb.NewLDBDatabase(dir, 76, 512)
 		if err != nil {
 			common.Debug("==== getGroupFromDb() ====", "db open err", err)
+			os.Exit(1) //if open group info fail,exit the start.
 			return err
 		}
 		giddb = db
