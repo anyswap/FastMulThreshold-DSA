@@ -1169,7 +1169,7 @@ var (
     SmpcCall      func(interface{}, string)
     Msg2Peer = common.NewSafeMap(10)
     MsgAckMap  = common.NewSafeMap(10)
-    resend = 3
+    resend = 1
     splitlen = 1200
     repeat = 1 
 )
@@ -1436,7 +1436,7 @@ func checkMsgStatus(t *udp,msghash string,msg string,ptype int,toaddr *net.UDPAd
     MsgAckMap.WriteMap(msghash2,ack)
 
     for i:=0;i<resend;i++ {
-	ackWaitTime := 10 * time.Second
+	ackWaitTime := 15 * time.Second
 	ackWaitTimeOut := time.NewTicker(ackWaitTime)
 
 	select {
