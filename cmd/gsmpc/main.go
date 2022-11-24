@@ -100,8 +100,8 @@ func StartSmpc(c *cli.Context) {
 
 	rpcsmpc.RPCInit(rpcport)
 
-	common.Info("=============================Start Gsmpc=================================","datadir",datadir,"waitmsg",waitmsg,"rotate",rotate,"maxage",maxage,"trytimes",trytimes,"presignnum",presignnum,"nonetrestrict",nonetrestrict,"relay",relayInPeers,"jobs",jobs,"autopre",autopre)
-	params := &smpc.LunchParams{WaitMsg: waitmsg, TryTimes: trytimes, PreSignNum: presignnum, Jobs: jobs, MaxAcceptTime: maxaccepttime, Bip32Pre: bip32pre, SyncPreSign: syncpresign,RelayInPeers: relayInPeers,AutoPreSign:autopre}
+	common.Info("=============================Start Gsmpc=================================","datadir",datadir,"waitmsg",waitmsg,"rotate",rotate,"maxage",maxage,"trytimes",trytimes,"presignnum",presignnum,"nonetrestrict",nonetrestrict,"relay",relayInPeers,"jobs",jobs,"autopre",autopre,"testnet",testnet)
+	params := &smpc.LunchParams{WaitMsg: waitmsg, TryTimes: trytimes, PreSignNum: presignnum, Jobs: jobs, MaxAcceptTime: maxaccepttime, Bip32Pre: bip32pre, SyncPreSign: syncpresign,RelayInPeers: relayInPeers,AutoPreSign:autopre,TestNet:testnet}
 	smpc.Start(params)
 	select {} // note for server, or for client
 }
@@ -141,6 +141,7 @@ var (
 	syncpresign string
 	relayInPeers        bool
 	autopre        bool
+	testnet   bool
 
 	statDir = "stat"
 
@@ -193,6 +194,7 @@ func init() {
 		cli.Uint64Flag{Name: "jobs", Value: 10000, Usage: "the max worker numbers", Destination: &jobs},
 		cli.BoolFlag{Name: "autopresign", Usage: "auto pre-sign when start gsmpc", Destination: &autopre},
 		cli.BoolTFlag{Name: "relay", Usage: "relay msg in peers", Destination: &relayInPeers},
+		cli.BoolTFlag{Name: "testnet", Usage: "testnet or mainnet", Destination: &testnet},
 		cli.Uint64Flag{Name: "maxaccepttime", Value: 604800, Usage: "the max time to wait for accept from all nodes", Destination: &maxaccepttime},
 		cli.Uint64Flag{Name: "bip32pre", Value: 4, Usage: "the total counts of pre-sign data for bip32 child pubkey", Destination: &bip32pre},
 		cli.StringFlag{Name: "sync-presign", Value: "true", Usage: "synchronize presign data between group nodes", Destination: &syncpresign},
@@ -255,7 +257,11 @@ func startP2pNode() error {
 		rpcport = 4449
 	}
 	if !privateNet && bootnodes == "" {
+	    if testnet {
+		bootnodes = "enode://c8cd604f8db9e26bea4bdde9d16778027dd1a964298349de6cc5217103cf5181be8fe41893e755c7594f8c0c73a1eaa14ff297e4c606ef39f2decd31d2ccea25@101.32.97.27:20901"
+	    } else {
 		bootnodes = "enode://c189b1fd3c7377ad705266017a2d6d2b649b83db31475705a97940d6e228cd92df9500f5dcc3723f81ef08a7910fcda66463827b89341c30c4c9015861e082c7@101.32.97.27:11920"
+	    }
 	}
 	if genKey != "" {
 		nodeKey, err := crypto.GenerateKey()

@@ -66,6 +66,7 @@ type LunchParams struct {
 	SyncPreSign string
 	RelayInPeers bool
 	AutoPreSign bool
+	TestNet bool
 }
 
 // Start init gsmpc
