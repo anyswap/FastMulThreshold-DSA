@@ -46,10 +46,6 @@ func (round *round1) Start() error {
 	    fmt.Println("Error: io.ReadFull(rand, sk)")
 	}
 
-	sk[0] &= 248
-	sk[31] &= 127
-	sk[31] |= 64
-
 	copy(skTem[:], sk[:])
 	ed.ScReduce(&sk, &skTem)
 	

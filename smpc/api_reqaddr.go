@@ -548,7 +548,7 @@ func (req *ReqSmpcAddr) CheckTxData(txdata []byte, from string, nonce uint64) (s
 	err := json.Unmarshal(txdata, &req2)
 	if err == nil && req2.TxType == "REQSMPCADDR" {
 		keytype := req2.Keytype 
-		if keytype != "EC256K1" && keytype != "EC256STARK" && keytype != "ED25519" {
+		if keytype != "EC256K1" && keytype != "EC256STARK" && keytype != "ED25519" && keytype != "SR25519" {
 			return "","","",nil,fmt.Errorf("invalid keytype")
 		}
 		

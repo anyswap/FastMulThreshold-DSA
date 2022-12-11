@@ -350,7 +350,7 @@ func DoubleHash(id string, keytype string) *big.Int {
 		return nil
 	}
 
-	if keytype == "ED25519" {
+	if keytype == "ED25519" || keytype == "SR25519"{
 		var digest [32]byte
 		copy(digest[:], sha3256.Sum(nil))
 

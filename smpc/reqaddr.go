@@ -718,7 +718,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 
 	curEnode = GetSelfEnode()
 
-	if cointype == "ED25519" {
+	if cointype == "ED25519" || cointype == "SR25519" {
 		ok2 := false
 		for j := 0; j < recalcTimes; j++ {
 			if len(ch) != 0 {
