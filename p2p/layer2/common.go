@@ -71,10 +71,10 @@ func p2pBroatcastPeers(dccpGroup *discover.Group,msg string, msgCode int, myself
 
 	suss := false
 
-	for i:=0;i<3;i++ {
+	for i:=0;i<1;i++ {
 	    emitter.Lock()
 	    if err := p2p.Send(p.ws, uint64(msgCode), msg); err != nil {
-		if i == 2 {
+		if i == 0 {
 			common.Error("============ p2pBroatcastPeers,send msg to peer terminal fail =============", "i",i,"send to peer eID", eID.String(), "send msg hash", msghash,"err",err)
 		}
 
