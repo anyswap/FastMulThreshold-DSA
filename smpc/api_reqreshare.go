@@ -370,7 +370,7 @@ func (req *ReqSmpcReshare) DoReq(raw string, workid int, sender string, ch chan 
 		}
 
 		rch := make(chan interface{}, 1)
-		_reshare(w.sid, from, rh.GroupID, rh.PubKey, rh.Account, rh.Mode, sigs, rch,rh.Keytype)
+		_reshare(raw, w.sid, from, rh.GroupID, rh.PubKey, rh.Account, rh.Mode, sigs, rch,rh.Keytype)
 		chret, tip, cherr := GetChannelValue(cht, rch)
 		if chret != "" {
 			res2 := RPCSmpcRes{Ret: chret, Tip: "", Err: nil}
@@ -466,8 +466,8 @@ func (req *ReqSmpcReshare) GetGroupSigs(txdata []byte) (string, string, string, 
 //-------------------------------------------------------------------------------------------------------
 
 // CheckTxData check reshare command data and accept data
-func (req *ReqSmpcReshare) CheckTxData(txdata []byte, from string, nonce uint64) (string, string, string, interface{}, error) {
-	if txdata == nil {
+func (req *ReqSmpcReshare) CheckTxData(raw string, txdata []byte, from string, nonce uint64) (string, string, string, interface{}, error) {
+	if txdata == nil || raw == "" {
 		return "", "", "", nil, fmt.Errorf("tx data is nil")
 	}
 

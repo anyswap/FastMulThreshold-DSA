@@ -413,7 +413,7 @@ func ReshareGetRealMessage(msg map[string]string) smpclib.Message {
 }
 
 // processReshare  Obtain the data to be sent in each round and send it to other nodes until the end of the reshare command 
-func processReshare(msgprex string, groupid string, pubkey string, account string, mode string, sigs string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan keygen.LocalDNodeSaveData,keytype string) (*big.Int, error) {
+func processReshare(raw string, msgprex string, groupid string, pubkey string, account string, mode string, sigs string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan keygen.LocalDNodeSaveData,keytype string) (*big.Int, error) {
 	for {
 		select {
 		case <-errChan:
@@ -580,7 +580,7 @@ func processReshare(msgprex string, groupid string, pubkey string, account strin
 				}
 			}
 
-			ac := &AcceptReqAddrData{Initiator: curEnode, Account: account, Cointype: keytype, GroupID: groupid, Nonce: nonce, LimitNum: w.limitnum, Mode: mode, TimeStamp: tt, Deal: "true", Accept: "true", Status: "Success", PubKey: pubkey, Tip: "", Error: "", AllReply: allreply, WorkID: wid, Sigs: sigs}
+			ac := &AcceptReqAddrData{Raw:raw, Initiator: curEnode, Account: account, Cointype: keytype, GroupID: groupid, Nonce: nonce, LimitNum: w.limitnum, Mode: mode, TimeStamp: tt, Deal: "true", Accept: "true", Status: "Success", PubKey: pubkey, Tip: "", Error: "", AllReply: allreply, WorkID: wid, Sigs: sigs}
 			err = SaveAcceptReqAddrData(ac)
 			if err != nil {
 				return nil, errors.New("save reqaddr accept data fail")
@@ -648,7 +648,7 @@ func processReshare(msgprex string, groupid string, pubkey string, account strin
 				}
 			}
 
-			_,err2 := AcceptReqAddr("", account, "ALL", groupid, nonce, w.limitnum, mode, "true", "true", "Success", pubkey, "", "", nil, w.id, "")
+			_,err2 := AcceptReqAddr(raw, "", account, "ALL", groupid, nonce, w.limitnum, mode, "true", "true", "Success", pubkey, "", "", nil, w.id, "")
 			if err2 != nil {
 				return nil, err2
 			}

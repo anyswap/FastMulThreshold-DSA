@@ -56,7 +56,7 @@ type CmdReq interface {
 	CheckReply(ac *AcceptReqAddrData, l *list.List, key string) bool
 	DoReq(raw string, workid int, sender string, ch chan interface{}) bool
 	GetGroupSigs(txdata []byte) (string, string, string, string)
-	CheckTxData(txdata []byte, from string, nonce uint64) (string, string, string, interface{}, error)
+	CheckTxData(raw string, txdata []byte, from string, nonce uint64) (string, string, string, interface{}, error)
 	DisAcceptMsg(raw string, workid int, key string)
 }
 
@@ -917,7 +917,7 @@ func CheckRaw(raw string) (string, string, string, interface{}, error) {
 	    }
 	}
 	//
-       return smpcreq.CheckTxData(data, from, nonce)
+       return smpcreq.CheckTxData(raw,data, from, nonce)
 }
 
 func IsInGroup(gid string) bool {

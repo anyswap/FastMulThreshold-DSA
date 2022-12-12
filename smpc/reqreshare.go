@@ -311,10 +311,10 @@ func GetCurNodeReShareInfo() ([]*ReShareCurNodeInfo, string, error) {
 // _reshare execute reshare
 // param groupid is not subgroupid
 // w.groupid is subgroupid
-func _reshare(wsid string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{},keytype string) {
+func _reshare(raw string, wsid string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{},keytype string) {
 
 	rch := make(chan interface{}, 1)
-	smpcReshare(wsid, initator, groupid, pubkey, account, mode, sigs, rch,keytype)
+	smpcReshare(raw, wsid, initator, groupid, pubkey, account, mode, sigs, rch,keytype)
 	ret, _, cherr := GetChannelValue(cht, rch)
 	if ret != "" {
 		w, err := FindWorker(wsid)
@@ -360,7 +360,7 @@ func _reshare(wsid string, initator string, groupid string, pubkey string, accou
 // ec2
 // msgprex = hash
 // return value is the backup for smpc sig.
-func smpcReshare(msgprex string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{},keytype string) {
+func smpcReshare(raw string, msgprex string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{},keytype string) {
 
 	w, err := FindWorker(msgprex)
 	if w == nil || err != nil {
@@ -376,7 +376,7 @@ func smpcReshare(msgprex string, initator string, groupid string, pubkey string,
 			<-ch1
 		}
 
-		ReShareEC2(msgprex, initator, groupid, pubkey, account, mode, sigs, ch1, id,keytype)
+		ReShareEC2(raw, msgprex, initator, groupid, pubkey, account, mode, sigs, ch1, id,keytype)
 		ret, _, cherr := GetChannelValue(cht, ch1)
 		if ret != "" && cherr == nil {
 			res := RPCSmpcRes{Ret: ret, Tip: "", Err: cherr}
@@ -394,7 +394,7 @@ func smpcReshare(msgprex string, initator string, groupid string, pubkey string,
 // ReShareEC2 execute reshare
 // msgprex = hash
 // return value is the backup for the smpc sig
-func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{}, id int,keytype string) {
+func ReShareEC2(raw string, msgprex string, initator string, groupid string, pubkey string, account string, mode string, sigs string, ch chan interface{}, id int,keytype string) {
 	if id < 0 || id >= len(workers) {
 		res := RPCSmpcRes{Ret: "", Err: fmt.Errorf("no find worker")}
 		ch <- res
@@ -531,7 +531,7 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 				HandleC1Data(nil, w.sid)
 			}()
 			go ReshareProcessInboundMessages(msgprex, keytype,commStopChan, errChan,&reshareWg, ch)
-			newsku1, err := processReshare(msgprex, groupid, pubkey, account, mode, sigs, errChan, outCh, endCh,keytype)
+			newsku1, err := processReshare(raw, msgprex, groupid, pubkey, account, mode, sigs, errChan, outCh, endCh,keytype)
 			if err != nil {
 				fmt.Printf("==========process reshare err = %v ==========\n", err)
 				close(commStopChan)
@@ -577,7 +577,7 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 		HandleC1Data(nil, w.sid)
 	}()
 	go ReshareProcessInboundMessages(msgprex, keytype,commStopChan, errChan,&reshareWg, ch)
-	newsku1, err := processReshare(msgprex, groupid, pubkey, account, mode, sigs, errChan, outCh, endCh,keytype)
+	newsku1, err := processReshare(raw, msgprex, groupid, pubkey, account, mode, sigs, errChan, outCh, endCh,keytype)
 	if err != nil {
 		fmt.Printf("==========process reshare err = %v ==========\n", err)
 		close(commStopChan)

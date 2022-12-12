@@ -1053,9 +1053,9 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 						    }
 
 						    if !reply {
-							    _, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "Someone refused to sign", "Someone refused to sign", ars, wid)
+							    _, err = AcceptSign(signbrocast.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "Someone refused to sign", "Someone refused to sign", ars, wid)
 						    } else {
-							    _, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "false", "true", "Pending", "", "", "", ars, wid)
+							    _, err = AcceptSign(signbrocast.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "false", "true", "Pending", "", "", "", ars, wid)
 						    }
 
 						    timeout <- true
@@ -1063,7 +1063,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 					    case <-agreeWaitTimeOut.C:
 						    ars := GetAllReplyFromGroup2(w.id,sender)
 						    common.Info("================== DoSign, agree wait timeout=============", "ars", ars, "key ", key)
-						    _, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "Approval timeout", "Approval timeout", ars, wid)
+						    _, err = AcceptSign(signbrocast.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "Approval timeout", "Approval timeout", ars, wid)
 						    reply = false
 
 						    signtimeout = true
@@ -1100,9 +1100,9 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			    if !reply {
 				    arstmp := GetAllReplyFromGroup2(w.id,sender)
 				if signtimeout {
-				    AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "Approval timeout", "Approval timeout", arstmp, workid)
+				    AcceptSign(signbrocast.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "Approval timeout", "Approval timeout", arstmp, workid)
 				} else {
-				    AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "Someone refused to sign", "Someone refused to sign", arstmp, workid)
+				    AcceptSign(signbrocast.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "Someone refused to sign", "Someone refused to sign", arstmp, workid)
 				}
 
 				res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("approval fail")}
@@ -1114,7 +1114,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			    if cherr != nil {
 				    log.Error("============================DoReq,get go on signing timeout============================","pubkey",sig.PubKey,"key",key,"sig.GroupID",sig.GroupID,"Mode",sig.Mode)
 				    arstmp := GetAllReplyFromGroup2(w.id,sender)
-				    AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "Not participating in MPC signing", "Not participating in MPC signing", arstmp, workid)
+				    AcceptSign(signbrocast.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "Not participating in MPC signing", "Not participating in MPC signing", arstmp, workid)
 				res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("approval fail")}
 				ch <- res
 				return false
@@ -1128,7 +1128,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				    if pre == nil {
 					log.Error("============================DoReq,get pre-sign data fail============================","pubkey",sig.PubKey,"gid",sig.GroupID,"subgid",w.subgid,"data key",vv.PickKey)
 					arstmp := GetAllReplyFromGroup2(w.id,sender)
-					AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "MPC calculation failed,please try again.", "MPC calculation failed,please try again.", arstmp, workid)
+					AcceptSign(signbrocast.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "MPC calculation failed,please try again.", "MPC calculation failed,please try again.", arstmp, workid)
 					res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("get pre-sign data fail")}
 					ch <- res
 					mutex.Unlock()
@@ -1141,7 +1141,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 				    if err != nil {
 					log.Error("============================DoReq,delete pre-sign data fail============================","err",err,"pubkey",sig.PubKey,"gid",sig.GroupID,"subgid",w.subgid,"data key",vv.PickKey)
 					arstmp := GetAllReplyFromGroup2(w.id,sender)
-					AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "MPC calculation failed,please try again.", "MPC calculation failed,please try again.", arstmp, workid)
+					AcceptSign(signbrocast.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "MPC calculation failed,please try again.", "MPC calculation failed,please try again.", arstmp, workid)
 					res := RPCSmpcRes{Ret: "", Tip: "", Err: err}
 					ch <- res
 					mutex.Unlock()
@@ -1157,7 +1157,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			    sign(w.sid, from, sig.PubKey, sig.InputCode, sig.MsgHash, sig.Keytype, nonce, sig.Mode, pickdata, rch)
 			    chret, tip, cherr := GetChannelValue(waitallgg20+20, rch)
 			    if chret != "" {
-				    _, reply := AcceptSign("", from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, w.limitnum, sig.Mode, "true", "true", "Success", chret, "", "", nil, w.id)
+				    _, reply := AcceptSign(signbrocast.Raw, "", from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, w.limitnum, sig.Mode, "true", "true", "Success", chret, "", "", nil, w.id)
 				    if reply != nil {
 					ars := GetAllReplyFromGroup2(w.id,sender)
 					errinfo := "Abnormal value in MPC calculation,please try again."
@@ -1165,7 +1165,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 					    errinfo = "Data network transmission failure in MPC calculation,please try again."
 					}
 
-					AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
+					AcceptSign(signbrocast.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
 					res := RPCSmpcRes{Ret: "", Tip: tip, Err: errors.New(errinfo)}
 					ch <- res
 					return false 
@@ -1183,7 +1183,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 					errinfo = "Data network transmission failure in MPC calculation,please try again."
 				    }
 
-				    AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
+				    AcceptSign(signbrocast.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
 				    res := RPCSmpcRes{Ret: "", Tip: tip, Err: cherr}
 				    ch <- res
 				    return false 
@@ -1191,7 +1191,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 			    ars = GetAllReplyFromGroup2(w.id,sender)
 			    errinfo := "Abnormal value in MPC calculation,please try again."
-			    AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
+			    AcceptSign(signbrocast.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
 			    res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf(errinfo)}
 			    ch <- res
 			    return false 
@@ -1392,9 +1392,9 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 						    }
 
 						    if !reply {
-							    _, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "Someone refused to sign", "Someone refused to sign", ars, wid)
+							    _, err = AcceptSign(signpick.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "Someone refused to sign", "Someone refused to sign", ars, wid)
 						    } else {
-							    _, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "false", "true", "Pending", "", "", "", ars, wid)
+							    _, err = AcceptSign(signpick.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "false", "true", "Pending", "", "", "", ars, wid)
 						    }
 
 						    timeout <- true
@@ -1402,7 +1402,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 					    case <-agreeWaitTimeOut.C:
 						    ars := GetAllReplyFromGroup2(w.id,sender)
 						    common.Info("================== DoSign, agree wait timeout=============", "ars", ars, "key ", key)
-						    _, err = AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "Approval timeout", "Approval timeout", ars, wid)
+						    _, err = AcceptSign(signpick.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "Approval timeout", "Approval timeout", ars, wid)
 						    reply = false
 
 						    signtimeout = true
@@ -1439,9 +1439,9 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			    if !reply {
 				    arstmp := GetAllReplyFromGroup2(w.id,sender)
 				if signtimeout {
-				    AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "Approval timeout", "Approval timeout", arstmp, workid)
+				    AcceptSign(signpick.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Timeout", "", "Approval timeout", "Approval timeout", arstmp, workid)
 				} else {
-				    AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "Someone refused to sign", "Someone refused to sign", arstmp, workid)
+				    AcceptSign(signpick.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "Someone refused to sign", "Someone refused to sign", arstmp, workid)
 				}
 
 				res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("approval fail")}
@@ -1454,7 +1454,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			    if err != nil {
 				log.Error("=======================check add peer fail====================","err",err,"key",w.sid)
 				arstmp := GetAllReplyFromGroup2(w.id,sender)
-				AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "Failed to select signing node,please try again.", "Failed to select signing node,please try again.", arstmp, workid)
+				AcceptSign(signpick.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "Failed to select signing node,please try again.", "Failed to select signing node,please try again.", arstmp, workid)
 				res := RPCSmpcRes{Ret: "", Tip:"", Err:err}
 				ch <- res
 				return false
@@ -1464,7 +1464,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			    if errtmp != "" {
 				log.Error("=======================create group fail====================","err",err,"key",w.sid)
 				arstmp := GetAllReplyFromGroup2(w.id,sender)
-				AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "Failed to select signing node,please try again.", "Failed to select signing node,please try again.", arstmp, workid)
+				AcceptSign(signpick.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "Failed to select signing node,please try again.", "Failed to select signing node,please try again.", arstmp, workid)
 				res := RPCSmpcRes{Ret: "", Tip:"", Err:errors.New(errtmp)}
 				ch <- res
 				return false
@@ -1476,7 +1476,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			    if err != nil {
 				log.Error("=======================pick pre-sign data fail====================","err",err,"key",w.sid)
 				arstmp := GetAllReplyFromGroup2(w.id,sender)
-				AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "MPC calculation failed,please try again.", "MPC calculation failed,please try again.", arstmp, workid)
+				AcceptSign(signpick.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "false", "Failure", "", "MPC calculation failed,please try again.", "MPC calculation failed,please try again.", arstmp, workid)
 				res := RPCSmpcRes{Ret: "", Tip:"", Err:err}
 				ch <- res
 				return false
@@ -1490,7 +1490,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 			    sign(w.sid, from, sig.PubKey, sig.InputCode, sig.MsgHash, sig.Keytype, nonce, sig.Mode, pickdata, rch)
 			    chret, tip, cherr := GetChannelValue(waitallgg20+20, rch)
 			    if chret != "" {
-				    _, reply := AcceptSign("", from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, w.limitnum, sig.Mode, "true", "true", "Success", chret, "", "", nil, w.id)
+				    _, reply := AcceptSign(signpick.Raw, "", from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, w.limitnum, sig.Mode, "true", "true", "Success", chret, "", "", nil, w.id)
 				    if reply != nil {
 					ars := GetAllReplyFromGroup2(w.id,sender)
 					errinfo := "Abnormal value in MPC calculation,please try again."
@@ -1498,7 +1498,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 					    errinfo = "Data network transmission failure in MPC calculation,please try again."
 					}
 
-					AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
+					AcceptSign(signpick.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
 					res := RPCSmpcRes{Ret: "", Tip: tip, Err: errors.New(errinfo)}
 					ch <- res
 					return false 
@@ -1516,7 +1516,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 					errinfo = "Data network transmission failure in MPC calculation,please try again."
 				    }
 
-				    AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
+				    AcceptSign(signpick.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
 				    res := RPCSmpcRes{Ret: "", Tip: tip, Err: cherr}
 				    ch <- res
 				    return false 
@@ -1524,7 +1524,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 
 			    ars = GetAllReplyFromGroup2(w.id,sender)
 			    errinfo := "Abnormal value in MPC calculation,please try again."
-			    AcceptSign(sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
+			    AcceptSign(signpick.Raw, sender, from, sig.PubKey, sig.MsgHash, sig.Keytype, sig.GroupID, nonce, sig.ThresHold, sig.Mode, "true", "true", "Failure", "", "", errinfo, ars, workid)
 			    res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf(errinfo)}
 			    ch <- res
 			    return false 
@@ -1634,7 +1634,7 @@ func (req *ReqSmpcSign) DoReq(raw string, workid int, sender string, ch chan int
 		return false
 	}
 
-	tip, err := AcceptSign(ac.Initiator, ac.Account, ac.PubKey, ac.MsgHash, ac.Keytype, ac.GroupID, ac.Nonce, ac.LimitNum, ac.Mode, "false", accept, status, "", "", "", ars, ac.WorkID)
+	tip, err := AcceptSign(ac.Raw, ac.Initiator, ac.Account, ac.PubKey, ac.MsgHash, ac.Keytype, ac.GroupID, ac.Nonce, ac.LimitNum, ac.Mode, "false", accept, status, "", "", "", ars, ac.WorkID)
 	if err != nil {
 		res := RPCSmpcRes{Ret: "Failure", Tip: tip, Err: err}
 		ch <- res
@@ -1824,8 +1824,8 @@ func (req *ReqSmpcSign) GetGroupSigs(txdata []byte) (string, string, string, str
 //--------------------------------------------------------------------------------------------------------
 
 // CheckTxData check sign/pre-sign command data and sign accept data
-func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (string, string, string, interface{}, error) {
-	if txdata == nil {
+func (req *ReqSmpcSign) CheckTxData(raw string, txdata []byte, from string, nonce uint64) (string, string, string, interface{}, error) {
+	if txdata == nil || raw == "" {
 	    log.Error("======================ReqSmpcSign.CheckTxData=========================","err","tx data is nil")
 		return "", "", "", nil, errors.New("tx data is nil")
 	}
@@ -1944,7 +1944,7 @@ func (req *ReqSmpcSign) CheckTxData(txdata []byte, from string, nonce uint64) (s
 		}
 
 		log.Info("======================ReqSmpcSign.CheckTxData,check txdata success========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp,"limit",limit,"nodecnt",nodecnt,"nc",nc,"pubs.Mode",pubs.Mode,"sig.AcceptTimeOut",sig.AcceptTimeOut,"ato",ato,"MaxAcceptTime",MaxAcceptTime)
-		key := Keccak256Hash([]byte(strings.ToLower(from + ":" + fmt.Sprintf("%v", nonce) + ":" + pubkey + ":" + getSignHash(hash, keytype) + ":" + keytype + ":" + groupid + ":" + threshold + ":" + mode))).Hex()
+		key := Keccak256Hash([]byte(strings.ToLower(raw + ":" + from + ":" + fmt.Sprintf("%v", nonce) + ":" + pubkey + ":" + getSignHash(hash, keytype) + ":" + keytype + ":" + groupid + ":" + threshold + ":" + mode))).Hex()
 		return key, from, fmt.Sprintf("%v", nonce), &sig, nil
 	}
 

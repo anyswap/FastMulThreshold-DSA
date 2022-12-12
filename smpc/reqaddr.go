@@ -701,7 +701,7 @@ type PubKeyData struct {
 // ec2
 // msgprex = hash
 // cointype = keytype    // EC256K1||ed25519
-func smpcGenPubKey(msgprex string, account string, cointype string, ch chan interface{}, mode string, nonce string) {
+func smpcGenPubKey(raw string,msgprex string, account string, cointype string, ch chan interface{}, mode string, nonce string) {
 	if msgprex == "" || account == "" || cointype == "" || mode == "" || nonce == "" {
 	    res := RPCSmpcRes{Ret: "", Tip: "", Err: errors.New("param error")}
 	    ch <- res
@@ -782,7 +782,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 			return
 		}
 
-		tip, reply := AcceptReqAddr("", account, cointype, wk.groupid, nonce, wk.limitnum, mode, "true", "true", "Success", pubkeyhex, "", "", nil, id, "")
+		tip, reply := AcceptReqAddr(raw, "", account, cointype, wk.groupid, nonce, wk.limitnum, mode, "true", "true", "Success", pubkeyhex, "", "", nil, id, "")
 		if reply != nil {
 			common.Error("===============smpcGenPubKey,update reqaddr status error=================", "err", reply, "account", account, "pubkey", pubkeyhex, "nonce", nonce, "key", msgprex)
 			res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("update req addr status error")}
@@ -951,7 +951,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 		return
 	}
 
-	tip, reply := AcceptReqAddr("", account, cointype, wk.groupid, nonce, wk.limitnum, mode, "true", "true", "Success", pubkeyhex, "", "", nil, id, "")
+	tip, reply := AcceptReqAddr(raw,"", account, cointype, wk.groupid, nonce, wk.limitnum, mode, "true", "true", "Success", pubkeyhex, "", "", nil, id, "")
 	if reply != nil {
 		common.Error("===============smpcGenPubKey,update reqaddr status===================", "err", reply, "account", account, "pubkey", pubkeyhex, "nonce", nonce, "key", rk)
 		res := RPCSmpcRes{Ret: "", Tip: tip, Err: fmt.Errorf("update req addr status error")}

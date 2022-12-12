@@ -184,6 +184,7 @@ func CheckAccept(pubkey string, mode string, account string) bool {
 
 // AcceptReqAddrData the data of keygen cmd,include:weather initiator,from accout,gid,keygen sub-gid,pubkey,threshold,accept or reject the keygen .. and so on. 
 type AcceptReqAddrData struct {
+    	Raw string
 	Initiator string //enode id
 	Account   string
 	Cointype  string
@@ -217,7 +218,7 @@ func SaveAcceptReqAddrData(ac *AcceptReqAddrData) error {
 		return fmt.Errorf("accept data was not found")
 	}
 
-	key := Keccak256Hash([]byte(strings.ToLower(ac.Account + ":" + ac.Cointype + ":" + ac.GroupID + ":" + ac.Nonce + ":" + ac.LimitNum + ":" + ac.Mode))).Hex()
+	key := Keccak256Hash([]byte(strings.ToLower(ac.Raw + ":" + ac.Account + ":" + ac.Cointype + ":" + ac.GroupID + ":" + ac.Nonce + ":" + ac.LimitNum + ":" + ac.Mode))).Hex()
 
 	alos, err := Encode2(ac)
 	if err != nil {
@@ -254,8 +255,8 @@ type TxDataAcceptReqAddr struct {
 
 // AcceptReqAddr  set the status of generating pubkey request 
 // if the status is not "Pending",move the Corresponding data to  General database,otherwise stay the database for saving data related to application address command 
-func AcceptReqAddr(initiator string, account string, cointype string, groupid string, nonce string, threshold string, mode string, deal string, accept string, status string, pubkey string, tip string, errinfo string, allreply []NodeReply, workid int, sigs string) (string, error) {
-	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + cointype + ":" + groupid + ":" + nonce + ":" + threshold + ":" + mode))).Hex()
+func AcceptReqAddr(raw string,initiator string, account string, cointype string, groupid string, nonce string, threshold string, mode string, deal string, accept string, status string, pubkey string, tip string, errinfo string, allreply []NodeReply, workid int, sigs string) (string, error) {
+    key := Keccak256Hash([]byte(strings.ToLower(raw + ":" + account + ":" + cointype + ":" + groupid + ":" + nonce + ":" + threshold + ":" + mode))).Hex()
 	exsit, da := GetPubKeyData([]byte(key))
 	if exsit {
 		ac, ok := da.(*AcceptReqAddrData)
@@ -353,7 +354,7 @@ func AcceptReqAddr(initiator string, account string, cointype string, groupid st
 	}
 	//////////////////////////////////
 
-	ac2 := &AcceptReqAddrData{Initiator: in, Account: ac.Account, Cointype: ac.Cointype, GroupID: ac.GroupID, Nonce: ac.Nonce, LimitNum: ac.LimitNum, Mode: ac.Mode, TimeStamp: ac.TimeStamp, Deal: de, Accept: acp, Status: sts, PubKey: pk, Tip: ttip, Error: eif, AllReply: arl, WorkID: wid, Sigs: gs, PubKeySig:pubkeysig}
+	ac2 := &AcceptReqAddrData{Raw:ac.Raw, Initiator: in, Account: ac.Account, Cointype: ac.Cointype, GroupID: ac.GroupID, Nonce: ac.Nonce, LimitNum: ac.LimitNum, Mode: ac.Mode, TimeStamp: ac.TimeStamp, Deal: de, Accept: acp, Status: sts, PubKey: pk, Tip: ttip, Error: eif, AllReply: arl, WorkID: wid, Sigs: gs, PubKeySig:pubkeysig}
 
 	e, err := Encode2(ac2)
 	if err != nil {
@@ -444,7 +445,7 @@ func SaveAcceptSignData(ac *AcceptSignData) error {
 	}
 
 	//key := hash(acc + nonce + pubkey + hash + keytype + groupid + threshold + mode)
-	key := Keccak256Hash([]byte(strings.ToLower(ac.Account + ":" + ac.Nonce + ":" + ac.PubKey + ":" + getSignHash(ac.MsgHash, ac.Keytype) + ":" + ac.Keytype + ":" + ac.GroupID + ":" + ac.LimitNum + ":" + ac.Mode))).Hex()
+	key := Keccak256Hash([]byte(strings.ToLower(ac.Raw + ":" + ac.Account + ":" + ac.Nonce + ":" + ac.PubKey + ":" + getSignHash(ac.MsgHash, ac.Keytype) + ":" + ac.Keytype + ":" + ac.GroupID + ":" + ac.LimitNum + ":" + ac.Mode))).Hex()
 
 	alos, err := Encode2(ac)
 	if err != nil {
@@ -485,8 +486,8 @@ type TxDataAcceptSign struct {
 
 // AcceptSign  set the status of signing request 
 // if the status is not "Pending",move the Corresponding data to  General database,otherwise stay the database for saving data related to sign command 
-func AcceptSign(initiator string, account string, pubkey string, msghash []string, keytype string, groupid string, nonce string, threshold string, mode string, deal string, accept string, status string, rsv string, tip string, errinfo string, allreply []NodeReply, workid int) (string, error) {
-	key := Keccak256Hash([]byte(strings.ToLower(account + ":" + nonce + ":" + pubkey + ":" + getSignHash(msghash, keytype) + ":" + keytype + ":" + groupid + ":" + threshold + ":" + mode))).Hex()
+func AcceptSign(raw string, initiator string, account string, pubkey string, msghash []string, keytype string, groupid string, nonce string, threshold string, mode string, deal string, accept string, status string, rsv string, tip string, errinfo string, allreply []NodeReply, workid int) (string, error) {
+    key := Keccak256Hash([]byte(strings.ToLower(raw + ":" + account + ":" + nonce + ":" + pubkey + ":" + getSignHash(msghash, keytype) + ":" + keytype + ":" + groupid + ":" + threshold + ":" + mode))).Hex()
 
 	exsit, da := GetPubKeyData([]byte(key))
 	if exsit {
