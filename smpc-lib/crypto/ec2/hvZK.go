@@ -27,7 +27,7 @@ import (
 )
 
 const ( 
-    HoeffdingBoundParam = 1 
+    HoeffdingBoundParam = 128 
 )
 
 // GetHoeffdingBound get hoeffding bound
