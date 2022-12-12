@@ -419,7 +419,7 @@ func IsEDSignCmd(raw string) (string, bool) {
 
 	sig, ok := txdata.(*TxDataSign)
 	if ok {
-		if sig.Keytype == "ED25519" {
+		if sig.Keytype == "ED25519" || sig.Keytype == "SR25519"{
 			return key, true
 		}
 
@@ -977,6 +977,9 @@ func HandleC1Data(ac *AcceptReqAddrData, key string) {
 		HandleKG(key, uid)
 		HandleSign(key, uid)
 		_,uid = GetNodeUID(node2, "ED25519",ac.GroupID)
+		HandleKG(key, uid)
+		HandleSign(key, uid)
+		_,uid = GetNodeUID(node2, "SR25519",ac.GroupID)
 		HandleKG(key, uid)
 		HandleSign(key, uid)
 	}
