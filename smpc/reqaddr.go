@@ -544,7 +544,7 @@ func GetReqAddrStatus(key string) (string, string, error) {
 
 	// TODO: this commit will make ed key generation panic, temporarily, disable it for ed
 	// https://github.com/anyswap/FastMulThreshold-DSA/commit/21949d0fc79d9b5f29bfb11ae715994bb8c355dc
-	if pubkey != "" && ac.Cointype != "ED25519" && !checkPubKey(pubkey,ac.Cointype,ac.GroupID,ac.PubKeySig) {
+	if pubkey != "" && ac.Cointype != "ED25519" && ac.Cointype != "SR25519" && !checkPubKey(pubkey,ac.Cointype,ac.GroupID,ac.PubKeySig) {
 	    status = "Failure"
 	    pubkey = ""
 	    errorinfo = "verify pubkey sig fail"

@@ -32,10 +32,10 @@ var (
 	zero = big.NewInt(0)
 )
 
-func newRound1(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- EdSignData, kgid string, threshold int, paillierkeylength int, txhash *big.Int) smpc.Round {
+func newRound1(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- EdSignData, kgid string, threshold int, paillierkeylength int, txhash *big.Int, keyType string) smpc.Round {
 	finalizeendCh := make(chan *big.Int, threshold)
 	return &round1{
-		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, nil, txhash, finalizeendCh}}
+		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, nil, txhash, finalizeendCh, keyType}}
 }
 
 // Start get sk pkfinal R
@@ -86,6 +86,7 @@ func (round *round1) Start() error {
 	//tmpstr := hex.EncodeToString(round.txhash.Bytes())
 	//round.temp.message, _ = hex.DecodeString(tmpstr)
 	round.temp.message = round.txhash.Bytes() 
+	round.temp.keyType = round.keyType
 
 	// [Notes]
 	// 1. calculate R

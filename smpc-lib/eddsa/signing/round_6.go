@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
-	"crypto/sha512"
 	"encoding/hex"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
 )
@@ -71,27 +70,11 @@ func (round *round6) Start() error {
 		}
 	}
 
-	var k2 [32]byte
-	var kDigest2 [64]byte
-
-	h := sha512.New()
-	_, err = h.Write(round.temp.FinalRBytes[:])
+	k2, err := CalKValue(round.temp.keyType, round.temp.message, round.temp.pkfinal[:], round.temp.FinalRBytes[:])
 	if err != nil {
+		fmt.Printf("error in Round 6 CalKValue: %v\n", round.save.CurDNodeID)
 		return err
 	}
-
-	_, err = h.Write(round.temp.pkfinal[:])
-	if err != nil {
-		return err
-	}
-
-	_, err = h.Write(([]byte(round.temp.message))[:])
-	if err != nil {
-		return err
-	}
-
-	h.Sum(kDigest2[:0])
-	ed.ScReduce(&k2, &kDigest2)
 
 	// 3.6 calculate sBCal
 	var FinalR2, sBCal, FinalPkB ed.ExtendedGroupElement

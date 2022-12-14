@@ -28,6 +28,7 @@ import (
 
 // InputVerify  Ed algorithm validation data 
 type InputVerify struct {
+	KeyType string
 	FinalR  [32]byte
 	FinalS  [32]byte
 	Message []byte
@@ -37,28 +38,11 @@ type InputVerify struct {
 // EdVerify check (R,S)
 func EdVerify(input InputVerify) bool {
 	// 1. calculate k
-	var k [32]byte
-	var kDigest [64]byte
-
-	h := sha512.New()
-	_, err := h.Write(input.FinalR[:])
+	k, err := CalKValue(input.KeyType, input.Message[:], input.FinalPk[:], input.FinalR[:])
 	if err != nil {
+		fmt.Printf("error in EdVerify CalKValue function. \n")
 		return false
 	}
-
-	_, err = h.Write(input.FinalPk[:])
-	if err != nil {
-		return false
-	}
-
-	_, err = h.Write(input.Message[:])
-	if err != nil {
-		return false
-	}
-
-	h.Sum(kDigest[:0])
-
-	ed.ScReduce(&k, &kDigest)
 
 	// 2. verify the equation
 	var R, pkB, sB, sBCal ed.ExtendedGroupElement

@@ -22,7 +22,50 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"crypto/sha512"
+	"github.com/gtank/merlin"
 )
+
+// for ed25519 and sr25519, calculate the challenge k
+func CalKValue(keyType string, message, pkFinal, RFinal []byte) ([32]byte, error){
+	var k [32]byte
+	if keyType == "SR25519" {
+		transcript := merlin.NewTranscript("SigningContext")
+
+		transcript.AppendMessage([]byte(""), []byte("substrate"))
+		transcript.AppendMessage([]byte("sign-bytes"), message)
+		transcript.AppendMessage([]byte("proto-name"), []byte("Schnorr-sig"))
+		transcript.AppendMessage([]byte("sign:pk"), pkFinal)
+		transcript.AppendMessage([]byte("sign:R"), RFinal)
+
+		outK := transcript.ExtractBytes([]byte("sign:c"), 64)
+		
+		var kHelper [64]byte
+		copy(kHelper[:], outK[:])
+		ed.ScReduce(&k, &kHelper)
+	}else{
+		// 2.6 calculate k=H(FinalRBytes||pk||M)
+		var kDigest [64]byte
+
+		h := sha512.New()
+		_, err := h.Write(RFinal)
+		if err != nil {
+			return k, err
+		}
+		_, err = h.Write(pkFinal)
+		if err != nil {
+			return k, err
+		}
+		_, err = h.Write(message)
+		if err != nil {
+			return k, err
+		}
+
+		h.Sum(kDigest[:0])
+		ed.ScReduce(&k, &kDigest)
+	}
+
+	return k, nil
+}
 
 // Start verify CR DR xkR,calc lambda1 s
 func (round *round4) Start() error {
@@ -85,28 +128,11 @@ func (round *round4) Start() error {
 	FinalR.ToBytes(&FinalRBytes)
 	round.temp.FinalRBytes = FinalRBytes
 
-	// 2.6 calculate k=H(FinalRBytes||pk||M)
-	var k [32]byte
-	var kDigest [64]byte
-
-	h := sha512.New()
-	_, err = h.Write(FinalRBytes[:])
+	k, err := CalKValue(round.temp.keyType, round.temp.message, round.temp.pkfinal[:], FinalRBytes[:])
 	if err != nil {
+		fmt.Printf("error in Round 4 CalKValue: %v\n", round.save.CurDNodeID)
 		return err
 	}
-
-	_, err = h.Write(round.temp.pkfinal[:])
-	if err != nil {
-		return err
-	}
-
-	_, err = h.Write(([]byte(round.temp.message))[:])
-	if err != nil {
-		return err
-	}
-
-	h.Sum(kDigest[:0])
-	ed.ScReduce(&k, &kDigest)
 
 	// 2.7 calculate lambda1
 	var lambda [32]byte
