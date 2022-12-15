@@ -24,6 +24,8 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-logfmt/logfmt v0.5.0 // indirect
 	github.com/golang/snappy v0.0.1
+	github.com/gtank/merlin v0.1.1
+	github.com/gtank/ristretto255 v0.1.2
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.7.9
 	github.com/ipfs/go-cid v0.0.4 // indirect
