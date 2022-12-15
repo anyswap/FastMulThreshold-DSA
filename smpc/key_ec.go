@@ -242,6 +242,7 @@ func ProcessInboundMessages(msgprex string, keytype string,finishChan chan struc
 
 		       //if !dul {
 		       //////also broacast to group for msg
+		       //if RelayInPeers && mm.IsBroadcast() && msgmap["Type"] != "KGRound5Message1" && msgmap["Type"] != "KGRound5Message2" {
 		       if RelayInPeers && mm.IsBroadcast() {
 			   go func(msg string,gid string) {
 			       for i:=0;i<1;i++ {

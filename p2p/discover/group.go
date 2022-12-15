@@ -80,6 +80,8 @@ var (
 	loadedSeeds       map[NodeID]int = make(map[NodeID]int)
 	loadedDone        bool           = false
 	checkNetworkChan  chan int       = make(chan int, 1)
+
+	NeighRelay bool = false
 )
 var (
 	Smpc_groupMemNum = 0

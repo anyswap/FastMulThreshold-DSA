@@ -67,6 +67,7 @@ type LunchParams struct {
 	RelayInPeers bool
 	AutoPreSign bool
 	TestNet bool
+	NeighRelay bool
 }
 
 // Start init gsmpc
@@ -136,6 +137,7 @@ func Start(params *LunchParams) {
 	InitMpcNodeInfo()
 
 	RelayInPeers = params.RelayInPeers
+	discover.NeighRelay = params.NeighRelay
 
 	RPCMaxWorker = int(params.Jobs)
 	RPCMaxQueue = int(params.Jobs)

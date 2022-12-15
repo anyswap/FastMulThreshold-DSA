@@ -44,8 +44,12 @@ func BroadcastToGroup(gid discover.NodeID, msg string, p2pType int, myself bool)
 		return "", errors.New(e)
 	}
 	groupTmp := *xvcGroup
-	//go p2pBroatcast(&groupTmp, msg, msgCode, myself)
-        go p2pBroatcastPeers(&groupTmp,msg,msgCode,myself)
+
+	if !discover.NeighRelay {
+		go p2pBroatcast(&groupTmp, msg, msgCode, myself)
+	} else {
+		go p2pBroatcastPeers(&groupTmp,msg,msgCode,myself)
+	}
 	
 	return "BroadcastToGroup send end", nil
 }
@@ -247,8 +251,10 @@ func p2pSendMsg(node discover.RpcNode, msgCode uint64, msg string) error {
 		if countSendFail == 1 || countSendFail%5 == 0 {
 			//common.Debug("==== p2pSendMsg() ==== p2pBroatcast", "node.IP", node.IP, "node.UDP", node.UDP, "node.ID", node.ID, "msg", msg[:cdLen], "send", "fail p2perror", "sendCount", countSendFail)
 		}
-		time.Sleep(time.Duration(4) * time.Second)
+
+		time.Sleep(time.Duration(3) * time.Second)
 	}
+
 	return err
 }
 
