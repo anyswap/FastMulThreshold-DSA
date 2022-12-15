@@ -419,7 +419,7 @@ func IsEDSignCmd(raw string) (string, bool) {
 
 	sig, ok := txdata.(*TxDataSign)
 	if ok {
-		if sig.Keytype == "ED25519" || sig.Keytype == "SR25519"{
+		if sig.Keytype == smpclib.ED25519 || sig.Keytype == smpclib.SR25519 {
 			return key, true
 		}
 
@@ -970,16 +970,16 @@ func HandleC1Data(ac *AcceptReqAddrData, key string) {
 
 	for _, node := range nodes {
 		node2 := ParseNode(node)
-		_,uid := GetNodeUID(node2, "EC256K1",ac.GroupID)
+		_,uid := GetNodeUID(node2, smpclib.EC256K1, ac.GroupID)
 		HandleKG(key, uid)
 		HandleSign(key, uid)
-		_,uid = GetNodeUID(node2, "EC256STARK",ac.GroupID)
+		_,uid = GetNodeUID(node2, smpclib.EC256STARK, ac.GroupID)
 		HandleKG(key, uid)
 		HandleSign(key, uid)
-		_,uid = GetNodeUID(node2, "ED25519",ac.GroupID)
+		_,uid = GetNodeUID(node2, smpclib.ED25519, ac.GroupID)
 		HandleKG(key, uid)
 		HandleSign(key, uid)
-		_,uid = GetNodeUID(node2, "SR25519",ac.GroupID)
+		_,uid = GetNodeUID(node2, smpclib.SR25519 ,ac.GroupID)
 		HandleKG(key, uid)
 		HandleSign(key, uid)
 	}

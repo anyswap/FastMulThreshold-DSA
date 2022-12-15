@@ -74,6 +74,7 @@ require (
 	github.com/whyrusleeping/go-smux-multistream v2.0.2+incompatible // indirect
 	github.com/whyrusleeping/go-smux-yamux v2.0.9+incompatible // indirect
 	github.com/whyrusleeping/yamux v1.2.0 // indirect
+	github.com/wxnacy/wgo v1.0.4
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/net v0.0.0-20200904194848-62affa334b73

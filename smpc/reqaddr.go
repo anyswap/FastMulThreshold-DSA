@@ -544,7 +544,7 @@ func GetReqAddrStatus(key string) (string, string, error) {
 
 	// TODO: this commit will make ed key generation panic, temporarily, disable it for ed
 	// https://github.com/anyswap/FastMulThreshold-DSA/commit/21949d0fc79d9b5f29bfb11ae715994bb8c355dc
-	if pubkey != "" && ac.Cointype != "ED25519" && ac.Cointype != "SR25519" && !checkPubKey(pubkey,ac.Cointype,ac.GroupID,ac.PubKeySig) {
+	if pubkey != "" && ac.Cointype != smpclib.ED25519 && ac.Cointype != smpclib.SR25519 && !checkPubKey(pubkey,ac.Cointype,ac.GroupID,ac.PubKeySig) {
 	    status = "Failure"
 	    pubkey = ""
 	    errorinfo = "verify pubkey sig fail"
@@ -721,7 +721,7 @@ func smpcGenPubKey(msgprex string, account string, cointype string, ch chan inte
 
 	curEnode = GetSelfEnode()
 
-	if cointype == "ED25519" || cointype == "SR25519" {
+	if cointype == smpclib.ED25519 || cointype == smpclib.SR25519 {
 		ok2 := false
 		for j := 0; j < recalcTimes; j++ {
 			if len(ch) != 0 {

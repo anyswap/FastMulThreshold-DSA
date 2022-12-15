@@ -28,7 +28,7 @@ import (
 // for ed25519 and sr25519, calculate the challenge k
 func CalKValue(keyType string, message, pkFinal, RFinal []byte) ([32]byte, error){
 	var k [32]byte
-	if keyType == "SR25519" {
+	if keyType == smpc.SR25519 {
 		transcript := merlin.NewTranscript("SigningContext")
 
 		transcript.AppendMessage([]byte(""), []byte("substrate"))

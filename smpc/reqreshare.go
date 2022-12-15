@@ -478,7 +478,7 @@ func ReShareEC2(msgprex string, initator string, groupid string, pubkey string, 
 		sd.IDs = GetGroupNodeUIDs(keytype,groupid,groupid) // 1,2,3,4,6
 		_,sd.CurDNodeID = GetNodeUID(curEnode,keytype,groupid) 
 
-		//msgtoenode := GetMsgToEnode("EC256K1",(da.(*PubKeyData)).GroupID,(da.(*PubKeyData)).GroupID)
+		//msgtoenode := GetMsgToEnode(smpclib.EC256K1,(da.(*PubKeyData)).GroupID,(da.(*PubKeyData)).GroupID)
 		//kgsave := &KGLocalDBSaveData{Save: sd, MsgToEnode: msgtoenode}
 
 		found := false
