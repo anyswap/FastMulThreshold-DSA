@@ -17,12 +17,15 @@
 package keygen
 
 import (
+	cryptorand "crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
-	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
-	cryptorand "crypto/rand"
 	"io"
+
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed_ristretto"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
+	r255 "github.com/gtank/ristretto255"
 )
 
 // Start get sk pk
@@ -40,47 +43,41 @@ func (round *round1) Start() error {
 
 	var sk [32]byte
 	var pk [32]byte
-	var skTem [64]byte
+	var zkPk [64]byte
+	var err error
 
-	if _, err := io.ReadFull(rand, sk[:]); err != nil {
-	    fmt.Println("Error: io.ReadFull(rand, sk)")
+	if round.temp.sigtype == smpc.SR25519 {
+		skScalar, err := ed_ristretto.NewRandomScalar()
+		if err != nil {
+			return err
+		}
+		PK := new(r255.Element).ScalarBaseMult(skScalar)
+
+		skScalar.Encode(sk[:0])
+		PK.Encode(pk[:0])
+
+		zkPk, err = ed_ristretto.Prove2(sk, pk)
+		if err != nil {
+			return err
+		}
+	}else{
+		var skTem [64]byte
+		if _, err = io.ReadFull(rand, skTem[:]); err != nil {
+			fmt.Println("Error: io.ReadFull(rand, sk)")
+		}
+
+		ed.ScReduce(&sk, &skTem)
+		var A ed.ExtendedGroupElement
+		ed.GeScalarMultBase(&A, &sk)
+		A.ToBytes(&pk)
+
+		zkPk, err = ed.Prove2(sk,pk)
+		if err != nil {
+			return err
+		}
 	}
-
-	copy(skTem[:], sk[:])
-	ed.ScReduce(&sk, &skTem)
-	
-	// 1.3 publicKey
-
-	var A ed.ExtendedGroupElement
-	ed.GeScalarMultBase(&A, &sk)
-
-	A.ToBytes(&pk)
-	///////////////////solana
-	/*var sk [64]byte
-	var pk [32]byte
-
-	seedDigest := sha512.Sum512(seed[:])
-
-	seedDigest[0] &= 248
-	seedDigest[31] &= 127
-	seedDigest[31] |= 64
-
-	var A ed.ExtendedGroupElement
-	var temSk [32]byte
-	copy(temSk[:], seedDigest[:])
-	ed.GeScalarMultBase(&A, &temSk)
-	A.ToBytes(&pk)
-
-	copy(sk[:], seed[:])
-	copy(sk[32:], pk[:])*/
-	/////////////////solana
 
 	CPk, DPk, err := ed.Commit(pk)
-	if err != nil {
-	    return err
-	}
-
-	zkPk,err := ed.Prove2(sk,pk)
 	if err != nil {
 	    return err
 	}

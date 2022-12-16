@@ -25,7 +25,7 @@ func calChallenge(RBytes []byte, X []byte) (*r255.Scalar, error) {
 	return e, nil
 }
 
-func Prove2(sk [32]byte) ([64]byte,error) {
+func Prove2(sk [32]byte, pk [32]byte) ([64]byte,error) {
 	var defaultRlt [64]byte
 
 	rndScalar, err := NewRandomScalar()
@@ -41,11 +41,8 @@ func Prove2(sk [32]byte) ([64]byte,error) {
 	if err != nil {
 		return defaultRlt, err
 	}
-	X := new(r255.Element).ScalarBaseMult(skScalar)
-	var XBytes [32]byte
-	X.Encode(XBytes[:0])
 
-	e, err := calChallenge(RBytes[:], XBytes[:])
+	e, err := calChallenge(RBytes[:], pk[:])
 	if err != nil {
 		return defaultRlt, err
 	}

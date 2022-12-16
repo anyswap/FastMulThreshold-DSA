@@ -19,17 +19,18 @@ package signing
 import (
 	"errors"
 	"fmt"
+	"math/big"
+
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/eddsa/keygen"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
-	"math/big"
+
 	//"encoding/hex"
-	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
 	cryptorand "crypto/rand"
 	"io"
-)
 
-var (
-	zero = big.NewInt(0)
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed_ristretto"
+	r255 "github.com/gtank/ristretto255"
 )
 
 func newRound1(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- EdSignData, kgid string, threshold int, paillierkeylength int, txhash *big.Int, keyType string) smpc.Round {
@@ -93,30 +94,51 @@ func (round *round1) Start() error {
 	var r [32]byte
 	var rTem [64]byte
 	var RBytes [32]byte
+	var zkR [64]byte
+	var CR [32]byte
+	var DR [64]byte
 
 	rand := cryptorand.Reader
-	if _, err := io.ReadFull(rand, r[:]); err != nil {
+	if _, err := io.ReadFull(rand, rTem[:]); err != nil {
 		fmt.Println("Error: io.ReadFull(rand, r)")
 		return err 
 	}
-	copy(rTem[:], r[:])
-	ed.ScReduce(&r, &rTem)
 
-	var R ed.ExtendedGroupElement
-	ed.GeScalarMultBase(&R, &r)
+	if round.temp.keyType == smpc.SR25519 {
+		ed_ristretto.ScReduce(&r, &rTem)
+		rScalar, _ := ed_ristretto.BytesReduceToScalar(r[:])
+		R := new(r255.Element).ScalarBaseMult(rScalar)
 
-	// 2. commit(R)
-	R.ToBytes(&RBytes)
-	CR, DR,err := ed.Commit(RBytes)
-	if err != nil {
-	    return err
-	}
+		// 2. commit(R)
+		R.Encode(RBytes[:0])
+		CR, DR, err = ed.Commit(RBytes)
+		if err != nil {
+			return err
+		}
 
-	// 3. zkSchnorr(rU1)
-	//zkR,err := ed.Prove(r)
-	zkR,err := ed.Prove2(r,RBytes)
-	if err != nil {
-	    return err
+		// 3. zkSchnorr(rU1)
+		zkR,err = ed_ristretto.Prove2(r,RBytes)
+		if err != nil {
+			return err
+		}
+	}else {
+		ed.ScReduce(&r, &rTem)
+
+		var R ed.ExtendedGroupElement
+		ed.GeScalarMultBase(&R, &r)
+
+		// 2. commit(R)
+		R.ToBytes(&RBytes)
+		CR, DR, err = ed.Commit(RBytes)
+		if err != nil {
+			return err
+		}
+
+		// 3. zkSchnorr(rU1)
+		zkR,err = ed.Prove2(r,RBytes)
+		if err != nil {
+			return err
+		}
 	}
 
 	round.temp.DR = DR

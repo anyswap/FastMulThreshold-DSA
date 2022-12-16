@@ -15,7 +15,7 @@ func TestVerify_zk(t *testing.T) {
 	sk.Encode(skBytes[:0])
 	pk.Encode(pkBytes[:0])
 
-	sig, err := Prove2(skBytes)
+	sig, err := Prove2(skBytes, pkBytes)
 	assert.Nil(t, err, "error in prove")
 
 	rlt := VerifyZk2(sig, pkBytes)

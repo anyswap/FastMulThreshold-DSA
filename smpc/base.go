@@ -32,6 +32,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common/hexutil"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed_ristretto"
 	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"github.com/fsn-dev/cryptoCoins/coins/types"
 	"github.com/fsn-dev/cryptoCoins/tools/rlp"
@@ -354,12 +355,16 @@ func DoubleHash(id string, keytype string) *big.Int {
 		var digest [32]byte
 		copy(digest[:], sha3256.Sum(nil))
 
-		//////
 		var zero [32]byte
 		var one [32]byte
 		one[0] = 1
-		ed.ScMulAdd(&digest, &digest, &one, &zero)
-		//////
+		if keytype == smpclib.SR25519 {
+			ed_ristretto.ScMulAdd(&digest, &digest, &one, &zero)
+		}else
+		{
+			ed.ScMulAdd(&digest, &digest, &one, &zero)
+		}
+		
 		digestBigInt := new(big.Int).SetBytes(digest[:])
 		return digestBigInt
 	}

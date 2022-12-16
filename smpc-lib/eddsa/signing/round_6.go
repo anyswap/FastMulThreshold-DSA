@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
+	r255 "github.com/gtank/ristretto255"
 	"encoding/hex"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
 )
@@ -40,34 +41,70 @@ func (round *round6) Start() error {
 		return err
 	}
 
-	var sB2, temSB ed.ExtendedGroupElement
+	var sBBytes2 [32]byte
 
-	for k := range round.idsign {
-		msg4, ok := round.temp.signRound4Messages[k].(*SignRound4Message)
-		if !ok {
-			return errors.New("get csb fail")
+	if round.temp.keyType == smpc.SR25519 {
+		sB2 := new(r255.Element)
+
+		for k := range round.idsign {
+			msg4, ok := round.temp.signRound4Messages[k].(*SignRound4Message)
+			if !ok {
+				return errors.New("get csb fail")
+			}
+
+			msg5, ok := round.temp.signRound5Messages[k].(*SignRound5Message)
+			if !ok {
+				return errors.New("get dsb fail")
+			}
+
+			CSBFlag := ed.Verify(msg4.CSB, msg5.DSB)
+			if !CSBFlag {
+				fmt.Printf("Error: Commitment(SB) Not Pass at User: %v", round.kgid)
+				return errors.New("smpc back-end internal error:commitment(CSB) not pass")
+			}
+
+			var temSBBytes [32]byte
+			copy(temSBBytes[:], msg5.DSB[32:])
+			var temSB = new(r255.Element)
+			temSB.Decode(temSBBytes[:])
+
+			if k == 0 {
+				sB2 = temSB
+			} else {
+				sB2 = new(r255.Element).Add(sB2, temSB)
+			}
 		}
+		sB2.Encode(sBBytes2[:0])
+	}else {
+		var sB2, temSB ed.ExtendedGroupElement
+		for k := range round.idsign {
+			msg4, ok := round.temp.signRound4Messages[k].(*SignRound4Message)
+			if !ok {
+				return errors.New("get csb fail")
+			}
 
-		msg5, ok := round.temp.signRound5Messages[k].(*SignRound5Message)
-		if !ok {
-			return errors.New("get dsb fail")
+			msg5, ok := round.temp.signRound5Messages[k].(*SignRound5Message)
+			if !ok {
+				return errors.New("get dsb fail")
+			}
+
+			CSBFlag := ed.Verify(msg4.CSB, msg5.DSB)
+			if !CSBFlag {
+				fmt.Printf("Error: Commitment(SB) Not Pass at User: %v", round.kgid)
+				return errors.New("smpc back-end internal error:commitment(CSB) not pass")
+			}
+
+			var temSBBytes [32]byte
+			copy(temSBBytes[:], msg5.DSB[32:])
+			temSB.FromBytes(&temSBBytes)
+
+			if k == 0 {
+				sB2 = temSB
+			} else {
+				ed.GeAdd(&sB2, &sB2, &temSB)
+			}
 		}
-
-		CSBFlag := ed.Verify(msg4.CSB, msg5.DSB)
-		if !CSBFlag {
-			fmt.Printf("Error: Commitment(SB) Not Pass at User: %v", round.kgid)
-			return errors.New("smpc back-end internal error:commitment(CSB) not pass")
-		}
-
-		var temSBBytes [32]byte
-		copy(temSBBytes[:], msg5.DSB[32:])
-		temSB.FromBytes(&temSBBytes)
-
-		if k == 0 {
-			sB2 = temSB
-		} else {
-			ed.GeAdd(&sB2, &sB2, &temSB)
-		}
+		sB2.ToBytes(&sBBytes2)
 	}
 
 	k2, err := CalKValue(round.temp.keyType, round.temp.message, round.temp.pkfinal[:], round.temp.FinalRBytes[:])
@@ -77,17 +114,32 @@ func (round *round6) Start() error {
 	}
 
 	// 3.6 calculate sBCal
-	var FinalR2, sBCal, FinalPkB ed.ExtendedGroupElement
-	FinalR2.FromBytes(&round.temp.FinalRBytes)
-	FinalPkB.FromBytes(&round.temp.pkfinal)
-	ed.GeScalarMult(&sBCal, &k2, &FinalPkB)
-	ed.GeAdd(&sBCal, &sBCal, &FinalR2)
+	var sBCalBytes [32]byte
+
+	if round.temp.keyType == smpc.SR25519 {
+		var FinalR2 = new(r255.Element)
+		var sBCal = new(r255.Element) 
+		var FinalPkB = new(r255.Element)
+		var k2Scalar = new(r255.Scalar)
+		k2Scalar.Decode(k2[:])
+
+		FinalR2.Decode(round.temp.FinalRBytes[:])
+		FinalPkB.Decode(round.temp.pkfinal[:])
+		sBCal = new(r255.Element).ScalarMult(k2Scalar, FinalPkB)
+		sBCal = new(r255.Element).Add(sBCal, FinalR2)
+
+		sBCal.Encode(sBCalBytes[:0])
+	}else {
+		var FinalR2, sBCal, FinalPkB ed.ExtendedGroupElement
+		FinalR2.FromBytes(&round.temp.FinalRBytes)
+		FinalPkB.FromBytes(&round.temp.pkfinal)
+		ed.GeScalarMult(&sBCal, &k2, &FinalPkB)
+		ed.GeAdd(&sBCal, &sBCal, &FinalR2)
+
+		sBCal.ToBytes(&sBCalBytes)
+	}
 
 	// 3.7 verify equation
-	var sBBytes2, sBCalBytes [32]byte
-	sB2.ToBytes(&sBBytes2)
-	sBCal.ToBytes(&sBCalBytes)
-
 	if !bytes.Equal(sBBytes2[:], sBCalBytes[:]) {
 		fmt.Printf("Error: Not Pass Verification (SB = SBCal) at User: %v, message = %v,msg str = %v, pk = %v,RBytes = %v  \n", round.kgid, round.temp.message, hex.EncodeToString(round.temp.message[:]), round.temp.pkfinal[:], round.temp.FinalRBytes[:])
 		return errors.New("error: not pass verification (sb = sbcal)")

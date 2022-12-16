@@ -19,11 +19,10 @@ package signing
 import (
 	"math/big"
 	"bytes"
-	"crypto/sha512"
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
-	"strconv"
-	edlib "crypto/ed25519"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
+	r255 "github.com/gtank/ristretto255"
 )
 
 // InputVerify  Ed algorithm validation data 
@@ -36,7 +35,7 @@ type InputVerify struct {
 }
 
 // EdVerify check (R,S)
-func EdVerify(input InputVerify) bool {
+func EdVerify(input InputVerify, sigtype string) bool {
 	// 1. calculate k
 	k, err := CalKValue(input.KeyType, input.Message[:], input.FinalPk[:], input.FinalR[:])
 	if err != nil {
@@ -45,19 +44,43 @@ func EdVerify(input InputVerify) bool {
 	}
 
 	// 2. verify the equation
-	var R, pkB, sB, sBCal ed.ExtendedGroupElement
-	pkB.FromBytes(&(input.FinalPk))
-	R.FromBytes(&(input.FinalR))
-
-	ed.GeScalarMult(&sBCal, &k, &pkB)
-	ed.GeAdd(&sBCal, &R, &sBCal)
-
-	ed.GeScalarMultBase(&sB, &(input.FinalS))
 
 	var sBBytes, sBCalBytes [32]byte
-	sB.ToBytes(&sBBytes)
-	sBCal.ToBytes(&sBCalBytes)
+	if sigtype == smpc.SR25519 {
+		var(
+			R = new(r255.Element)
+			pkB = new(r255.Element)
+			sB = new(r255.Element)
+			sBCal = new(r255.Element)
+			kScalar = new(r255.Scalar)
+			finalSScalar = new(r255.Scalar)
+		)
+		pkB.Decode(input.FinalPk[:])
+		R.Decode(input.FinalR[:])
+		kScalar.Decode(k[:])
+		finalSScalar.Decode(input.FinalS[:])
 
+		sBCal = new(r255.Element).ScalarMult(kScalar, pkB)
+		sBCal = new(r255.Element).Add(R, sBCal)
+
+		sB = new(r255.Element).ScalarBaseMult(finalSScalar)
+		
+		sB.Encode(sBBytes[:0])
+		sBCal.Encode(sBCalBytes[:0])
+	}else {
+		var R, pkB, sB, sBCal ed.ExtendedGroupElement
+		pkB.FromBytes(&(input.FinalPk))
+		R.FromBytes(&(input.FinalR))
+	
+		ed.GeScalarMult(&sBCal, &k, &pkB)
+		ed.GeAdd(&sBCal, &R, &sBCal)
+	
+		ed.GeScalarMultBase(&sB, &(input.FinalS))
+		
+		sB.ToBytes(&sBBytes)
+		sBCal.ToBytes(&sBCalBytes)
+	}
+	
 	pass := bytes.Equal(sBBytes[:], sBCalBytes[:])
 
 	return pass
@@ -75,54 +98,4 @@ type PrePubData struct {
 	R      *big.Int
 	Ry     *big.Int
 	Sigma1 *big.Int
-}
-
-// Verify solane ed lib verify
-func Verify(publicKey edlib.PublicKey, message, sig []byte) bool {
-	if l := len(publicKey); l != 32 {
-		fmt.Printf("================= ed25519: bad public key length: " + strconv.Itoa(l) + " ==================\n")
-		return false
-	}
-
-	if len(sig) != 64 || sig[63]&224 != 0 {
-		fmt.Printf("===================ed lib verify fail,sig len error =========================\n")
-		return false
-	}
-
-	var A ed.ExtendedGroupElement
-	var publicKeyBytes [32]byte
-	copy(publicKeyBytes[:], publicKey)
-	if !A.FromBytes(&publicKeyBytes) {
-		fmt.Printf("===================ed lib verify fail,pubkey format error =========================\n")
-		return false
-	}
-	ed.FeNeg(&A.X, &A.X)
-	ed.FeNeg(&A.T, &A.T)
-
-	h := sha512.New()
-	h.Write(sig[:32])
-	h.Write(publicKey[:])
-	h.Write(message)
-	var digest [64]byte
-	h.Sum(digest[:0])
-
-	var hReduced [32]byte
-	ed.ScReduce(&hReduced, &digest)
-
-	var R ed.ProjectiveGroupElement
-	var s [32]byte
-	copy(s[:], sig[32:])
-
-	// https://tools.ietf.org/html/rfc8032#section-5.1.7 requires that s be in
-	// the range [0, order) in order to prevent signature malleability.
-	if !ed.ScMinimal(&s) {
-		fmt.Printf("===================ed lib verify fail,check ScMinimal fail =========================\n")
-		return false
-	}
-
-	ed.GeDoubleScalarMultVartime(&R, &hReduced, &A, &s)
-
-	var checkR [32]byte
-	R.ToBytes(&checkR)
-	return bytes.Equal(sig[:32], checkR[:])
 }

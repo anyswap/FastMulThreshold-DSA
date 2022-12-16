@@ -21,6 +21,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed_ristretto"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"crypto/sha512"
 )
@@ -70,7 +71,13 @@ func (round *round4) Start() error {
 
 		var t [32]byte
 		copy(t[:], msg3.DPk[32:])
-		zkPkFlag := ed.VerifyZk2(msg2.ZkPk, t)
+
+		var zkPkFlag = false
+		if round.temp.sigtype == smpc.SR25519 {
+			zkPkFlag = ed_ristretto.VerifyZk2(msg2.ZkPk, t)
+		}else{
+			zkPkFlag = ed.VerifyZk2(msg2.ZkPk, t)
+		}
 		if !zkPkFlag {
 			fmt.Printf("Error: ZeroKnowledge Proof (Pk) Not Pass at User: %v \n", id)
 			return errors.New("smpc back-end internal error:zeroknowledge check fail")
@@ -100,13 +107,22 @@ func (round *round4) Start() error {
 	}
 
 	h.Sum(aDigest[:0])
-	ed.ScReduce(&a, &aDigest)
+	if round.temp.sigtype == smpc.SR25519 {
+		ed_ristretto.ScReduce(&a, &aDigest)
+	}else{
+		ed.ScReduce(&a, &aDigest)
+	}
 
 	// 2.6 calculate ask
 	var ask [32]byte
 	var temSk2 [32]byte
 	copy(temSk2[:], round.temp.sk[:32])
-	ed.ScMul(&ask, &a, &temSk2)
+
+	if round.temp.sigtype == smpc.SR25519 {
+		ed_ristretto.ScMul(&ask, &a, &temSk2)
+	}else{
+		ed.ScMul(&ask, &a, &temSk2)
+	}
 
 	// 2.7 calculate vss
 
@@ -124,8 +140,18 @@ func (round *round4) Start() error {
 		uids = append(uids, tem)
 	}
 	round.temp.uids = uids
+	
+	var(
+		cfsBBytes [][32]byte
+		shares [][32]byte
+	)
 
-	_, cfsBBytes, shares,err := ed.Vss(ask, uids, round.threshold, round.dnodecount)
+	if round.temp.sigtype == smpc.SR25519 {
+		_, cfsBBytes, shares,err = ed_ristretto.Vss(ask, uids, round.threshold, round.dnodecount)
+	}else{
+		_, cfsBBytes, shares,err = ed.Vss(ask, uids, round.threshold, round.dnodecount)
+	}
+
 	if cfsBBytes == nil || shares == nil || err != nil {
 	    if err != nil {
 		return err

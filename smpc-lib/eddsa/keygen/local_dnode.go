@@ -20,6 +20,7 @@ package keygen
 import (
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed_ristretto"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"encoding/hex"
 	cryptorand "crypto/rand"
@@ -37,6 +38,8 @@ type LocalDNode struct {
 
 // localTempData  Store some data of MPC calculation process 
 type localTempData struct {
+	sigtype string
+
 	kgRound0Messages,
 	kgRound1Messages,
 	kgRound2Messages,
@@ -73,6 +76,7 @@ func NewLocalDNode(
 	end chan<- LocalDNodeSaveData,
 	DNodeCountInGroup int,
 	threshold int,
+	sigtype string,
 ) smpc.DNode {
 
 	data := NewLocalDNodeSaveData(DNodeCountInGroup)
@@ -94,7 +98,11 @@ func NewLocalDNode(
 	var zero [32]byte
 	var one [32]byte
 	one[0] = 1
-	ed.ScMulAdd(&id, &id, &one, &zero)
+	if sigtype == smpc.SR25519 {
+		ed_ristretto.ScMulAdd(&id, &id, &one, &zero)
+	}else{
+		ed.ScMulAdd(&id, &id, &one, &zero)
+	}
 
 	p.ID = hex.EncodeToString(id[:])
 	//uid := smpc.GetRandomIntFromZn(secp256k1.S256(keytype).N)
@@ -110,6 +118,7 @@ func NewLocalDNode(
 	p.temp.kgRound3Messages = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound4Messages = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound5Messages = make([]smpc.Message, DNodeCountInGroup)
+	p.temp.sigtype = sigtype
 	return p
 }
 
