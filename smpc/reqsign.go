@@ -647,7 +647,7 @@ func Sign(raw string) (string, string, error) {
 	}
 	/////
 
-	if sig.Keytype == "ED25519" {
+	if sig.Keytype == smpclib.ED25519 || sig.Keytype == smpclib.SR25519 {
 		pickdata := make([]*PickHashData, 0)
 		pickhash := make([]*PickHashKey, 0)
 		m := make(map[string]string)
@@ -1293,7 +1293,7 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
 
     var smpcpkx *big.Int
     var smpcpky *big.Int
-    if keytype == "EC256K1" || keytype == "EC256STARK" {
+    if keytype == smpclib.EC256K1 || keytype == smpclib.EC256STARK {
 	    smpcpks := []byte(smpcpub)
 	    smpcpkx, smpcpky = secp256k1.S256(keytype).Unmarshal(smpcpks[:])
     }
@@ -1318,7 +1318,7 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
     var result string
     var cherrtmp error
     rch := make(chan interface{}, 1)
-    if keytype == "ED25519" {
+    if keytype == smpclib.ED25519 || keytype == smpclib.SR25519 {
 	    signED(wsid, unsignhash, save, sku1, smpcpub, keytype, rch)
 	    ret, tip, cherr := GetChannelValue(waitall, rch)
 	    if cherr != nil {
@@ -1352,7 +1352,7 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
 
 	    //bug
 	    rets := []rune(rsv)
-	    if keytype != "ED25519" && len(rets) != 130 {
+	    if keytype != smpclib.ED25519 && keytype != smpclib.SR25519 && len(rets) != 130 {
 		    common.Error("==========sign,check rsv size fail============", "err", GetRetErr(ErrSmpcSigWrongSize), "key", wsid)
 		    res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrSmpcSigWrongSize)}
 		    ch <- res
@@ -2420,7 +2420,7 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
     endCh := make(chan edsigning.EdSignData, w.ThresHold)
     finalizeendCh := make(chan *big.Int, w.ThresHold) //useness
     errChan := make(chan struct{})
-    signDNode := edsigning.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, mMtA, finalizeendCh)
+    signDNode := edsigning.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, mMtA, cointype, finalizeendCh)
     w.DNode = signDNode
     _,UID := GetNodeUID(curEnode, cointype,pubs.GroupID)
     signDNode.SetDNodeID(fmt.Sprintf("%v", UID))

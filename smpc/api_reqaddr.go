@@ -21,6 +21,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
+	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
+	"github.com/wxnacy/wgo/arrays" 
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
 	"github.com/fsn-dev/cryptoCoins/coins/types"
 	"github.com/fsn-dev/cryptoCoins/tools/rlp"
@@ -548,7 +550,7 @@ func (req *ReqSmpcAddr) CheckTxData(raw string,txdata []byte, from string, nonce
 	err := json.Unmarshal(txdata, &req2)
 	if err == nil && req2.TxType == "REQSMPCADDR" {
 		keytype := req2.Keytype 
-		if keytype != "EC256K1" && keytype != "EC256STARK" && keytype != "ED25519" {
+		if arrays.Contains(smpclib.VALID_SIG_TYPES, keytype) == -1 {
 			return "","","",nil,fmt.Errorf("invalid keytype")
 		}
 		

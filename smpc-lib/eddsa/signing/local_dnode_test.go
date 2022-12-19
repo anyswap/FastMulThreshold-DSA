@@ -40,7 +40,7 @@ func TestCheckFull(t *testing.T) {
 		return
 	}
 
-	comC,_ := ed.Commit(tmp)
+	comC, _, _ := ed.Commit(tmp)
 
 	srm := &signing.SignRound1Message{
 		SignRoundMessage: new(signing.SignRoundMessage),

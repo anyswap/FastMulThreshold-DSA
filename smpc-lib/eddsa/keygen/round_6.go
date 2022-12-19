@@ -23,6 +23,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed_ristretto"
+	r255 "github.com/gtank/ristretto255"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	//"encoding/hex"
 )
@@ -63,7 +65,13 @@ func (round *round6) Start() error {
 			return errors.New("ed,round.start get round3 msg fail")
 		}
 
-		shareUFlag := ed.VerifyVss(msg4.Share, round.temp.uids[curIndex], msg5.CfsBBytes)
+		var shareUFlag = false
+		if round.temp.sigtype == smpc.SR25519 {
+			shareUFlag = ed_ristretto.VerifyVss(msg4.Share, round.temp.uids[curIndex], msg5.CfsBBytes)
+		}else {
+			shareUFlag = ed.VerifyVss(msg4.Share, round.temp.uids[curIndex], msg5.CfsBBytes)
+		}
+
 		if !shareUFlag {
 			fmt.Printf("error: vss share verification not pass at user: %v, k  = %v \n", id, k)
 			return errors.New("smpc back-end internal error:vss share verification fail")
@@ -103,14 +111,25 @@ func (round *round6) Start() error {
 			return err
 		}
 		h.Sum(aDigest2[:0])
-		ed.ScReduce(&a2, &aDigest2)
-
-		var askB, A ed.ExtendedGroupElement
-		A.FromBytes(&temPk)
-		ed.GeScalarMult(&askB, &a2, &A)
 
 		var askBBytes [32]byte
-		askB.ToBytes(&askBBytes)
+		if round.temp.sigtype == smpc.SR25519 {
+			a2Scalar, err := ed_ristretto.BytesReduceToScalar(aDigest2[:])
+			if err != nil {
+				return err
+			}
+			var A = new(r255.Element)
+			A.Decode(temPk[:])
+			askB := new(r255.Element).ScalarMult(a2Scalar, A)
+			askB.Encode(askBBytes[:0])
+		}else {
+			ed.ScReduce(&a2, &aDigest2)
+
+			var askB, A ed.ExtendedGroupElement
+			A.FromBytes(&temPk)
+			ed.GeScalarMult(&askB, &a2, &A)
+			askB.ToBytes(&askBBytes)
+		}
 
 		msg5, ok := round.temp.kgRound5Messages[k].(*KGRound5Message)
 		if !ok {
@@ -130,52 +149,97 @@ func (round *round6) Start() error {
 		}
 
 		t3 := msg4.Share
-		ed.ScAdd(&tSk, &tSk, &t3)
+		if round.temp.sigtype == smpc.SR25519 {
+			ed_ristretto.ScAdd(&tSk, &tSk, &t3)
+		}else {
+			ed.ScAdd(&tSk, &tSk, &t3)
+		}
 	}
 
 	// 3.4 calculate pk
-	var finalPk ed.ExtendedGroupElement
 	var finalPkBytes [32]byte
 
-	i := 0
-	for k := range ids {
-		msg3, ok := round.temp.kgRound3Messages[k].(*KGRound3Message)
-		if !ok {
-			return errors.New("ed,round.Start get round3 msg fail")
+	if round.temp.sigtype == smpc.SR25519 {
+		var finalPk = new(r255.Element)
+		i := 0
+		for k := range ids {
+			msg3, ok := round.temp.kgRound3Messages[k].(*KGRound3Message)
+			if !ok {
+				return errors.New("ed,round.Start get round3 msg fail")
+			}
+
+			var temPk [32]byte
+			t := msg3.DPk[:]
+			copy(temPk[:], t[32:])
+
+			h.Reset()
+			_, err = h.Write(temPk[:])
+			if err != nil {
+				return err
+			}
+
+			_, err = h.Write(PkSet2)
+			if err != nil {
+				return err
+			}
+
+			h.Sum(aDigest2[:0])
+			a2Scalar, _ := ed_ristretto.BytesReduceToScalar(aDigest2[:])
+
+			var A = new(r255.Element)
+			A.Decode(temPk[:])
+			askB := new(r255.Element).ScalarMult(a2Scalar, A)
+
+			if i == 0 {
+				finalPk = askB
+			} else {
+				finalPk = new(r255.Element).Add(finalPk, askB)
+			}
+
+			i++
 		}
+		finalPk.Encode(finalPkBytes[:0])
+	}else {
+		var finalPk ed.ExtendedGroupElement
+		i := 0
+		for k := range ids {
+			msg3, ok := round.temp.kgRound3Messages[k].(*KGRound3Message)
+			if !ok {
+				return errors.New("ed,round.Start get round3 msg fail")
+			}
 
-		var temPk [32]byte
-		t := msg3.DPk[:]
-		copy(temPk[:], t[32:])
+			var temPk [32]byte
+			t := msg3.DPk[:]
+			copy(temPk[:], t[32:])
 
-		h.Reset()
-		_, err = h.Write(temPk[:])
-		if err != nil {
-			return err
+			h.Reset()
+			_, err = h.Write(temPk[:])
+			if err != nil {
+				return err
+			}
+
+			_, err = h.Write(PkSet2)
+			if err != nil {
+				return err
+			}
+
+			h.Sum(aDigest2[:0])
+			ed.ScReduce(&a2, &aDigest2)
+
+			var askB, A ed.ExtendedGroupElement
+			A.FromBytes(&temPk)
+			ed.GeScalarMult(&askB, &a2, &A)
+
+			if i == 0 {
+				finalPk = askB
+			} else {
+				ed.GeAdd(&finalPk, &finalPk, &askB)
+			}
+
+			i++
 		}
-
-		_, err = h.Write(PkSet2)
-		if err != nil {
-			return err
-		}
-
-		h.Sum(aDigest2[:0])
-		ed.ScReduce(&a2, &aDigest2)
-
-		var askB, A ed.ExtendedGroupElement
-		A.FromBytes(&temPk)
-		ed.GeScalarMult(&askB, &a2, &A)
-
-		if i == 0 {
-			finalPk = askB
-		} else {
-			ed.GeAdd(&finalPk, &finalPk, &askB)
-		}
-
-		i++
+		finalPk.ToBytes(&finalPkBytes)
 	}
-
-	finalPk.ToBytes(&finalPkBytes)
 
 	round.Save.TSk = tSk
 	round.Save.FinalPkBytes = finalPkBytes

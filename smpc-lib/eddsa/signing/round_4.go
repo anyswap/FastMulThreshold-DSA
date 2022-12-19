@@ -17,12 +17,58 @@
 package signing
 
 import (
+	"crypto/sha512"
 	"errors"
 	"fmt"
+
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed_ristretto"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
-	"crypto/sha512"
+	"github.com/gtank/merlin"
+	r255 "github.com/gtank/ristretto255"
 )
+
+// for ed25519 and sr25519, calculate the challenge k
+func CalKValue(keyType string, message, pkFinal, RFinal []byte) ([32]byte, error){
+	var k [32]byte
+	if keyType == smpc.SR25519 {
+		transcript := merlin.NewTranscript("SigningContext")
+
+		transcript.AppendMessage([]byte(""), []byte("substrate"))
+		transcript.AppendMessage([]byte("sign-bytes"), message)
+		transcript.AppendMessage([]byte("proto-name"), []byte("Schnorr-sig"))
+		transcript.AppendMessage([]byte("sign:pk"), pkFinal)
+		transcript.AppendMessage([]byte("sign:R"), RFinal)
+
+		outK := transcript.ExtractBytes([]byte("sign:c"), 64)
+		
+		var kHelper [64]byte
+		copy(kHelper[:], outK[:])
+		ed_ristretto.ScReduce(&k, &kHelper)
+	}else{
+		// 2.6 calculate k=H(FinalRBytes||pk||M)
+		var kDigest [64]byte
+
+		h := sha512.New()
+		_, err := h.Write(RFinal)
+		if err != nil {
+			return k, err
+		}
+		_, err = h.Write(pkFinal)
+		if err != nil {
+			return k, err
+		}
+		_, err = h.Write(message)
+		if err != nil {
+			return k, err
+		}
+
+		h.Sum(kDigest[:0])
+		ed.ScReduce(&k, &kDigest)
+	}
+
+	return k, nil
+}
 
 // Start verify CR DR xkR,calc lambda1 s
 func (round *round4) Start() error {
@@ -39,74 +85,105 @@ func (round *round4) Start() error {
 		return err
 	}
 
-	var FinalR, temR2 ed.ExtendedGroupElement
 	var FinalRBytes [32]byte
 
-	for k := range round.idsign {
-		msg1, ok := round.temp.signRound1Messages[k].(*SignRound1Message)
-		if !ok {
-			return errors.New("get cr fail")
-		}
+	if round.temp.keyType == smpc.SR25519 {
+		FinalR := new(r255.Element)
+		for k := range round.idsign {
+			msg1, ok := round.temp.signRound1Messages[k].(*SignRound1Message)
+			if !ok {
+				return errors.New("get cr fail")
+			}
 
-		msg3, ok := round.temp.signRound3Messages[k].(*SignRound3Message)
-		if !ok {
-			return errors.New("get dr fail")
-		}
+			msg3, ok := round.temp.signRound3Messages[k].(*SignRound3Message)
+			if !ok {
+				return errors.New("get dr fail")
+			}
 
-		CRFlag := ed.Verify(msg1.CR, msg3.DR)
-		if !CRFlag {
-			fmt.Printf("error: commitment(r) not pass at user: %v\n", round.save.CurDNodeID)
-			return errors.New("smpc back-end internal error:commitment verification fail in ed sign")
-		}
+			CRFlag := ed.Verify(msg1.CR, msg3.DR)
+			if !CRFlag {
+				fmt.Printf("error: commitment(r) not pass at user: %v\n", round.save.CurDNodeID)
+				return errors.New("smpc back-end internal error:commitment verification fail in ed sign")
+			}
 
-		msg2, ok := round.temp.signRound2Messages[k].(*SignRound2Message)
-		if !ok {
-			return errors.New("get zkr fail")
-		}
+			msg2, ok := round.temp.signRound2Messages[k].(*SignRound2Message)
+			if !ok {
+				return errors.New("get zkr fail")
+			}
 
-		var temR [32]byte
-		copy(temR[:], msg3.DR[32:])
+			var temR [32]byte
+			copy(temR[:], msg3.DR[32:])
 
-		zkRFlag := ed.VerifyZk2(msg2.ZkR, temR)
-		if !zkRFlag {
-			fmt.Printf("Error: ZeroKnowledge Proof (R) Not Pass at User: %v\n", round.save.CurDNodeID)
-			return errors.New("smpc back-end internal error:zeroknowledge verification fail in ed sign")
-		}
+			zkRFlag := ed_ristretto.VerifyZk2(msg2.ZkR, temR)
+			if !zkRFlag {
+				fmt.Printf("Error: ZeroKnowledge Proof (R) Not Pass at User: %v\n", round.save.CurDNodeID)
+				return errors.New("smpc back-end internal error:zeroknowledge verification fail in ed sign")
+			}
 
-		var temRBytes [32]byte
-		copy(temRBytes[:], msg3.DR[32:])
-		temR2.FromBytes(&temRBytes)
-		if k == 0 {
-			FinalR = temR2
-		} else {
-			ed.GeAdd(&FinalR, &FinalR, &temR2)
+			var temRBytes [32]byte
+			copy(temRBytes[:], msg3.DR[32:])
+			temR2 := new(r255.Element)
+			temR2.Decode(temRBytes[:])
+			
+			if k == 0 {
+				FinalR = temR2
+			} else {
+				FinalR = new(r255.Element).Add(FinalR, temR2)
+			}
 		}
+		FinalR.Encode(FinalRBytes[:0])
+	}else {
+		var FinalR, temR2 ed.ExtendedGroupElement
+		for k := range round.idsign {
+			msg1, ok := round.temp.signRound1Messages[k].(*SignRound1Message)
+			if !ok {
+				return errors.New("get cr fail")
+			}
+
+			msg3, ok := round.temp.signRound3Messages[k].(*SignRound3Message)
+			if !ok {
+				return errors.New("get dr fail")
+			}
+
+			CRFlag := ed.Verify(msg1.CR, msg3.DR)
+			if !CRFlag {
+				fmt.Printf("error: commitment(r) not pass at user: %v\n", round.save.CurDNodeID)
+				return errors.New("smpc back-end internal error:commitment verification fail in ed sign")
+			}
+
+			msg2, ok := round.temp.signRound2Messages[k].(*SignRound2Message)
+			if !ok {
+				return errors.New("get zkr fail")
+			}
+
+			var temR [32]byte
+			copy(temR[:], msg3.DR[32:])
+
+			zkRFlag := ed.VerifyZk2(msg2.ZkR, temR)
+			if !zkRFlag {
+				fmt.Printf("Error: ZeroKnowledge Proof (R) Not Pass at User: %v\n", round.save.CurDNodeID)
+				return errors.New("smpc back-end internal error:zeroknowledge verification fail in ed sign")
+			}
+
+			var temRBytes [32]byte
+			copy(temRBytes[:], msg3.DR[32:])
+			temR2.FromBytes(&temRBytes)
+			if k == 0 {
+				FinalR = temR2
+			} else {
+				ed.GeAdd(&FinalR, &FinalR, &temR2)
+			}
+		}
+		FinalR.ToBytes(&FinalRBytes)
 	}
-	FinalR.ToBytes(&FinalRBytes)
+
 	round.temp.FinalRBytes = FinalRBytes
 
-	// 2.6 calculate k=H(FinalRBytes||pk||M)
-	var k [32]byte
-	var kDigest [64]byte
-
-	h := sha512.New()
-	_, err = h.Write(FinalRBytes[:])
+	k, err := CalKValue(round.temp.keyType, round.temp.message, round.temp.pkfinal[:], FinalRBytes[:])
 	if err != nil {
+		fmt.Printf("error in Round 4 CalKValue: %v\n", round.save.CurDNodeID)
 		return err
 	}
-
-	_, err = h.Write(round.temp.pkfinal[:])
-	if err != nil {
-		return err
-	}
-
-	_, err = h.Write(([]byte(round.temp.message))[:])
-	if err != nil {
-		return err
-	}
-
-	h.Sum(kDigest[:0])
-	ed.ScReduce(&k, &kDigest)
 
 	// 2.7 calculate lambda1
 	var lambda [32]byte
@@ -127,8 +204,14 @@ func (round *round4) Start() error {
 		var time [32]byte
 		t := indexByte //round.temp.uids[oldindex]
 		tt := curByte  //round.temp.uids[cur_oldindex]
-		ed.ScSub(&time, &t, &tt)
-		time = ed.ScModInverse(time, order)
+
+		if round.temp.keyType == smpc.SR25519 {
+			ed_ristretto.ScSub(&time, &t, &tt)
+			time = ed_ristretto.ScModInverse(time)
+		}else {
+			ed.ScSub(&time, &t, &tt)
+			time = ed.ScModInverse(time, order)
+		}
 		count := 0
 		for index:=0;index<32;index++ {
 		    if time[index] == byte('0') {
@@ -139,23 +222,42 @@ func (round *round4) Start() error {
 		    return errors.New("calc time mod inverse fail")
 		}
 
-		ed.ScMul(&time, &time, &t)
-		ed.ScMul(&lambda, &lambda, &time)
+		if round.temp.keyType == smpc.SR25519 {
+			ed_ristretto.ScMul(&time, &time, &t)
+			ed_ristretto.ScMul(&lambda, &lambda, &time)
+		}else {
+			ed.ScMul(&time, &time, &t)
+			ed.ScMul(&lambda, &lambda, &time)
+		}
 	}
 
 	var s [32]byte
-	ed.ScMul(&s, &lambda, &round.temp.tsk)
-
-	//stmp := hex.EncodeToString(s[:])
-
-	ed.ScMul(&s, &s, &k)
-	ed.ScAdd(&s, &s, &round.temp.r)
-
-	// 2.9 calculate sBBytes
 	var sBBytes [32]byte
-	var sB ed.ExtendedGroupElement
-	ed.GeScalarMultBase(&sB, &s)
-	sB.ToBytes(&sBBytes)
+
+	if round.temp.keyType == smpc.SR25519 {
+		ed_ristretto.ScMul(&s, &lambda, &round.temp.tsk)
+
+		//stmp := hex.EncodeToString(s[:])
+		ed_ristretto.ScMul(&s, &s, &k)
+		ed_ristretto.ScAdd(&s, &s, &round.temp.r)
+
+		// 2.9 calculate sBBytes
+		var sScalar = new(r255.Scalar)
+		sScalar.Decode(s[:])
+		sB := new(r255.Element).ScalarBaseMult(sScalar)
+		sB.Encode(sBBytes[:0])
+	}else {
+		ed.ScMul(&s, &lambda, &round.temp.tsk)
+
+		//stmp := hex.EncodeToString(s[:])
+		ed.ScMul(&s, &s, &k)
+		ed.ScAdd(&s, &s, &round.temp.r)
+
+		// 2.9 calculate sBBytes
+		var sB ed.ExtendedGroupElement
+		ed.GeScalarMultBase(&sB, &s)
+		sB.ToBytes(&sBBytes)
+	}
 
 	// 2.10 commit(sBBytes)
 	CSB, DSB,err := ed.Commit(sBBytes)

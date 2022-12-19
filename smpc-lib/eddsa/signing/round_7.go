@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"encoding/hex"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
-	"github.com/agl/ed25519"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ed_ristretto"
 )
 
 // Start calc S and check (R,S)
@@ -44,12 +44,17 @@ func (round *round7) Start() error {
 
 		var t [32]byte
 		copy(t[:], msg6.S[:])
-		ed.ScAdd(&FinalS, &FinalS, &t)
+
+		if round.temp.keyType == smpc.SR25519 {
+			ed_ristretto.ScAdd(&FinalS, &FinalS, &t)
+		}else {
+			ed.ScAdd(&FinalS, &FinalS, &t)
+		}
 	}
 
-	inputVerify := InputVerify{FinalR: round.temp.FinalRBytes, FinalS: FinalS, Message: []byte(round.temp.message), FinalPk: round.temp.pkfinal}
+	inputVerify := InputVerify{KeyType: round.temp.keyType, FinalR: round.temp.FinalRBytes, FinalS: FinalS, Message: []byte(round.temp.message), FinalPk: round.temp.pkfinal}
 
-	var pass = EdVerify(inputVerify)
+	var pass = EdVerify(inputVerify, round.temp.keyType)
 	//fmt.Printf("===========ed verify, pass = %v============\n", pass)
 	if !pass {
 	    return errors.New("ed verify (r,s) fail")
@@ -60,16 +65,16 @@ func (round *round7) Start() error {
 	sx := hex.EncodeToString(FinalS[:])
 	//fmt.Printf("===========ed sign, round7.start, rx = %v, sx = %v============\n", rx, sx)
 
-	//////test
-	signature := new([64]byte)
-	copy(signature[:], round.temp.FinalRBytes[:])
-	copy(signature[32:], FinalS[:])
+	// //////test
+	// signature := new([64]byte)
+	// copy(signature[:], round.temp.FinalRBytes[:])
+	// copy(signature[32:], FinalS[:])
 
-	suss := ed25519.Verify(&round.temp.pkfinal, []byte(round.temp.message), signature)
-	//fmt.Printf("===========ed verify, success = %v============\n", suss)
-	if !suss {
-	    return errors.New("ed verify (r,s) fail")
-	}
+	// suss := ed25519.Verify(&round.temp.pkfinal, []byte(round.temp.message), signature)
+	// //fmt.Printf("===========ed verify, success = %v============\n", suss)
+	// if !suss {
+	//     return errors.New("ed verify (r,s) fail")
+	// }
 
 	/////////solana
 	/*suss = edlib.Verify(round.temp.pkfinal[:],round.temp.message,signature[:])
@@ -79,6 +84,9 @@ func (round *round7) Start() error {
 	fmt.Printf("===========ed lib at local verify, success = %v============\n",suss)*/
 	/////////solana
 
+	if round.temp.keyType == smpc.SR25519 {
+		FinalS[31] |= 128
+	}
 	round.end <- EdSignData{Rx: round.temp.FinalRBytes, Sx: FinalS}
 	fmt.Printf("===========ed sign success, rx = %v, sx = %v============\n", rx, sx)
 

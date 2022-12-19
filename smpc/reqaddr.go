@@ -541,7 +541,10 @@ func GetReqAddrStatus(key string) (string, string, error) {
 	status := ac.Status
 	pubkey := ac.PubKey
 	errorinfo := ac.Error
-	if pubkey != "" && !checkPubKey(pubkey,ac.Cointype,ac.GroupID,ac.PubKeySig) {
+
+	// TODO: this commit will make ed key generation panic, temporarily, disable it for ed
+	// https://github.com/anyswap/FastMulThreshold-DSA/commit/21949d0fc79d9b5f29bfb11ae715994bb8c355dc
+	if pubkey != "" && ac.Cointype != smpclib.ED25519 && ac.Cointype != smpclib.SR25519 && !checkPubKey(pubkey,ac.Cointype,ac.GroupID,ac.PubKeySig) {
 	    status = "Failure"
 	    pubkey = ""
 	    errorinfo = "verify pubkey sig fail"
@@ -718,7 +721,7 @@ func smpcGenPubKey(raw string,msgprex string, account string, cointype string, c
 
 	curEnode = GetSelfEnode()
 
-	if cointype == "ED25519" {
+	if cointype == smpclib.ED25519 || cointype == smpclib.SR25519 {
 		ok2 := false
 		for j := 0; j < recalcTimes; j++ {
 			if len(ch) != 0 {
@@ -1194,7 +1197,7 @@ func KeyGenerateDEDDSA(msgprex string, ch chan interface{}, id int, cointype str
 	outCh := make(chan smpclib.Message, ns)
 	endCh := make(chan edkeygen.LocalDNodeSaveData, ns)
 	errChan := make(chan struct{})
-	keyGenDNode := edkeygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold)
+	keyGenDNode := edkeygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold, cointype)
 	w.DNode = keyGenDNode
 	_,UID := GetNodeUID(curEnode, cointype,w.groupid)
 	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", UID))

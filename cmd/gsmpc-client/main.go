@@ -31,6 +31,7 @@ import (
 
 	"encoding/hex"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto/sha3"
+	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/ethdb"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common/hexutil"
 	"github.com/btcsuite/btcd/btcec"
@@ -241,7 +242,7 @@ func init() {
 	memo = flag.String("memo", "smpcwallet.com", "Memo")
 	accept = flag.String("accept", "AGREE", "AGREE|DISAGREE")
 	key = flag.String("key", "", "Accept key")
-	keyType = flag.String("keytype", "EC256K1", "EC256K1|ED25519|EC256STARK")
+	keyType = flag.String("keytype", smpclib.EC256K1, "EC256K1|ED25519|EC256STARK|SR25519")
 	pubkey = flag.String("pubkey", "", "Smpc pubkey")
 	inputcode = flag.String("inputcode", "", "bip32 input code")
 	//msghash = flag.String("msghash", "", "msghash=Keccak256(unsignTX)")

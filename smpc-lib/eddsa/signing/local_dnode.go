@@ -37,6 +37,7 @@ type LocalDNode struct {
 	finalize     bool
 	predata      *PrePubData //useness for ed
 	txhash       *big.Int
+	keyType		string
 	finalizeend chan<- *big.Int //useness for ed
 }
 
@@ -57,6 +58,7 @@ type localTempData struct {
 	tsk     [32]byte
 	pkfinal [32]byte
 	message []byte
+	keyType	string
 
 	DR  [64]byte
 	zkR [64]byte
@@ -91,6 +93,7 @@ func NewLocalDNode(
 	finalize bool,
 	predata *PrePubData, //nil for ed
 	txhash *big.Int,
+	cointype string,
 	finalizeend chan<- *big.Int, //useness for ed
 ) smpc.DNode {
 
@@ -103,6 +106,7 @@ func NewLocalDNode(
 		end:          end,
 		predata:      predata,
 		txhash:       txhash,
+		keyType:		cointype,
 		finalizeend: finalizeend,
 	}
 
@@ -131,7 +135,7 @@ func (p *LocalDNode) FinalizeRound() smpc.Round {
 
 // FirstRound first round
 func (p *LocalDNode) FirstRound() smpc.Round {
-	return newRound1(&p.temp, p.save, p.idsign, p.out, p.end, p.ID, p.ThresHold, p.PaillierKeyLength, p.txhash)
+	return newRound1(&p.temp, p.save, p.idsign, p.out, p.end, p.ID, p.ThresHold, p.PaillierKeyLength, p.txhash, p.keyType)
 }
 
 // Start ed signing start 

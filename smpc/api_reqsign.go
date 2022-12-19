@@ -23,6 +23,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
+	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
+	"github.com/wxnacy/wgo/arrays" 
 	"math/big"
 	"strconv"
 	"strings"
@@ -1652,7 +1654,7 @@ func HandleRPCSign3(gid string,sig *TxDataSign,key string,raw string) ([]*PickHa
     }
 
     pickdata := make([]*PickHashData, 0)
-    if sig.Keytype == "ED25519" {
+    if sig.Keytype == smpclib.ED25519 || sig.Keytype == smpclib.SR25519 {
 	pickhash := make([]*PickHashKey, 0)
 	m := make(map[string]string)
 	send, err := CompressSignSubGidBrocastData(raw, pickhash,gid)
@@ -1858,7 +1860,7 @@ func (req *ReqSmpcSign) CheckTxData(raw string, txdata []byte, from string, nonc
 		}
 		//
 
-		if keytype != "EC256K1" && keytype != "EC256STARK" && keytype != "ED25519" {
+		if arrays.Contains(smpclib.VALID_SIG_TYPES, keytype) == -1 {
 		log.Error("======================ReqSmpcSign.CheckTxData,invalid keytype=========================","from",from,"sig.TxType",sig.TxType,"pubkey",pubkey,"hash",hash,"keytype",keytype,"groupid",groupid,"threshold",threshold,"mode",mode,"timestamp",timestamp)
 		    return "","","",nil,fmt.Errorf("invalid keytype")
 		}
