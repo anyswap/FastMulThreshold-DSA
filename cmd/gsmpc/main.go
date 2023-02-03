@@ -100,8 +100,8 @@ func StartSmpc(c *cli.Context) {
 
 	rpcsmpc.RPCInit(rpcport)
 
-	common.Info("=============================Start Gsmpc=================================","datadir",datadir,"waitmsg",waitmsg,"rotate",rotate,"maxage",maxage,"trytimes",trytimes,"presignnum",presignnum,"nonetrestrict",nonetrestrict,"relay",relayInPeers,"jobs",jobs,"autopre",autopre,"testnet",testnet,"neighbor relay",neigh)
-	params := &smpc.LunchParams{WaitMsg: waitmsg, TryTimes: trytimes, PreSignNum: presignnum, Jobs: jobs, MaxAcceptTime: maxaccepttime, Bip32Pre: bip32pre, SyncPreSign: syncpresign,RelayInPeers: relayInPeers,AutoPreSign:autopre,TestNet:testnet,NeighRelay:neigh}
+	common.Info("=============================Start Gsmpc=================================","datadir",datadir,"waitmsg",waitmsg,"rotate",rotate,"maxage",maxage,"trytimes",trytimes,"presignnum",presignnum,"nonetrestrict",nonetrestrict,"relay",relayInPeers,"jobs",jobs,"autopre",autopre,"testnet",testnet,"neighbor relay",neigh,"tee",tee,"teeip",teeip,"teeport",teeport)
+	params := &smpc.LunchParams{WaitMsg: waitmsg, TryTimes: trytimes, PreSignNum: presignnum, Jobs: jobs, MaxAcceptTime: maxaccepttime, Bip32Pre: bip32pre, SyncPreSign: syncpresign,RelayInPeers: relayInPeers,AutoPreSign:autopre,TestNet:testnet,NeighRelay:neigh, Tee:tee, TeeIP:teeip, TeePort:teeport}
 	smpc.Start(params)
 	select {} // note for server, or for client
 }
@@ -143,6 +143,10 @@ var (
 	neigh       bool
 	autopre        bool
 	testnet   bool
+
+	tee bool
+	teeip string
+	teeport string
 
 	statDir = "stat"
 
@@ -200,6 +204,9 @@ func init() {
 		cli.Uint64Flag{Name: "maxaccepttime", Value: 604800, Usage: "the max time to wait for accept from all nodes", Destination: &maxaccepttime},
 		cli.Uint64Flag{Name: "bip32pre", Value: 4, Usage: "the total counts of pre-sign data for bip32 child pubkey", Destination: &bip32pre},
 		cli.StringFlag{Name: "sync-presign", Value: "true", Usage: "synchronize presign data between group nodes", Destination: &syncpresign},
+		cli.BoolFlag{Name: "tee", Usage: "whether is tee env", Destination: &tee},
+		cli.StringFlag{Name: "teeip", Value: "", Usage: "ip for tee client", Destination: &teeip},
+		cli.StringFlag{Name: "teeport", Value: "", Usage: "port for tee client", Destination: &teeport},
 	}
 	gitVersion = params.VersionWithMeta
 }

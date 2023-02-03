@@ -36,6 +36,10 @@ var (
 	KeyFile      string
 	
 	RelayInPeers      bool
+
+	Tee      bool
+	TeeIP      string
+	TeePort      string
 )
 
 func init() {
@@ -68,6 +72,9 @@ type LunchParams struct {
 	AutoPreSign bool
 	TestNet bool
 	NeighRelay bool
+	Tee bool
+	TeeIP string
+	TeePort string
 }
 
 // Start init gsmpc
@@ -143,6 +150,10 @@ func Start(params *LunchParams) {
 	RPCMaxQueue = int(params.Jobs)
 
 	go CleanUpMsgReceiv()
+
+	Tee = params.Tee
+	TeeIP = params.TeeIP
+	TeePort = params.TeePort
 
 	common.Info("================================smpc.Start,init finish.========================", "curEnode", curEnode, "waitmsg", WaitMsgTimeGG20, "trytimes", recalcTimes,"presignnum", PrePubDataCount, "bip32pre", PreBip32DataCount)
 }
