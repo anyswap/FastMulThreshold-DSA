@@ -24,7 +24,12 @@ import (
 	cryptocoinsconfig "github.com/fsn-dev/cryptoCoins/coins/config"
 	"github.com/fsn-dev/cryptoCoins/coins/eos"
 	"os"
+	"net"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
+	tss "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/client"
+	"errors"
+	"time"
 )
 
 var (
@@ -155,6 +160,70 @@ func Start(params *LunchParams) {
 	TeeIP = params.TeeIP
 	TeePort = params.TeePort
 
+	if Tee {
+	    go TeeClient(TeeIP,TeePort)
+	}
+
 	common.Info("================================smpc.Start,init finish.========================", "curEnode", curEnode, "waitmsg", WaitMsgTimeGG20, "trytimes", recalcTimes,"presignnum", PrePubDataCount, "bip32pre", PreBip32DataCount)
 }
+
+func TeeClient(teeip string,teeport string) {
+    if teeip == "" || teeport == "" {
+	return
+    }
+
+    addr := teeip + ":" + teeport
+    conn, err := net.Dial("tcp4", addr)
+    if err != nil {
+	common.Error("========================smpc.Start,socket dial err==========================","err",err)
+	return
+    }
+
+    tss.VSocketConnect = conn
+
+    for true {
+
+	var client = &client.SocketClient{
+		Network: "tcp4",
+		Address: addr,
+		OnMessage: func(msg string) error {
+		    common.Info("recieved msg from server", "msg",msg)
+		    if msg == "" {
+			return errors.New("msg error")
+		    }
+
+		    //
+		    /*vs := &C1DataSignal{}
+		    if err := vs.UnmarshalJSON([]byte(msg)); err == nil {
+		    exsit, da := GetReqAddrInfoData([]byte(vs.MsgPrex))
+		    if exsit {
+			ac, ok := da.(*AcceptReqAddrData)
+			if ok && ac != nil {
+			    HandleC1Data(ac,vs.Wid)
+			}
+		    }
+		}
+		*/
+
+		//
+
+		return nil
+	    },
+		Connect:conn,
+	}
+
+	err := client.Start()
+	if err != nil {
+	    common.Error("connect server fail", "err",err)
+	    return
+	}
+
+	//client.Connect.Write(str)
+	client.Wg.Wait()
+
+	common.Info("drop from server,retry after 3 seconds")
+	time.Sleep(time.Second * 3)
+    }
+}
+
 

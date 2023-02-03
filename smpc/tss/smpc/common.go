@@ -23,6 +23,11 @@ import (
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
 	"strings"
+	"net"
+)
+
+var (
+    VSocketConnect   net.Conn
 )
 
 // SortableIDSSlice type define []*big.Int

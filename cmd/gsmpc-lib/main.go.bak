@@ -1,0 +1,128 @@
+package main
+
+import (
+    "fmt"
+    "net"
+    "io"
+    "flag"
+    "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/ecdsa/keygen"
+    "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
+)
+
+//-------------------------------------------------------------
+
+func process(conn net.Conn) {
+    defer conn.Close()
+    for {
+	buf := make([]byte,4096)
+	n,err := conn.Read(buf)
+	if err != nil {
+	    if err == io.EOF {
+		fmt.Println("the connection is closed")
+		conn.Close()
+	    } else {
+		fmt.Printf("Read Error: %v\n",err)
+	    }
+
+	    return
+	}
+
+	msg := string(buf[:n])
+	vs := &VSocketData{}
+	if err := vs.UnmarshalJSON([]byte(msg)); err != nil {
+	    fmt.Printf("Unmarshal Json Error: %v\n",err)
+	    return
+	}
+
+	fmt.Printf("cliend addr:%s,send msg:%s\n",conn.RemoteAddr().String(),msg)
+	
+	commStopChan := make(chan struct{})
+	outCh := make(chan smpc.Message, vs.Ns)
+	endCh := make(chan keygen.LocalDNodeSaveData, vs.Ns)
+	errChan := make(chan struct{})
+	keyGenDNode := keygen.NewLocalDNode(outCh, endCh, vs.Ns, vs.ThresHold, vs.PaillierLen,vs.KeyType)
+	if keyGenDNode == nil {
+		return
+	}
+
+	_,UID := GetNodeUID(curEnode, cointype,w.groupid)
+	if UID == nil {
+		res := RPCSmpcRes{Ret: "", Err: errors.New("get node uid fail")}
+		ch <- res
+		return false
+	}
+
+	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", UID))
+	if w.DNode.DNodeID() == "" {
+		res := RPCSmpcRes{Ret: "", Err: errors.New("get node uid fail")}
+		ch <- res
+		return false
+	}
+	w.MsgToEnode[w.DNode.DNodeID()] = curEnode
+
+	var keyGenWg sync.WaitGroup
+	keyGenWg.Add(2)
+	go func() {
+		defer keyGenWg.Done()
+		if err := keyGenDNode.Start(); nil != err {
+			log.Error("==========KeyGenerateDECDSA, node start error============","key",msgprex,"err",err)
+			close(errChan)
+		}
+
+		exsit, da := GetReqAddrInfoData([]byte(msgprex))
+		if exsit {
+			ac, ok := da.(*AcceptReqAddrData)
+			if ok && ac != nil {
+				common.Debug("==========KeyGenerateDECDSA, get reqaddr info from db==================","key",msgprex,"ac",ac)
+				HandleC1Data(ac, w.sid)
+			}
+		}
+	}()
+	go ProcessInboundMessages(msgprex, cointype,commStopChan, errChan,&keyGenWg, ch)
+	err := processKeyGen(msgprex, errChan, outCh, endCh,cointype)
+	if err != nil {
+		if len(ch) == 0 {
+		    res := RPCSmpcRes{Ret: "", Err: err}
+		    ch <- res
+		}
+		close(commStopChan)
+		log.Error("==========KeyGenerateDECDSA,process keygen error,close commStopChan============","key",msgprex,"err",err)
+		return false
+	}
+
+	close(commStopChan)
+	keyGenWg.Wait()
+    }
+}
+
+func main() {
+    fmt.Println("server start to listen")
+    clientip := flag.String("ip", "", "client ip to dial")
+    clientport := flag.String("port", "", "client port to dial")
+    if *clientip == "" || *clientport == "" {
+	return
+    }
+
+    cli := *clientip + ":" + *clientport
+    listen,err := net.Listen("tcp",cli)
+    if err != nil {
+	fmt.Println("listen err=",err)
+	return 
+    }
+    defer listen.Close()
+
+    for {
+	fmt.Println("wait for client connection")
+	conn,err := listen.Accept()
+	if err != nil {
+	    fmt.Println("accept err=",err)
+	} else {
+	    fmt.Printf("Accept success con=%v,client addr=%v\n",conn,conn.RemoteAddr().String())
+	}
+
+	go process(conn)
+    }
+}
+
+
+
