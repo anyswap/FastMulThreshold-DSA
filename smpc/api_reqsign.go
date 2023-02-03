@@ -23,7 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
-	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
+	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"github.com/wxnacy/wgo/arrays" 
 	"math/big"
 	"strconv"

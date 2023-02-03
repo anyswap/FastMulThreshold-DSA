@@ -38,7 +38,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
+	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"errors"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common/math"
 )

@@ -31,7 +31,7 @@ import (
 
 	"encoding/hex"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto/sha3"
-	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
+	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/ethdb"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common/hexutil"
 	"github.com/btcsuite/btcd/btcec"

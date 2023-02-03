@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
-	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/smpc"
+	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"github.com/wxnacy/wgo/arrays" 
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
 	"github.com/fsn-dev/cryptoCoins/coins/types"

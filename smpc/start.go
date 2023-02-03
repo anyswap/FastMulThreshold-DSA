@@ -19,7 +19,7 @@ package smpc
 import (
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	p2psmpc "github.com/anyswap/FastMulThreshold-DSA/p2p/layer2"
-	smpclibec2 "github.com/anyswap/FastMulThreshold-DSA/smpc-lib/crypto/ec2"
+	smpclibec2 "github.com/anyswap/FastMulThreshold-DSA/tss-lib/ec2"
 	"github.com/fsn-dev/cryptoCoins/coins"
 	cryptocoinsconfig "github.com/fsn-dev/cryptoCoins/coins/config"
 	"github.com/fsn-dev/cryptoCoins/coins/eos"
