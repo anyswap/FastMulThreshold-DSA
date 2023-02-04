@@ -227,6 +227,7 @@ type RPCReqWorker struct {
 	ApprovReplys []*ApprovReply
 	//Msg56     map[string]bool
 	Msg56    *common.SafeMap 
+	OutCh    chan smpclib.Message 
 }
 
 // NewRPCReqWorker new a RPCReqWorker
@@ -342,6 +343,7 @@ func NewRPCReqWorker(workerPool chan chan RPCReq) *RPCReqWorker {
 		ApprovReplys: make([]*ApprovReply, 0),
 		PickHash: make([]*PickHashKey, 0),
 		Msg56:     common.NewSafeMap(10),
+		OutCh:     make(chan smpclib.Message,1),
 	}
 }
 
@@ -710,6 +712,7 @@ func (w *RPCReqWorker) Clear() {
 	w.ApprovReplys = make([]*ApprovReply, 0)
 	w.PickHash = make([]*PickHashKey, 0)
 	w.Msg56 = common.NewSafeMap(10)
+	w.OutCh = make(chan smpclib.Message,1)
 }
 
 // Clear2  reset RPCReqWorker object in some elements 
@@ -1067,6 +1070,7 @@ func (w *RPCReqWorker) Clear2() {
 	w.ApprovReplys = make([]*ApprovReply, 0)
 	w.PickHash = make([]*PickHashKey, 0)
 	w.Msg56 = common.NewSafeMap(10)
+	w.OutCh = make(chan smpclib.Message,1)
 }
 
 // Start start the worker
