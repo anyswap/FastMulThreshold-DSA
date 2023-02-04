@@ -39,6 +39,9 @@ type (
 		threshold         int
 		paillierkeylength int
 		keytype           string
+		msgprex           string
+		teeout               chan<- smpc.Message
+		tee bool
 	}
 	round0 struct {
 		*base

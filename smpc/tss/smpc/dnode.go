@@ -51,6 +51,9 @@ type BaseDNode struct {
 	ThresHold         int
 	PaillierKeyLength int
 	KeyType           string
+	MsgPrex string
+	TeeOut               chan<- Message
+	Tee bool
 }
 
 // -----

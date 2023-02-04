@@ -1106,7 +1106,7 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 	outCh := make(chan smpclib.Message, ns)
 	endCh := make(chan keygen.LocalDNodeSaveData, ns)
 	errChan := make(chan struct{})
-	keyGenDNode := keygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048,cointype)
+	keyGenDNode := keygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold, 2048,cointype,msgprex,w.OutCh,Tee)
 	w.DNode = keyGenDNode
 	if w.DNode == nil {
 		res := RPCSmpcRes{Ret: "", Err: errors.New("new local dnode fail")}
