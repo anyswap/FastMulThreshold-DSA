@@ -1820,7 +1820,7 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
     endCh := make(chan signing.PrePubData, w.ThresHold)
     finalizeendCh := make(chan *big.Int, w.ThresHold)
     errChan := make(chan struct{})
-    signDNode := signing.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, nil, finalizeendCh,cointype)
+    signDNode := signing.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, nil, finalizeendCh,cointype,msgprex,w.OutCh,Tee)
     w.DNode = signDNode
     signDNode.SetDNodeID(fmt.Sprintf("%v", sd.CurDNodeID))
 
@@ -1966,7 +1966,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
     finalizeendCh := make(chan *big.Int, w.ThresHold)
     errChan := make(chan struct{})
     predata := &signing.PrePubData{K1: pre.K1, R: pre.R, Ry: pre.Ry, Sigma1: pre.Sigma1}
-    signDNode := signing.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, true, predata, mMtA, finalizeendCh,cointype)
+    signDNode := signing.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, true, predata, mMtA, finalizeendCh,cointype,msgprex,w.OutCh,Tee)
     w.DNode = signDNode
     _,UID := GetNodeUID(curEnode, cointype,pubs.GroupID)
     signDNode.SetDNodeID(fmt.Sprintf("%v", UID))

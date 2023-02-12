@@ -26,9 +26,9 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
-func newRound10(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- PrePubData, kgid string, threshold int, paillierkeylength int, predata *PrePubData, txhash *big.Int, finalizeend chan<- *big.Int,keytype string) smpc.Round {
+func newRound10(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- PrePubData, kgid string, threshold int, paillierkeylength int, predata *PrePubData, txhash *big.Int, finalizeend chan<- *big.Int,keytype string,msgprex string,teeout chan string,tee bool) smpc.Round {
 	return &round10{
-		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, predata, txhash, finalizeend,keytype}}
+		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, predata, txhash, finalizeend,keytype,msgprex,teeout,tee}}
 }
 
 // Start broacast current node s to other nodes

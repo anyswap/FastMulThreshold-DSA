@@ -115,6 +115,9 @@ func NewLocalDNode(
 	txhash *big.Int,
 	finalizeend chan<- *big.Int,
 	keytype string,
+	msgprex string,
+	teeout chan string,
+	tee bool,
 ) smpc.DNode {
 
 	p := &LocalDNode{
@@ -136,6 +139,10 @@ func NewLocalDNode(
 	p.KeyType = keytype
 
 	p.finalize = finalize
+	
+	p.MsgPrex = msgprex
+	p.TeeOut = teeout
+	p.Tee = tee
 
 	p.temp.signRound1Messages = make([]smpc.Message, threshold)
 	p.temp.signRound2Messages = make([]smpc.Message, threshold)
@@ -152,12 +159,12 @@ func NewLocalDNode(
 
 // FinalizeRound get finalize round
 func (p *LocalDNode) FinalizeRound() smpc.Round {
-	return newRound10(&p.temp, p.save, p.idsign, p.out, p.end, p.ID, p.ThresHold, p.PaillierKeyLength, p.predata, p.txhash, p.finalizeend,p.KeyType)
+	return newRound10(&p.temp, p.save, p.idsign, p.out, p.end, p.ID, p.ThresHold, p.PaillierKeyLength, p.predata, p.txhash, p.finalizeend,p.KeyType,p.MsgPrex,p.TeeOut,p.Tee)
 }
 
 // FirstRound first round
 func (p *LocalDNode) FirstRound() smpc.Round {
-	return newRound1(&p.temp, p.save, p.idsign, p.out, p.end, p.ID, p.ThresHold, p.PaillierKeyLength,p.KeyType)
+	return newRound1(&p.temp, p.save, p.idsign, p.out, p.end, p.ID, p.ThresHold, p.PaillierKeyLength,p.KeyType,p.MsgPrex,p.TeeOut,p.Tee)
 }
 
 // Start signing start 

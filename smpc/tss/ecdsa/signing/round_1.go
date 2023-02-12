@@ -31,10 +31,10 @@ var (
 	zero = big.NewInt(0)
 )
 
-func newRound1(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- PrePubData, kgid string, threshold int, paillierkeylength int,keytype string) smpc.Round {
+func newRound1(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- PrePubData, kgid string, threshold int, paillierkeylength int,keytype string,msgprex string,teeout chan string,tee bool) smpc.Round {
 	finalizeendCh := make(chan *big.Int, threshold)
 	return &round1{
-		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, nil, nil, finalizeendCh,keytype}}
+		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, nil, nil, finalizeendCh,keytype,msgprex,teeout,tee}}
 }
 
 // Start calc w1 and u1Gamma k1
