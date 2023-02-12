@@ -698,3 +698,5 @@ func (kg *KGRound6Message) GetMsgType() string {
 	return "KGRound6Message"
 }
 
+//----------------------------------------------
+

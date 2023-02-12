@@ -18,16 +18,16 @@ package keygen
 
 import (
 	"errors"
-	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"math/big"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 var (
 	zero = big.NewInt(0)
 )
 
-func newRound0(save *LocalDNodeSaveData, temp *localTempData, out chan<- smpc.Message, end chan<- LocalDNodeSaveData, dnodeid string, dnodecount int, threshold int, paillierkeylength int,keytype string,msgprex string,teeout chan<- smpc.Message,tee bool) smpc.Round {
+func newRound0(save *LocalDNodeSaveData, temp *localTempData, out chan<- smpc.Message, end chan<- LocalDNodeSaveData, dnodeid string, dnodecount int, threshold int, paillierkeylength int,keytype string,msgprex string,teeout chan string,tee bool) smpc.Round {
 	return &round0{
 		&base{save, temp, out, end, make([]bool, dnodecount), false, 0, dnodeid, dnodecount, threshold, paillierkeylength,keytype,msgprex,teeout,tee}}
 }
@@ -35,8 +35,8 @@ func newRound0(save *LocalDNodeSaveData, temp *localTempData, out chan<- smpc.Me
 // Start  Broadcast current dnode ID to other nodes 
 func (round *round0) Start() error {
 	if round.started {
-		fmt.Printf("============= round0.start fail =======\n")
-		return errors.New("round already started")
+	    log.Error("============= round0.start fail =======")
+	    return errors.New("round already started")
 	}
 	round.number = 0
 	round.started = true

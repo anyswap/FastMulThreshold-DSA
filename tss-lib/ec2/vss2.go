@@ -34,11 +34,15 @@ type PolyStruct2 struct {
 	Poly []*big.Int // coefficient set
 }
 
+//---------------------------------------------------
+
 // ShareStruct2 f(xi)
 type ShareStruct2 struct {
 	ID    *big.Int // ID, x coordinate
 	Share *big.Int
 }
+
+//-----------------------------------------------------
 
 // GetSharesID get ID
 func GetSharesID(ss *ShareStruct2) *big.Int {

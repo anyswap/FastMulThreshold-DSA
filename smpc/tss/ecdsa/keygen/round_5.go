@@ -22,6 +22,8 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"fmt"
+	"encoding/json"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 )
 
 const (
@@ -59,6 +61,10 @@ func (round *round5) Start() error {
 		}
 	}
 	//
+
+	if round.tee {
+	    return round.ExecTee(curIndex)
+	}
 
 	// add for GG20: In keygen phase 3, each player Pi need to proves in ZK that Ni is square-free using the proof of Gennaro, Micciancio, and Rabin [30].Similarly, it needs to prove it for ntilde.
 	// An Efficient Non-Interactive Statistical Zero-Knowledge Proof System for Quasi-Safe Prime Products, section 3.1
@@ -175,3 +181,87 @@ func (round *round5) NextRound() smpc.Round {
 	round.started = false
 	return &round6{round}
 }
+
+//------------------------------------------
+
+func (round *round5) ExecTee(curIndex int) error {
+    ntilde := round.temp.kgRound4Messages[curIndex].(*KGRound4Message).U1NtildeH1H2.Ntilde
+    s := &socket.KGRound5SquareFee{Ntilde:ntilde,P1:round.temp.p1,P2:round.temp.p2}
+    s.Base.SetBase(round.keytype,round.msgprex)
+    err := socket.SendMsgData(smpc.VSocketConnect,s)
+    if err != nil {
+	return err
+    }
+   
+    kgs := <-round.teeout
+    msgmap := make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	return err
+    }
+
+    num,_ := new(big.Int).SetString(msgmap["Num"],10)
+    sfProof := &ec2.SquareFreeProof{}
+    err = json.Unmarshal([]byte(msgmap["SfPf"]),sfProof)
+    if err != nil {
+	return err
+    }
+
+    srm := &KGRound5Message2{    // same as KGRound2Message2
+	    KGRoundMessage: new(KGRoundMessage),
+	    Num:		num,
+	    SfPf:		sfProof,
+    }
+    srm.SetFromID(round.dnodeid)
+    srm.SetFromIndex(curIndex)
+
+    round.temp.kgRound5Messages2[curIndex] = srm
+    round.out <- srm
+
+    s2 := &socket.KGRound5Hv{Ntilde:ntilde,P1:round.temp.p1,P2:round.temp.p2}
+    s2.Base.SetBase(round.keytype,round.msgprex)
+    err = socket.SendMsgData(smpc.VSocketConnect,s2)
+    if err != nil {
+	return err
+    }
+   
+    kgs = <-round.teeout
+    msgmap = make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	return err
+    }
+
+    num,_ = new(big.Int).SetString(msgmap["Num"],10)
+
+    hvProof := &ec2.HvProof{}
+    err = json.Unmarshal([]byte(msgmap["HvPf"]),hvProof)
+    if err != nil {
+	return err
+    }
+
+    srm2 := &KGRound5Message1{
+	    KGRoundMessage: new(KGRoundMessage),
+	    Num:		num,
+	    HvPf:		hvProof,
+    }
+    srm2.SetFromID(round.dnodeid)
+    srm2.SetFromIndex(curIndex)
+
+    round.temp.kgRound5Messages1[curIndex] = srm2
+    round.out <- srm2
+    
+    kg := &KGRound5Message{
+	    KGRoundMessage: new(KGRoundMessage),
+	    ComXiGD:	round.temp.commitXiG.D,
+    }
+    
+    kg.SetFromID(round.dnodeid)
+    kg.SetFromIndex(curIndex)
+
+    round.temp.kgRound5Messages[curIndex] = kg
+    round.out <- kg
+
+    return nil
+}
+

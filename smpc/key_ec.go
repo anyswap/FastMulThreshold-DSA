@@ -21,17 +21,17 @@ import (
 	"errors"
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
-	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/ecdsa/keygen"
 	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
 	"math/big"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
+	"strconv"
 	"encoding/hex"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
+	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ec2"
 )
 
 //---------------------------------------ECDSA start-----------------------------------------------------------------------
@@ -257,6 +257,175 @@ func ProcessInboundMessages(msgprex string, keytype string,finishChan chan struc
 	       }
 	}
 }
+
+// processKeyGen  Obtain the data to be sent in each round and send it to other nodes until the end of the request command 
+func processKeyGen(msgprex string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan keygen.LocalDNodeSaveData,keytype string) error {
+    	if msgprex == "" {
+	    return errors.New("param error")
+	}
+
+	for {
+		select {
+		case <-errChan: // when keyGenParty return
+			log.Error("=========== processKeyGen,error channel closed fail to start local smpc node ===========","key", msgprex)
+			return errors.New("error channel closed fail to start local smpc node")
+
+		case <-time.After(time.Second * time.Duration(EcKeygenTimeout)):
+			log.Error("=========== processKeyGen,keygen timeout ============","key", msgprex)
+			return errors.New("keygen timeout")
+		case msg := <-outCh:
+			err := ProcessOutCh(msgprex, msg,keytype)
+			if err != nil {
+				log.Error("================ processKeyGen,process outch fail ================","err",err,"key",msgprex)
+				return err
+			}
+		case msg := <-endCh:
+			w, err := FindWorker(msgprex)
+			if w == nil || err != nil {
+				return fmt.Errorf("get worker fail")
+			}
+
+			w.pkx.PushBack(fmt.Sprintf("%v", msg.Pkx))
+			w.pky.PushBack(fmt.Sprintf("%v", msg.Pky))
+			w.bip32c.PushBack(string(msg.C.Bytes()))
+			w.sku1.PushBack(string(msg.SkU1.Bytes()))
+
+			ss := "XXX"
+			ss = ss + common.SepSave
+			s1 := msg.U1PaillierSk.Length
+			s2 := string(msg.U1PaillierSk.L.Bytes())
+			s3 := string(msg.U1PaillierSk.U.Bytes())
+			ss = ss + s1 + common.SepSave + s2 + common.SepSave + s3 + common.SepSave
+
+			for _, v := range msg.U1PaillierPk {
+				s1 = v.Length
+				s2 = string(v.N.Bytes())
+				s3 = string(v.G.Bytes())
+				s4 := string(v.N2.Bytes())
+				ss = ss + s1 + common.SepSave + s2 + common.SepSave + s3 + common.SepSave + s4 + common.SepSave
+			}
+
+			for _, v := range msg.U1NtildeH1H2 {
+				s1 = string(v.Ntilde.Bytes())
+				s2 = string(v.H1.Bytes())
+				s3 = string(v.H2.Bytes())
+				ss = ss + s1 + common.SepSave + s2 + common.SepSave + s3 + common.SepSave
+			}
+			
+			ss += string(msg.U1NtildePrivData.Alpha.Bytes())
+			ss += common.SepSave
+			ss += string(msg.U1NtildePrivData.Beta.Bytes())
+			ss += common.SepSave
+			ss += string(msg.U1NtildePrivData.Q1.Bytes())
+			ss += common.SepSave
+			ss += string(msg.U1NtildePrivData.Q2.Bytes())
+			ss += common.SepSave
+
+			ss += "NULL"
+			w.save.PushBack(string(ss))
+
+			return nil
+		}
+	}
+}
+
+// KGLocalDBSaveData keygen save data
+type KGLocalDBSaveData struct {
+	Save       *keygen.LocalDNodeSaveData
+	MsgToEnode map[string]string
+}
+
+// OutMap  Convert KGLocalDBSaveData data struct to map 
+func (kgsave *KGLocalDBSaveData) OutMap() map[string]string {
+	out := kgsave.Save.OutMap()
+	for key, value := range kgsave.MsgToEnode {
+		out[key] = value
+	}
+
+	return out
+}
+
+// GetKGLocalDBSaveData get KGLocalDBSaveData data struct from map
+func GetKGLocalDBSaveData(data map[string]string) *KGLocalDBSaveData {
+	save := keygen.GetLocalDNodeSaveData(data)
+	msgtoenode := make(map[string]string)
+	for _, v := range save.IDs {
+	    tmp := fmt.Sprintf("%v",v)
+	    id := strings.ToLower(hex.EncodeToString([]byte(tmp)))
+	    msgtoenode[id] = data[id]
+	}
+
+	kgsave := &KGLocalDBSaveData{Save: save, MsgToEnode: msgtoenode}
+	return kgsave
+}
+
+//---------------------------------------ECDSA end-----------------------------------------------------------------------
+
+// ProcessOutCh send message to other node
+func ProcessOutCh(msgprex string, msg smpclib.Message,keytype string) error {
+	if msg == nil {
+		return fmt.Errorf("smpc info error")
+	}
+
+	w, err := FindWorker(msgprex)
+	if w == nil || err != nil {
+		return fmt.Errorf("get worker fail")
+	}
+
+	msgmap := msg.OutMap()
+
+	///////////////////////////////
+	if msg.GetMsgType() == "KGRound4Message" && msgmap["PubKeyX"] != "" && msgmap["PubKeyY"] != "" {
+	    pubx,_ := new(big.Int).SetString(msgmap["PubKeyX"],10)
+	    puby,_ := new(big.Int).SetString(msgmap["PubKeyY"],10)
+	    ys := secp256k1.S256(keytype).Marshal(pubx,puby)
+	    pubkeyhex := hex.EncodeToString(ys)
+	    pubsig,err := sigPubKey(pubkeyhex,curEnode,keytype)
+	    if err != nil {
+		return err
+	    }
+	    msgmap["PubKeySig"] = hex.EncodeToString(pubsig)
+	    w.pubkeysig.PushBack(msgmap["PubKeySig"])
+	}
+	///////////////////////////////
+
+	msgmap["Key"] = msgprex
+	msgmap["ENode"] = curEnode
+	
+	sig,err := sigP2pMsg(msg,curEnode,keytype)
+	if err != nil {
+	    return err
+	}
+	msgmap["Sig"] = hex.EncodeToString(sig)
+	
+	s, err := json.Marshal(msgmap)
+	if err != nil {
+		log.Error("====================ProcessOutCh, marshal fail=================","err",err,"key",msgprex)
+		return err
+	}
+
+	if msg.IsBroadcast() {
+		SendMsgToSmpcGroup(string(s), w.groupid)
+	} else {
+		for _, v := range msg.GetToID() {
+			enode := w.MsgToEnode[v]
+			_, enodes := GetGroup(w.groupid)
+			nodes := strings.Split(enodes, common.Sep2)
+			for _, node := range nodes {
+				node2 := ParseNode(node)
+				if strings.EqualFold(enode, node2) {
+					//SendMsgToPeer(node, string(s))
+					SendMsgToPeerWithBrodcast(msgprex,node,string(s),w.groupid)
+					break
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+//------------------------------------
 
 // GetRealMessage get the message data struct by map. (p2p msg ---> map)
 func GetRealMessage(msg map[string]string) smpclib.Message {
@@ -609,172 +778,5 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 	kg.ToID = to
 
 	return kg
-}
-
-// processKeyGen  Obtain the data to be sent in each round and send it to other nodes until the end of the request command 
-func processKeyGen(msgprex string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan keygen.LocalDNodeSaveData,keytype string) error {
-    	if msgprex == "" {
-	    return errors.New("param error")
-	}
-
-	for {
-		select {
-		case <-errChan: // when keyGenParty return
-			log.Error("=========== processKeyGen,error channel closed fail to start local smpc node ===========","key", msgprex)
-			return errors.New("error channel closed fail to start local smpc node")
-
-		case <-time.After(time.Second * time.Duration(EcKeygenTimeout)):
-			log.Error("=========== processKeyGen,keygen timeout ============","key", msgprex)
-			return errors.New("keygen timeout")
-		case msg := <-outCh:
-			err := ProcessOutCh(msgprex, msg,keytype)
-			if err != nil {
-				log.Error("================ processKeyGen,process outch fail ================","err",err,"key",msgprex)
-				return err
-			}
-		case msg := <-endCh:
-			w, err := FindWorker(msgprex)
-			if w == nil || err != nil {
-				return fmt.Errorf("get worker fail")
-			}
-
-			w.pkx.PushBack(fmt.Sprintf("%v", msg.Pkx))
-			w.pky.PushBack(fmt.Sprintf("%v", msg.Pky))
-			w.bip32c.PushBack(string(msg.C.Bytes()))
-			w.sku1.PushBack(string(msg.SkU1.Bytes()))
-
-			ss := "XXX"
-			ss = ss + common.SepSave
-			s1 := msg.U1PaillierSk.Length
-			s2 := string(msg.U1PaillierSk.L.Bytes())
-			s3 := string(msg.U1PaillierSk.U.Bytes())
-			ss = ss + s1 + common.SepSave + s2 + common.SepSave + s3 + common.SepSave
-
-			for _, v := range msg.U1PaillierPk {
-				s1 = v.Length
-				s2 = string(v.N.Bytes())
-				s3 = string(v.G.Bytes())
-				s4 := string(v.N2.Bytes())
-				ss = ss + s1 + common.SepSave + s2 + common.SepSave + s3 + common.SepSave + s4 + common.SepSave
-			}
-
-			for _, v := range msg.U1NtildeH1H2 {
-				s1 = string(v.Ntilde.Bytes())
-				s2 = string(v.H1.Bytes())
-				s3 = string(v.H2.Bytes())
-				ss = ss + s1 + common.SepSave + s2 + common.SepSave + s3 + common.SepSave
-			}
-			
-			ss += string(msg.U1NtildePrivData.Alpha.Bytes())
-			ss += common.SepSave
-			ss += string(msg.U1NtildePrivData.Beta.Bytes())
-			ss += common.SepSave
-			ss += string(msg.U1NtildePrivData.Q1.Bytes())
-			ss += common.SepSave
-			ss += string(msg.U1NtildePrivData.Q2.Bytes())
-			ss += common.SepSave
-
-			ss += "NULL"
-			w.save.PushBack(string(ss))
-
-			return nil
-		}
-	}
-}
-
-// KGLocalDBSaveData keygen save data
-type KGLocalDBSaveData struct {
-	Save       *keygen.LocalDNodeSaveData
-	MsgToEnode map[string]string
-}
-
-// OutMap  Convert KGLocalDBSaveData data struct to map 
-func (kgsave *KGLocalDBSaveData) OutMap() map[string]string {
-	out := kgsave.Save.OutMap()
-	for key, value := range kgsave.MsgToEnode {
-		out[key] = value
-	}
-
-	return out
-}
-
-// GetKGLocalDBSaveData get KGLocalDBSaveData data struct from map
-func GetKGLocalDBSaveData(data map[string]string) *KGLocalDBSaveData {
-	save := keygen.GetLocalDNodeSaveData(data)
-	msgtoenode := make(map[string]string)
-	for _, v := range save.IDs {
-	    tmp := fmt.Sprintf("%v",v)
-	    id := strings.ToLower(hex.EncodeToString([]byte(tmp)))
-	    msgtoenode[id] = data[id]
-	}
-
-	kgsave := &KGLocalDBSaveData{Save: save, MsgToEnode: msgtoenode}
-	return kgsave
-}
-
-//---------------------------------------ECDSA end-----------------------------------------------------------------------
-
-// ProcessOutCh send message to other node
-func ProcessOutCh(msgprex string, msg smpclib.Message,keytype string) error {
-	if msg == nil {
-		return fmt.Errorf("smpc info error")
-	}
-
-	w, err := FindWorker(msgprex)
-	if w == nil || err != nil {
-		return fmt.Errorf("get worker fail")
-	}
-
-	msgmap := msg.OutMap()
-
-	///////////////////////////////
-	if msg.GetMsgType() == "KGRound4Message" && msgmap["PubKeyX"] != "" && msgmap["PubKeyY"] != "" {
-	    pubx,_ := new(big.Int).SetString(msgmap["PubKeyX"],10)
-	    puby,_ := new(big.Int).SetString(msgmap["PubKeyY"],10)
-	    ys := secp256k1.S256(keytype).Marshal(pubx,puby)
-	    pubkeyhex := hex.EncodeToString(ys)
-	    pubsig,err := sigPubKey(pubkeyhex,curEnode,keytype)
-	    if err != nil {
-		return err
-	    }
-	    msgmap["PubKeySig"] = hex.EncodeToString(pubsig)
-	    w.pubkeysig.PushBack(msgmap["PubKeySig"])
-	}
-	///////////////////////////////
-
-	msgmap["Key"] = msgprex
-	msgmap["ENode"] = curEnode
-	
-	sig,err := sigP2pMsg(msg,curEnode,keytype)
-	if err != nil {
-	    return err
-	}
-	msgmap["Sig"] = hex.EncodeToString(sig)
-	
-	s, err := json.Marshal(msgmap)
-	if err != nil {
-		log.Error("====================ProcessOutCh, marshal fail=================","err",err,"key",msgprex)
-		return err
-	}
-
-	if msg.IsBroadcast() {
-		SendMsgToSmpcGroup(string(s), w.groupid)
-	} else {
-		for _, v := range msg.GetToID() {
-			enode := w.MsgToEnode[v]
-			_, enodes := GetGroup(w.groupid)
-			nodes := strings.Split(enodes, common.Sep2)
-			for _, node := range nodes {
-				node2 := ParseNode(node)
-				if strings.EqualFold(enode, node2) {
-					//SendMsgToPeer(node, string(s))
-					SendMsgToPeerWithBrodcast(msgprex,node,string(s),w.groupid)
-					break
-				}
-			}
-		}
-	}
-
-	return nil
 }
 

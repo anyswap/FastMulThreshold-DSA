@@ -52,7 +52,7 @@ type BaseDNode struct {
 	PaillierKeyLength int
 	KeyType           string
 	MsgPrex string
-	TeeOut               chan<- Message
+	TeeOut               chan string 
 	Tee bool
 }
 

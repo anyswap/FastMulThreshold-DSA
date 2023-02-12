@@ -97,7 +97,7 @@ func NewLocalDNode(
 	paillierkeylength int,
 	keytype string,
 	msgprex string,
-	teeout chan<- smpc.Message,
+	teeout chan string,
 	tee bool,
 ) smpc.DNode {
 

@@ -21,13 +21,20 @@ import (
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 	"math/big"
 	"encoding/hex"
+	"encoding/json"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 const (
 	paillierBitsLen = 2048
 )
+
+type PolyShare struct {
+    Shares []*ec2.ShareStruct2
+}
 
 // Start send vss data to corresponding peer
 func (round *round2) Start() error {
@@ -67,6 +74,10 @@ func (round *round2) Start() error {
 		}
 	}
 	//
+
+	if round.tee {
+	    return round.ExecTee(curIndex)
+	}
 
 	// add for GG20: keygen phase 3. Each player Pi proves in ZK that Ni is square-free using the proof of Gennaro, Micciancio, and Rabin [30]
 	// An Efficient Non-Interactive Statistical Zero-Knowledge Proof System for Quasi-Safe Prime Products, section 3.1
@@ -181,3 +192,108 @@ func (round *round2) NextRound() smpc.Round {
 	round.started = false
 	return &round3{round}
 }
+
+//-------------------------------------------
+
+func (round *round2) ExecTee(curIndex int) error {
+    s := &socket.KGRound2Msg2{PaillierSkNLen:round.Save.U1PaillierSk.N.BitLen(), PaillierSkN:round.Save.U1PaillierSk.N, PaillierSkL:round.Save.U1PaillierSk.L}
+    s.Base.SetBase(round.keytype,round.msgprex)
+    err := socket.SendMsgData(smpc.VSocketConnect,s)
+    if err != nil {
+	log.Error("round2 start,marshal KGRound2 error","err",err)
+	return err
+    }
+   
+    kgs := <-round.teeout
+    msgmap := make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	log.Error("round2 start,unmarshal KGRound2 return data error","err",err)
+	return err
+    }
+  
+    num,_ := new(big.Int).SetString(msgmap["Num"],10)
+    sfProof := &ec2.SquareFreeProof{}
+    err = sfProof.UnmarshalJSON([]byte(msgmap["SfPf"]))
+    if err != nil {
+	return err
+    }
+
+    srm := &KGRound2Message2{
+	    KGRoundMessage: new(KGRoundMessage),
+	    Num:		num,
+	    SfPf:		sfProof,
+    }
+    srm.SetFromID(round.dnodeid)
+    srm.SetFromIndex(curIndex)
+
+    round.temp.kgRound2Messages2[curIndex] = srm
+    round.out <- srm
+    
+    ids, err := round.GetIDs()
+    if err != nil {
+	return err
+    }
+    if len(ids) > round.dnodecount {
+	return errors.New("node id error")
+    }
+
+    ss := &socket.IdsVss{Ids:ids, U1Poly: round.temp.u1Poly.Poly}
+    ss.Base.SetBase(round.keytype,round.msgprex)
+    err = socket.SendMsgData(smpc.VSocketConnect,ss)
+    if err != nil {
+	log.Error("round2 start,marshal IdsVss error","err",err)
+	return err
+    }
+   
+    kgs = <-round.teeout
+    msgmap = make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	log.Error("round2 start,unmarshal IdsVss return data error","err",err)
+	return err
+    }
+  
+    var tmp PolyShare 
+    err = json.Unmarshal([]byte(msgmap["U1Shares"]),&tmp)
+    if err != nil {
+	log.Error("round2 start,unmarshal U1Shares return data error","err",err)
+	return err
+    }
+    round.temp.u1Shares = tmp.Shares 
+    
+    for k, id := range ids {
+	    for _, v := range tmp.Shares {
+		    kg := &KGRound2Message{
+			    KGRoundMessage: new(KGRoundMessage),
+			    ID:             v.ID,
+			    Share:          v.Share,
+		    }
+		    kg.SetFromID(round.dnodeid)
+		    kg.SetFromIndex(curIndex)
+
+		    vv := ec2.GetSharesID(v)
+		    if vv != nil && vv.Cmp(id) == 0 && k == curIndex {
+			    round.temp.kgRound2Messages[k] = kg
+			    break
+		    } else if vv != nil && vv.Cmp(id) == 0 {
+			    tmp := fmt.Sprintf("%v",id)
+			    idtmp := hex.EncodeToString([]byte(tmp))
+			    kg.AppendToID(idtmp) //id-->dnodeid
+			    round.out <- kg
+			    break
+		    }
+	    }
+    }
+    
+    kg2 := &KGRound2Message1{
+	    KGRoundMessage: new(KGRoundMessage),
+	    C1:             round.temp.c1,
+    }
+    kg2.SetFromID(round.dnodeid)
+    kg2.SetFromIndex(curIndex)
+    round.temp.kgRound2Messages1[curIndex] = kg2
+    round.out <- kg2
+    return nil
+}
+

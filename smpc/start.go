@@ -17,19 +17,20 @@
 package smpc
 
 import (
-	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	p2psmpc "github.com/anyswap/FastMulThreshold-DSA/p2p/layer2"
 	smpclibec2 "github.com/anyswap/FastMulThreshold-DSA/tss-lib/ec2"
 	"github.com/fsn-dev/cryptoCoins/coins"
 	cryptocoinsconfig "github.com/fsn-dev/cryptoCoins/coins/config"
 	"github.com/fsn-dev/cryptoCoins/coins/eos"
 	"os"
-	"net"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
-	tss "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
-	"github.com/anyswap/FastMulThreshold-DSA/smpc/client"
-	"errors"
 	"time"
+	"encoding/json"
+	tss "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
+	"net"
+	"io"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 var (
@@ -99,11 +100,11 @@ func Start(params *LunchParams) {
 
 	go smpclibec2.GenRandomSafePrime()
 
-	common.Debug("======================smpc.Start======================", "accounts loaded", accloaded, "cache", cache, "handles", handles, "cur enode", curEnode)
+	log.Debug("======================smpc.Start======================", "accounts loaded", accloaded, "cache", cache, "handles", handles, "cur enode", curEnode)
 	err := StartSmpcLocalDb()
 	if err != nil {
 		info := "======================smpc.Start," + err.Error() + ",so terminate smpc node startup"
-		common.Error(info)
+		log.Error(info)
 		os.Exit(1)
 		return
 	}
@@ -112,12 +113,12 @@ func Start(params *LunchParams) {
 	err = discover.GetSmpcGidDb(curEnode)
 	if err != nil {
 		info := "======================smpc.Start," + err.Error() + ",so terminate smpc node startup"
-		common.Error(info)
+		log.Error(info)
 		os.Exit(1)
 	}
 	//
 
-	common.Debug("======================smpc.Start,open all db success======================", "curEnode", curEnode)
+	log.Debug("======================smpc.Start,open all db success======================", "curEnode", curEnode)
 
 	PrePubDataCount = int(params.PreSignNum)
 	WaitMsgTimeGG20 = int(params.WaitMsg)
@@ -164,7 +165,7 @@ func Start(params *LunchParams) {
 	    go TeeClient(TeeIP,TeePort)
 	}
 
-	common.Info("================================smpc.Start,init finish.========================", "curEnode", curEnode, "waitmsg", WaitMsgTimeGG20, "trytimes", recalcTimes,"presignnum", PrePubDataCount, "bip32pre", PreBip32DataCount)
+	log.Info("================================smpc.Start,init finish.========================", "curEnode", curEnode, "waitmsg", WaitMsgTimeGG20, "trytimes", recalcTimes,"presignnum", PrePubDataCount, "bip32pre", PreBip32DataCount)
 }
 
 func TeeClient(teeip string,teeport string) {
@@ -173,43 +174,93 @@ func TeeClient(teeip string,teeport string) {
     }
 
     addr := teeip + ":" + teeport
-    conn, err := net.Dial("tcp4", addr)
-    if err != nil {
-	common.Error("========================smpc.Start,socket dial err==========================","err",err)
-	return
+    socket.ServerAddress = addr
+    
+    for true {
+	conn, err := net.Dial(socket.ServerNetworkType,socket.ServerAddress)
+	if err != nil {
+	    time.Sleep(time.Duration(1000000))
+	   continue 
+	}
+       
+	tss.VSocketConnect = conn
+
+	for true {
+	    msg, err := socket.Read(conn)
+	    log.Info("=================socket client,finish reading msg================","msg",msg,"err",err)
+	    if err != nil {
+		if err == io.EOF {
+		    log.Error("socket client,connection closed", "addr",conn.RemoteAddr())
+		    break
+		} else {
+		    log.Error("socket client read error", "err",err)
+		    time.Sleep(time.Duration(1000000))
+		    continue
+		}
+	    }
+	    
+	    ////////
+	    if msg == "" {
+		log.Error("==============socket client,recieved msg from server fail===============")
+		time.Sleep(time.Duration(1000000))
+		continue
+	    }
+
+	    msgmap := make(map[string]string)
+	    err = json.Unmarshal([]byte(msg), &msgmap)
+	    log.Info("===============socket client,unmarshal msg to map finish=============","err",err,"msg",msg)
+	    if err != nil {
+		log.Error("===============socket client,unmarshal msg to map error=============","err",err)
+		time.Sleep(time.Duration(1000000))
+		continue
+	    }
+	   
+	    w,err := FindWorker(msgmap["Key"])
+	    log.Info("===============socket client,found worker finish=============","err",err,"key",msgmap["Key"])
+	    if w == nil || err != nil {
+		log.Error("==============socket client,not found worker================")
+		time.Sleep(time.Duration(1000000))
+		continue
+	    }
+
+	    log.Info("==============socket client,continue the msg================","msg",msg)
+	    w.OutCh <-msg
+	    ///////
+	}
     }
 
-    tss.VSocketConnect = conn
-
-    for true {
+    /*for true {
 
 	var client = &client.SocketClient{
 		Network: "tcp4",
 		Address: addr,
 		OnMessage: func(msg string) error {
-		    common.Info("recieved msg from server", "msg",msg)
+		    common.Info("===============smpc.Start,recieved msg from server==================", "msg",msg)
 		    if msg == "" {
+			common.Error("==============smpc.Start,recieved msg from server fail===============")
 			return errors.New("msg error")
 		    }
 
-		    //
-		    /*vs := &C1DataSignal{}
-		    if err := vs.UnmarshalJSON([]byte(msg)); err == nil {
-		    exsit, da := GetReqAddrInfoData([]byte(vs.MsgPrex))
-		    if exsit {
-			ac, ok := da.(*AcceptReqAddrData)
-			if ok && ac != nil {
-			    HandleC1Data(ac,vs.Wid)
-			}
+		    msgmap := make(map[string]string)
+		    err := json.Unmarshal([]byte(msg), &msgmap)
+		    if err != nil {
+			common.Error("===============smpc.Start,unmarshal msg to map error=============","err",err)
+			return err
 		    }
-		}
-		*/
+		   
+		    w,err := FindWorker(msgmap["Key"])
+		    if w == nil || err != nil {
+			common.Error("==============smpc.Start,not found worker================")
+			return errors.New("not found worker")
+		    }
 
+		    common.Info("==============continue the msg================","msg",msg)
+		    w.OutCh <-msg
 		//
 
 		return nil
 	    },
-		Connect:conn,
+	    Connect:conn,
 	}
 
 	err := client.Start()
@@ -221,9 +272,10 @@ func TeeClient(teeip string,teeport string) {
 	//client.Connect.Write(str)
 	client.Wg.Wait()
 
-	common.Info("drop from server,retry after 3 seconds")
-	time.Sleep(time.Second * 3)
+	common.Info("================drop from server,retry connecting==================")
+	time.Sleep(time.Duration(1000000))
     }
+    */
 }
 
 

@@ -21,6 +21,9 @@ import (
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ec2"
+	"encoding/json"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 // Start return save data 
@@ -37,6 +40,10 @@ func (round *round7) Start() error {
 		return err
 	}
 
+	if round.tee {
+	    round.ExecTee(-1)
+	}
+
 	for k := range ids {
 		msg5, ok := round.temp.kgRound5Messages[k].(*KGRound5Message)
 		if !ok {
@@ -48,13 +55,13 @@ func (round *round7) Start() error {
 			return errors.New("round.Start get round4 msg fail")
 		}
 
-		deCommit := &ec2.Commitment{C: msg4.ComXiC, D: msg5.ComXiGD}
-		_, xiG := deCommit.DeCommit(round.keytype)
-
 		msg6, ok := round.temp.kgRound6Messages[k].(*KGRound6Message)
 		if !ok {
 			return errors.New("round.Start get round6 msg fail")
 		}
+
+		deCommit := &ec2.Commitment{C: msg4.ComXiC, D: msg5.ComXiGD}
+		_, xiG := deCommit.DeCommit(round.keytype)
 
 		if !ec2.ZkXiVerify(round.keytype,xiG, msg6.U1zkXiProof) {
 			fmt.Printf("========= round7 verify zkx fail, k = %v ==========\n", k)
@@ -82,3 +89,52 @@ func (round *round7) Update() (bool, error) {
 func (round *round7) NextRound() smpc.Round {
 	return nil
 }
+
+//----------------------------------------------
+
+func (round *round7) ExecTee(index int) error {
+    ids, err := round.GetIDs()
+    if err != nil {
+	    return err
+    }
+
+    for k := range ids {
+	msg5, ok := round.temp.kgRound5Messages[k].(*KGRound5Message)
+	if !ok {
+		return errors.New("round.Start get round5 msg fail")
+	}
+
+	msg4, ok := round.temp.kgRound4Messages[k].(*KGRound4Message)
+	if !ok {
+		return errors.New("round.Start get round4 msg fail")
+	}
+
+	msg6, ok := round.temp.kgRound6Messages[k].(*KGRound6Message)
+	if !ok {
+		return errors.New("round.Start get round6 msg fail")
+	}
+
+	s := &socket.KGRound7Msg{C:msg4.ComXiC,D:msg5.ComXiGD,XiPf:msg6.U1zkXiProof}
+	s.Base.SetBase(round.keytype,round.msgprex)
+	err := socket.SendMsgData(smpc.VSocketConnect,s)
+	if err != nil {
+	    return err
+	}
+       
+	kgs := <-round.teeout
+	msgmap := make(map[string]string)
+	err = json.Unmarshal([]byte(kgs), &msgmap)
+	if err != nil {
+	    return err
+	}
+
+	if msgmap["ZkXiCheckRes"] == "FALSE" {
+	    log.Error("========= round7 verify zkx fail ==========", "k",k)
+	    return errors.New("verify zkx fail")
+	}
+    }
+    
+    round.end <- *round.Save
+    return nil
+}
+
