@@ -503,3 +503,586 @@ func (kg *KGRound7Msg) GetMsgType() string {
     return "KGRound7Msg"
 }
 
+//-------------------------------------------------
+
+type SigningRound1Msg struct {
+    Base
+
+    Index int
+    IdSign []*big.Int
+    SkU1 *big.Int
+}
+
+func (kg *SigningRound1Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound1Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound1Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound1Msg) GetMsgType() string {
+    return "SigningRound1Msg"
+}
+
+//--------------------------------------------------
+
+type SigningRound2PaiEnc struct {
+    Base
+
+    U1K *big.Int
+    U1PaillierPk *ec2.PublicKey
+}
+
+func (kg *SigningRound2PaiEnc) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound2PaiEnc) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound2PaiEnc) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound2PaiEnc) GetMsgType() string {
+    return "SigningRound2PaiEnc"
+}
+
+//------------------------------------------------------
+
+type SigningRound2Msg struct {
+    Base
+
+    UKC *big.Int
+    U1K *big.Int
+    UKC2 *big.Int
+    U1PaiPK *ec2.PublicKey
+    U1Nt *ec2.NtildeH1H2
+}
+
+func (kg *SigningRound2Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound2Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound2Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound2Msg) GetMsgType() string {
+    return "SigningRound2Msg"
+}
+
+//---------------------------------------------------
+
+type SigningRound4MtARangeProofCheck struct {
+    Base
+
+    MtAZK1Proof *ec2.MtARangeProof
+    KC *big.Int
+    PaiPk *ec2.PublicKey
+    Nt *ec2.NtildeH1H2
+}
+
+func (kg *SigningRound4MtARangeProofCheck) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound4MtARangeProofCheck) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound4MtARangeProofCheck) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound4MtARangeProofCheck) GetMsgType() string {
+    return "SigningRound4MtARangeProofCheck"
+}
+
+//--------------------------------------------------
+
+type SigningRound4ComCheck struct {
+    Base
+
+    C *big.Int
+    D []*big.Int
+}
+
+func (kg *SigningRound4ComCheck) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound4ComCheck) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound4ComCheck) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound4ComCheck) GetMsgType() string {
+    return "SigningRound4ComCheck"
+}
+
+//-------------------------------------------------
+
+type SigningRound4Beta struct {
+    Base
+
+    PaiKeyLen int
+    ThresHold int
+}
+
+func (kg *SigningRound4Beta) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound4Beta) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound4Beta) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound4Beta) GetMsgType() string {
+    return "SigningRound4Beta"
+}
+
+//------------------------------------------------
+
+type SigningRound4Msg struct {
+    Base
+
+    KC *big.Int
+    U1Gamma *big.Int
+    CurPaiPk *ec2.PublicKey
+    BetaStar *big.Int
+    UKC *big.Int
+    OldPaiPk *ec2.PublicKey
+    OldNt *ec2.NtildeH1H2
+}
+
+func (kg *SigningRound4Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound4Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound4Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound4Msg) GetMsgType() string {
+    return "SigningRound4Msg"
+}
+
+//-------------------------------------------------
+
+type SigningRound4Msg1 struct {
+    Base
+
+    KC *big.Int
+    W1 *big.Int
+    CurPaiPk *ec2.PublicKey
+    VU1Star *big.Int
+    UKC *big.Int
+    OldPaiPk *ec2.PublicKey
+    OldNt *ec2.NtildeH1H2
+}
+
+func (kg *SigningRound4Msg1) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound4Msg1) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound4Msg1) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound4Msg1) GetMsgType() string {
+    return "SigningRound4Msg1"
+}
+
+//-----------------------------------------------
+
+type SigningRound5MtARespZKProofCheck struct {
+    Base
+
+    UKC *big.Int
+    Clipher *big.Int
+    PaiPk *ec2.PublicKey
+    Nt *ec2.NtildeH1H2
+    MtAZK2Proof *ec2.MtARespZKProof
+}
+
+func (kg *SigningRound5MtARespZKProofCheck) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound5MtARespZKProofCheck) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound5MtARespZKProofCheck) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound5MtARespZKProofCheck) GetMsgType() string {
+    return "SigningRound5MtARespZKProofCheck"
+}
+
+//-------------------------------------------------
+
+type SigningRound5ComCheck struct {
+    Base
+
+    C *big.Int
+    D []*big.Int
+    MtAZK3Proof *ec2.MtAwcRespZKProof
+    UKC *big.Int
+    Cipher *big.Int
+    PaiPk *ec2.PublicKey
+    Nt *ec2.NtildeH1H2
+    PaiSk *ec2.PrivateKey
+    U1KGamma1Cipher *big.Int
+}
+
+func (kg *SigningRound5ComCheck) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound5ComCheck) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound5ComCheck) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound5ComCheck) GetMsgType() string {
+    return "SigningRound5ComCheck"
+}
+
+//--------------------------------------------
+
+type SigningRound5Msg struct {
+    Base
+
+    Alpha1 []*big.Int
+    UU1 []*big.Int
+    ThresHold int
+    BetaU1 []*big.Int
+    VU1 []*big.Int
+}
+
+func (kg *SigningRound5Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound5Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound5Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound5Msg) GetMsgType() string {
+    return "SigningRound5Msg"
+}
+
+//---------------------------------------------
+
+type SigningRound6Msg struct {
+    Base
+
+    Delt []*big.Int
+    U1Gamma *big.Int
+}
+
+func (kg *SigningRound6Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound6Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound6Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound6Msg) GetMsgType() string {
+    return "SigningRound6Msg"
+}
+
+//--------------------------------------------------
+
+type SigningRound7ComCheck struct {
+    Base
+
+    C *big.Int
+    D []*big.Int
+
+    ZKProof *ec2.ZkUProof
+}
+
+func (kg *SigningRound7ComCheck) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound7ComCheck) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound7ComCheck) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound7ComCheck) GetMsgType() string {
+    return "SigningRound7ComCheck"
+}
+
+//----------------------------------------
+
+type SigningRound7DeCom struct {
+    Base
+
+    C *big.Int
+    D []*big.Int
+}
+
+func (kg *SigningRound7DeCom) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound7DeCom) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound7DeCom) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound7DeCom) GetMsgType() string {
+    return "SigningRound7DeCom"
+}
+
+//-------------------------------------------------
+
+type SigningRound7Msg struct {
+    Base
+
+    DeltaSum *big.Int
+    GammaX *big.Int
+    GammaY *big.Int
+    U1K *big.Int
+    PaiPk *ec2.PublicKey
+    Nt *ec2.NtildeH1H2
+    UKC *big.Int
+    PaiSk *ec2.PrivateKey
+    U1Ra *big.Int
+}
+
+func (kg *SigningRound7Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound7Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound7Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound7Msg) GetMsgType() string {
+    return "SigningRound7Msg"
+}
+
+//---------------------------------------------
+
+type SigningRound8PDLwSlackCheck struct {
+    Base
+
+    PdlwSlackPf *ec2.PDLwSlackProof
+    PdlWSlackStatement *ec2.PDLwSlackStatement
+}
+
+func (kg *SigningRound8PDLwSlackCheck) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound8PDLwSlackCheck) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound8PDLwSlackCheck) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound8PDLwSlackCheck) GetMsgType() string {
+    return "SigningRound8PDLwSlackCheck"
+}
+
+//---------------------------------------
+
+type SigningRound8CalcK1R struct {
+    Base
+
+    OldK1Rx *big.Int
+    OldK1Ry *big.Int
+    IncK1Rx *big.Int
+    IncK1Ry *big.Int
+}
+
+func (kg *SigningRound8CalcK1R) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound8CalcK1R) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound8CalcK1R) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound8CalcK1R) GetMsgType() string {
+    return "SigningRound8CalcK1R"
+}
+
+//--------------------------------------------
+
+type SigningRound8Msg struct {
+    Base
+
+    K1Rx *big.Int
+    K1Ry *big.Int
+    DeltaGammaGx *big.Int
+    DeltaGammaGy *big.Int
+    Sigma1 *big.Int
+    T1X *big.Int
+    T1Y *big.Int
+    L1 *big.Int
+}
+
+func (kg *SigningRound8Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound8Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound8Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound8Msg) GetMsgType() string {
+    return "SigningRound8Msg"
+}
+
+//-------------------------------------------
+
+type SigningRound9Msg struct {
+    Base
+
+    S1X []*big.Int
+    S1Y []*big.Int
+    T1X []*big.Int
+    T1Y []*big.Int
+    DeltaGammaGx *big.Int
+    DeltaGammaGy *big.Int
+    Pkx *big.Int
+    Pky *big.Int
+    STProof []*ec2.STProof
+}
+
+func (kg *SigningRound9Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound9Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound9Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound9Msg) GetMsgType() string {
+    return "SigningRound9Msg"
+}
+
+//----------------------------------------
+
+type SigningRound10Msg struct {
+    Base
+
+    TxHash *big.Int
+    K1 *big.Int
+    R *big.Int
+    Sigma1 *big.Int
+}
+
+func (kg *SigningRound10Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound10Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound10Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound10Msg) GetMsgType() string {
+    return "SigningRound10Msg"
+}
+
+//-------------------------------------------
+
+type SigningRound11Msg struct {
+    Base
+
+    S []*big.Int
+}
+
+func (kg *SigningRound11Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound11Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound11Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound11Msg) GetMsgType() string {
+    return "SigningRound11Msg"
+}
+
+
+
+
+

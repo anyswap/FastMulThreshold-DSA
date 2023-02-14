@@ -18,13 +18,15 @@ package signing
 
 import (
 	"errors"
-	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common/math/random"
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/ecdsa/keygen"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"math/big"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"encoding/json"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 )
 
 var (
@@ -40,7 +42,7 @@ func newRound1(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc
 // Start calc w1 and u1Gamma k1
 func (round *round1) Start() error {
 	if round.started {
-		fmt.Printf("============= round1.start fail =======\n")
+		log.Error("============= round1.start fail =======")
 		return errors.New("round already started")
 	}
 	round.number = 1
@@ -50,6 +52,10 @@ func (round *round1) Start() error {
 	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
 		return err
+	}
+
+	if round.tee {
+	    return round.ExecTee(curIndex)
 	}
 
 	var self *big.Int
@@ -149,4 +155,60 @@ func (round *round1) Update() (bool, error) {
 func (round *round1) NextRound() smpc.Round {
 	round.started = false
 	return &round2{round}
+}
+
+//--------------------------------------
+
+func (round *round1) ExecTee(curIndex int) error {
+
+    s := &socket.SigningRound1Msg{Index:curIndex,IdSign:round.idsign,SkU1:round.save.SkU1}
+    s.Base.SetBase(round.keytype,round.msgprex)
+    err := socket.SendMsgData(smpc.VSocketConnect,s)
+    if err != nil {
+	log.Error("round1 start,marshal KGRound1 error","err",err)
+	return err
+    }
+   
+    kgs := <-round.teeout
+    msgmap := make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	log.Error("round1 start,unmarshal SigningRound1Msg return data error","err",err)
+	return err
+    }
+  
+    w1,_ := new(big.Int).SetString(msgmap["W1"],10)
+    u1K,_ := new(big.Int).SetString(msgmap["U1K"],10)
+    u1Gamma,_ := new(big.Int).SetString(msgmap["U1Gamma"],10)
+
+    commitwiG := &ec2.Commitment{}
+    err = json.Unmarshal([]byte(msgmap["ComWiG"]),commitwiG)
+    if err != nil {
+	return err
+    }
+
+    commitU1GammaG := &ec2.Commitment{}
+    err = json.Unmarshal([]byte(msgmap["ComU1GammaG"]),commitU1GammaG)
+    if err != nil {
+	return err
+    }
+
+    round.temp.w1 = w1
+    round.temp.commitwiG = commitwiG
+    round.temp.u1K = u1K
+    round.temp.u1Gamma = u1Gamma
+    round.temp.commitU1GammaG = commitU1GammaG
+
+    srm := &SignRound1Message{
+	    SignRoundMessage: new(SignRoundMessage),
+	    C11:              commitU1GammaG.C,
+	    ComWiC:		commitwiG.C, // add for GG18 A.2 Respondent ZK Proof for MtAwc
+    }
+    srm.SetFromID(round.kgid)
+    srm.SetFromIndex(curIndex)
+
+    round.temp.signRound1Messages[curIndex] = srm
+    round.out <- srm
+
+    return nil
 }

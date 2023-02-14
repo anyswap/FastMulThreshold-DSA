@@ -18,18 +18,20 @@ package signing
 
 import (
 	"errors"
-	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"math/big"
+	"encoding/json"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 // Start verify commitment,zkuproof,calc R
 func (round *round7) Start() error {
 	if round.started {
-		fmt.Printf("============= round7.start fail =======\n")
-		return errors.New("round already started")
+	    log.Error("============= round7.start fail =======")
+	    return errors.New("round already started")
 	}
 	round.number = 7
 	round.started = true
@@ -38,6 +40,10 @@ func (round *round7) Start() error {
 	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
 		return err
+	}
+
+	if round.tee {
+	    return round.ExecTee(curIndex)
 	}
 
 	var GammaGSumx *big.Int
@@ -188,3 +194,134 @@ func (round *round7) NextRound() smpc.Round {
 	round.started = false
 	return &round8{round}
 }
+
+//----------------------------------------
+
+func (round *round7) ExecTee(curIndex int) error {
+    var GammaGSumx *big.Int
+    var GammaGSumy *big.Int
+    for k := range round.idsign {
+	    msg1, _ := round.temp.signRound1Messages[k].(*SignRound1Message)
+	    msg6, _ := round.temp.signRound6Messages[k].(*SignRound6Message)
+	    
+	    s := &socket.SigningRound7ComCheck{C:msg1.C11,D:msg6.CommU1D,ZKProof:msg6.U1GammaZKProof}
+	    s.Base.SetBase(round.keytype,round.msgprex)
+	    err := socket.SendMsgData(smpc.VSocketConnect,s)
+	    if err != nil {
+		log.Error("round7 start,check commitment error","err",err)
+		return err
+	    }
+	   
+	    kgs := <-round.teeout
+	    msgmap := make(map[string]string)
+	    err = json.Unmarshal([]byte(kgs), &msgmap)
+	    if err != nil {
+		log.Error("round7 start,unmarshal return data error","err",err)
+		return err
+	    }
+
+	    if msgmap["ComCheck"] == "FALSE" {
+		return errors.New("verify fail")
+	    }
+
+	    if k == 0 {
+		g0,_ := new(big.Int).SetString(msgmap["u1GammaG0"],10)
+		g1,_ := new(big.Int).SetString(msgmap["u1GammaG1"],10)
+		    GammaGSumx = g0 
+		    GammaGSumy = g1
+	    }
+    }
+
+    for k := range round.idsign {
+	    if k == 0 {
+		    continue
+	    }
+
+	    msg1, _ := round.temp.signRound1Messages[k].(*SignRound1Message)
+	    msg6, _ := round.temp.signRound6Messages[k].(*SignRound6Message)
+	    
+	    s := &socket.SigningRound7DeCom{C:msg1.C11,D:msg6.CommU1D}
+	    s.Base.SetBase(round.keytype,round.msgprex)
+	    err := socket.SendMsgData(smpc.VSocketConnect,s)
+	    if err != nil {
+		log.Error("round7 start,send de-commitment error","err",err)
+		return err
+	    }
+	   
+	    kgs := <-round.teeout
+	    msgmap := make(map[string]string)
+	    err = json.Unmarshal([]byte(kgs), &msgmap)
+	    if err != nil {
+		log.Error("round7 start,unmarshal return data error","err",err)
+		return err
+	    }
+
+	    g0,_ := new(big.Int).SetString(msgmap["u1GammaG0"],10)
+	    g1,_ := new(big.Int).SetString(msgmap["u1GammaG1"],10)
+	    GammaGSumx, GammaGSumy = secp256k1.S256(round.keytype).Add(GammaGSumx, GammaGSumy, g0,g1)
+    }
+   
+    oldindex := -1
+    for k, v := range round.save.IDs {
+	    if v.Cmp(round.save.CurDNodeID) == 0 {
+		    oldindex = k
+		    break
+	    }
+    }
+
+    if oldindex == -1 {
+	    return errors.New("error old index")
+    }
+
+    u1PaillierPk := round.save.U1PaillierPk[oldindex]
+    if u1PaillierPk == nil {
+	    return errors.New("error paillier pk for current node")
+    }
+    
+    u1NT := round.save.U1NtildeH1H2[oldindex]
+    if u1NT == nil {
+	    return errors.New("error ntilde for current node")
+    }
+
+    s := &socket.SigningRound7Msg{DeltaSum:round.temp.deltaSum,GammaX:GammaGSumx,GammaY:GammaGSumy,U1K:round.temp.u1K,PaiPk:u1PaillierPk,Nt:u1NT,UKC:round.temp.ukc,PaiSk:round.save.U1PaillierSk,U1Ra:round.temp.ukc2}
+    s.Base.SetBase(round.keytype,round.msgprex)
+    err := socket.SendMsgData(smpc.VSocketConnect,s)
+    if err != nil {
+	log.Error("round7 start,send de-commitment error","err",err)
+	return err
+    }
+   
+    kgs := <-round.teeout
+    msgmap := make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	log.Error("round7 start,unmarshal return data error","err",err)
+	return err
+    }
+
+    round.temp.deltaGammaGx,_ = new(big.Int) .SetString(msgmap["deltaGammaGx"],10)
+    round.temp.deltaGammaGy,_ = new(big.Int) .SetString(msgmap["deltaGammaGy"],10)
+
+    pdlWSlackPf := &ec2.PDLwSlackProof{}
+    err = json.Unmarshal([]byte(msgmap["WSlackPf"]),pdlWSlackPf)
+    if err != nil {
+	return err
+    }
+
+    bigRK1Gx,_ := new(big.Int) .SetString(msgmap["BigRK1Gx"],10)
+    bigRK1Gy,_ := new(big.Int) .SetString(msgmap["BigRK1Gy"],10)
+
+    srm := &SignRound7Message{
+	    SignRoundMessage: new(SignRoundMessage),
+	    K1RX:              bigRK1Gx,
+	    K1RY:   bigRK1Gy,
+	    PdlwSlackPf: pdlWSlackPf,
+    }
+    srm.SetFromID(round.kgid)
+    srm.SetFromIndex(curIndex)
+
+    round.temp.signRound7Messages[curIndex] = srm
+    round.out <- srm
+    return nil
+}
+

@@ -25,13 +25,15 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common/math/random"
 	"math/big"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
+	"encoding/json"
 )
 
 // Start verify MtAZK2Proof,paillier Decrypt,calc delta1
 func (round *round5) Start() error {
 	if round.started {
-		fmt.Printf("============= round5.start fail =======\n")
-		return errors.New("round already started")
+	    log.Error("============= round5.start fail =======")
+	    return errors.New("round already started")
 	}
 	round.number = 5
 	round.started = true
@@ -40,6 +42,10 @@ func (round *round5) Start() error {
 	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
 		return err
+	}
+
+	if round.tee {
+	    return round.ExecTee(curIndex)
 	}
 
 	oldindex := -1
@@ -186,3 +192,136 @@ func (round *round5) NextRound() smpc.Round {
 	round.started = false
 	return &round6{round}
 }
+
+func (round *round5) ExecTee(curIndex int) error {
+    oldindex := -1
+    for k, v := range round.save.IDs {
+	    if v.Cmp(round.save.CurDNodeID) == 0 {
+		    oldindex = k
+		    break
+	    }
+    }
+
+    alpha1 := make([]*big.Int, round.threshold)
+    uu1 := make([]*big.Int, round.threshold)
+
+    for k, v := range round.idsign {
+	    index := -1
+	    for kk, vv := range round.save.IDs {
+		    if v.Cmp(vv) == 0 {
+			    index = kk
+			    break
+		    }
+	    }
+
+	    u1PaillierPk := round.save.U1PaillierPk[oldindex]
+	    u1nt := round.save.U1NtildeH1H2[index]
+	    msg4, _ := round.temp.signRound4Messages[k].(*SignRound4Message)
+
+	    s := &socket.SigningRound5MtARespZKProofCheck{UKC:round.temp.ukc,Clipher:msg4.U1KGamma1Cipher,PaiPk:u1PaillierPk,Nt:u1nt,MtAZK2Proof:msg4.U1u1MtAZK2Proof}
+	    s.Base.SetBase(round.keytype,round.msgprex)
+	    err := socket.SendMsgData(smpc.VSocketConnect,s)
+	    if err != nil {
+		log.Error("round4 start,check commitment error","err",err)
+		return err
+	    }
+	   
+	    kgs := <-round.teeout
+	    msgmap := make(map[string]string)
+	    err = json.Unmarshal([]byte(kgs), &msgmap)
+	    if err != nil {
+		log.Error("round4 start,unmarshal return data error","err",err)
+		return err
+	    }
+
+	    if msgmap["MtARespZKProofCheckRes"] == "FALSE" {
+		    log.Error("=====================round5.start,verify mkg fail================","msg4",*msg4,"index",index,"oldindex",oldindex,"idsign",round.idsign,"save.IDs",round.save.IDs,"curIndex",curIndex,"k",k)
+		    return errors.New("verify mkg fail")
+	    }
+
+	    // add for GG18 A.2 Respondent ZK Proof for MtAwc
+	    msg1, _ := round.temp.signRound1Messages[k].(*SignRound1Message)
+	    msg3, _ := round.temp.signRound3Messages[k].(*SignRound3Message)
+	    msg41, _ := round.temp.signRound4Messages1[k].(*SignRound4Message1)
+	    
+	    s2 := &socket.SigningRound5ComCheck{C:msg1.ComWiC,D:msg3.ComWiD,MtAZK3Proof:msg41.U1u1MtAZK3Proof,UKC:round.temp.ukc,Cipher:msg41.U1Kw1Cipher,PaiPk:u1PaillierPk,Nt:u1nt,PaiSk:round.save.U1PaillierSk,U1KGamma1Cipher:msg4.U1KGamma1Cipher}
+	    s2.Base.SetBase(round.keytype,round.msgprex)
+	    err = socket.SendMsgData(smpc.VSocketConnect,s2)
+	    if err != nil {
+		log.Error("round4 start,check commitment error","err",err)
+		return err
+	    }
+	   
+	    kgs = <-round.teeout
+	    msgmap = make(map[string]string)
+	    err = json.Unmarshal([]byte(kgs), &msgmap)
+	    if err != nil {
+		log.Error("round4 start,unmarshal return data error","err",err)
+		return err
+	    }
+
+	    if msgmap["ComCheck"] == "FALSE" {
+		    log.Error("=====================round5.start,verify mkw fail================","msg41",*msg41,"index",index,"oldindex",oldindex,"idsign",round.idsign,"save.IDs",round.save.IDs,"curIndex",curIndex,"k",k)
+		    return errors.New("verify mkw fail")
+	    }
+
+	    alpha1U1, _ := new(big.Int).SetString(msgmap["Alpha1U1"],10)
+	    alpha1[k] = alpha1U1
+	    u1U1, _ := new(big.Int).SetString(msgmap["U1U1"],10)
+	    uu1[k] = u1U1
+    }
+    round.temp.alpha1 = alpha1
+    round.temp.uu1 = uu1
+
+    s := &socket.SigningRound5Msg{Alpha1:alpha1,UU1:uu1,ThresHold:round.threshold,BetaU1:round.temp.betaU1,VU1:round.temp.vU1}
+    s.Base.SetBase(round.keytype,round.msgprex)
+    err := socket.SendMsgData(smpc.VSocketConnect,s)
+    if err != nil {
+	log.Error("round4 start,check commitment error","err",err)
+	return err
+    }
+   
+    kgs := <-round.teeout
+    msgmap := make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	log.Error("round4 start,unmarshal return data error","err",err)
+	return err
+    }
+
+    round.temp.delta1,_ = new(big.Int).SetString(msgmap["delta1"],10)
+    round.temp.sigma1,_ = new(big.Int).SetString(msgmap["sigma1"],10)
+
+    tProof := &ec2.TProof{}
+    err = json.Unmarshal([]byte(msgmap["tProof"]),tProof)
+    if err != nil {
+	return err
+    }
+
+    if tProof == nil {
+	return errors.New("prove Ti proof fail")
+    }
+    //
+    t1X,_ := new(big.Int).SetString(msgmap["t1X"],10)
+    t1Y,_ := new(big.Int).SetString(msgmap["t1Y"],10)
+    l1,_ := new(big.Int).SetString(msgmap["l1"],10)
+
+    round.temp.t1X = t1X
+    round.temp.t1Y = t1Y
+    round.temp.l1 = l1
+
+    srm := &SignRound5Message{
+	    SignRoundMessage: new(SignRoundMessage),
+	    Delta1:           round.temp.delta1,
+	    T1X:		t1X,
+	    T1Y:		t1Y,
+	    Tpf:		tProof,
+    }
+    srm.SetFromID(round.kgid)
+    srm.SetFromIndex(curIndex)
+
+    round.temp.signRound5Messages[curIndex] = srm
+    round.out <- srm
+    return nil
+}
+

@@ -171,8 +171,6 @@ func (round *round1) ExecTee(index int) error {
 	return err
     }
    
-    log.Info("round1 tee,get msg from channel","msgprex",round.msgprex)
-
     u1, _ := new(big.Int).SetString(msgmap["U1"], 10)
     c1, _ := new(big.Int).SetString(msgmap["C1"], 10)
     ugd := strings.Split(msgmap["U1Poly"], ":")

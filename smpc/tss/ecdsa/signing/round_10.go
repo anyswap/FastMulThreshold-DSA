@@ -24,6 +24,8 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"math/big"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
+	"encoding/json"
 )
 
 func newRound10(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- PrePubData, kgid string, threshold int, paillierkeylength int, predata *PrePubData, txhash *big.Int, finalizeend chan<- *big.Int,keytype string,msgprex string,teeout chan string,tee bool) smpc.Round {
@@ -45,6 +47,10 @@ func (round *round10) Start() error {
 	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
 	    return err
+	}
+
+	if round.tee {
+	    return round.ExecTee(curIndex)
 	}
 
 	mk1 := new(big.Int).Mul(round.txhash, round.predata.K1)
@@ -94,3 +100,39 @@ func (round *round10) NextRound() smpc.Round {
 	round.started = false
 	return &round11{round}
 }
+
+//----------------------------------------
+
+func (round *round10) ExecTee(curIndex int) error {
+    s := &socket.SigningRound10Msg{TxHash:round.txhash,K1:round.predata.K1,R:round.predata.R,Sigma1:round.predata.Sigma1}
+    s.Base.SetBase(round.keytype,round.msgprex)
+    err := socket.SendMsgData(smpc.VSocketConnect,s)
+    if err != nil {
+	log.Error("round9 start,send msg data error","err",err)
+	return err
+    }
+   
+    kgs := <-round.teeout
+    msgmap := make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	log.Error("round9 start,unmarshal return data error","err",err)
+	return err
+    }
+
+    us1,_ := new(big.Int).SetString(msgmap["US1"],10)
+
+    srm := &SignRound9Message{
+	    SignRoundMessage: new(SignRoundMessage),
+	    Us1:              us1,
+    }
+    srm.SetFromID(round.kgid)
+    srm.SetFromIndex(curIndex)
+
+    round.temp.signRound9Messages[curIndex] = srm
+    round.out <- srm
+
+    log.Debug("============= fillize start success, ==============","current node id",round.kgid)
+    return nil
+}
+

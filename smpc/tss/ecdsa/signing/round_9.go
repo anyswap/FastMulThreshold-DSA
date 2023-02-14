@@ -24,6 +24,8 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ec2"
 	"math/big"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
+	"encoding/json"
 )
 
 // Start start round 9 
@@ -36,7 +38,11 @@ func (round *round9) Start() error {
 	round.number = 9
 	round.started = true
 	round.ResetOK()
-	
+
+	if round.tee {
+	    return round.ExecTee(-1)
+	}
+
 	hx,hy,err := ec2.CalcHPoint(round.keytype)
 	if err != nil {
 	    fmt.Printf("calc h point fail, err = %v",err)
@@ -87,5 +93,53 @@ func (round *round9) Update() (bool, error) {
 func (round *round9) NextRound() smpc.Round {
 	return nil
 }
+
+//----------------------------------------
+
+func (round *round9) ExecTee(curIndex int) error {
+    s1x := make([]*big.Int,len(round.idsign))
+    s1y := make([]*big.Int,len(round.idsign))
+    t1x := make([]*big.Int,len(round.idsign))
+    t1y := make([]*big.Int,len(round.idsign))
+    stpf := make([]*ec2.STProof,len(round.idsign))
+
+    for k := range round.idsign {
+	msg8, _ := round.temp.signRound8Messages[k].(*SignRound8Message)
+	msg5, _ := round.temp.signRound5Messages[k].(*SignRound5Message)
+
+	s1x[k] = msg8.S1X
+	s1y[k] = msg8.S1Y
+	t1x[k] = msg5.T1X
+	t1y[k] = msg5.T1Y
+	stpf[k] = msg8.STpf
+    }
+
+    s := &socket.SigningRound9Msg{S1X:s1x,S1Y:s1y,T1X:t1x,T1Y:t1y,DeltaGammaGx:round.temp.deltaGammaGx,DeltaGammaGy:round.temp.deltaGammaGy,STProof:stpf,Pkx:round.save.Pkx,Pky:round.save.Pky}
+    s.Base.SetBase(round.keytype,round.msgprex)
+    err := socket.SendMsgData(smpc.VSocketConnect,s)
+    if err != nil {
+	log.Error("round9 start,send msg data error","err",err)
+	return err
+    }
+   
+    kgs := <-round.teeout
+    msgmap := make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	log.Error("round9 start,unmarshal return data error","err",err)
+	return err
+    }
+
+    if msgmap["STCheckRes"] == "FALSE" {
+	return fmt.Errorf("signing round9 check fail")
+    }
+
+    round.end <- PrePubData{K1: round.temp.u1K, R: round.temp.deltaGammaGx, Ry: round.temp.deltaGammaGy, Sigma1: round.temp.sigma1}
+
+    log.Debug("============= presign last round round9.start success ================")
+    return nil
+}
+
+
 
 

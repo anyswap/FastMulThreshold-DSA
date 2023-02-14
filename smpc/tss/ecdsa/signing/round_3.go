@@ -18,15 +18,15 @@ package signing
 
 import (
 	"errors"
-	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 // Start broacast Kc
 func (round *round3) Start() error {
 	if round.started {
-		fmt.Printf("============= round3.start fail =======\n")
-		return errors.New("round already started")
+	    log.Error("============= round3.start fail =======")
+	    return errors.New("round already started")
 	}
 	round.number = 3
 	round.started = true
