@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
 	github.com/aristanetworks/goarista v0.0.0-20191206003309-5d8d36c240c9
-	github.com/astaxie/beego v1.12.0
+	github.com/astaxie/beego v1.12.2
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v0.0.0-20191219182022-e17c9730c422
 	github.com/cosmos/ledger-cosmos-go v0.11.1 // indirect
@@ -54,8 +54,6 @@ require (
 	github.com/onrik/ethrpc v1.0.0
 	github.com/pelletier/go-toml v1.8.0 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.3.0 // indirect
-	github.com/prometheus/common v0.8.0 // indirect
 	github.com/rakyll/statik v0.1.6 // indirect
 	github.com/rs/cors v1.7.0
 	github.com/shiena/ansicolor v0.0.0-20200904210342-c7312218db18 // indirect
