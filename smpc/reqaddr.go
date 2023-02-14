@@ -1197,7 +1197,7 @@ func KeyGenerateDEDDSA(msgprex string, ch chan interface{}, id int, cointype str
 	outCh := make(chan smpclib.Message, ns)
 	endCh := make(chan edkeygen.LocalDNodeSaveData, ns)
 	errChan := make(chan struct{})
-	keyGenDNode := edkeygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold, cointype)
+	keyGenDNode := edkeygen.NewLocalDNode(outCh, endCh, ns, w.ThresHold, cointype,msgprex,w.OutCh,Tee)
 	w.DNode = keyGenDNode
 	_,UID := GetNodeUID(curEnode, cointype,w.groupid)
 	keyGenDNode.SetDNodeID(fmt.Sprintf("%v", UID))

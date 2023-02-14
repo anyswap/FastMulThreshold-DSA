@@ -228,54 +228,6 @@ func TeeClient(teeip string,teeport string) {
 	    ///////
 	}
     }
-
-    /*for true {
-
-	var client = &client.SocketClient{
-		Network: "tcp4",
-		Address: addr,
-		OnMessage: func(msg string) error {
-		    common.Info("===============smpc.Start,recieved msg from server==================", "msg",msg)
-		    if msg == "" {
-			common.Error("==============smpc.Start,recieved msg from server fail===============")
-			return errors.New("msg error")
-		    }
-
-		    msgmap := make(map[string]string)
-		    err := json.Unmarshal([]byte(msg), &msgmap)
-		    if err != nil {
-			common.Error("===============smpc.Start,unmarshal msg to map error=============","err",err)
-			return err
-		    }
-		   
-		    w,err := FindWorker(msgmap["Key"])
-		    if w == nil || err != nil {
-			common.Error("==============smpc.Start,not found worker================")
-			return errors.New("not found worker")
-		    }
-
-		    common.Info("==============continue the msg================","msg",msg)
-		    w.OutCh <-msg
-		//
-
-		return nil
-	    },
-	    Connect:conn,
-	}
-
-	err := client.Start()
-	if err != nil {
-	    common.Error("connect server fail", "err",err)
-	    return
-	}
-
-	//client.Connect.Write(str)
-	client.Wg.Wait()
-
-	common.Info("================drop from server,retry connecting==================")
-	time.Sleep(time.Duration(1000000))
-    }
-    */
 }
 
 

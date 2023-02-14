@@ -77,6 +77,9 @@ func NewLocalDNode(
 	DNodeCountInGroup int,
 	threshold int,
 	sigtype string,
+	msgprex string,
+	teeout chan string,
+	tee bool,
 ) smpc.DNode {
 
 	data := NewLocalDNodeSaveData(DNodeCountInGroup)
@@ -111,6 +114,9 @@ func NewLocalDNode(
 
 	p.DNodeCountInGroup = DNodeCountInGroup
 	p.ThresHold = threshold
+	p.MsgPrex = msgprex
+	p.TeeOut = teeout
+	p.Tee = tee
 
 	p.temp.kgRound0Messages = make([]smpc.Message, 0)
 	p.temp.kgRound1Messages = make([]smpc.Message, DNodeCountInGroup)
@@ -124,7 +130,7 @@ func NewLocalDNode(
 
 // FirstRound first round
 func (p *LocalDNode) FirstRound() smpc.Round {
-	return newRound0(&p.data, &p.temp, p.out, p.end, p.ID, p.DNodeCountInGroup, p.ThresHold)
+	return newRound0(&p.data, &p.temp, p.out, p.end, p.ID, p.DNodeCountInGroup, p.ThresHold, p.MsgPrex, p.TeeOut, p.Tee)
 }
 
 // FinalizeRound get finalize round

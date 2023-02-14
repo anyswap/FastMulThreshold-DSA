@@ -37,6 +37,9 @@ type (
 		dnodeid    string
 		dnodecount int
 		threshold  int
+		msgprex string
+		teeout chan string
+		tee bool
 	}
 	round0 struct {
 		*base
