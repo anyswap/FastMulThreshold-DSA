@@ -27,6 +27,9 @@ import (
 	r255 "github.com/gtank/ristretto255"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	//"encoding/hex"
+	"encoding/json"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 )
 
 // Start verify vss,calc pk tSk
@@ -41,6 +44,10 @@ func (round *round6) Start() error {
 	curIndex, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
 		return err
+	}
+
+	if round.tee {
+	    return round.ExecTee(curIndex)
 	}
 
 	ids, err := round.GetIDs()
@@ -66,7 +73,7 @@ func (round *round6) Start() error {
 		}
 
 		var shareUFlag = false
-		if round.temp.sigtype == smpc.SR25519 {
+		if round.keytype == smpc.SR25519 {
 			shareUFlag = ed_ristretto.VerifyVss(msg4.Share, round.temp.uids[curIndex], msg5.CfsBBytes)
 		}else {
 			shareUFlag = ed.VerifyVss(msg4.Share, round.temp.uids[curIndex], msg5.CfsBBytes)
@@ -113,7 +120,7 @@ func (round *round6) Start() error {
 		h.Sum(aDigest2[:0])
 
 		var askBBytes [32]byte
-		if round.temp.sigtype == smpc.SR25519 {
+		if round.keytype == smpc.SR25519 {
 			a2Scalar, err := ed_ristretto.BytesReduceToScalar(aDigest2[:])
 			if err != nil {
 				return err
@@ -149,7 +156,7 @@ func (round *round6) Start() error {
 		}
 
 		t3 := msg4.Share
-		if round.temp.sigtype == smpc.SR25519 {
+		if round.keytype == smpc.SR25519 {
 			ed_ristretto.ScAdd(&tSk, &tSk, &t3)
 		}else {
 			ed.ScAdd(&tSk, &tSk, &t3)
@@ -159,7 +166,7 @@ func (round *round6) Start() error {
 	// 3.4 calculate pk
 	var finalPkBytes [32]byte
 
-	if round.temp.sigtype == smpc.SR25519 {
+	if round.keytype == smpc.SR25519 {
 		var finalPk = new(r255.Element)
 		i := 0
 		for k := range ids {
@@ -265,3 +272,122 @@ func (round *round6) Update() (bool, error) {
 func (round *round6) NextRound() smpc.Round {
 	return nil
 }
+
+//--------------------------------------
+
+func (round *round6) ExecTee(curIndex int) error {
+    ids, err := round.GetIDs()
+    if err != nil {
+	    return err
+    }
+ 
+    var PkSet2 []byte
+    for k, id := range ids {
+	    msg4, ok := round.temp.kgRound4Messages[k].(*KGRound4Message)
+	    if !ok {
+		    return errors.New("ed,round.start get round4 msg fail")
+	    }
+
+	    msg5, ok := round.temp.kgRound5Messages[k].(*KGRound5Message)
+	    if !ok {
+		    return errors.New("ed,round.start get round5 msg fail")
+	    }
+
+	    msg3, ok := round.temp.kgRound3Messages[k].(*KGRound3Message)
+	    if !ok {
+		    return errors.New("ed,round.start get round3 msg fail")
+	    }
+
+	    s := &socket.EDKGRound6VssCheck{Share:msg4.Share,ID:round.temp.uids[curIndex],CfsBBytes:msg5.CfsBBytes}
+	    s.Base.SetBase(round.keytype,round.msgprex)
+	    err := socket.SendMsgData(smpc.VSocketConnect,s)
+	    if err != nil {
+		log.Error("round6 start,marshal KGRound6 error","err",err)
+		return err
+	    }
+	   
+	    kgs := <-round.teeout
+	    msgmap := make(map[string]string)
+	    err = json.Unmarshal([]byte(kgs), &msgmap)
+	    if err != nil {
+		log.Error("round6 start,unmarshal KGRound6 return data error","err",err)
+		return err
+	    }
+	    
+	    if msgmap["VssCheckRes"] == "FALSE" {
+		    fmt.Printf("error: vss share verification not pass at user: %v, k  = %v \n", id, k)
+		    return errors.New("smpc back-end internal error:vss share verification fail")
+	    }
+
+	    var temPk [32]byte
+	    t := msg3.DPk[:]
+	    copy(temPk[:], t[32:])
+	    PkSet2 = append(PkSet2[:], (temPk[:])...)
+    }
+
+    DPks := make([][64]byte,len(ids))
+    Shares := make([][32]byte,len(ids))
+    CfsBBytes := make([][][32]byte,len(ids))
+    for k, _ := range ids {
+	msg3, ok := round.temp.kgRound3Messages[k].(*KGRound3Message)
+	if !ok {
+		return errors.New("ed,round.Start get round3 msg fail")
+	}
+
+	msg4, ok := round.temp.kgRound4Messages[k].(*KGRound4Message)
+	if !ok {
+		return errors.New("ed,round.Start get round4 msg fail")
+	}
+
+	msg5, ok := round.temp.kgRound5Messages[k].(*KGRound5Message)
+	if !ok {
+		return errors.New("ed,round.Start get round5 msg fail")
+	}
+
+	DPks[k] = msg3.DPk
+	Shares[k] = msg4.Share
+	CfsBBytes[k] = msg5.CfsBBytes
+    }
+
+    s := &socket.EDKGRound6Msg{PkSet2:PkSet2,Shares:Shares,DPks:DPks,CfsBBytes:CfsBBytes}
+    s.Base.SetBase(round.keytype,round.msgprex)
+    err = socket.SendMsgData(smpc.VSocketConnect,s)
+    if err != nil {
+	log.Error("round6 start,marshal KGRound6 error","err",err)
+	return err
+    }
+   
+    kgs := <-round.teeout
+    msgmap := make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	log.Error("round6 start,unmarshal KGRound6 return data error","err",err)
+	return err
+    }
+    
+    tmp,err := hex.DecodeString(msgmap["tSk"])
+    if err != nil {
+	return err
+    }
+    var tSk [32]byte
+    copy(tSk[:],tmp[:])
+
+    tmp,err = hex.DecodeString(msgmap["finalPkBytes"])
+    if err != nil {
+	return err
+    }
+    var finalPkBytes [32]byte
+    copy(finalPkBytes[:],tmp[:])
+    
+    round.Save.TSk = tSk
+    round.Save.FinalPkBytes = finalPkBytes
+
+    round.end <- *round.Save
+
+    pub := hex.EncodeToString(finalPkBytes[:])
+    fmt.Printf("========= round6 start success, pubkey = %v ==========\n", pub)
+    return nil
+}
+
+
+

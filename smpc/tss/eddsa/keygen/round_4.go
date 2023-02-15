@@ -24,6 +24,9 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ed_ristretto"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"crypto/sha512"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"encoding/json"
 )
 
 // Start verify cPk dPk zkPk,calc vss 
@@ -38,6 +41,10 @@ func (round *round4) Start() error {
 	curIndex, err := round.GetDNodeIDIndex(round.dnodeid)
 	if err != nil {
 		return err
+	}
+
+	if round.tee {
+	    return round.ExecTee(curIndex)
 	}
 
 	ids, err := round.GetIDs()
@@ -73,7 +80,7 @@ func (round *round4) Start() error {
 		copy(t[:], msg3.DPk[32:])
 
 		var zkPkFlag = false
-		if round.temp.sigtype == smpc.SR25519 {
+		if round.keytype == smpc.SR25519 {
 			zkPkFlag = ed_ristretto.VerifyZk2(msg2.ZkPk, t)
 		}else{
 			zkPkFlag = ed.VerifyZk2(msg2.ZkPk, t)
@@ -107,7 +114,7 @@ func (round *round4) Start() error {
 	}
 
 	h.Sum(aDigest[:0])
-	if round.temp.sigtype == smpc.SR25519 {
+	if round.keytype == smpc.SR25519 {
 		ed_ristretto.ScReduce(&a, &aDigest)
 	}else{
 		ed.ScReduce(&a, &aDigest)
@@ -118,7 +125,7 @@ func (round *round4) Start() error {
 	var temSk2 [32]byte
 	copy(temSk2[:], round.temp.sk[:32])
 
-	if round.temp.sigtype == smpc.SR25519 {
+	if round.keytype == smpc.SR25519 {
 		ed_ristretto.ScMul(&ask, &a, &temSk2)
 	}else{
 		ed.ScMul(&ask, &a, &temSk2)
@@ -146,7 +153,7 @@ func (round *round4) Start() error {
 		shares [][32]byte
 	)
 
-	if round.temp.sigtype == smpc.SR25519 {
+	if round.keytype == smpc.SR25519 {
 		_, cfsBBytes, shares,err = ed_ristretto.Vss(ask, uids, round.threshold, round.dnodecount)
 	}else{
 		_, cfsBBytes, shares,err = ed.Vss(ask, uids, round.threshold, round.dnodecount)
@@ -210,3 +217,111 @@ func (round *round4) NextRound() smpc.Round {
 	round.started = false
 	return &round5{round}
 }
+
+//------------------------------------------
+
+type EDKGRound4ReturnValue struct {
+    Uids [][32]byte
+    CfsBBytes [][32]byte
+    Shares [][32]byte
+}
+
+func (round *round4) ExecTee(curIndex int) error {
+    ids, err := round.GetIDs()
+    if err != nil {
+	return err
+    }
+
+    var PkSet []byte
+
+    for k, id := range ids {
+	    msg1, ok := round.temp.kgRound1Messages[k].(*KGRound1Message)
+	    if !ok {
+		    return errors.New("round.Start get round1 msg fail")
+	    }
+
+	    msg3, ok := round.temp.kgRound3Messages[k].(*KGRound3Message)
+	    if !ok {
+		    return errors.New("round.Start get round3 msg fail")
+	    }
+
+	    msg2, ok := round.temp.kgRound2Messages[k].(*KGRound2Message)
+	    if !ok {
+		    return errors.New("round.Start get round2 msg fail")
+	    }
+	    
+	    s := &socket.EDKGRound4ComCheck{CPk:msg1.CPk,DPk:msg3.DPk,ZkPk:msg2.ZkPk}
+	    s.Base.SetBase(round.keytype,round.msgprex)
+	    err := socket.SendMsgData(smpc.VSocketConnect,s)
+	    if err != nil {
+		log.Error("round4 start,marshal EDKGRound4Msg error","err",err)
+		return err
+	    }
+	   
+	    kgs := <-round.teeout
+	    msgmap := make(map[string]string)
+	    err = json.Unmarshal([]byte(kgs), &msgmap)
+	    if err != nil {
+		log.Error("round4 start,unmarshal EDKGRound4Msg return data error","err",err)
+		return err
+	    }
+	    
+	    if msgmap["ComCheck"] == "FALSE" {
+		log.Error("Error: round4 check fail", "user",id)
+		return errors.New("smpc back-end internal error:zeroknowledge check fail")
+	    }
+
+	    PkSet = append(PkSet[:], (msg3.DPk[32:])...)
+    }
+
+    msg3, ok := round.temp.kgRound3Messages[curIndex].(*KGRound3Message)
+    if !ok {
+	    return errors.New("round get msg3 fail")
+    }
+
+    s := &socket.EDKGRound4Msg{PkSet:PkSet[:],DPk:msg3.DPk,ThresHold:round.threshold,DnodeCount:round.dnodecount,Sk:round.temp.sk,Ids:ids}
+    s.Base.SetBase(round.keytype,round.msgprex)
+    err = socket.SendMsgData(smpc.VSocketConnect,s)
+    if err != nil {
+	log.Error("round4 start,marshal EDKGRound4Msg error","err",err)
+	return err
+    }
+   
+    kgs := <-round.teeout
+    msgmap := make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	log.Error("round4 start,unmarshal EDKGRound4Msg return data error","err",err)
+	return err
+    }
+    
+    ret := &EDKGRound4ReturnValue{}
+    err = json.Unmarshal([]byte(msgmap["Ret"]),ret)
+    if err != nil {
+	return err
+    }
+
+    round.temp.uids = ret.Uids
+    round.temp.cfsBBytes = ret.CfsBBytes
+
+    for k, id := range ids {
+	    kg := &KGRound4Message{
+		    KGRoundMessage: new(KGRoundMessage),
+		    Share:          ret.Shares[k],
+	    }
+	    kg.SetFromID(round.dnodeid)
+	    kg.SetFromIndex(curIndex)
+
+	    if k == curIndex {
+		    round.temp.kgRound4Messages[k] = kg
+	    } else {
+		    tmp := fmt.Sprintf("%v",id)
+		    idtmp := hex.EncodeToString([]byte(tmp))
+		    kg.AppendToID(idtmp) //id-->dnodeid
+		    round.out <- kg
+	    }
+    }
+
+    return nil
+}
+

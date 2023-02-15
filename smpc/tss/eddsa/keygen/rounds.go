@@ -37,6 +37,7 @@ type (
 		dnodeid    string
 		dnodecount int
 		threshold  int
+		keytype string
 		msgprex string
 		teeout chan string
 		tee bool

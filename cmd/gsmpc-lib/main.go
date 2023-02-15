@@ -2,6 +2,7 @@ package main
 
 import (
     "fmt"
+    "bytes"
     "io"
     "net"
     //"time"
@@ -14,6 +15,13 @@ import (
     "github.com/anyswap/FastMulThreshold-DSA/internal/common/math/random"
     "github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
     "github.com/anyswap/FastMulThreshold-DSA/log"
+    cryptorand "crypto/rand"
+    "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
+    "github.com/anyswap/FastMulThreshold-DSA/tss-lib/ed_ristretto"
+    r255 "github.com/gtank/ristretto255"
+    "github.com/anyswap/FastMulThreshold-DSA/tss-lib/ed"
+    "encoding/hex"
+    "crypto/sha512"
 )
 
 //--------------------------------------------
@@ -142,6 +150,21 @@ func handleMessage(conn net.Conn,msg string) {
 	    break
     case "SigningRound11Msg":
 	    HandleSigningRound11Msg(conn,msgmap["Content"])
+	    break
+    case "EDKGRound1Msg":
+	    HandleEDKGRound1Msg(conn,msgmap["Content"])
+	    break
+    case "EDKGRound4ComCheck":
+	    HandleEDKGRound4ComCheck(conn,msgmap["Content"])
+	    break
+    case "EDKGRound4Msg":
+	    HandleEDKGRound4Msg(conn,msgmap["Content"])
+	    break
+    case "EDKGRound6VssCheck":
+	    HandleEDKGRound6VssCheck(conn,msgmap["Content"])
+	    break
+    case "EDKGRound6Msg":
+	    HandleEDKGRound6Msg(conn,msgmap["Content"])
 	    break
     default:
 	    return
@@ -1897,5 +1920,448 @@ func HandleSigningRound11Msg(conn net.Conn,content string) {
     socket.Write(conn,string(str))
 }
 
+//-----------------------------------------------
+
+func HandleEDKGRound1Msg(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDKGRound1Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+    
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+    
+    //1.1-1.2 generate 32-bits privatekey', then bit calculation to privatekey
+    rand := cryptorand.Reader
+
+    var sk [32]byte
+    var pk [32]byte
+    var zkPk [64]byte
+
+    if s.KeyType == smpc.SR25519 {
+	    skScalar, err := ed_ristretto.NewRandomScalar()
+	    if err != nil {
+		return
+	    }
+
+	    PK := new(r255.Element).ScalarBaseMult(skScalar)
+
+	    skScalar.Encode(sk[:0])
+	    PK.Encode(pk[:0])
+
+	    zkPk, err = ed_ristretto.Prove2(sk, pk)
+	    if err != nil {
+		return
+	    }
+    }else{
+	    var skTem [64]byte
+	    if _, err = io.ReadFull(rand, skTem[:]); err != nil {
+		    fmt.Println("Error: io.ReadFull(rand, sk)")
+		    return
+	    }
+
+	    ed.ScReduce(&sk, &skTem)
+	    var A ed.ExtendedGroupElement
+	    ed.GeScalarMultBase(&A, &sk)
+	    A.ToBytes(&pk)
+
+	    zkPk, err = ed.Prove2(sk,pk)
+	    if err != nil {
+		return
+	    }
+    }
+
+    CPk, DPk, err := ed.Commit(pk)
+    if err != nil {
+	return
+    }
+
+    msgmap["sk"] = hex.EncodeToString(sk[:])
+    msgmap["pk"] = hex.EncodeToString(pk[:])
+    msgmap["CPk"] = hex.EncodeToString(CPk[:])
+    msgmap["DPk"] = hex.EncodeToString(DPk[:])
+    msgmap["zkPk"] = hex.EncodeToString(zkPk[:])
+    //sigbit, _ := hex.DecodeString(string(sig[:]))
+    //var t [32]byte
+    //copy(t[:], msg3.DPk[32:])
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//---------------------------------------------------
+
+func HandleEDKGRound4ComCheck(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDKGRound4ComCheck{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+    
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+
+    CPkFlag := ed.Verify(s.CPk,s.DPk)
+    if !CPkFlag {
+	msgmap["ComCheck"] = "FALSE"
+	str, err := json.Marshal(msgmap)
+	if err != nil {
+	    return
+	}
+
+	socket.Write(conn,string(str))
+	return 
+    }
+
+    var t [32]byte
+    copy(t[:], s.DPk[32:])
+
+    var zkPkFlag = false
+    if s.KeyType == smpc.SR25519 {
+	    zkPkFlag = ed_ristretto.VerifyZk2(s.ZkPk, t)
+    }else{
+	    zkPkFlag = ed.VerifyZk2(s.ZkPk, t)
+    }
+    if !zkPkFlag {
+	msgmap["ComCheck"] = "FALSE"
+    } else {
+	msgmap["ComCheck"] = "TRUE"
+    }
+    
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//-------------------------------------------
+
+type EDKGRound4ReturnValue struct {
+    Uids [][32]byte
+    CfsBBytes [][32]byte
+    Shares [][32]byte
+}
+
+func HandleEDKGRound4Msg(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDKGRound4Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+    
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+
+    // 2.5 calculate a = SHA256(PkU1, {PkU2, PkU3})
+    var a [32]byte
+    var aDigest [64]byte
+
+    h := sha512.New()
+    _, err = h.Write(s.DPk[32:])
+    if err != nil {
+	    return
+    }
+
+    _, err = h.Write(s.PkSet[:])
+    if err != nil {
+	    return
+    }
+
+    h.Sum(aDigest[:0])
+    if s.KeyType == smpc.SR25519 {
+	    ed_ristretto.ScReduce(&a, &aDigest)
+    }else{
+	    ed.ScReduce(&a, &aDigest)
+    }
+
+    // 2.6 calculate ask
+    var ask [32]byte
+    var temSk2 [32]byte
+    copy(temSk2[:], s.Sk[:32])
+
+    if s.KeyType == smpc.SR25519 {
+	    ed_ristretto.ScMul(&ask, &a, &temSk2)
+    }else{
+	    ed.ScMul(&ask, &a, &temSk2)
+    }
+
+    // 2.7 calculate vss
+
+    var uids [][32]byte
+    for _, v := range s.Ids {
+	var tem [32]byte
+	tmp := v.Bytes()
+	copy(tem[:], tmp[:])
+	if len(v.Bytes()) < 32 {
+	    l := len(v.Bytes())
+	    for j := l; j < 32; j++ {
+		    tem[j] = byte(0x00)
+	    }
+	}
+	uids = append(uids, tem)
+    }
+    
+    var(
+	    cfsBBytes [][32]byte
+	    shares [][32]byte
+    )
+
+    if s.KeyType == smpc.SR25519 {
+	_, cfsBBytes, shares,err = ed_ristretto.Vss(ask, uids, s.ThresHold,s.DnodeCount)
+    }else{
+	_, cfsBBytes, shares,err = ed.Vss(ask, uids,s.ThresHold,s.DnodeCount)
+    }
+
+    if cfsBBytes == nil || shares == nil || err != nil {
+	if err != nil {
+	    return
+	}
+
+	return
+    }
+
+    ret := &EDKGRound4ReturnValue{Uids:uids,CfsBBytes:cfsBBytes,Shares:shares}
+    b,err := json.Marshal(ret)
+    if err != nil {
+	return
+    }
+
+    msgmap["Ret"] = string(b)
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//----------------------------------------------
+
+func HandleEDKGRound6VssCheck(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDKGRound6VssCheck{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+    
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+
+    var shareUFlag = false
+    if s.KeyType == smpc.SR25519 {
+	    shareUFlag = ed_ristretto.VerifyVss(s.Share,s.ID,s.CfsBBytes)
+    }else {
+	    shareUFlag = ed.VerifyVss(s.Share,s.ID,s.CfsBBytes)
+    }
+
+    if !shareUFlag {
+	msgmap["VssCheckRes"] = "FALSE"
+    } else {
+	msgmap["VssCheckRes"] = "TRUE"
+    }
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//---------------------------------------------------
+
+func HandleEDKGRound6Msg(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDKGRound6Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+    
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+    
+    // 3.2 verify share2
+    var a2 [32]byte
+    var aDigest2 [64]byte
+
+    // 3.3 calculate tSk
+    var tSk [32]byte
+
+    h := sha512.New()
+    for k, _ := range s.Shares {
+	    var temPk [32]byte
+	    //t := msg3.DPk[:]
+	    t := (s.DPks[k])[:] 
+	    copy(temPk[:], t[32:])
+
+	    h.Reset()
+	    _, err = h.Write(temPk[:])
+	    if err != nil {
+		    return
+	    }
+	    _, err = h.Write(s.PkSet2)
+	    if err != nil {
+		    return
+	    }
+	    h.Sum(aDigest2[:0])
+
+	    var askBBytes [32]byte
+	    if s.KeyType == smpc.SR25519 {
+		    a2Scalar, err := ed_ristretto.BytesReduceToScalar(aDigest2[:])
+		    if err != nil {
+			    return
+		    }
+		    var A = new(r255.Element)
+		    A.Decode(temPk[:])
+		    askB := new(r255.Element).ScalarMult(a2Scalar, A)
+		    askB.Encode(askBBytes[:0])
+	    }else {
+		    ed.ScReduce(&a2, &aDigest2)
+
+		    var askB, A ed.ExtendedGroupElement
+		    A.FromBytes(&temPk)
+		    ed.GeScalarMult(&askB, &a2, &A)
+		    askB.ToBytes(&askBBytes)
+	    }
+
+	    //t2 := msg5.CfsBBytes
+	    t2 := s.CfsBBytes[k]
+	    tt := t2[0]
+	    if !bytes.Equal(askBBytes[:], tt[:]) {
+		    return
+	    }
+
+	    //t3 := msg4.Share
+	    t3 := s.Shares[k]
+	    if s.KeyType == smpc.SR25519 {
+		    ed_ristretto.ScAdd(&tSk, &tSk, &t3)
+	    }else {
+		    ed.ScAdd(&tSk, &tSk, &t3)
+	    }
+    }
+
+    // 3.4 calculate pk
+    var finalPkBytes [32]byte
+
+    if s.KeyType == smpc.SR25519 {
+	    var finalPk = new(r255.Element)
+	    i := 0
+	    for k := range s.Shares {
+		    var temPk [32]byte
+		    //t := msg3.DPk[:]
+		    t := (s.DPks[k])[:]
+		    copy(temPk[:], t[32:])
+
+		    h.Reset()
+		    _, err = h.Write(temPk[:])
+		    if err != nil {
+			    return
+		    }
+
+		    _, err = h.Write(s.PkSet2)
+		    if err != nil {
+			    return
+		    }
+
+		    h.Sum(aDigest2[:0])
+		    a2Scalar, _ := ed_ristretto.BytesReduceToScalar(aDigest2[:])
+
+		    var A = new(r255.Element)
+		    A.Decode(temPk[:])
+		    askB := new(r255.Element).ScalarMult(a2Scalar, A)
+
+		    if i == 0 {
+			    finalPk = askB
+		    } else {
+			    finalPk = new(r255.Element).Add(finalPk, askB)
+		    }
+
+		    i++
+	    }
+
+	    finalPk.Encode(finalPkBytes[:0])
+    } else {
+	    var finalPk ed.ExtendedGroupElement
+	    i := 0
+	    for k := range s.Shares {
+		    var temPk [32]byte
+		    //t := msg3.DPk[:]
+		    t := (s.DPks[k])[:]
+		    copy(temPk[:], t[32:])
+
+		    h.Reset()
+		    _, err = h.Write(temPk[:])
+		    if err != nil {
+			    return
+		    }
+
+		    _, err = h.Write(s.PkSet2)
+		    if err != nil {
+			    return
+		    }
+
+		    h.Sum(aDigest2[:0])
+		    ed.ScReduce(&a2, &aDigest2)
+
+		    var askB, A ed.ExtendedGroupElement
+		    A.FromBytes(&temPk)
+		    ed.GeScalarMult(&askB, &a2, &A)
+
+		    if i == 0 {
+			    finalPk = askB
+		    } else {
+			    ed.GeAdd(&finalPk, &finalPk, &askB)
+		    }
+
+		    i++
+	    }
+
+	    finalPk.ToBytes(&finalPkBytes)
+    }
+
+    msgmap["tSk"] = hex.EncodeToString(tSk[:])
+    msgmap["finalPkBytes"] = hex.EncodeToString(finalPkBytes[:])
+    
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//---------------------------------------------------
 
 

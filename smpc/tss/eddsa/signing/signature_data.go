@@ -35,7 +35,7 @@ type InputVerify struct {
 }
 
 // EdVerify check (R,S)
-func EdVerify(input InputVerify, sigtype string) bool {
+func EdVerify(input InputVerify, keytype string) bool {
 	// 1. calculate k
 	k, err := CalKValue(input.KeyType, input.Message[:], input.FinalPk[:], input.FinalR[:])
 	if err != nil {
@@ -46,7 +46,7 @@ func EdVerify(input InputVerify, sigtype string) bool {
 	// 2. verify the equation
 
 	var sBBytes, sBCalBytes [32]byte
-	if sigtype == smpc.SR25519 {
+	if keytype == smpc.SR25519 {
 		var(
 			R = new(r255.Element)
 			pkB = new(r255.Element)

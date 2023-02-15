@@ -38,8 +38,6 @@ type LocalDNode struct {
 
 // localTempData  Store some data of MPC calculation process 
 type localTempData struct {
-	sigtype string
-
 	kgRound0Messages,
 	kgRound1Messages,
 	kgRound2Messages,
@@ -76,7 +74,7 @@ func NewLocalDNode(
 	end chan<- LocalDNodeSaveData,
 	DNodeCountInGroup int,
 	threshold int,
-	sigtype string,
+	keytype string,
 	msgprex string,
 	teeout chan string,
 	tee bool,
@@ -101,7 +99,7 @@ func NewLocalDNode(
 	var zero [32]byte
 	var one [32]byte
 	one[0] = 1
-	if sigtype == smpc.SR25519 {
+	if keytype == smpc.SR25519 {
 		ed_ristretto.ScMulAdd(&id, &id, &one, &zero)
 	}else{
 		ed.ScMulAdd(&id, &id, &one, &zero)
@@ -114,6 +112,7 @@ func NewLocalDNode(
 
 	p.DNodeCountInGroup = DNodeCountInGroup
 	p.ThresHold = threshold
+	p.KeyType = keytype
 	p.MsgPrex = msgprex
 	p.TeeOut = teeout
 	p.Tee = tee
@@ -124,13 +123,12 @@ func NewLocalDNode(
 	p.temp.kgRound3Messages = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound4Messages = make([]smpc.Message, DNodeCountInGroup)
 	p.temp.kgRound5Messages = make([]smpc.Message, DNodeCountInGroup)
-	p.temp.sigtype = sigtype
 	return p
 }
 
 // FirstRound first round
 func (p *LocalDNode) FirstRound() smpc.Round {
-	return newRound0(&p.data, &p.temp, p.out, p.end, p.ID, p.DNodeCountInGroup, p.ThresHold, p.MsgPrex, p.TeeOut, p.Tee)
+	return newRound0(&p.data, &p.temp, p.out, p.end, p.ID, p.DNodeCountInGroup, p.ThresHold, p.KeyType, p.MsgPrex, p.TeeOut, p.Tee)
 }
 
 // FinalizeRound get finalize round

@@ -1082,6 +1082,139 @@ func (kg *SigningRound11Msg) GetMsgType() string {
     return "SigningRound11Msg"
 }
 
+//---------------------------------------------
+
+type EDKGRound1Msg struct {
+    Base
+}
+
+func (kg *EDKGRound1Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDKGRound1Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDKGRound1Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDKGRound1Msg) GetMsgType() string {
+    return "EDKGRound1Msg"
+}
+
+//-------------------------------------------------
+
+type EDKGRound4ComCheck struct {
+    Base
+
+    CPk [32]byte
+    DPk [64]byte
+    ZkPk [64]byte
+}
+
+func (kg *EDKGRound4ComCheck) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDKGRound4ComCheck) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDKGRound4ComCheck) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDKGRound4ComCheck) GetMsgType() string {
+    return "EDKGRound4ComCheck"
+}
+
+//------------------------------------------------------
+
+type EDKGRound4Msg struct {
+    Base
+
+    PkSet []byte
+    DPk [64]byte
+    ThresHold int
+    DnodeCount int
+    Sk [32]byte
+
+    Ids []*big.Int
+}
+
+func (kg *EDKGRound4Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDKGRound4Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDKGRound4Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDKGRound4Msg) GetMsgType() string {
+    return "EDKGRound4Msg"
+}
+
+//-------------------------------------------
+
+type EDKGRound6VssCheck struct {
+    Base
+
+    Share [32]byte 
+    ID [32]byte
+    CfsBBytes [][32]byte
+}
+
+func (kg *EDKGRound6VssCheck) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDKGRound6VssCheck) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDKGRound6VssCheck) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDKGRound6VssCheck) GetMsgType() string {
+    return "EDKGRound6VssCheck"
+}
+
+//------------------------------------------------
+
+type EDKGRound6Msg struct {
+    Base
+
+    PkSet2 []byte
+    Shares [][32]byte 
+    DPks [][64]byte
+    CfsBBytes [][][32]byte
+}
+
+func (kg *EDKGRound6Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDKGRound6Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDKGRound6Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDKGRound6Msg) GetMsgType() string {
+    return "EDKGRound6Msg"
+}
+
+
+
 
 
 

@@ -21,22 +21,36 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"encoding/hex"
 
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ed"
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ed_ristretto"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	r255 "github.com/gtank/ristretto255"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"encoding/json"
 )
 
 // Start get sk pk
 func (round *round1) Start() error {
 	if round.started {
-		fmt.Printf("============ round1 start error,already started============\n")
-		return errors.New("round already started")
+	    log.Error("============ round1 start error,already started============")
+	    return errors.New("round already started")
 	}
 	round.number = 1
 	round.started = true
 	round.ResetOK()
+
+	index, err := round.GetDNodeIDIndex(round.dnodeid)
+	if err != nil {
+	    log.Error("============round1 start,get dnode id index fail ===========", "uid",round.dnodeid, "err",err)
+	    return err
+	}
+
+	if round.tee {
+	    return round.ExecTee(index)
+	}
 
 	//1.1-1.2 generate 32-bits privatekey', then bit calculation to privatekey
 	rand := cryptorand.Reader
@@ -44,9 +58,8 @@ func (round *round1) Start() error {
 	var sk [32]byte
 	var pk [32]byte
 	var zkPk [64]byte
-	var err error
 
-	if round.temp.sigtype == smpc.SR25519 {
+	if round.keytype == smpc.SR25519 {
 		skScalar, err := ed_ristretto.NewRandomScalar()
 		if err != nil {
 			return err
@@ -86,12 +99,6 @@ func (round *round1) Start() error {
 	round.temp.pk = pk
 	round.temp.DPk = DPk
 	round.temp.zkPk = zkPk
-
-	index, err := round.GetDNodeIDIndex(round.dnodeid)
-	if err != nil {
-		fmt.Printf("============round1 start,get dnode id index fail,uid = %v,err = %v ===========\n", round.dnodeid,err)
-		return err
-	}
 
 	kg := &KGRound1Message{
 		KGRoundMessage: new(KGRoundMessage),
@@ -137,3 +144,79 @@ func (round *round1) NextRound() smpc.Round {
 	round.started = false
 	return &round2{round}
 }
+
+//----------------------------------------
+
+func (round *round1) ExecTee(index int) error {
+    s := &socket.EDKGRound1Msg{}
+    s.Base.SetBase(round.keytype,round.msgprex)
+    err := socket.SendMsgData(smpc.VSocketConnect,s)
+    if err != nil {
+	log.Error("round1 start,marshal KGRound1 error","err",err)
+	return err
+    }
+   
+    kgs := <-round.teeout
+    msgmap := make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	log.Error("round1 start,unmarshal KGRound1 return data error","err",err)
+	return err
+    }
+ 
+    var tmp []byte
+    tmp,err = hex.DecodeString(msgmap["sk"])
+    if err != nil {
+	return err
+    }
+    var sk [32]byte
+    copy(sk[:],tmp[:])
+
+    tmp,err = hex.DecodeString(msgmap["pk"])
+    if err != nil {
+	return err
+    }
+    var pk [32]byte
+    copy(pk[:],tmp[:])
+
+    tmp,err = hex.DecodeString(msgmap["DPk"])
+    if err != nil {
+	return err
+    }
+    var DPk [64]byte
+    copy(DPk[:],tmp[:])
+    
+    tmp,err = hex.DecodeString(msgmap["zkPk"])
+    if err != nil {
+	return err
+    }
+    var zkPk [64]byte
+    copy(zkPk[:],tmp[:])
+    
+    tmp,err = hex.DecodeString(msgmap["CPk"])
+    if err != nil {
+	return err
+    }
+    var CPk [32]byte
+    copy(CPk[:],tmp[:])
+    
+    round.temp.sk = sk
+    round.temp.pk = pk
+    round.temp.DPk = DPk
+    round.temp.zkPk = zkPk
+
+    kg := &KGRound1Message{
+	    KGRoundMessage: new(KGRoundMessage),
+	    CPk:            CPk,
+    }
+    kg.SetFromID(round.dnodeid)
+    kg.SetFromIndex(index)
+
+    round.Save.Sk = sk
+    round.Save.Pk = pk
+    round.temp.kgRound1Messages[index] = kg
+    round.out <- kg
+    return nil
+}
+
+
