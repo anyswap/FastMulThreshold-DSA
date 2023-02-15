@@ -18,7 +18,6 @@ require (
 	github.com/ethereum/go-ethereum v1.10.17
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/fsn-dev/cryptoCoins v1.0.0
-	github.com/go-logfmt/logfmt v0.5.0 // indirect
 	github.com/golang/snappy v0.0.4
 	github.com/huin/goupnp v1.0.3-0.20220313090229-ca81a64b4204
 	github.com/ipfs/go-cid v0.0.4 // indirect
@@ -54,8 +53,7 @@ require (
 	github.com/onrik/ethrpc v1.0.0
 	github.com/pelletier/go-toml v1.8.0 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.3.0 // indirect
-	github.com/prometheus/common v0.8.0 // indirect
+	github.com/prometheus/client_golang v1.11.1 // indirect
 	github.com/rakyll/statik v0.1.6 // indirect
 	github.com/rs/cors v1.7.0
 	github.com/shiena/ansicolor v0.0.0-20200904210342-c7312218db18 // indirect
