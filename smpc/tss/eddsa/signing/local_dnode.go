@@ -95,6 +95,9 @@ func NewLocalDNode(
 	txhash *big.Int,
 	cointype string,
 	finalizeend chan<- *big.Int, //useness for ed
+	msgprex string,
+	teeout chan string,
+	tee bool,
 ) smpc.DNode {
 
 	p := &LocalDNode{
@@ -119,6 +122,10 @@ func NewLocalDNode(
 
 	p.finalize = finalize
 
+	p.MsgPrex = msgprex
+	p.TeeOut = teeout
+	p.Tee = tee
+
 	p.temp.signRound1Messages = make([]smpc.Message, threshold)
 	p.temp.signRound2Messages = make([]smpc.Message, threshold)
 	p.temp.signRound3Messages = make([]smpc.Message, threshold)
@@ -135,7 +142,7 @@ func (p *LocalDNode) FinalizeRound() smpc.Round {
 
 // FirstRound first round
 func (p *LocalDNode) FirstRound() smpc.Round {
-	return newRound1(&p.temp, p.save, p.idsign, p.out, p.end, p.ID, p.ThresHold, p.PaillierKeyLength, p.txhash, p.keyType)
+	return newRound1(&p.temp, p.save, p.idsign, p.out, p.end, p.ID, p.ThresHold, p.PaillierKeyLength, p.txhash, p.keyType,p.MsgPrex,p.TeeOut,p.Tee)
 }
 
 // Start ed signing start 

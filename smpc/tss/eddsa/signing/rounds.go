@@ -41,6 +41,9 @@ type (
 		txhash            *big.Int
 		finalizeend      chan<- *big.Int
 		keyType			string
+		msgprex string
+		teeout chan string
+		tee bool
 	}
 	round1 struct {
 		*base

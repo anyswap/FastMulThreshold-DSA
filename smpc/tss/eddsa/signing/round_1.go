@@ -33,10 +33,10 @@ import (
 	r255 "github.com/gtank/ristretto255"
 )
 
-func newRound1(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- EdSignData, kgid string, threshold int, paillierkeylength int, txhash *big.Int, keyType string) smpc.Round {
+func newRound1(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- EdSignData, kgid string, threshold int, paillierkeylength int, txhash *big.Int, keyType string,msgprex string,teeout chan string,tee bool) smpc.Round {
 	finalizeendCh := make(chan *big.Int, threshold)
 	return &round1{
-		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, nil, txhash, finalizeendCh, keyType}}
+		&base{temp, save, idsign, out, end, make([]bool, threshold), false, 0, kgid, threshold, paillierkeylength, nil, txhash, finalizeendCh, keyType,msgprex,teeout,tee}}
 }
 
 // Start get sk pkfinal R

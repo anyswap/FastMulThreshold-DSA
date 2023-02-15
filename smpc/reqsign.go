@@ -2420,7 +2420,7 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
     endCh := make(chan edsigning.EdSignData, w.ThresHold)
     finalizeendCh := make(chan *big.Int, w.ThresHold) //useness
     errChan := make(chan struct{})
-    signDNode := edsigning.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, mMtA, cointype, finalizeendCh)
+    signDNode := edsigning.NewLocalDNode(outCh, endCh, sd, idsign, sd.CurDNodeID, w.ThresHold, PaillierKeyLength, false, nil, mMtA, cointype, finalizeendCh,msgprex,w.OutCh,Tee)
     w.DNode = signDNode
     _,UID := GetNodeUID(curEnode, cointype,pubs.GroupID)
     signDNode.SetDNodeID(fmt.Sprintf("%v", UID))
