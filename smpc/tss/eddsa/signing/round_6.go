@@ -23,7 +23,11 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	r255 "github.com/gtank/ristretto255"
 	"encoding/hex"
+	"encoding/json"
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ed"
+	tsslib "github.com/anyswap/FastMulThreshold-DSA/tss-lib/common"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 )
 
 // Start verify CSB DSB commitment data,broacast current node s to other nodes
@@ -39,6 +43,10 @@ func (round *round6) Start() error {
 	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
 		return err
+	}
+
+	if round.tee {
+	    return round.ExecTee(curIndex)
 	}
 
 	var sBBytes2 [32]byte
@@ -107,7 +115,7 @@ func (round *round6) Start() error {
 		sB2.ToBytes(&sBBytes2)
 	}
 
-	k2, err := CalKValue(round.temp.keyType, round.temp.message, round.temp.pkfinal[:], round.temp.FinalRBytes[:])
+	k2, err := tsslib.CalKValue(round.temp.keyType, round.temp.message, round.temp.pkfinal[:], round.temp.FinalRBytes[:])
 	if err != nil {
 		fmt.Printf("error in Round 6 CalKValue: %v\n", round.save.CurDNodeID)
 		return err
@@ -188,3 +196,60 @@ func (round *round6) NextRound() smpc.Round {
 	round.started = false
 	return &round7{round}
 }
+
+//------------------------------------------
+
+func (round *round6) ExecTee(curIndex int) error {
+    CSBs := make([][32]byte,len(round.idsign))
+    DSBs := make([][64]byte,len(round.idsign))
+
+    for k,_ := range round.idsign {
+	msg4, ok := round.temp.signRound4Messages[k].(*SignRound4Message)
+	if !ok {
+	    return errors.New("get csb fail")
+	}
+
+	msg5, ok := round.temp.signRound5Messages[k].(*SignRound5Message)
+	if !ok {
+	    return errors.New("get dsb fail")
+	}
+
+	CSBs[k] = msg4.CSB
+	DSBs[k] = msg5.DSB
+    }
+
+    s := &socket.EDSigningRound6Msg{CSBs:CSBs,DSBs:DSBs,Message:round.temp.message,Pkfinal:round.temp.pkfinal,FinalRBytes:round.temp.FinalRBytes}
+    s.Base.SetBase(round.keyType,round.msgprex)
+    err := socket.SendMsgData(smpc.VSocketConnect,s)
+    if err != nil {
+	log.Error("round6 start,marshal SigningRound6 error","err",err)
+	return err
+    }
+   
+    kgs := <-round.teeout
+    msgmap := make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	log.Error("round6 start,unmarshal SigningRound6 return data error","err",err)
+	return err
+    }
+
+    if msgmap["Msg6CheckRes"] == "FALSE" {
+	return errors.New("ed signing round6 check fail")
+    }
+
+    srm := &SignRound6Message{
+	    SignRoundMessage: new(SignRoundMessage),
+	    S:                round.temp.s,
+    }
+    srm.SetFromID(round.kgid)
+    srm.SetFromIndex(curIndex)
+
+    round.temp.signRound6Messages[curIndex] = srm
+    round.out <- srm
+    return nil
+}
+
+
+
+

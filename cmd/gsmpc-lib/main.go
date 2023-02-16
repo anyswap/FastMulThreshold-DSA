@@ -22,6 +22,8 @@ import (
     "github.com/anyswap/FastMulThreshold-DSA/tss-lib/ed"
     "encoding/hex"
     "crypto/sha512"
+    tsslib "github.com/anyswap/FastMulThreshold-DSA/tss-lib/common"
+    "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/eddsa/signing"
 )
 
 //--------------------------------------------
@@ -165,6 +167,18 @@ func handleMessage(conn net.Conn,msg string) {
 	    break
     case "EDKGRound6Msg":
 	    HandleEDKGRound6Msg(conn,msgmap["Content"])
+	    break
+    case "EDSigningRound1Msg":
+	    HandleEDSigningRound1Msg(conn,msgmap["Content"])
+	    break
+    case "EDSigningRound4Msg":
+	    HandleEDSigningRound4Msg(conn,msgmap["Content"])
+	    break
+    case "EDSigningRound6Msg":
+	    HandleEDSigningRound6Msg(conn,msgmap["Content"])
+	    break
+    case "EDSigningRound7Msg":
+	    HandleEDSigningRound7Msg(conn,msgmap["Content"])
 	    break
     default:
 	    return
@@ -2363,5 +2377,523 @@ func HandleEDKGRound6Msg(conn net.Conn,content string) {
 }
 
 //---------------------------------------------------
+
+type EDSigningRound1ReturnValue struct {
+    Uids [][32]byte
+    Sk [32]byte
+    TSk [32]byte
+    Pkfinal [32]byte
+
+    R [32]byte
+    ZkR [64]byte
+    DR [64]byte
+    CR [32]byte
+}
+
+func HandleEDSigningRound1Msg(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDSigningRound1Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+    
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+    
+    var sk [32]byte
+    copy(sk[:], s.Sk[:32])
+    var tsk [32]byte
+    copy(tsk[:], s.TSk[:32])
+    var pkfinal [32]byte
+    copy(pkfinal[:], s.FinalPkBytes[:32])
+
+    var uids [][32]byte
+    for _, v := range s.IDs {
+	    var tem [32]byte
+	    tmp := v.Bytes()
+	    copy(tem[:], tmp[:])
+	    if len(v.Bytes()) < 32 {
+		    l := len(v.Bytes())
+		    for j := l; j < 32; j++ {
+			    tem[j] = byte(0x00)
+		    }
+	    }
+	    uids = append(uids, tem)
+    }
+
+    // [Notes]
+    // 1. calculate R
+    var r [32]byte
+    var rTem [64]byte
+    var RBytes [32]byte
+    var zkR [64]byte
+    var CR [32]byte
+    var DR [64]byte
+
+    rand := cryptorand.Reader
+    if _, err := io.ReadFull(rand, rTem[:]); err != nil {
+	    return
+    }
+
+    if s.KeyType == smpc.SR25519 {
+	    ed_ristretto.ScReduce(&r, &rTem)
+	    rScalar, _ := ed_ristretto.BytesReduceToScalar(r[:])
+	    R := new(r255.Element).ScalarBaseMult(rScalar)
+
+	    // 2. commit(R)
+	    R.Encode(RBytes[:0])
+	    CR, DR, err = ed.Commit(RBytes)
+	    if err != nil {
+		    return
+	    }
+
+	    // 3. zkSchnorr(rU1)
+	    zkR,err = ed_ristretto.Prove2(r,RBytes)
+	    if err != nil {
+		    return
+	    }
+    }else {
+	    ed.ScReduce(&r, &rTem)
+
+	    var R ed.ExtendedGroupElement
+	    ed.GeScalarMultBase(&R, &r)
+
+	    // 2. commit(R)
+	    R.ToBytes(&RBytes)
+	    CR, DR, err = ed.Commit(RBytes)
+	    if err != nil {
+		    return
+	    }
+
+	    // 3. zkSchnorr(rU1)
+	    zkR,err = ed.Prove2(r,RBytes)
+	    if err != nil {
+		    return
+	    }
+    }
+
+    ret := &EDSigningRound1ReturnValue{Uids:uids,Sk:sk,TSk:tsk,Pkfinal:pkfinal,R:r,ZkR:zkR,DR:DR,CR:CR}
+    b,err := json.Marshal(ret)
+    if err != nil {
+	return
+    }
+
+    msgmap["Ret"] = string(b)
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//-----------------------------------------------------
+
+type EDSigningRound4ReturnValue struct {
+    FinalRBytes [32]byte
+    S [32]byte
+    SBBytes [32]byte
+    CSB [32]byte
+    DSB [64]byte
+}
+
+func HandleEDSigningRound4Msg(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDSigningRound4Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+    
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+
+    var FinalRBytes [32]byte
+
+    if s.KeyType == smpc.SR25519 {
+	    FinalR := new(r255.Element)
+	    for k := range s.CRs {
+		    CRFlag := ed.Verify(s.CRs[k], s.DRs[k])
+		    if !CRFlag {
+			msgmap["Msg4CheckRes"] = "FALSE"
+			str, err := json.Marshal(msgmap)
+			if err != nil {
+			    return
+			}
+
+			socket.Write(conn,string(str))
+			return
+		    }
+
+		    var temR [32]byte
+		    copy(temR[:], (s.DRs[k])[32:])
+
+		    zkRFlag := ed_ristretto.VerifyZk2(s.ZkRs[k], temR)
+		    if !zkRFlag {
+			msgmap["Msg4CheckRes"] = "FALSE"
+			str, err := json.Marshal(msgmap)
+			if err != nil {
+			    return
+			}
+
+			socket.Write(conn,string(str))
+			return
+		    }
+
+		    var temRBytes [32]byte
+		    copy(temRBytes[:], (s.DRs[k])[32:])
+		    temR2 := new(r255.Element)
+		    temR2.Decode(temRBytes[:])
+		    
+		    if k == 0 {
+			    FinalR = temR2
+		    } else {
+			    FinalR = new(r255.Element).Add(FinalR, temR2)
+		    }
+	    }
+	    FinalR.Encode(FinalRBytes[:0])
+    } else {
+	    var FinalR, temR2 ed.ExtendedGroupElement
+	    for k := range s.CRs {
+		    CRFlag := ed.Verify(s.CRs[k], s.DRs[k])
+		    if !CRFlag {
+			msgmap["Msg4CheckRes"] = "FALSE"
+			str, err := json.Marshal(msgmap)
+			if err != nil {
+			    return
+			}
+
+			socket.Write(conn,string(str))
+			return
+		    }
+
+		    var temR [32]byte
+		    copy(temR[:], (s.DRs[k])[32:])
+
+		    zkRFlag := ed.VerifyZk2(s.ZkRs[k], temR)
+		    if !zkRFlag {
+			msgmap["Msg4CheckRes"] = "FALSE"
+			str, err := json.Marshal(msgmap)
+			if err != nil {
+			    return
+			}
+
+			socket.Write(conn,string(str))
+			return
+		    }
+
+		    var temRBytes [32]byte
+		    copy(temRBytes[:], (s.DRs[k])[32:])
+		    temR2.FromBytes(&temRBytes)
+		    if k == 0 {
+			    FinalR = temR2
+		    } else {
+			    ed.GeAdd(&FinalR, &FinalR, &temR2)
+		    }
+	    }
+	    FinalR.ToBytes(&FinalRBytes)
+    }
+
+    k, err := tsslib.CalKValue(s.KeyType, s.Message, s.Pkfinal[:], FinalRBytes[:])
+    if err != nil {
+	return
+    }
+
+    // 2.7 calculate lambda1
+    var lambda [32]byte
+    lambda[0] = 1
+    order := ed.GetBytesOrder()
+
+    var curByte [32]byte
+    copy(curByte[:], s.CurDNodeID.Bytes())
+
+    for kk, vv := range s.IdSign {
+	    if kk == s.Index {
+		    continue
+	    }
+
+	    var indexByte [32]byte
+	    copy(indexByte[:], vv.Bytes())
+
+	    var time [32]byte
+	    t := indexByte //round.temp.uids[oldindex]
+	    tt := curByte  //round.temp.uids[cur_oldindex]
+
+	    if s.KeyType == smpc.SR25519 {
+		    ed_ristretto.ScSub(&time, &t, &tt)
+		    time = ed_ristretto.ScModInverse(time)
+	    }else {
+		    ed.ScSub(&time, &t, &tt)
+		    time = ed.ScModInverse(time, order)
+	    }
+
+	    count := 0
+	    for index:=0;index<32;index++ {
+		if time[index] == byte('0') {
+		    count++
+		}
+	    }
+	    if count == 32 {
+		return
+	    }
+
+	    if s.KeyType == smpc.SR25519 {
+		    ed_ristretto.ScMul(&time, &time, &t)
+		    ed_ristretto.ScMul(&lambda, &lambda, &time)
+	    }else {
+		    ed.ScMul(&time, &time, &t)
+		    ed.ScMul(&lambda, &lambda, &time)
+	    }
+    }
+
+    var s2 [32]byte
+    var sBBytes [32]byte
+
+    if s.KeyType == smpc.SR25519 {
+	    ed_ristretto.ScMul(&s2, &lambda, &s.TSk)
+	    //stmp := hex.EncodeToString(s2[:])
+	    ed_ristretto.ScMul(&s2, &s2, &k)
+	    ed_ristretto.ScAdd(&s2, &s2, &s.R)
+
+	    // 2.9 calculate sBBytes
+	    var sScalar = new(r255.Scalar)
+	    sScalar.Decode(s2[:])
+	    sB := new(r255.Element).ScalarBaseMult(sScalar)
+	    sB.Encode(sBBytes[:0])
+    }else {
+	    ed.ScMul(&s2, &lambda, &s.TSk)
+
+	    //stmp := hex.EncodeToString(s2[:])
+	    ed.ScMul(&s2, &s2, &k)
+	    ed.ScAdd(&s2, &s2, &s.R)
+
+	    // 2.9 calculate sBBytes
+	    var sB ed.ExtendedGroupElement
+	    ed.GeScalarMultBase(&sB, &s2)
+	    sB.ToBytes(&sBBytes)
+    }
+
+    // 2.10 commit(sBBytes)
+    CSB, DSB,err := ed.Commit(sBBytes)
+    if err != nil {
+	return
+    }
+
+    ret := &EDSigningRound4ReturnValue{FinalRBytes:FinalRBytes,S:s2,SBBytes:sBBytes,CSB:CSB,DSB:DSB}
+    b,err := json.Marshal(ret)
+    if err != nil {
+	return
+    }
+
+    msgmap["Ret"] = string(b)
+    msgmap["Msg4CheckRes"] = "TRUE"
+    
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//------------------------------------------------
+
+func HandleEDSigningRound6Msg(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDSigningRound6Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+    
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+
+    var sBBytes2 [32]byte
+
+    if s.KeyType == smpc.SR25519 {
+	    sB2 := new(r255.Element)
+
+	    for k := range s.CSBs {
+		    CSBFlag := ed.Verify(s.CSBs[k], s.DSBs[k])
+		    if !CSBFlag {
+			msgmap["Msg6CheckRes"] = "FALSE"
+			str, err := json.Marshal(msgmap)
+			if err != nil {
+			    return
+			}
+
+			socket.Write(conn,string(str))
+			return
+		    }
+
+		    var temSBBytes [32]byte
+		    copy(temSBBytes[:], (s.DSBs[k])[32:])
+		    var temSB = new(r255.Element)
+		    temSB.Decode(temSBBytes[:])
+
+		    if k == 0 {
+			    sB2 = temSB
+		    } else {
+			    sB2 = new(r255.Element).Add(sB2, temSB)
+		    }
+	    }
+	    sB2.Encode(sBBytes2[:0])
+    }else {
+	    var sB2, temSB ed.ExtendedGroupElement
+	    for k := range s.CSBs {
+		    CSBFlag := ed.Verify(s.CSBs[k], s.DSBs[k])
+		    if !CSBFlag {
+			msgmap["Msg6CheckRes"] = "FALSE"
+			str, err := json.Marshal(msgmap)
+			if err != nil {
+			    return
+			}
+
+			socket.Write(conn,string(str))
+			return
+		    }
+
+		    var temSBBytes [32]byte
+		    copy(temSBBytes[:], (s.DSBs[k])[32:])
+		    temSB.FromBytes(&temSBBytes)
+
+		    if k == 0 {
+			    sB2 = temSB
+		    } else {
+			    ed.GeAdd(&sB2, &sB2, &temSB)
+		    }
+	    }
+	    sB2.ToBytes(&sBBytes2)
+    }
+
+    k2, err := tsslib.CalKValue(s.KeyType,s.Message,s.Pkfinal[:], s.FinalRBytes[:])
+    if err != nil {
+	    return
+    }
+
+    // 3.6 calculate sBCal
+    var sBCalBytes [32]byte
+
+    if s.KeyType == smpc.SR25519 {
+	    var FinalR2 = new(r255.Element)
+	    var sBCal = new(r255.Element) 
+	    var FinalPkB = new(r255.Element)
+	    var k2Scalar = new(r255.Scalar)
+	    k2Scalar.Decode(k2[:])
+
+	    FinalR2.Decode(s.FinalRBytes[:])
+	    FinalPkB.Decode(s.Pkfinal[:])
+	    sBCal = new(r255.Element).ScalarMult(k2Scalar, FinalPkB)
+	    sBCal = new(r255.Element).Add(sBCal, FinalR2)
+
+	    sBCal.Encode(sBCalBytes[:0])
+    }else {
+	    var FinalR2, sBCal, FinalPkB ed.ExtendedGroupElement
+	    FinalR2.FromBytes(&s.FinalRBytes)
+	    FinalPkB.FromBytes(&s.Pkfinal)
+	    ed.GeScalarMult(&sBCal, &k2, &FinalPkB)
+	    ed.GeAdd(&sBCal, &sBCal, &FinalR2)
+
+	    sBCal.ToBytes(&sBCalBytes)
+    }
+
+    // 3.7 verify equation
+    if !bytes.Equal(sBBytes2[:], sBCalBytes[:]) {
+	msgmap["Msg6CheckRes"] = "FALSE"
+    } else {
+	msgmap["Msg6CheckRes"] = "TRUE"
+    }
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//--------------------------------------------------
+
+func HandleEDSigningRound7Msg(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDSigningRound7Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+    
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+
+    var FinalS [32]byte
+    for k := range s.S {
+	    var t [32]byte
+	    copy(t[:], (s.S[k])[:])
+
+	    if s.KeyType == smpc.SR25519 {
+		    ed_ristretto.ScAdd(&FinalS, &FinalS, &t)
+	    }else {
+		    ed.ScAdd(&FinalS, &FinalS, &t)
+	    }
+    }
+
+    inputVerify := signing.InputVerify{KeyType: s.KeyType, FinalR: s.FinalRBytes, FinalS: FinalS, Message: []byte(s.Message), FinalPk: s.Pkfinal}
+
+    var pass = signing.EdVerify(inputVerify, s.KeyType)
+    if !pass {
+	msgmap["EDRSVCheckRes"] = "FALSE"
+	str, err := json.Marshal(msgmap)
+	if err != nil {
+	    return
+	}
+
+	socket.Write(conn,string(str))
+	return
+    } else {
+	msgmap["EDRSVCheckRes"] = "TRUE"
+    }
+
+    //r
+    if s.KeyType == smpc.SR25519 {
+	    FinalS[31] |= 128
+    }
+    msgmap["FinalS"] = hex.EncodeToString(FinalS[:])
+    
+    rx := hex.EncodeToString(s.FinalRBytes[:])
+    sx := hex.EncodeToString(FinalS[:])
+   
+    log.Info("=================ed signing successfully,rsv verify pass==================","r",rx,"s",sx,"keyID",s.Base.MsgPrex)
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//-----------------------------------------------------
+
+
+
 
 

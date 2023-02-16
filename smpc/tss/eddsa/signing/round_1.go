@@ -31,6 +31,9 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ed"
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ed_ristretto"
 	r255 "github.com/gtank/ristretto255"
+	"encoding/json"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 )
 
 func newRound1(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- EdSignData, kgid string, threshold int, paillierkeylength int, txhash *big.Int, keyType string,msgprex string,teeout chan string,tee bool) smpc.Round {
@@ -52,6 +55,10 @@ func (round *round1) Start() error {
 	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
 		return err
+	}
+
+	if round.tee {
+	    return round.ExecTee(curIndex)
 	}
 
 	var sk [32]byte
@@ -188,3 +195,72 @@ func (round *round1) NextRound() smpc.Round {
 	round.started = false
 	return &round2{round}
 }
+
+//------------------------------------------
+
+type EDSigningRound1ReturnValue struct {
+    Uids [][32]byte
+    Sk [32]byte
+    TSk [32]byte
+    Pkfinal [32]byte
+
+    R [32]byte
+    ZkR [64]byte
+    DR [64]byte
+    CR [32]byte
+}
+
+func (round *round1) ExecTee(curIndex int) error {
+	if round.txhash == nil {
+		return errors.New("no unsign hash")
+	}
+
+	//tmpstr := hex.EncodeToString(round.txhash.Bytes())
+	//round.temp.message, _ = hex.DecodeString(tmpstr)
+	round.temp.message = round.txhash.Bytes() 
+	round.temp.keyType = round.keyType
+    
+	s := &socket.EDSigningRound1Msg{Sk:round.save.Sk,TSk:round.save.TSk,FinalPkBytes:round.save.FinalPkBytes,IDs:round.save.IDs}
+	s.Base.SetBase(round.keyType,round.msgprex)
+	err := socket.SendMsgData(smpc.VSocketConnect,s)
+	if err != nil {
+	    log.Error("round1 start,marshal KGRound1 error","err",err)
+	    return err
+	}
+       
+	kgs := <-round.teeout
+	msgmap := make(map[string]string)
+	err = json.Unmarshal([]byte(kgs), &msgmap)
+	if err != nil {
+	    log.Error("round1 start,unmarshal KGRound1 return data error","err",err)
+	    return err
+	}
+
+	ret := &EDSigningRound1ReturnValue{}
+	err = json.Unmarshal([]byte(msgmap["Ret"]),ret)
+	if err != nil {
+	    return err
+	}
+
+	round.temp.uids = ret.Uids
+	round.temp.sk = ret.Sk
+	round.temp.tsk = ret.TSk
+	round.temp.pkfinal = ret.Pkfinal
+	round.temp.DR = ret.DR
+	round.temp.zkR = ret.ZkR
+	round.temp.r = ret.R
+
+	srm := &SignRound1Message{
+		SignRoundMessage: new(SignRoundMessage),
+		CR:               ret.CR,
+	}
+	srm.SetFromID(round.kgid)
+	srm.SetFromIndex(curIndex)
+
+	round.temp.signRound1Messages[curIndex] = srm
+	round.out <- srm
+	return nil
+}
+
+
+

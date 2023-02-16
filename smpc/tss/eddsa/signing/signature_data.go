@@ -23,6 +23,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ed"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	r255 "github.com/gtank/ristretto255"
+	tsslib "github.com/anyswap/FastMulThreshold-DSA/tss-lib/common"
 )
 
 // InputVerify  Ed algorithm validation data 
@@ -37,7 +38,7 @@ type InputVerify struct {
 // EdVerify check (R,S)
 func EdVerify(input InputVerify, keytype string) bool {
 	// 1. calculate k
-	k, err := CalKValue(input.KeyType, input.Message[:], input.FinalPk[:], input.FinalR[:])
+	k, err := tsslib.CalKValue(input.KeyType, input.Message[:], input.FinalPk[:], input.FinalR[:])
 	if err != nil {
 		fmt.Printf("error in EdVerify CalKValue function. \n")
 		return false

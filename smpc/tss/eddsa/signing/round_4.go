@@ -17,58 +17,18 @@
 package signing
 
 import (
-	"crypto/sha512"
 	"errors"
 	"fmt"
 
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ed"
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ed_ristretto"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
-	"github.com/gtank/merlin"
 	r255 "github.com/gtank/ristretto255"
+	"encoding/json"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
+	tsslib "github.com/anyswap/FastMulThreshold-DSA/tss-lib/common"
 )
-
-// for ed25519 and sr25519, calculate the challenge k
-func CalKValue(keyType string, message, pkFinal, RFinal []byte) ([32]byte, error){
-	var k [32]byte
-	if keyType == smpc.SR25519 {
-		transcript := merlin.NewTranscript("SigningContext")
-
-		transcript.AppendMessage([]byte(""), []byte("substrate"))
-		transcript.AppendMessage([]byte("sign-bytes"), message)
-		transcript.AppendMessage([]byte("proto-name"), []byte("Schnorr-sig"))
-		transcript.AppendMessage([]byte("sign:pk"), pkFinal)
-		transcript.AppendMessage([]byte("sign:R"), RFinal)
-
-		outK := transcript.ExtractBytes([]byte("sign:c"), 64)
-		
-		var kHelper [64]byte
-		copy(kHelper[:], outK[:])
-		ed_ristretto.ScReduce(&k, &kHelper)
-	}else{
-		// 2.6 calculate k=H(FinalRBytes||pk||M)
-		var kDigest [64]byte
-
-		h := sha512.New()
-		_, err := h.Write(RFinal)
-		if err != nil {
-			return k, err
-		}
-		_, err = h.Write(pkFinal)
-		if err != nil {
-			return k, err
-		}
-		_, err = h.Write(message)
-		if err != nil {
-			return k, err
-		}
-
-		h.Sum(kDigest[:0])
-		ed.ScReduce(&k, &kDigest)
-	}
-
-	return k, nil
-}
 
 // Start verify CR DR xkR,calc lambda1 s
 func (round *round4) Start() error {
@@ -83,6 +43,10 @@ func (round *round4) Start() error {
 	curIndex, err := round.GetDNodeIDIndex(round.kgid)
 	if err != nil {
 		return err
+	}
+
+	if round.tee {
+	    return round.ExecTee(curIndex)
 	}
 
 	var FinalRBytes [32]byte
@@ -179,7 +143,7 @@ func (round *round4) Start() error {
 
 	round.temp.FinalRBytes = FinalRBytes
 
-	k, err := CalKValue(round.temp.keyType, round.temp.message, round.temp.pkfinal[:], FinalRBytes[:])
+	k, err := tsslib.CalKValue(round.temp.keyType, round.temp.message, round.temp.pkfinal[:], FinalRBytes[:])
 	if err != nil {
 		fmt.Printf("error in Round 4 CalKValue: %v\n", round.save.CurDNodeID)
 		return err
@@ -310,3 +274,85 @@ func (round *round4) NextRound() smpc.Round {
 	round.started = false
 	return &round5{round}
 }
+
+//----------------------------------------
+
+type EDSigningRound4ReturnValue struct {
+    FinalRBytes [32]byte
+    S [32]byte
+    SBBytes [32]byte
+    CSB [32]byte
+    DSB [64]byte
+}
+
+func (round *round4) ExecTee(curIndex int) error {
+    CRs := make([][32]byte,len(round.idsign))
+    DRs := make([][64]byte,len(round.idsign))
+    ZkRs := make([][64]byte,len(round.idsign))
+
+    for k,_ := range round.idsign {
+	msg1, ok := round.temp.signRound1Messages[k].(*SignRound1Message)
+	if !ok {
+		return errors.New("get cr fail")
+	}
+
+	msg3, ok := round.temp.signRound3Messages[k].(*SignRound3Message)
+	if !ok {
+		return errors.New("get dr fail")
+	}
+
+	msg2, ok := round.temp.signRound2Messages[k].(*SignRound2Message)
+	if !ok {
+		return errors.New("get zkr fail")
+	}
+
+	CRs[k] = msg1.CR
+	DRs[k] = msg3.DR
+	ZkRs[k] = msg2.ZkR
+    }
+
+    s := &socket.EDSigningRound4Msg{CRs:CRs,DRs:DRs,ZkRs:ZkRs,Message:round.temp.message,Pkfinal:round.temp.pkfinal,CurDNodeID:round.save.CurDNodeID,IdSign:round.idsign,Index:curIndex,TSk:round.temp.tsk,R:round.temp.r}
+    s.Base.SetBase(round.keyType,round.msgprex)
+    err := socket.SendMsgData(smpc.VSocketConnect,s)
+    if err != nil {
+	log.Error("round1 start,marshal KGRound1 error","err",err)
+	return err
+    }
+   
+    kgs := <-round.teeout
+    msgmap := make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	log.Error("round1 start,unmarshal KGRound1 return data error","err",err)
+	return err
+    }
+
+    if msgmap["Msg4CheckRes"] == "FALSE" {
+	return errors.New("ed round4 check fail")
+    }
+
+    ret := &EDSigningRound4ReturnValue{}
+    err = json.Unmarshal([]byte(msgmap["Ret"]),ret)
+    if err != nil {
+	return err
+    }
+
+    round.temp.FinalRBytes = ret.FinalRBytes
+    round.temp.DSB = ret.DSB
+    round.temp.sBBytes = ret.SBBytes
+    round.temp.s = ret.S
+
+    srm := &SignRound4Message{
+	    SignRoundMessage: new(SignRoundMessage),
+	    CSB:              ret.CSB,
+    }
+    srm.SetFromID(round.kgid)
+    srm.SetFromIndex(curIndex)
+
+    round.temp.signRound4Messages[curIndex] = srm
+    round.out <- srm
+    return nil
+}
+
+
+

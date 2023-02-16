@@ -1213,6 +1213,122 @@ func (kg *EDKGRound6Msg) GetMsgType() string {
     return "EDKGRound6Msg"
 }
 
+//------------------------------------------------
+
+type EDSigningRound1Msg struct {
+    Base
+
+    Sk [32]byte
+    TSk [32]byte 
+    FinalPkBytes [32]byte
+    IDs []*big.Int
+}
+
+func (kg *EDSigningRound1Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDSigningRound1Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDSigningRound1Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDSigningRound1Msg) GetMsgType() string {
+    return "EDSigningRound1Msg"
+}
+
+//-------------------------------------------------
+
+type EDSigningRound4Msg struct {
+    Base
+
+    CRs [][32]byte
+    DRs [][64]byte 
+    ZkRs [][64]byte
+    Message []byte
+    Pkfinal [32]byte
+    CurDNodeID *big.Int
+    IdSign []*big.Int
+    Index int
+    TSk [32]byte
+    R [32]byte
+}
+
+func (kg *EDSigningRound4Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDSigningRound4Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDSigningRound4Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDSigningRound4Msg) GetMsgType() string {
+    return "EDSigningRound4Msg"
+}
+
+//-------------------------------------------------
+
+type EDSigningRound6Msg struct {
+    Base
+
+    CSBs [][32]byte
+    DSBs [][64]byte 
+    Message []byte
+    Pkfinal [32]byte
+    FinalRBytes [32]byte
+}
+
+func (kg *EDSigningRound6Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDSigningRound6Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDSigningRound6Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDSigningRound6Msg) GetMsgType() string {
+    return "EDSigningRound6Msg"
+}
+
+//-------------------------------------------------
+
+type EDSigningRound7Msg struct {
+    Base
+
+    S [][32]byte
+    Message []byte
+    Pkfinal [32]byte
+    FinalRBytes [32]byte
+}
+
+func (kg *EDSigningRound7Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDSigningRound7Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDSigningRound7Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDSigningRound7Msg) GetMsgType() string {
+    return "EDSigningRound7Msg"
+}
+
+
 
 
 
