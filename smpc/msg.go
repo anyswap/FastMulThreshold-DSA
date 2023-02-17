@@ -19,12 +19,10 @@ package smpc
 import (
 	"container/list"
 	"crypto/ecdsa"
-	crand "crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto"
-	"github.com/anyswap/FastMulThreshold-DSA/crypto/ecies"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
@@ -41,6 +39,7 @@ import (
 	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"errors"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common/math"
+	tsslib "github.com/anyswap/FastMulThreshold-DSA/tss-lib/common"
 )
 
 var (
@@ -251,56 +250,6 @@ func SendMsgToSmpcGroup(msg string, groupid string) {
 
 //-------------------------------------------------------------------------------
 
-// EncryptMsg encrypt msg 
-func EncryptMsg(msg string, enodeID string) (string, error) {
-    	if msg == "" || enodeID == "" {
-	    return "",errors.New("encrypt msg fail")
-	}
-
-	hprv, err1 := hex.DecodeString(enodeID)
-	if err1 != nil {
-		return "", err1
-	}
-
-	p := &ecdsa.PublicKey{Curve: crypto.S256(), X: new(big.Int), Y: new(big.Int)}
-	half := len(hprv) / 2
-	p.X.SetBytes(hprv[:half])
-	p.Y.SetBytes(hprv[half:])
-	if !p.Curve.IsOnCurve(p.X, p.Y) {
-		return "", fmt.Errorf("id is invalid secp256k1 curve point")
-	}
-
-	var cm []byte
-	pub := ecies.ImportECDSAPublic(p)
-	cm, err := ecies.Encrypt(crand.Reader, pub, []byte(msg), nil, nil)
-	if err != nil {
-		return "", err
-	}
-
-	return string(cm), nil
-}
-
-// DecryptMsg decrypt msg
-func DecryptMsg(cm string) (string, error) {
-    	if cm == "" {
-	    return "",errors.New("decrypt msg fail")
-	}
-
-	nodeKey, errkey := crypto.LoadECDSA(KeyFile)
-	if errkey != nil {
-		return "", errkey
-	}
-
-	prv := ecies.ImportECDSA(nodeKey)
-	var m []byte
-	m, err := prv.Decrypt([]byte(cm), nil, nil)
-	if err != nil {
-		return "", err
-	}
-
-	return string(m), nil
-}
-
 // SendMsgToPeer send msg to special peer
 func SendMsgToPeer(enodes string, msg string) {
     	if enodes == "" || msg == "" {
@@ -308,7 +257,7 @@ func SendMsgToPeer(enodes string, msg string) {
 	}
 
 	en := strings.Split(string(enodes[8:]), "@")
-	cm, err := EncryptMsg(msg, en[0])
+	cm, err := tsslib.EncryptMsg(msg, en[0])
 	if err != nil {
 		return
 	}
@@ -326,7 +275,7 @@ func SendMsgToPeerWithBrodcast(key string,enodes string, msg string,groupid stri
 	}
 
 	en := strings.Split(string(enodes[8:]), "@")
-	cm, err := EncryptMsg(msg, en[0])
+	cm, err := tsslib.EncryptMsg(msg, en[0])
 	if err != nil {
 		return
 	}
@@ -472,7 +421,7 @@ func IsMsg2Peer(msgmap map[string]string) (bool,string,string,string) {
 		if ok && key != "" {
 		    tmp, err := hex.DecodeString(s)
 		    if err == nil {
-			msgdata, errdec := DecryptMsg(string(tmp)) //for SendMsgToPeer
+			msgdata, errdec := tsslib.DecryptMsg(string(tmp),KeyFile) //for SendMsgToPeer
 			if errdec == nil {
 			    s = msgdata
 			} else {
@@ -798,7 +747,7 @@ func (recv *RecvMsg) Run(workid int, ch chan interface{}) bool {
 		return false
 	}
 
-	msgdata, errdec := DecryptMsg(res) //for SendMsgToPeer
+	msgdata, errdec := tsslib.DecryptMsg(res,KeyFile) //for SendMsgToPeer
 	if errdec == nil {
 		common.Debug("================RecvMsg.Run, decrypt msg success=================", "msg", msgdata)
 		res = msgdata

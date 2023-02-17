@@ -5,7 +5,16 @@ import (
     "crypto/sha512"
     "github.com/anyswap/FastMulThreshold-DSA/tss-lib/ed_ristretto"
     "github.com/anyswap/FastMulThreshold-DSA/tss-lib/ed"
+    "crypto/ecdsa"
+    "errors"
+    "math/big"
+    "github.com/anyswap/FastMulThreshold-DSA/crypto"
+    "encoding/hex"
+    "github.com/anyswap/FastMulThreshold-DSA/crypto/ecies"
+    crand "crypto/rand"
 )
+
+//----------------------------------------------
 
 const EC256K1 string = "EC256K1"
 const ED25519 string = "ED25519"
@@ -56,6 +65,58 @@ func CalKValue(keyType string, message, pkFinal, RFinal []byte) ([32]byte, error
 	}
 
 	return k, nil
+}
+
+//-----------------------------------------------
+
+// EncryptMsg encrypt msg 
+func EncryptMsg(msg string, enodeID string) (string, error) {
+    	if msg == "" || enodeID == "" {
+	    return "",errors.New("encrypt msg fail")
+	}
+
+	hprv, err1 := hex.DecodeString(enodeID)
+	if err1 != nil {
+		return "", err1
+	}
+
+	p := &ecdsa.PublicKey{Curve: crypto.S256(), X: new(big.Int), Y: new(big.Int)}
+	half := len(hprv) / 2
+	p.X.SetBytes(hprv[:half])
+	p.Y.SetBytes(hprv[half:])
+	if !p.Curve.IsOnCurve(p.X, p.Y) {
+		return "", errors.New("id is invalid secp256k1 curve point")
+	}
+
+	var cm []byte
+	pub := ecies.ImportECDSAPublic(p)
+	cm, err := ecies.Encrypt(crand.Reader, pub, []byte(msg), nil, nil)
+	if err != nil {
+		return "", err
+	}
+
+	return string(cm), nil
+}
+
+// DecryptMsg decrypt msg
+func DecryptMsg(cm string,keyfile string) (string, error) {
+    	if cm == "" {
+	    return "",errors.New("decrypt msg fail")
+	}
+
+	nodeKey, errkey := crypto.LoadECDSA(keyfile)
+	if errkey != nil {
+		return "", errkey
+	}
+
+	prv := ecies.ImportECDSA(nodeKey)
+	var m []byte
+	m, err := prv.Decrypt([]byte(cm), nil, nil)
+	if err != nil {
+		return "", err
+	}
+
+	return string(m), nil
 }
 
 

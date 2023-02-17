@@ -5,7 +5,6 @@ import (
     "bytes"
     "io"
     "net"
-    //"time"
     "flag"
     "github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
     "strings"
@@ -25,6 +24,67 @@ import (
     tsslib "github.com/anyswap/FastMulThreshold-DSA/tss-lib/common"
     "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/eddsa/signing"
 )
+
+//------------------------------------------------
+
+func main() {
+    clientip := flag.String("ip", "", "client ip to dial") // --ip
+    clientport := flag.String("port", "", "client port to dial") // --port
+    flag.Parse()
+    if *clientip == "" || *clientport == "" {
+	log.Error("===============ip/port param error============")
+	return
+    }
+
+    cli := *clientip + ":" + *clientport
+    socket.ServerAddress = cli
+
+    listener, err := net.Listen(socket.ServerNetworkType, socket.ServerAddress)
+    if err != nil {
+        panic(err)
+    }
+    
+    go ec2.GenRandomSafePrime()
+    
+    defer listener.Close()
+    log.Info("waiting client connect...")
+
+    for {
+        conn, err := listener.Accept()
+        if err != nil {
+            panic(err)
+        }
+
+        go handleConnect(conn)
+    }
+}
+
+//------------------------------------------------
+
+func handleConnect(conn net.Conn) {
+    log.Info("socket server, client connected", "addr",conn.RemoteAddr())
+
+    for {
+        //conn.SetReadDeadline(time.Now().Add(time.Second * time.Duration(3600))) //设置读取超时时间
+        
+	msg, err := socket.Read(conn)
+
+	log.Info("=================socket server,finish reading msg================","msg",msg,"err",err)
+
+	if err != nil {
+            if err == io.EOF {
+                log.Error("socket server,client closed", "addr",conn.RemoteAddr())
+                break
+            } else {
+                log.Error("socket server read error", "err",err)
+            }
+
+	    continue
+        }
+
+	go handleMessage(conn,msg)
+    }
+}
 
 //--------------------------------------------
 
@@ -182,63 +242,6 @@ func handleMessage(conn net.Conn,msg string) {
 	    break
     default:
 	    return
-    }
-}
-
-func handleConnect(conn net.Conn) {
-    log.Info("socket server, client connected", "addr",conn.RemoteAddr())
-
-    for {
-        //conn.SetReadDeadline(time.Now().Add(time.Second * time.Duration(3600))) //设置读取超时时间
-        
-	msg, err := socket.Read(conn)
-
-	log.Info("=================socket server,finish reading msg================","msg",msg,"err",err)
-
-	if err != nil {
-            if err == io.EOF {
-                log.Error("socket server,client closed", "addr",conn.RemoteAddr())
-                break
-            } else {
-                log.Error("socket server read error", "err",err)
-            }
-
-	    continue
-        }
-
-	go handleMessage(conn,msg)
-    }
-}
-
-func main() {
-    clientip := flag.String("ip", "", "client ip to dial") // --ip
-    clientport := flag.String("port", "", "client port to dial") // --port
-    flag.Parse()
-    if *clientip == "" || *clientport == "" {
-	log.Error("===============ip/port param error============")
-	return
-    }
-
-    cli := *clientip + ":" + *clientport
-    socket.ServerAddress = cli
-
-    listener, err := net.Listen(socket.ServerNetworkType, socket.ServerAddress)
-    if err != nil {
-        panic(err)
-    }
-    
-    go ec2.GenRandomSafePrime()
-    
-    defer listener.Close()
-    log.Info("waiting client connect...")
-
-    for {
-        conn, err := listener.Accept()
-        if err != nil {
-            panic(err)
-        }
-
-        go handleConnect(conn)
     }
 }
 

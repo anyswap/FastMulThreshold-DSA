@@ -24,6 +24,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common/fdlimit"
 	"github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
+	tsslib "github.com/anyswap/FastMulThreshold-DSA/tss-lib/common"
 )
 
 var (
@@ -167,7 +168,7 @@ func getSkU1FromLocalDb(key []byte) []byte {
 		return nil
 	}
 
-	sk, err := DecryptMsg(string(da))
+	sk, err := tsslib.DecryptMsg(string(da),KeyFile)
 	if err != nil {
 		common.Error("========================getSkU1FromLocalDb,decrypt sku1 data error.=========================", "err", err)
 		return da
@@ -190,7 +191,7 @@ func getBip32cFromLocalDb(key []byte) []byte {
 		return nil
 	}
 
-	c, err := DecryptMsg(string(da))
+	c, err := tsslib.DecryptMsg(string(da),KeyFile)
 	if err != nil {
 		common.Error("========================getBip32cFromLocalDb,decrypt bip32c data error.=========================", "err", err)
 		return da
@@ -207,7 +208,7 @@ func putSkU1ToLocalDb(key []byte, value []byte) error {
 		return fmt.Errorf("put sku1 data to db fail")
 	}
 
-	cm, err := EncryptMsg(string(value), curEnode)
+	cm, err := tsslib.EncryptMsg(string(value), curEnode)
 	if err != nil {
 		common.Error("===============putSkU1ToLocalDb, encrypt sku1 data fail.=================", "err", err)
 		return err
@@ -231,7 +232,7 @@ func putBip32cToLocalDb(key []byte, value []byte) error {
 		return fmt.Errorf("put bip32c to db fail")
 	}
 
-	cm, err := EncryptMsg(string(value), curEnode)
+	cm, err := tsslib.EncryptMsg(string(value), curEnode)
 	if err != nil {
 		common.Error("===============putBip32cToLocalDb, encrypt bip32c fail.=================", "err", err)
 		return err
