@@ -196,7 +196,7 @@ func (round *round2) NextRound() smpc.Round {
 //-------------------------------------------
 
 func (round *round2) ExecTee(curIndex int) error {
-    s := &socket.KGRound2Msg2{PaillierSkNLen:round.Save.U1PaillierSk.N.BitLen(), PaillierSkN:round.Save.U1PaillierSk.N, PaillierSkL:round.Save.U1PaillierSk.L}
+    s := &socket.KGRound2Msg2{PaiSk:round.Save.U1PaillierSk}
     s.Base.SetBase(round.keytype,round.msgprex)
     err := socket.SendMsgData(smpc.VSocketConnect,s)
     if err != nil {

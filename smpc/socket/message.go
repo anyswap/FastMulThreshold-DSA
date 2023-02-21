@@ -62,9 +62,7 @@ func (kg *KGRound1Msg) GetMsgType() string {
 type KGRound2Msg2 struct {
     Base
 
-    PaillierSkNLen int
-    PaillierSkN *big.Int
-    PaillierSkL *big.Int
+    PaiSk *ec2.PrivateKey
 }
 
 func (kg *KGRound2Msg2) SetBase(kt string,keyid string) {

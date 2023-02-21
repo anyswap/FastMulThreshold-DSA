@@ -393,13 +393,13 @@ func HandleKGRound2Msg2(conn net.Conn,content string) {
 	return
     }
     
-    num := ec2.MustGetRandomInt(s.PaillierSkNLen)
+    num := ec2.MustGetRandomInt(s.PaiSk.N.BitLen())
     if num == nil {
 	log.Error("==============socket server,get random int====================","msg",content)
 	return
     }
 
-    sfProof := ec2.SquareFreeProve(s.PaillierSkN,num,s.PaillierSkL)
+    sfProof := ec2.SquareFreeProve(s.PaiSk.N,num,s.PaiSk.L)
     if sfProof == nil {
 	log.Error("==============socket server,get square free prove====================","msg",content)
 	return
