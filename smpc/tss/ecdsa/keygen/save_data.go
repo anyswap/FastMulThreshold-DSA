@@ -30,11 +30,15 @@ type LocalDNodeSaveData struct {
 	Pkx *big.Int
 	Pky *big.Int
 	C   *big.Int
+	CEnc string
 
 	SkU1         *big.Int
+	SkU1Enc string
 	U1PaillierSk *ec2.PrivateKey
+	U1PaillierSkEnc string
 	U1PaillierPk []*ec2.PublicKey
 	U1NtildePrivData *ec2.NtildePrivData
+	U1NtildePrivDataEnc string
 	U1NtildeH1H2 []*ec2.NtildeH1H2
 
 	IDs        smpc.SortableIDSSlice

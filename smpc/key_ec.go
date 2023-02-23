@@ -259,7 +259,7 @@ func ProcessInboundMessages(msgprex string, keytype string,finishChan chan struc
 }
 
 // processKeyGen  Obtain the data to be sent in each round and send it to other nodes until the end of the request command 
-func processKeyGen(msgprex string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan keygen.LocalDNodeSaveData,keytype string) error {
+func processKeyGen(msgprex string, errChan chan struct{}, outCh <-chan smpclib.Message, endCh <-chan keygen.LocalDNodeSaveData,keytype string,tee bool) error {
     	if msgprex == "" {
 	    return errors.New("param error")
 	}
@@ -292,10 +292,18 @@ func processKeyGen(msgprex string, errChan chan struct{}, outCh <-chan smpclib.M
 
 			ss := "XXX"
 			ss = ss + common.SepSave
-			s1 := msg.U1PaillierSk.Length
-			s2 := string(msg.U1PaillierSk.L.Bytes())
-			s3 := string(msg.U1PaillierSk.U.Bytes())
-			ss = ss + s1 + common.SepSave + s2 + common.SepSave + s3 + common.SepSave
+			var s1,s2,s3 string
+			if tee {
+			    s1 = "XXX" 
+			    s2 = "XXX"
+			    s3 = msg.U1PaillierSkEnc
+			    ss = ss + s1 + common.SepSave + s2 + common.SepSave + s3 + common.SepSave
+			} else {
+			    s1 = msg.U1PaillierSk.Length
+			    s2 = string(msg.U1PaillierSk.L.Bytes())
+			    s3 = string(msg.U1PaillierSk.U.Bytes())
+			    ss = ss + s1 + common.SepSave + s2 + common.SepSave + s3 + common.SepSave
+			}
 
 			for _, v := range msg.U1PaillierPk {
 				s1 = v.Length

@@ -196,7 +196,7 @@ func (round *round2) NextRound() smpc.Round {
 //-------------------------------------------
 
 func (round *round2) ExecTee(curIndex int) error {
-    s := &socket.KGRound2Msg2{PaiSk:round.Save.U1PaillierSk}
+    s := &socket.KGRound2Msg2{PaiSk:round.Save.U1PaillierSkEnc}
     s.Base.SetBase(round.keytype,round.msgprex)
     err := socket.SendMsgData(smpc.VSocketConnect,s)
     if err != nil {
@@ -238,7 +238,8 @@ func (round *round2) ExecTee(curIndex int) error {
 	return errors.New("node id error")
     }
 
-    ss := &socket.IdsVss{Ids:ids, U1Poly: round.temp.u1Poly.Poly}
+    //ss := &socket.IdsVss{Ids:ids, U1Poly: round.temp.u1Poly.Poly}
+    ss := &socket.IdsVss{Ids:ids, U1Poly: round.temp.u1PolyEnc}
     ss.Base.SetBase(round.keytype,round.msgprex)
     err = socket.SendMsgData(smpc.VSocketConnect,ss)
     if err != nil {

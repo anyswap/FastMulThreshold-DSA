@@ -62,7 +62,8 @@ func (kg *KGRound1Msg) GetMsgType() string {
 type KGRound2Msg2 struct {
     Base
 
-    PaiSk *ec2.PrivateKey
+    //PaiSk *ec2.PrivateKey
+    PaiSk string
 }
 
 func (kg *KGRound2Msg2) SetBase(kt string,keyid string) {
@@ -88,7 +89,8 @@ type IdsVss struct {
     Base
 
     Ids []*big.Int
-    U1Poly []*big.Int
+    //U1Poly []*big.Int
+    U1Poly string 
 }
 
 func (kg *IdsVss) SetBase(kt string,keyid string) {
@@ -757,7 +759,8 @@ type SigningRound5ComCheck struct {
     Cipher *big.Int
     PaiPk *ec2.PublicKey
     Nt *ec2.NtildeH1H2
-    PaiSk *ec2.PrivateKey
+    //PaiSk *ec2.PrivateKey
+    PaiSk string
     U1KGamma1Cipher *big.Int
 }
 
@@ -894,7 +897,8 @@ type SigningRound7Msg struct {
     PaiPk *ec2.PublicKey
     Nt *ec2.NtildeH1H2
     UKC *big.Int
-    PaiSk *ec2.PrivateKey
+    //PaiSk *ec2.PrivateKey
+    PaiSk string
     U1Ra *big.Int
 }
 

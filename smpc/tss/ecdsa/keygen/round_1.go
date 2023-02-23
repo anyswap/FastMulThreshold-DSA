@@ -171,9 +171,9 @@ func (round *round1) ExecTee(index int) error {
 	return err
     }
    
-    u1, _ := new(big.Int).SetString(msgmap["U1"], 10)
+    //u1, _ := new(big.Int).SetString(msgmap["U1"], 10)
     c1, _ := new(big.Int).SetString(msgmap["C1"], 10)
-    ugd := strings.Split(msgmap["U1Poly"], ":")
+    /*ugd := strings.Split(msgmap["U1Poly"], ":")
     u1gd := make([]*big.Int, len(ugd))
     for k, v := range ugd {
 	    u1gd[k], _ = new(big.Int).SetString(v, 10)
@@ -182,7 +182,7 @@ func (round *round1) ExecTee(index int) error {
 		return errors.New("get data error")
 	    }
     }
-    u1Poly := &ec2.PolyStruct2{Poly: u1gd}
+    u1Poly := &ec2.PolyStruct2{Poly: u1gd}*/
 
     uggtmp := strings.Split(msgmap["U1PolyG"], "|")
     ugg := make([][]*big.Int, len(uggtmp))
@@ -199,8 +199,10 @@ func (round *round1) ExecTee(index int) error {
 	    ugg[k] = tmp
     }
     u1PolyG := &ec2.PolyGStruct2{PolyG: ugg}
-    round.temp.u1 = u1
-    round.temp.u1Poly = u1Poly
+    //round.temp.u1 = u1
+    //round.temp.u1Poly = u1Poly
+    round.temp.u1Enc = msgmap["U1"]
+    round.temp.u1PolyEnc = msgmap["U1Poly"]
     round.temp.u1PolyG = u1PolyG
 
     u1C, _ := new(big.Int).SetString(msgmap["CommitU1G.C"], 10)
@@ -229,14 +231,15 @@ func (round *round1) ExecTee(index int) error {
 
     round.temp.commitU1G = commitU1G
     round.temp.c1 = c1
+    round.temp.c1Enc= msgmap["C1"]
     round.temp.commitC1G = commitC1G
 
-    paisk := &ec2.PrivateKey{} 
+    /*paisk := &ec2.PrivateKey{} 
     err = paisk.UnmarshalJSON([]byte(msgmap["U1PaillierSk"]))
     if err != nil {
 	log.Error("round1 start,unmarshal paillier sk error","err",err)
 	return err
-    }
+    }*/
 
     pub := &ec2.PublicKey{}
     err = pub.UnmarshalJSON([]byte(msgmap["U1PaillierPk"]))
@@ -245,15 +248,19 @@ func (round *round1) ExecTee(index int) error {
 	return err
     }
 
-    p, _ := new(big.Int).SetString(msgmap["P"], 10)
-    q, _ := new(big.Int).SetString(msgmap["Q"], 10)
+    //p, _ := new(big.Int).SetString(msgmap["P"], 10)
+    //q, _ := new(big.Int).SetString(msgmap["Q"], 10)
     
     round.temp.u1PaillierPk = pub 
-    round.temp.u1PaillierSk = paisk
-    round.temp.p = p
-    round.temp.q = q
-    round.Save.U1PaillierSk = paisk 
+    //round.temp.u1PaillierSk = paisk
+    //round.temp.p = p
+    //round.temp.q = q
+    //round.Save.U1PaillierSk = paisk 
     round.Save.U1PaillierPk[index] = pub
+    round.temp.u1PaillierSkEnc = msgmap["U1PaillierSk"]
+    round.temp.pEnc = msgmap["P"]
+    round.temp.qEnc = msgmap["Q"]
+    round.Save.U1PaillierSkEnc =  msgmap["U1PaillierSk"]
     
     kg := &KGRound1Message{
 	    KGRoundMessage: new(KGRoundMessage),

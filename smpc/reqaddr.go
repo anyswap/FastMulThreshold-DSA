@@ -1148,7 +1148,7 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 		}
 	}()
 	go ProcessInboundMessages(msgprex, cointype,commStopChan, errChan,&keyGenWg, ch)
-	err := processKeyGen(msgprex, errChan, outCh, endCh,cointype)
+	err := processKeyGen(msgprex, errChan, outCh, endCh,cointype,Tee)
 	if err != nil {
 		if len(ch) == 0 {
 		    res := RPCSmpcRes{Ret: "", Err: err}

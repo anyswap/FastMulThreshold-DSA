@@ -244,7 +244,7 @@ func (round *round5) ExecTee(curIndex int) error {
 	    msg3, _ := round.temp.signRound3Messages[k].(*SignRound3Message)
 	    msg41, _ := round.temp.signRound4Messages1[k].(*SignRound4Message1)
 	    
-	    s2 := &socket.SigningRound5ComCheck{C:msg1.ComWiC,D:msg3.ComWiD,MtAZK3Proof:msg41.U1u1MtAZK3Proof,UKC:round.temp.ukc,Cipher:msg41.U1Kw1Cipher,PaiPk:u1PaillierPk,Nt:u1nt,PaiSk:round.save.U1PaillierSk,U1KGamma1Cipher:msg4.U1KGamma1Cipher}
+	    s2 := &socket.SigningRound5ComCheck{C:msg1.ComWiC,D:msg3.ComWiD,MtAZK3Proof:msg41.U1u1MtAZK3Proof,UKC:round.temp.ukc,Cipher:msg41.U1Kw1Cipher,PaiPk:u1PaillierPk,Nt:u1nt,PaiSk:round.save.U1PaillierSkEnc,U1KGamma1Cipher:msg4.U1KGamma1Cipher}
 	    s2.Base.SetBase(round.keytype,round.msgprex)
 	    err = socket.SendMsgData(smpc.VSocketConnect,s2)
 	    if err != nil {

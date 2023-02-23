@@ -1675,6 +1675,21 @@ func GetCurNodePaillierSkFromSaveData(save string, gid string, keytype string) *
     return nil
 }
 
+// GetCurNodePaillierSkFromSaveDataTee get current node's paillier private key from saved data that obtained when generating pubkey
+// gid is not the sub-gid
+func GetCurNodePaillierSkFromSaveDataTee(save string) string {
+    if save == "" {
+	    return ""
+    }
+
+    mm := strings.Split(save, common.SepSave)
+    if len(mm) < 4 {
+	    return "" 
+    }
+
+    return mm[3]
+}
+
 //---------------------------------------------------------------------------------------------
 
 // GetNtildeByIndexFromSaveData get ntilde data by index from saved data that obtained when generating pubkey
@@ -1794,7 +1809,11 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
 	    return nil
     }
 
-    sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, pubs.GroupID, cointype)
+    if Tee {
+	sd.U1PaillierSkEnc = GetCurNodePaillierSkFromSaveDataTee(save)
+    } else {
+	sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, pubs.GroupID, cointype)
+    }
 
     U1PaillierPk := make([]*ec2.PublicKey, w.NodeCnt)
     U1NtildeH1H2 := make([]*ec2.NtildeH1H2, w.NodeCnt)
@@ -1941,7 +1960,11 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
     //
     sd.SkU1 = sku1
 
-    sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, pubs.GroupID, cointype)
+    if Tee {
+	sd.U1PaillierSkEnc = GetCurNodePaillierSkFromSaveDataTee(save)
+    } else {
+	sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, pubs.GroupID, cointype)
+    }
 
     U1PaillierPk := make([]*ec2.PublicKey, w.NodeCnt)
     U1NtildeH1H2 := make([]*ec2.NtildeH1H2, w.NodeCnt)

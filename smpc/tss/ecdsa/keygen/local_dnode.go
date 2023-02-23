@@ -59,16 +59,22 @@ type localTempData struct {
 
 	//round 1
 	u1           *big.Int
+	u1Enc string
 	u1Poly       *ec2.PolyStruct2
+	u1PolyEnc string
 	u1PolyG      *ec2.PolyGStruct2
 	commitU1G    *ec2.Commitment
 	c1           *big.Int
+	c1Enc string
 	commitC1G    *ec2.Commitment
 	u1PaillierPk *ec2.PublicKey
 	u1PaillierSk *ec2.PrivateKey
+	u1PaillierSkEnc string
 	// paillier.N = p*q
 	p *big.Int 
+	pEnc string
 	q *big.Int
+	qEnc string
 
 	//round 2
 	u1Shares []*ec2.ShareStruct2

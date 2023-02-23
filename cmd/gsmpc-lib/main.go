@@ -23,6 +23,7 @@ import (
     "crypto/sha512"
     tsslib "github.com/anyswap/FastMulThreshold-DSA/tss-lib/common"
     "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/eddsa/signing"
+    "errors"
 )
 
 //------------------------------------------------
@@ -315,12 +316,15 @@ func HandleKGRound1Msg(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
     //
-    msgmap["U1"] = fmt.Sprintf("%v", u1)
-    tmp := make([]string, len(u1Poly.Poly))
-    for k, v := range u1Poly.Poly {
-	    tmp[k] = fmt.Sprintf("%v", v)
+    msgmap["U1"],err = EncryptU1(u1)
+    if err != nil {
+	return
     }
-    msgmap["U1Poly"] = strings.Join(tmp, ":")
+
+    msgmap["U1Poly"],err = EncryptU1Poly(u1Poly)
+    if err != nil {
+	return
+    }
 
     tmp3 := make([][]string, len(u1PolyG.PolyG))
     for k, v := range u1PolyG.PolyG {
@@ -339,12 +343,13 @@ func HandleKGRound1Msg(conn net.Conn,content string) {
     msgmap["U1PolyG"] = strings.Join(tmp5, "|")
     
     msgmap["CommitU1G.C"] = fmt.Sprintf("%v", commitU1G.C)
-    tmp = make([]string, len(commitU1G.D))
+    tmp := make([]string, len(commitU1G.D))
     for k, v := range commitU1G.D {
 	    tmp[k] = fmt.Sprintf("%v", v)
     }
     msgmap["CommitU1G.D"] = strings.Join(tmp, ":")
     msgmap["C1"] = fmt.Sprintf("%v", c1)
+
     msgmap["CommitC1G.C"] = fmt.Sprintf("%v", commitC1G.C)
     tmp = make([]string, len(commitC1G.D))
     for k, v := range commitC1G.D {
@@ -352,12 +357,10 @@ func HandleKGRound1Msg(conn net.Conn,content string) {
     }
     msgmap["CommitC1G.D"] = strings.Join(tmp, ":")
 
-    b,err := u1PaillierSk.MarshalJSON()
+    msgmap["U1PaillierSk"],err = EncryptPaillierSk(u1PaillierSk)
     if err != nil {
-	log.Error("==============socket server,KGRound1 paillier sk marshal error====================","err",err)
-	return 
+	return
     }
-    msgmap["U1PaillierSk"] = string(b)
 
     pk, err := u1PaillierPk.MarshalJSON()
     if err != nil {
@@ -366,8 +369,15 @@ func HandleKGRound1Msg(conn net.Conn,content string) {
     }
     msgmap["U1PaillierPk"] = string(pk)
 
-    msgmap["P"] = fmt.Sprintf("%v", p)
-    msgmap["Q"] = fmt.Sprintf("%v", q)
+    msgmap["P"],err = EncryptP(p)
+    if err != nil {
+	return
+    }
+
+    msgmap["Q"],err = EncryptQ(q)
+    if err != nil {
+	return
+    }
     //
 
     str, err := json.Marshal(msgmap)
@@ -390,16 +400,23 @@ func HandleKGRound2Msg2(conn net.Conn,content string) {
     s:= &socket.KGRound2Msg2{}
     err := s.ToObj([]byte(content))
     if err != nil {
+	log.Error("===============server.HandleKGRound2Msg2,toobj error==============","err",err)
 	return
     }
-    
-    num := ec2.MustGetRandomInt(s.PaiSk.N.BitLen())
+
+    paisk,err := DecryptPaillierSk(s.PaiSk)
+    if err != nil {
+	log.Error("===============server.HandleKGRound2Msg2,dec paillier sk fail==============","err",err)
+	return
+    }
+
+    num := ec2.MustGetRandomInt(paisk.N.BitLen())
     if num == nil {
 	log.Error("==============socket server,get random int====================","msg",content)
 	return
     }
 
-    sfProof := ec2.SquareFreeProve(s.PaiSk.N,num,s.PaiSk.L)
+    sfProof := ec2.SquareFreeProve(paisk.N,num,paisk.L)
     if sfProof == nil {
 	log.Error("==============socket server,get square free prove====================","msg",content)
 	return
@@ -411,6 +428,7 @@ func HandleKGRound2Msg2(conn net.Conn,content string) {
     msgmap["Num"] = fmt.Sprintf("%v",num)
     sf,err := sfProof.MarshalJSON()
     if err != nil {
+	log.Error("===============server.HandleKGRound2Msg2,marshal sfproof to json error==============","err",err)
        return 
     }
     msgmap["SfPf"] = string(sf)
@@ -434,6 +452,7 @@ func HandleIdsVss(conn net.Conn,content string) {
     s:= &socket.IdsVss{}
     err := s.ToObj([]byte(content))
     if err != nil {
+	log.Error("===============socket server,HandleIdsVss,to obj error===========","err",err)
 	return
     }
     
@@ -443,7 +462,13 @@ func HandleIdsVss(conn net.Conn,content string) {
 	return
     }
 
-    u1Poly := &ec2.PolyStruct2{Poly: s.U1Poly}
+    //u1Poly := &ec2.PolyStruct2{Poly: s.U1Poly}
+    u1Poly,err := DecryptU1Poly(s.U1Poly)
+    if err != nil {
+	log.Error("===============socket server,HandleIdsVss,dec pai sk error===========","err",err)
+	return
+    }
+
     u1Shares, err := u1Poly.Vss2(s.KeyType,s.Ids)
     if err != nil {
 	log.Error("================socket server,vss error","err",err)
@@ -1399,9 +1424,14 @@ func HandleSigningRound5ComCheck(conn net.Conn,content string) {
     } else {
 	msgmap["ComCheck"] = "TRUE"
     }
-    
-    alpha1U1, _ := s.PaiSk.Decrypt(s.U1KGamma1Cipher)
-    u1U1, _ := s.PaiSk.Decrypt(s.Cipher)
+   
+    paisk,err := DecryptPaillierSk(s.PaiSk)
+    if err != nil {
+	return
+    }
+
+    alpha1U1, _ := paisk.Decrypt(s.U1KGamma1Cipher)
+    u1U1, _ := paisk.Decrypt(s.Cipher)
     msgmap["Alpha1U1"] = fmt.Sprintf("%v",alpha1U1)
     msgmap["U1U1"] = fmt.Sprintf("%v",u1U1)
 
@@ -1662,8 +1692,14 @@ func HandleSigningRound7Msg(conn net.Conn,content string) {
 	    H2:         s.Nt.H2,
 	    NTilde:     s.Nt.Ntilde,
     }
+
+    paisk,err := DecryptPaillierSk(s.PaiSk)
+    if err != nil {
+	return
+    }
+
     pdlWSlackWitness := &ec2.PDLwSlackWitness{
-	    SK: s.PaiSk,
+	    SK: paisk,
 	    K1: s.U1K,
 	    K1Ra:  s.U1Ra,
     }
@@ -2896,7 +2932,109 @@ func HandleEDSigningRound7Msg(conn net.Conn,content string) {
 
 //-----------------------------------------------------
 
+//ec round1 private data
+//u1
+func EncryptU1(u1 *big.Int) (string,error) {
+    s := fmt.Sprintf("%v", u1)
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
 
+func  DecryptU1(cm string) (*big.Int,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    u1,_ := new(big.Int).SetString(s,10)
+    return u1,nil
+}
+
+//u1Poly
+func EncryptU1Poly(u1Poly *ec2.PolyStruct2) (string,error) {
+    tmp := make([]string, len(u1Poly.Poly))
+    for k, v := range u1Poly.Poly {
+	    tmp[k] = fmt.Sprintf("%v", v)
+    }
+
+    s := strings.Join(tmp, ":")
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
+
+func  DecryptU1Poly(cm string) (*ec2.PolyStruct2,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    ugd := strings.Split(s, ":")
+    u1gd := make([]*big.Int, len(ugd))
+    for k, v := range ugd {
+	    u1gd[k], _ = new(big.Int).SetString(v, 10)
+	    if u1gd[k] == nil {
+		return nil,errors.New("get data error")
+	    }
+    }
+    u1Poly := &ec2.PolyStruct2{Poly: u1gd}
+    return u1Poly,nil
+}
+
+//PrivateKey
+func EncryptPaillierSk(paiSk *ec2.PrivateKey) (string,error) {
+    b,err := paiSk.MarshalJSON()
+    if err != nil {
+	return "",err
+    }
+
+    return tsslib.EncryptTee(string(b),"pub") //TODO
+}
+
+func  DecryptPaillierSk(cm string) (*ec2.PrivateKey,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    paisk := &ec2.PrivateKey{} 
+    err = paisk.UnmarshalJSON([]byte(s))
+    if err != nil {
+	return nil,err
+    }
+
+    return paisk,nil
+}
+
+//P Q
+func EncryptP(p *big.Int) (string,error) {
+    s := fmt.Sprintf("%v", p)
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
+
+func  DecryptP(cm string) (*big.Int,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    p,_ := new(big.Int).SetString(s,10)
+    return p,nil
+}
+
+func EncryptQ(q *big.Int) (string,error) {
+    s := fmt.Sprintf("%v", q)
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
+
+func  DecryptQ(cm string) (*big.Int,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    q,_ := new(big.Int).SetString(s,10)
+    return q,nil
+}
+
+//
 
 
 
