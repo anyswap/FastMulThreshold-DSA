@@ -32,6 +32,7 @@ import (
 	"encoding/hex"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto/secp256k1"
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ec2"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 )
 
 //---------------------------------------ECDSA start-----------------------------------------------------------------------
@@ -224,6 +225,21 @@ func ProcessInboundMessages(msgprex string, keytype string,finishChan chan struc
 			}
 			////////////////////////
 
+			if Tee && w.DNode.CheckforMsgToEnodeTee(mm) {
+			    log.Info("====================ProcessInboundMessages,get enode===============","key",msgprex,"fromid",msgmap["FromID"],"enode",msgmap["ENode"])
+			    s := &socket.KGRound0Msg{FromID:msgmap["FromID"],ENode:msgmap["ENode"]}
+			    s.Base.SetBase(keytype,msgprex)
+			    err := socket.SendMsgData(smpclib.VSocketConnect,s)
+			    if err != nil {
+				if len(ch) == 0 {
+				    res := RPCSmpcRes{Ret: "", Err: err}
+				    ch <- res
+				}
+
+				return
+			    }
+			}
+
 			_, err = w.DNode.Update(mm)
 			if err != nil {
 				common.Error("====================ProcessInboundMessages,dnode update fail=======================", "msg hash",hexs, "err", err)
@@ -402,6 +418,7 @@ func ProcessOutCh(msgprex string, msg smpclib.Message,keytype string) error {
 	
 	sig,err := sigP2pMsg(msg,curEnode,keytype)
 	if err != nil {
+	    log.Error("===================ProcessOutCh,sign p2p msg error===================","err",err)
 	    return err
 	}
 	msgmap["Sig"] = hex.EncodeToString(sig)
@@ -487,6 +504,22 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 
 	//2 message
 	if msg["Type"] == "KGRound2Message" {
+	    if Tee {
+		id, _ := new(big.Int).SetString(msg["ID"], 10)
+		if id == nil || msg["ShareEnc"] == "" {
+		    return nil
+		}
+
+		kg := &keygen.KGRound2Message{
+			KGRoundMessage: new(keygen.KGRoundMessage),
+			ID:             id,
+			ShareEnc:          msg["ShareEnc"],
+		}
+		kg.SetFromID(from)
+		kg.SetFromIndex(index)
+		kg.ToID = to
+		return kg
+	    } else {
 		id, _ := new(big.Int).SetString(msg["ID"], 10)
 		sh, _ := new(big.Int).SetString(msg["Share"], 10)
 		if id == nil || sh == nil {
@@ -502,6 +535,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 		kg.SetFromIndex(index)
 		kg.ToID = to
 		return kg
+	    }
 	}
 
 	//2-1 message

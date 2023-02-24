@@ -29,6 +29,35 @@ func (b *Base) SetBase(kt string,keyid string) {
 
 //--------------------------------------------------------
 
+type KGRound0Msg struct {
+   
+    Base
+
+    FromID string
+    ENode string
+}
+
+func (kg *KGRound0Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *KGRound0Msg) ToJson() ([]byte,error) {
+    log.Info("===============KGRound0Msg.ToJson============","kg",kg)
+    return json.Marshal(kg)
+}
+
+func (kg *KGRound0Msg) ToObj(raw []byte) error {
+    log.Info("===============KGRound0Msg.ToObj===========","kg",kg)
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *KGRound0Msg) GetMsgType() string {
+    log.Info("===============KGRound0Msg.GetMsgType===========","kg",kg)
+    return "KGRound0Msg"
+}
+
+//--------------------------------------------------------
+
 type KGRound1Msg struct {
    
     Base
@@ -59,33 +88,37 @@ func (kg *KGRound1Msg) GetMsgType() string {
 
 //-----------------------------------------------------
 
-type KGRound2Msg2 struct {
+type KGRound2Msg struct {
     Base
 
     //PaiSk *ec2.PrivateKey
     PaiSk string
+    Index int
+    Ids []*big.Int
+    U1Poly string
+    NodeID string
 }
 
-func (kg *KGRound2Msg2) SetBase(kt string,keyid string) {
+func (kg *KGRound2Msg) SetBase(kt string,keyid string) {
     kg.Base.SetBase(kt,keyid)
 }
 
-func (kg *KGRound2Msg2) ToJson() ([]byte,error) {
-    log.Info("===============KGRound2Msg2.ToJson============","kg",kg)
+func (kg *KGRound2Msg) ToJson() ([]byte,error) {
+    log.Info("===============KGRound2Msg.ToJson============","kg",kg)
     return json.Marshal(kg)
 }
 
-func (kg *KGRound2Msg2) ToObj(raw []byte) error {
+func (kg *KGRound2Msg) ToObj(raw []byte) error {
     return json.Unmarshal(raw,kg)
 }
 
-func (kg *KGRound2Msg2) GetMsgType() string {
-    return "KGRound2Msg2"
+func (kg *KGRound2Msg) GetMsgType() string {
+    return "KGRound2Msg"
 }
 
 //--------------------------------------------------
 
-type IdsVss struct {
+/*type IdsVss struct {
     Base
 
     Ids []*big.Int
@@ -108,6 +141,7 @@ func (kg *IdsVss) ToObj(raw []byte) error {
 func (kg *IdsVss) GetMsgType() string {
     return "IdsVss"
 }
+*/
 
 //---------------------------------------------------
 
@@ -182,7 +216,8 @@ type KGRound4VssCheck struct {
     Base
 
     ID *big.Int
-    Share *big.Int
+    //Share *big.Int
+    Share string
     PolyG [][]*big.Int
 
     C *big.Int
@@ -216,7 +251,8 @@ type KGRound4DeCom struct {
     Base
 
     ID *big.Int
-    Share *big.Int
+    //Share *big.Int
+    Share string
 
     C *big.Int
     D []*big.Int
@@ -247,7 +283,8 @@ type KGRound4DeCom2 struct {
     Base 
 
     ID *big.Int
-    Share *big.Int
+    //Share *big.Int
+    Share string
 
     C *big.Int
     D []*big.Int

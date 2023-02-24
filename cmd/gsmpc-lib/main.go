@@ -24,22 +24,53 @@ import (
     tsslib "github.com/anyswap/FastMulThreshold-DSA/tss-lib/common"
     "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/eddsa/signing"
     "errors"
+    "github.com/anyswap/FastMulThreshold-DSA/crypto"
+    "github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
+    "os"
+    "github.com/anyswap/FastMulThreshold-DSA/crypto/sha3"
+    "github.com/anyswap/FastMulThreshold-DSA/internal/common/hexutil"
 )
 
 //------------------------------------------------
+var (
+    KeyFile string
+    MsgToEnode map[string]string = make(map[string]string)
+)
 
 func main() {
     clientip := flag.String("ip", "", "client ip to dial") // --ip
     clientport := flag.String("port", "", "client port to dial") // --port
+    keyfile := flag.String("nodekey", "", "node key file path") // --port
     flag.Parse()
-    if *clientip == "" || *clientport == "" {
+    if *clientip == "" || *clientport == "" || *keyfile == "" {
 	log.Error("===============ip/port param error============")
 	return
     }
+    
+   KeyFile = *keyfile
+   nodeKey, errkey := crypto.LoadECDSA(*keyfile)
+    if errkey != nil {
+	    nodeKey, _ = crypto.GenerateKey()
+	    err := crypto.SaveECDSA(*keyfile, nodeKey)
+	    if err != nil {
+		os.Exit(1)
+	    }
 
+	    var kfd *os.File
+	    kfd, _ = os.OpenFile(*keyfile, os.O_WRONLY|os.O_APPEND, 0600)
+	    _,err2 := kfd.WriteString(fmt.Sprintf("\nenode://%v\n", discover.PubkeyID(&nodeKey.PublicKey)))
+	    if err2 != nil {
+		kfd.Close()
+		os.Exit(1)
+	    }
+	    kfd.Close()
+    }
+    
     cli := *clientip + ":" + *clientport
     socket.ServerAddress = cli
 
+    log.Info("=============load keyfile successfully=============","KeyFile",KeyFile)
+    
     listener, err := net.Listen(socket.ServerNetworkType, socket.ServerAddress)
     if err != nil {
         panic(err)
@@ -103,15 +134,18 @@ func handleMessage(conn net.Conn,msg string) {
 
     msgtype := msgmap["MsgType"]
     switch msgtype {
+    case "KGRound0Msg":
+	    HandleKGRound0Msg(conn,msgmap["Content"])
+	    break
     case "KGRound1Msg":
 	    HandleKGRound1Msg(conn,msgmap["Content"])
 	    break
-    case "KGRound2Msg2":
-	    HandleKGRound2Msg2(conn,msgmap["Content"])
+    case "KGRound2Msg":
+	    HandleKGRound2Msg(conn,msgmap["Content"])
 	    break
-    case "IdsVss":
-	    HandleIdsVss(conn,msgmap["Content"])
-	    break
+    //case "IdsVss":
+//	    HandleIdsVss(conn,msgmap["Content"])
+//	    break
     case "KGRound3Msg":
 	    HandleKGRound3Msg(conn,msgmap["Content"])
 	    break
@@ -254,6 +288,23 @@ type PolyShare struct {
 
 //-------------------------------------------
 
+func HandleKGRound0Msg(conn net.Conn,content string) {
+    log.Info("============socket server,handle KGRound0Msg================","content",content)
+    if content == "" {
+	return
+    }
+
+    s:= &socket.KGRound0Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	log.Error("============socket server,unmarshal message error================","err",err)
+	return
+    }
+
+    log.Info("============socket server,HandleKGRound0Msg================","content",content,"fromid",s.FromID,"enode",s.ENode)
+    MsgToEnode[s.FromID] = s.ENode
+}
+    
 func HandleKGRound1Msg(conn net.Conn,content string) {
     log.Info("============socket server,handle KGRound1Msg================","content",content)
     if content == "" {
@@ -392,21 +443,40 @@ func HandleKGRound1Msg(conn net.Conn,content string) {
 
 //-----------------------------------------
 
-func HandleKGRound2Msg2(conn net.Conn,content string) {
+type ShareRet struct {
+    Self bool
+    ToID string
+    ID *big.Int
+    Share string
+}
+
+type KGRound2RetValue struct {
+    Num *big.Int
+    SfPf *ec2.SquareFreeProof
+    Shares []ShareRet
+}
+
+func HandleKGRound2Msg(conn net.Conn,content string) {
+    log.Info("=============server.HandleKGRound2Msg,get content===========","content",content)
     if content == "" {
 	return
     }
 
-    s:= &socket.KGRound2Msg2{}
+    s:= &socket.KGRound2Msg{}
     err := s.ToObj([]byte(content))
     if err != nil {
-	log.Error("===============server.HandleKGRound2Msg2,toobj error==============","err",err)
+	log.Error("===============server.HandleKGRound2Msg,toobj error==============","err",err)
 	return
     }
 
+    log.Info("=============server.HandleKGRound2Msg,to obj successfully===========","s",s)
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+    
     paisk,err := DecryptPaillierSk(s.PaiSk)
     if err != nil {
-	log.Error("===============server.HandleKGRound2Msg2,dec paillier sk fail==============","err",err)
+	log.Error("===============server.HandleKGRound2Msg,dec paillier sk fail==============","err",err)
 	return
     }
 
@@ -422,29 +492,92 @@ func HandleKGRound2Msg2(conn net.Conn,content string) {
 	return
     }
 
-    msgmap := make(map[string]string)
-    msgmap["Key"] = s.MsgPrex
-    msgmap["KeyType"] = s.KeyType
-    msgmap["Num"] = fmt.Sprintf("%v",num)
+    /*msgmap["Num"] = fmt.Sprintf("%v",num)
     sf,err := sfProof.MarshalJSON()
     if err != nil {
 	log.Error("===============server.HandleKGRound2Msg2,marshal sfproof to json error==============","err",err)
        return 
     }
-    msgmap["SfPf"] = string(sf)
+    msgmap["SfPf"] = string(sf)*/
 
-    str, err := json.Marshal(msgmap)
+    u1Poly,err := DecryptU1Poly(s.U1Poly)
     if err != nil {
-	log.Error("==============socket server,marshal KGRound22 error====================","msg",content,"err",err)
 	return
     }
 
+    u1Shares, err := u1Poly.Vss2(s.KeyType,s.Ids)
+    if err != nil {
+	return
+    }
+
+    log.Info("=============server.HandleKGRound2Msg,get u1shares successfully===========","u1Shares",u1Shares)
+    var Shares []ShareRet
+    for k, id := range s.Ids {
+	for _, v := range u1Shares {
+	    a := v.ID
+
+	    vv := ec2.GetSharesID(v)
+	    if vv != nil && vv.Cmp(id) == 0 && k == s.Index {
+		enode := MsgToEnode[s.NodeID]
+		log.Info("=============server.HandleKGRound2Msg,get current node share===========","enode",enode,"idtmp",s.NodeID,"share",v.Share)
+		sh,err := EncryptShare(v.Share,enode)
+		if err != nil {
+		    log.Error("=============server.HandleKGRound2Msg,encrypt curnode share error===========","err",err,"enode",enode,"idtmp",s.NodeID)
+		    return
+		}
+		//_,err = DecryptShare(sh,KeyFile)
+		//if err != nil {
+		//    log.Error("=============server.HandleKGRound2Msg,dec share data fail=============","err",err)
+		//    return
+		//}
+		
+		tmp := ShareRet{Self:true,ToID:"",ID:a,Share:sh}
+		Shares = append(Shares,tmp)
+		break
+	} else if vv != nil && vv.Cmp(id) == 0 {
+		t := fmt.Sprintf("%v",id)
+		idtmp := hex.EncodeToString([]byte(t))
+		enode := MsgToEnode[idtmp]
+		log.Info("=============server.HandleKGRound2Msg,encrypt other nodes share data===========","share",v.Share,"enode",enode,"idtmp",idtmp)
+		sh,err := EncryptShare(v.Share,enode)
+		if err != nil {
+		    log.Error("=============server.HandleKGRound2Msg,encrypt other nodes share error===========","err",err,"enode",enode,"idtmp",idtmp)
+		    return
+		}
+		//_,err = DecryptShare(sh,KeyFile)
+		//if err != nil {
+		//    log.Error("=============server.HandleKGRound2Msg,dec share data fail=============","err",err)
+		//    return
+		//}
+		
+		tmp := ShareRet{Self:false,ToID:idtmp,ID:a,Share:sh}
+		Shares = append(Shares,tmp)
+		break
+	    }
+	}
+    }
+
+    ret := &KGRound2RetValue{Num:num,SfPf:sfProof,Shares:Shares}
+    b,err := json.Marshal(ret)
+    if err != nil {
+	log.Error("=============server.HandleKGRound2Msg,marshal return value error===========","err",err)
+	return
+    }
+    msgmap["KGRound2RetValue"] = string(b)
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	log.Error("==============socket server,HandleKGRound2Msg,marshal error====================","msg",content,"err",err)
+	return
+    }
+
+    log.Info("=============server.HandleKGRound2Msg,write msg to channel===========","content",string(str))
     socket.Write(conn,string(str))
 }
 
 //---------------------------------------------------
 
-func HandleIdsVss(conn net.Conn,content string) {
+/*func HandleIdsVss(conn net.Conn,content string) {
     if content == "" {
 	return
     }
@@ -495,6 +628,7 @@ func HandleIdsVss(conn net.Conn,content string) {
 
     socket.Write(conn,string(str))
 }
+*/
 
 //----------------------------------------
 
@@ -543,8 +677,16 @@ func HandleKGRound4VssCheck(conn net.Conn,content string) {
     msgmap := make(map[string]string)
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
-    
-    ushare := &ec2.ShareStruct2{ID: s.ID, Share: s.Share}
+   
+    log.Info("=============server.HandleKGRound4VssCheck=============","KeyFile",KeyFile)
+    sh,err := DecryptShare(s.Share,KeyFile)
+    if err != nil {
+	log.Error("=============server.HandleKGRound4VssCheck,dec share data fail=============","err",err)
+	return
+    }
+
+    log.Info("=============server.HandleKGRound4VssCheck,dec share data successfully=============","KeyFile",KeyFile,"share",sh)
+    ushare := &ec2.ShareStruct2{ID: s.ID, Share: sh}
     ps := &ec2.PolyGStruct2{PolyG: s.PolyG}
     if !ushare.Verify2(s.KeyType,ps) {
 	msgmap["Round4CheckRes"] = "FALSE"
@@ -597,7 +739,12 @@ func HandleKGRound4DeCom(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
     
-    ushare := &ec2.ShareStruct2{ID: s.ID, Share: s.Share}
+    sh,err := DecryptShare(s.Share,KeyFile)
+    if err != nil {
+	return
+    }
+
+    ushare := &ec2.ShareStruct2{ID: s.ID, Share: sh}
 
     deCommit := &ec2.Commitment{C: s.C, D: s.D}
     _, u1G := deCommit.DeCommit(s.KeyType)
@@ -630,7 +777,12 @@ func HandleKGRound4DeCom2(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
 
-    ushare := &ec2.ShareStruct2{ID: s.ID, Share: s.Share}
+    sh,err := DecryptShare(s.Share,KeyFile)
+    if err != nil {
+	return
+    }
+
+    ushare := &ec2.ShareStruct2{ID: s.ID, Share: sh}
     deCommit := &ec2.Commitment{C: s.C, D: s.D}
 
     _, u1G := deCommit.DeCommit(s.KeyType)
@@ -3034,7 +3186,63 @@ func  DecryptQ(cm string) (*big.Int,error) {
     return q,nil
 }
 
-//
+// ec round2 private data 
+// ByteHash bytehash type define
+type ByteHash [32]byte
+
+// Hex hash to hex string
+func (h ByteHash) Hex() string { return hexutil.Encode(h[:]) }
+
+func Keccak256Hash(data ...[]byte) (h ByteHash) {
+    	if data == nil {
+	    return h
+	}
+
+	d := sha3.NewKeccak256()
+	for _, b := range data {
+		_, err := d.Write(b)
+		if err != nil {
+			return h
+		}
+		if err != nil {
+			return h
+		}
+	}
+	d.Sum(h[:0])
+	return h
+}
+
+func EncryptShare(share *big.Int,enode string) (string,error) {
+    s := fmt.Sprintf("%v", share)
+    //TODO
+
+    /*cm,err := tsslib.EncryptMsg(s,enode)
+    if err != nil {
+	return "",err
+    }
+
+    hash := Keccak256Hash([]byte(strings.ToLower(cm))).Hex()
+    log.Info("================EncryptShare================","share",share,"enode",enode,"hash",hash)
+    return cm,nil*/
+    return s,nil
+}
+
+func  DecryptShare(cm string,keyfile string) (*big.Int,error) {
+    /*hash := Keccak256Hash([]byte(strings.ToLower(cm))).Hex()
+    log.Info("===============DecryptShare=================","hash",hash,"keyfile",keyfile)
+    s,err := tsslib.DecryptMsg(cm,keyfile)
+    if err != nil {
+	return nil,err
+    }
+
+    share,_ := new(big.Int).SetString(s,10)
+    return share,nil*/
+
+    //TODO
+    share,_ := new(big.Int).SetString(cm,10)
+    return share,nil
+}
+
 
 
 

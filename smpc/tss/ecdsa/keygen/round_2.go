@@ -75,8 +75,13 @@ func (round *round2) Start() error {
 	}
 	//
 
+	dul,err := ec2.ContainsDuplicate(ids)
+	if err != nil || dul || len(ids) > round.dnodecount {
+	    return errors.New("node id error")
+	}
+
 	if round.tee {
-	    return round.ExecTee(curIndex)
+	    return round.ExecTee(curIndex,ids)
 	}
 
 	// add for GG20: keygen phase 3. Each player Pi proves in ZK that Ni is square-free using the proof of Gennaro, Micciancio, and Rabin [30]
@@ -101,11 +106,6 @@ func (round *round2) Start() error {
 
 	round.temp.kgRound2Messages2[curIndex] = srm
 	round.out <- srm
-
-	dul,err := ec2.ContainsDuplicate(ids)
-	if err != nil || dul || len(ids) > round.dnodecount {
-	    return errors.New("node id error")
-	}
 
 	u1Shares, err := round.temp.u1Poly.Vss2(round.keytype,ids)
 	if err != nil {
@@ -195,8 +195,21 @@ func (round *round2) NextRound() smpc.Round {
 
 //-------------------------------------------
 
-func (round *round2) ExecTee(curIndex int) error {
-    s := &socket.KGRound2Msg2{PaiSk:round.Save.U1PaillierSkEnc}
+type ShareRet struct {
+    Self bool
+    ToID string
+    ID *big.Int
+    Share string 
+}
+
+type KGRound2RetValue struct {
+    Num *big.Int
+    SfPf *ec2.SquareFreeProof
+    Shares []ShareRet
+}
+
+func (round *round2) ExecTee(curIndex int,ids []*big.Int) error {
+    s := &socket.KGRound2Msg{PaiSk:round.Save.U1PaillierSkEnc,Index:curIndex,Ids:ids,U1Poly:round.temp.u1PolyEnc,NodeID:round.dnodeid}
     s.Base.SetBase(round.keytype,round.msgprex)
     err := socket.SendMsgData(smpc.VSocketConnect,s)
     if err != nil {
@@ -211,90 +224,54 @@ func (round *round2) ExecTee(curIndex int) error {
 	log.Error("round2 start,unmarshal KGRound2 return data error","err",err)
 	return err
     }
-  
-    num,_ := new(big.Int).SetString(msgmap["Num"],10)
-    sfProof := &ec2.SquareFreeProof{}
-    err = sfProof.UnmarshalJSON([]byte(msgmap["SfPf"]))
+ 
+    log.Info("round2 start,begin to unmarshal return value")
+    ret := &KGRound2RetValue{}
+    err = json.Unmarshal([]byte(msgmap["KGRound2RetValue"]),ret)
     if err != nil {
+	log.Error("round2 start,unmarshal KGRound2RetValue error","err",err)
 	return err
     }
 
     srm := &KGRound2Message2{
 	    KGRoundMessage: new(KGRoundMessage),
-	    Num:		num,
-	    SfPf:		sfProof,
+	    Num:		ret.Num,
+	    SfPf:		ret.SfPf,
     }
     srm.SetFromID(round.dnodeid)
     srm.SetFromIndex(curIndex)
 
     round.temp.kgRound2Messages2[curIndex] = srm
     round.out <- srm
-    
-    ids, err := round.GetIDs()
-    if err != nil {
-	return err
-    }
-    if len(ids) > round.dnodecount {
-	return errors.New("node id error")
+
+    log.Info("round2 start,begin to send share value")
+    for _,v := range ret.Shares {
+	kg := &KGRound2Message{
+		KGRoundMessage: new(KGRoundMessage),
+		ID:             v.ID,
+		ShareEnc:          v.Share,
+	}
+	kg.SetFromID(round.dnodeid)
+	kg.SetFromIndex(curIndex)
+	
+	if v.Self {
+	    round.temp.kgRound2Messages[curIndex] = kg
+	} else {
+	    kg.AppendToID(v.ToID) 
+	    round.out <- kg
+	}
     }
 
-    //ss := &socket.IdsVss{Ids:ids, U1Poly: round.temp.u1Poly.Poly}
-    ss := &socket.IdsVss{Ids:ids, U1Poly: round.temp.u1PolyEnc}
-    ss.Base.SetBase(round.keytype,round.msgprex)
-    err = socket.SendMsgData(smpc.VSocketConnect,ss)
-    if err != nil {
-	log.Error("round2 start,marshal IdsVss error","err",err)
-	return err
-    }
-   
-    kgs = <-round.teeout
-    msgmap = make(map[string]string)
-    err = json.Unmarshal([]byte(kgs), &msgmap)
-    if err != nil {
-	log.Error("round2 start,unmarshal IdsVss return data error","err",err)
-	return err
-    }
-  
-    var tmp PolyShare 
-    err = json.Unmarshal([]byte(msgmap["U1Shares"]),&tmp)
-    if err != nil {
-	log.Error("round2 start,unmarshal U1Shares return data error","err",err)
-	return err
-    }
-    round.temp.u1Shares = tmp.Shares 
-    
-    for k, id := range ids {
-	    for _, v := range tmp.Shares {
-		    kg := &KGRound2Message{
-			    KGRoundMessage: new(KGRoundMessage),
-			    ID:             v.ID,
-			    Share:          v.Share,
-		    }
-		    kg.SetFromID(round.dnodeid)
-		    kg.SetFromIndex(curIndex)
-
-		    vv := ec2.GetSharesID(v)
-		    if vv != nil && vv.Cmp(id) == 0 && k == curIndex {
-			    round.temp.kgRound2Messages[k] = kg
-			    break
-		    } else if vv != nil && vv.Cmp(id) == 0 {
-			    tmp := fmt.Sprintf("%v",id)
-			    idtmp := hex.EncodeToString([]byte(tmp))
-			    kg.AppendToID(idtmp) //id-->dnodeid
-			    round.out <- kg
-			    break
-		    }
-	    }
-    }
-    
-    kg2 := &KGRound2Message1{
+    log.Info("round2 start,begin to send c1 value")
+    kg := &KGRound2Message1{
 	    KGRoundMessage: new(KGRoundMessage),
 	    C1:             round.temp.c1,
     }
-    kg2.SetFromID(round.dnodeid)
-    kg2.SetFromIndex(curIndex)
-    round.temp.kgRound2Messages1[curIndex] = kg2
-    round.out <- kg2
+    kg.SetFromID(round.dnodeid)
+    kg.SetFromIndex(curIndex)
+    round.temp.kgRound2Messages1[curIndex] = kg
+    round.out <- kg
+
     return nil
 }
 

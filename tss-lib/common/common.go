@@ -12,6 +12,7 @@ import (
     "encoding/hex"
     "github.com/anyswap/FastMulThreshold-DSA/crypto/ecies"
     crand "crypto/rand"
+    "github.com/anyswap/FastMulThreshold-DSA/log"
 )
 
 //----------------------------------------------
@@ -77,6 +78,7 @@ func EncryptMsg(msg string, enodeID string) (string, error) {
 
 	hprv, err1 := hex.DecodeString(enodeID)
 	if err1 != nil {
+	    log.Error("================EncryptMsg,decode string error================","err",err1,"enode",enodeID)
 		return "", err1
 	}
 
@@ -85,6 +87,7 @@ func EncryptMsg(msg string, enodeID string) (string, error) {
 	p.X.SetBytes(hprv[:half])
 	p.Y.SetBytes(hprv[half:])
 	if !p.Curve.IsOnCurve(p.X, p.Y) {
+	    log.Error("================EncryptMsg,invalid curve point================")
 		return "", errors.New("id is invalid secp256k1 curve point")
 	}
 
@@ -92,6 +95,7 @@ func EncryptMsg(msg string, enodeID string) (string, error) {
 	pub := ecies.ImportECDSAPublic(p)
 	cm, err := ecies.Encrypt(crand.Reader, pub, []byte(msg), nil, nil)
 	if err != nil {
+	    log.Error("================EncryptMsg,encrypt the msg error================","err",err,"enode",enodeID)
 		return "", err
 	}
 
@@ -106,6 +110,7 @@ func DecryptMsg(cm string,keyfile string) (string, error) {
 
 	nodeKey, errkey := crypto.LoadECDSA(keyfile)
 	if errkey != nil {
+	    log.Error("=================DecryptMsg,load ecdsa from keyfile error=================","err",errkey,"keyfile",keyfile)
 		return "", errkey
 	}
 
@@ -113,6 +118,7 @@ func DecryptMsg(cm string,keyfile string) (string, error) {
 	var m []byte
 	m, err := prv.Decrypt([]byte(cm), nil, nil)
 	if err != nil {
+	    log.Error("=================DecryptMsg,dec msg fail=================","err",err,"keyfile",keyfile,"nodeKey",nodeKey,"prv",prv)
 		return "", err
 	}
 

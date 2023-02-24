@@ -232,6 +232,19 @@ func (p *LocalDNode) DulMessage(msg smpc.Message) bool {
 	return false
 }
 
+func (p *LocalDNode) CheckforMsgToEnodeTee(msg smpc.Message) bool {
+    switch msg.(type) {
+    case *KGRound0Message:
+	    if !find(p.temp.kgRound0Messages,msg) {
+		if len(p.temp.kgRound0Messages) < p.DNodeCountInGroup {
+		    return true
+		}
+	    }
+    }
+
+    return false
+}
+
 // StoreMessage Collect data from other nodes
 func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 	switch msg.(type) {

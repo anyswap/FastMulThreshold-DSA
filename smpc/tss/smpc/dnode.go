@@ -33,6 +33,7 @@ type DNode interface {
 	SetDNodeID(id string)
 	Finalize() bool
 	FinalizeRound() Round
+	CheckforMsgToEnodeTee(msg Message) bool
 
 	// Private lifecycle methods
 	setRound(Round) error

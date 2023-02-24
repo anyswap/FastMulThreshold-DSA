@@ -274,21 +274,32 @@ func SendMsgToPeerWithBrodcast(key string,enodes string, msg string,groupid stri
 	    return
 	}
 
-	en := strings.Split(string(enodes[8:]), "@")
-	cm, err := tsslib.EncryptMsg(msg, en[0])
-	if err != nil {
-		return
+	m := make(map[string]string)
+	var cm string
+	var err error
+
+	if Tee {
+	    en := strings.Split(string(enodes[8:]), "@")
+	    cm = msg
+	    m["ToEnode"] = en[0]
+	    log.Info("=================SendMsgToPeerWithBrodcast,send msg ==============","msg",msg,"enode",en[0])
+	} else {
+	    en := strings.Split(string(enodes[8:]), "@")
+	    cm, err = tsslib.EncryptMsg(msg, en[0])
+	    if err != nil {
+		    return
+	    }
 	}
 
 	/////
-	tmp := hex.EncodeToString([]byte(cm))
-	m := make(map[string]string)
 	m["Key"] = key
 	m["MsgType"] = "MSG2PEER"
 	m["Gid"] = groupid
+	tmp := hex.EncodeToString([]byte(cm))
 	m["Msg"] = tmp 
 	s, err := json.Marshal(m)
 	if err != nil {
+	    log.Error("=================SendMsgToPeerWithBrodcast,send msg fail==============","msg",msg,"err",err)
 		return
 	}
 	/////
@@ -419,18 +430,37 @@ func IsMsg2Peer(msgmap map[string]string) (bool,string,string,string) {
 	    if ok && s != "" {
 		key, ok := msgmap["Key"]
 		if ok && key != "" {
-		    tmp, err := hex.DecodeString(s)
-		    if err == nil {
-			msgdata, errdec := tsslib.DecryptMsg(string(tmp),KeyFile) //for SendMsgToPeer
-			if errdec == nil {
-			    s = msgdata
-			} else {
-			    s = ""
+		    if Tee {
+			toid,ok := msgmap["ToEnode"]
+			if !ok {
+			    return true,"","","" 
 			}
-			
-			return true,key,gid,s 
-		    }
 
+			log.Info("==================IsMsg2Peer,get to id=================","toid",toid,"cur enode",curEnode)
+			if !strings.EqualFold(toid, curEnode) {
+			    return true,key,gid,"" 
+			}
+
+			tmp, err := hex.DecodeString(s)
+			if err != nil {
+			    return true,"","","" 
+			}
+
+			log.Info("==================IsMsg2Peer,get msg successfully=================","toid",toid,"cur enode",curEnode,"msg",string(tmp))
+			return true,key,gid,string(tmp) 
+		    } else {
+			tmp, err := hex.DecodeString(s)
+			if err == nil {
+			    msgdata, errdec := tsslib.DecryptMsg(string(tmp),KeyFile) //for SendMsgToPeer
+			    if errdec == nil {
+				s = msgdata
+			    } else {
+				s = ""
+			    }
+			    
+			    return true,key,gid,s 
+			}
+		    }
 		}
 	    }
 	}
@@ -576,6 +606,7 @@ func Call(msg interface{}, enode string) {
 		msgmap = make(map[string]string)
 		err = json.Unmarshal([]byte(s), &msgmap)
 		if err != nil {
+		    log.Error("=================Call,unmarshal msg error=================","err",err)
 		    return
 		}
 	    }

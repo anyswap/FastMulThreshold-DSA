@@ -147,6 +147,7 @@ type KGRound2Message struct {
 
 	ID    *big.Int
 	Share *big.Int
+	ShareEnc string
 }
 
 // GetFromID get the ID of sending nodes in the group
@@ -176,7 +177,10 @@ func (kg *KGRound2Message) OutMap() map[string]string {
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = strings.Join(kg.ToID, ":")
 	m["ID"] = fmt.Sprintf("%v", kg.ID)
-	m["Share"] = fmt.Sprintf("%v", kg.Share)
+	if kg.Share != nil {
+	    m["Share"] = fmt.Sprintf("%v", kg.Share)
+	}
+	m["ShareEnc"] = kg.ShareEnc
 	m["Type"] = "KGRound2Message"
 	return m
 }

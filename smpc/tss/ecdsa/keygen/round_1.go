@@ -231,7 +231,6 @@ func (round *round1) ExecTee(index int) error {
 
     round.temp.commitU1G = commitU1G
     round.temp.c1 = c1
-    round.temp.c1Enc= msgmap["C1"]
     round.temp.commitC1G = commitC1G
 
     /*paisk := &ec2.PrivateKey{} 

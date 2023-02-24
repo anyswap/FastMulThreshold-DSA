@@ -248,6 +248,10 @@ func (p *LocalDNode) DulMessage(msg smpc.Message) bool {
 	return false
 }
 
+func (p *LocalDNode) CheckforMsgToEnodeTee(msg smpc.Message) bool {
+    return false
+}
+
 // StoreMessage Collect data from other nodes
 func (p *LocalDNode) StoreMessage(msg smpc.Message) (bool, error) {
 	switch msg.(type) {

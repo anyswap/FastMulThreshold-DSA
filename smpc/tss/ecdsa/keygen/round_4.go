@@ -266,7 +266,7 @@ func (round *round4) ExecTee(curIndex int) error {
 		return errors.New("round.Start get round2.1 msg fail")
 	    }
 	    
-	    s := &socket.KGRound4VssCheck{ID:msg2.ID, Share:msg2.Share, PolyG:msg3.U1PolyGG, C:msg1.ComC, D:msg3.ComU1GD, Bip32C:msg1.ComCBip32, Bip32D:msg3.ComC1GD, Msg21C:msg21.C1}
+	    s := &socket.KGRound4VssCheck{ID:msg2.ID, Share:msg2.ShareEnc, PolyG:msg3.U1PolyGG, C:msg1.ComC, D:msg3.ComU1GD, Bip32C:msg1.ComCBip32, Bip32D:msg3.ComC1GD, Msg21C:msg21.C1}
 	    s.Base.SetBase(round.keytype,round.msgprex)
 	    err := socket.SendMsgData(smpc.VSocketConnect,s)
 	    if err != nil {
@@ -297,7 +297,7 @@ func (round *round4) ExecTee(curIndex int) error {
 	    msg2, _ := round.temp.kgRound2Messages[k].(*KGRound2Message)
 	    msg21, _ := round.temp.kgRound2Messages1[k].(*KGRound2Message1)
 	    
-	    s := &socket.KGRound4DeCom{ID:msg2.ID, Share:msg2.Share, C:msg1.ComC, D:msg3.ComU1GD, Msg21C:msg21.C1}
+	    s := &socket.KGRound4DeCom{ID:msg2.ID, Share:msg2.ShareEnc, C:msg1.ComC, D:msg3.ComU1GD, Msg21C:msg21.C1}
 	    s.Base.SetBase(round.keytype,round.msgprex)
 	    err := socket.SendMsgData(smpc.VSocketConnect,s)
 	    if err != nil {
@@ -329,7 +329,7 @@ func (round *round4) ExecTee(curIndex int) error {
 	    msg1, _ := round.temp.kgRound1Messages[k].(*KGRound1Message)
 	    msg21, _ := round.temp.kgRound2Messages1[k].(*KGRound2Message1)
 
-	    s := &socket.KGRound4DeCom2{ID:msg2.ID, Share:msg2.Share, C:msg1.ComC, D:msg3.ComU1GD, Msg21C:msg21.C1}
+	    s := &socket.KGRound4DeCom2{ID:msg2.ID, Share:msg2.ShareEnc, C:msg1.ComC, D:msg3.ComU1GD, Msg21C:msg21.C1}
 	    s.Base.SetBase(round.keytype,round.msgprex)
 	    err := socket.SendMsgData(smpc.VSocketConnect,s)
 	    if err != nil {
