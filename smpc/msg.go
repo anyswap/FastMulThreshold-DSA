@@ -277,8 +277,13 @@ func SendMsgToPeerWithBrodcast(key string,enodes string, msg string,groupid stri
 	m := make(map[string]string)
 	var cm string
 	var err error
+	en := strings.Split(string(enodes[8:]), "@")
+	cm, err = tsslib.EncryptMsg(msg, en[0])
+	if err != nil {
+		return
+	}
 
-	if Tee {
+	/*if Tee {
 	    en := strings.Split(string(enodes[8:]), "@")
 	    cm = msg
 	    m["ToEnode"] = en[0]
@@ -289,7 +294,7 @@ func SendMsgToPeerWithBrodcast(key string,enodes string, msg string,groupid stri
 	    if err != nil {
 		    return
 	    }
-	}
+	}*/
 
 	/////
 	m["Key"] = key
@@ -430,7 +435,7 @@ func IsMsg2Peer(msgmap map[string]string) (bool,string,string,string) {
 	    if ok && s != "" {
 		key, ok := msgmap["Key"]
 		if ok && key != "" {
-		    if Tee {
+		    /*if Tee {
 			toid,ok := msgmap["ToEnode"]
 			if !ok {
 			    return true,"","","" 
@@ -448,7 +453,7 @@ func IsMsg2Peer(msgmap map[string]string) (bool,string,string,string) {
 
 			log.Info("==================IsMsg2Peer,get msg successfully=================","toid",toid,"cur enode",curEnode,"msg",string(tmp))
 			return true,key,gid,string(tmp) 
-		    } else {
+		    } else {*/
 			tmp, err := hex.DecodeString(s)
 			if err == nil {
 			    msgdata, errdec := tsslib.DecryptMsg(string(tmp),KeyFile) //for SendMsgToPeer
@@ -460,7 +465,7 @@ func IsMsg2Peer(msgmap map[string]string) (bool,string,string,string) {
 			    
 			    return true,key,gid,s 
 			}
-		    }
+		    //}
 		}
 	    }
 	}

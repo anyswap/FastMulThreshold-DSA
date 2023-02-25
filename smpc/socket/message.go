@@ -88,6 +88,58 @@ func (kg *KGRound1Msg) GetMsgType() string {
 
 //-----------------------------------------------------
 
+type KGRound2SquareFreeProve struct {
+    Base
+
+    PaiSk string
+}
+
+func (kg *KGRound2SquareFreeProve) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *KGRound2SquareFreeProve) ToJson() ([]byte,error) {
+    log.Info("===============KGRound2SquareFreeProve.ToJson============","kg",kg)
+    return json.Marshal(kg)
+}
+
+func (kg *KGRound2SquareFreeProve) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *KGRound2SquareFreeProve) GetMsgType() string {
+    return "KGRound2SquareFreeProve"
+}
+
+//------------------------------------------------------
+
+type KGRound2VssShare struct {
+    Base
+
+    U1Poly string
+    IDs []*big.Int
+}
+
+func (kg *KGRound2VssShare) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *KGRound2VssShare) ToJson() ([]byte,error) {
+    log.Info("===============KGRound2VssShare.ToJson============","kg",kg)
+    return json.Marshal(kg)
+}
+
+func (kg *KGRound2VssShare) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *KGRound2VssShare) GetMsgType() string {
+    return "KGRound2VssShare"
+}
+
+//-------------------------------------------------------
+
+/*
 type KGRound2Msg struct {
     Base
 
@@ -115,6 +167,7 @@ func (kg *KGRound2Msg) ToObj(raw []byte) error {
 func (kg *KGRound2Msg) GetMsgType() string {
     return "KGRound2Msg"
 }
+*/
 
 //--------------------------------------------------
 
@@ -216,8 +269,7 @@ type KGRound4VssCheck struct {
     Base
 
     ID *big.Int
-    //Share *big.Int
-    Share string
+    Share *big.Int
     PolyG [][]*big.Int
 
     C *big.Int
@@ -254,7 +306,7 @@ type KGRound4DeCom struct {
     Ds [][]*big.Int
 
     IDs []*big.Int
-    Shares []string
+    Shares []*big.Int
     CC []*big.Int
     NtildeLen int
 }

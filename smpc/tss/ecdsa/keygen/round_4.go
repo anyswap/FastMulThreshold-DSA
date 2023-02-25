@@ -266,7 +266,7 @@ func (round *round4) ExecTee(curIndex int) error {
 		return errors.New("round.Start get round2.1 msg fail")
 	    }
 	    
-	    s := &socket.KGRound4VssCheck{ID:msg2.ID, Share:msg2.ShareEnc, PolyG:msg3.U1PolyGG, C:msg1.ComC, D:msg3.ComU1GD, Bip32C:msg1.ComCBip32, Bip32D:msg3.ComC1GD, Msg21C:msg21.C1}
+	    s := &socket.KGRound4VssCheck{ID:msg2.ID, Share:msg2.Share, PolyG:msg3.U1PolyGG, C:msg1.ComC, D:msg3.ComU1GD, Bip32C:msg1.ComCBip32, Bip32D:msg3.ComC1GD, Msg21C:msg21.C1}
 	    s.Base.SetBase(round.keytype,round.msgprex)
 	    err := socket.SendMsgData(smpc.VSocketConnect,s)
 	    if err != nil {
@@ -288,7 +288,7 @@ func (round *round4) ExecTee(curIndex int) error {
     cs := make([]*big.Int,len(ids))
     ds := make([][]*big.Int,len(ids))
     IDs := make([]*big.Int,len(ids))
-    Shares := make([]string,len(ids))
+    Shares := make([]*big.Int,len(ids))
     cc := make([]*big.Int,len(ids))
 
     for k := range ids {
@@ -299,7 +299,7 @@ func (round *round4) ExecTee(curIndex int) error {
 	cs[k] = msg1.ComC
 	ds[k] = msg3.ComU1GD
 	IDs[k] = msg2.ID
-	Shares[k] = msg2.ShareEnc
+	Shares[k] = msg2.Share
 	cc[k] = msg21.C1
     }
 

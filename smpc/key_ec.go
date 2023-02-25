@@ -516,7 +516,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 
 	//2 message
 	if msg["Type"] == "KGRound2Message" {
-	    if Tee {
+	    /*if Tee {
 		id, _ := new(big.Int).SetString(msg["ID"], 10)
 		if id == nil || msg["ShareEnc"] == "" {
 		    return nil
@@ -531,7 +531,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 		kg.SetFromIndex(index)
 		kg.ToID = to
 		return kg
-	    } else {
+	    } else {*/
 		id, _ := new(big.Int).SetString(msg["ID"], 10)
 		sh, _ := new(big.Int).SetString(msg["Share"], 10)
 		if id == nil || sh == nil {
@@ -547,7 +547,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 		kg.SetFromIndex(index)
 		kg.ToID = to
 		return kg
-	    }
+	    //}
 	}
 
 	//2-1 message

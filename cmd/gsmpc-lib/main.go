@@ -140,8 +140,14 @@ func handleMessage(conn net.Conn,msg string) {
     case "KGRound1Msg":
 	    HandleKGRound1Msg(conn,msgmap["Content"])
 	    break
-    case "KGRound2Msg":
-	    HandleKGRound2Msg(conn,msgmap["Content"])
+    //case "KGRound2Msg":
+//	    HandleKGRound2Msg(conn,msgmap["Content"])
+//	    break
+    case "KGRound2SquareFreeProve":
+	    HandleKGRound2SquareFreeProve(conn,msgmap["Content"])
+	    break
+    case "KGRound2VssShare":
+	    HandleKGRound2VssShare(conn,msgmap["Content"])
 	    break
     //case "IdsVss":
 //	    HandleIdsVss(conn,msgmap["Content"])
@@ -441,9 +447,121 @@ func HandleKGRound1Msg(conn net.Conn,content string) {
     socket.Write(conn,string(str))
 }
 
+//------------------------------------------------
+
+func HandleKGRound2SquareFreeProve(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.KGRound2SquareFreeProve{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	log.Error("===============server.HandleKGRound2SquareFreeProve,toobj error==============","err",err)
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+    
+    paisk,err := DecryptPaillierSk(s.PaiSk)
+    if err != nil {
+	log.Error("===============server.HandleKGRound2SquareFreeProve,dec paillier sk fail==============","err",err)
+	return
+    }
+
+    num := ec2.MustGetRandomInt(paisk.N.BitLen())
+    if num == nil {
+	log.Error("==============socket server,get random int====================","msg",content)
+	return
+    }
+
+    sfProof := ec2.SquareFreeProve(paisk.N,num,paisk.L)
+    if sfProof == nil {
+	log.Error("==============socket server,get square free prove====================","msg",content)
+	return
+    }
+    
+    msgmap["Num"] = fmt.Sprintf("%v",num)
+    sf,err := sfProof.MarshalJSON()
+    if err != nil {
+	log.Error("===============server.HandleKGRound2SquareFreeProve,marshal sfproof to json error==============","err",err)
+       return 
+    }
+    msgmap["SfPf"] = string(sf)
+    
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	log.Error("==============socket server,HandleKGRound2SquareFreeProve,marshal error====================","msg",content,"err",err)
+	return
+    }
+
+    log.Info("=============server.HandleKGRound2SquareFreeProve,write msg to channel===========","content",string(str))
+    socket.Write(conn,string(str))
+}
+
+//-------------------------------------------------
+
+type KGRound2VssShareRet struct {
+    Shares []*ec2.ShareStruct2
+}
+
+func HandleKGRound2VssShare(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.KGRound2VssShare{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	log.Error("===============server.HandleKGRound2VssShare,toobj error==============","err",err)
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+   
+    u1Poly,err := DecryptU1Poly(s.U1Poly)
+    if err != nil {
+	return
+    }
+
+    u1Shares, err := u1Poly.Vss2(s.KeyType,s.IDs)
+    if err != nil {
+	return
+    }
+
+    tmp := make([]*ec2.ShareStruct2,len(u1Shares))
+    for k,v := range u1Shares {
+	shareenc,err := EncryptShare(v.Share,"")
+	if err != nil {
+	    return
+	}
+
+	t := &ec2.ShareStruct2{ID:v.ID,Share:new(big.Int).SetBytes([]byte(shareenc))}
+	tmp[k] = t
+    }
+    
+    ret := &KGRound2VssShareRet{Shares:tmp}
+    b,err := json.Marshal(ret)
+    if err != nil {
+	return
+    }
+    msgmap["VssShares"] = string(b)
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
 //-----------------------------------------
 
-type ShareRet struct {
+/*type ShareRet struct {
     Self bool
     ToID string
     ID *big.Int
@@ -491,14 +609,6 @@ func HandleKGRound2Msg(conn net.Conn,content string) {
 	log.Error("==============socket server,get square free prove====================","msg",content)
 	return
     }
-
-    /*msgmap["Num"] = fmt.Sprintf("%v",num)
-    sf,err := sfProof.MarshalJSON()
-    if err != nil {
-	log.Error("===============server.HandleKGRound2Msg2,marshal sfproof to json error==============","err",err)
-       return 
-    }
-    msgmap["SfPf"] = string(sf)*/
 
     u1Poly,err := DecryptU1Poly(s.U1Poly)
     if err != nil {
@@ -574,7 +684,7 @@ func HandleKGRound2Msg(conn net.Conn,content string) {
     log.Info("=============server.HandleKGRound2Msg,write msg to channel===========","content",string(str))
     socket.Write(conn,string(str))
 }
-
+*/
 //---------------------------------------------------
 
 /*func HandleIdsVss(conn net.Conn,content string) {
@@ -679,7 +789,8 @@ func HandleKGRound4VssCheck(conn net.Conn,content string) {
     msgmap["KeyType"] = s.KeyType
    
     log.Info("=============server.HandleKGRound4VssCheck=============","KeyFile",KeyFile)
-    sh,err := DecryptShare(s.Share,KeyFile)
+    cm := string(s.Share.Bytes())
+    sh,err := DecryptShare(cm,KeyFile)
     if err != nil {
 	log.Error("=============server.HandleKGRound4VssCheck,dec share data fail=============","err",err)
 	return
@@ -745,7 +856,8 @@ func HandleKGRound4DeCom(conn net.Conn,content string) {
     var skU1 *big.Int
 
     for k:= range s.Cs {
-	sh,err := DecryptShare(s.Shares[k],KeyFile)
+	cm := string(s.Shares[k].Bytes())
+	sh,err := DecryptShare(cm,KeyFile)
 	if err != nil {
 	    return
 	}
@@ -766,7 +878,8 @@ func HandleKGRound4DeCom(conn net.Conn,content string) {
 	    continue
 	}
 
-	sh,err := DecryptShare(s.Shares[k],KeyFile)
+	cm := string(s.Shares[k].Bytes())
+	sh,err := DecryptShare(cm,KeyFile)
 	if err != nil {
 	    return
 	}
