@@ -2410,6 +2410,7 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 
     if Tee {
 	sd.SkEnc = string(sku1.Bytes())
+	sd.TSkEnc = mm[2]
     } else {
 	var sk [32]byte
 	va := sku1.Bytes()
@@ -2424,17 +2425,18 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 	}
 
 	sd.Sk = sk
+	
+	var tsk [32]byte
+	va = []byte(mm[2])
+	copy(tsk[:], va[:32])
+	sd.TSk = tsk
     }
 
-    var tsk [32]byte
-    va := []byte(mm[2])
-    copy(tsk[:], va[:32])
     var pkfinal [32]byte
-    va = []byte(mm[3])
+    va := []byte(mm[3])
     copy(pkfinal[:], va[:32])
-
-    sd.TSk = tsk
     sd.FinalPkBytes = pkfinal
+
     sd.IDs = GetGroupNodeUIDs(cointype, pubs.GroupID,pubs.GroupID)
     _,sd.CurDNodeID = GetNodeUID(curEnode, cointype,pubs.GroupID)
 

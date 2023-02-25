@@ -57,6 +57,7 @@ type localTempData struct {
 	sk      [32]byte
 	skEnc   string
 	tsk     [32]byte
+	tskEnc  string
 	pkfinal [32]byte
 	message []byte
 	keyType	string

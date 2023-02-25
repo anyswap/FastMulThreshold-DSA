@@ -2792,7 +2792,11 @@ func HandleEDKGRound6Msg(conn net.Conn,content string) {
 	    finalPk.ToBytes(&finalPkBytes)
     }
 
-    msgmap["tSk"] = hex.EncodeToString(tSk[:])
+    msgmap["tSk"],err = EDKGEncryptTSk(tSk)
+    if err != nil {
+	return
+    }
+
     msgmap["finalPkBytes"] = hex.EncodeToString(finalPkBytes[:])
     
     str, err := json.Marshal(msgmap)
@@ -2808,7 +2812,7 @@ func HandleEDKGRound6Msg(conn net.Conn,content string) {
 type EDSigningRound1ReturnValue struct {
     Uids [][32]byte
     //Sk [32]byte
-    TSk [32]byte
+    //TSk [32]byte
     Pkfinal [32]byte
 
     R [32]byte
@@ -2839,8 +2843,9 @@ func HandleEDSigningRound1Msg(conn net.Conn,content string) {
 //	return
   //  }
     
-    var tsk [32]byte
-    copy(tsk[:], s.TSk[:32])
+    //var tsk [32]byte
+    //copy(tsk[:], s.TSk[:32])
+    
     var pkfinal [32]byte
     copy(pkfinal[:], s.FinalPkBytes[:32])
 
@@ -2909,7 +2914,7 @@ func HandleEDSigningRound1Msg(conn net.Conn,content string) {
 	    }
     }
 
-    ret := &EDSigningRound1ReturnValue{Uids:uids,TSk:tsk,Pkfinal:pkfinal,R:r,ZkR:zkR,DR:DR,CR:CR}
+    ret := &EDSigningRound1ReturnValue{Uids:uids,Pkfinal:pkfinal,R:r,ZkR:zkR,DR:DR,CR:CR}
     b,err := json.Marshal(ret)
     if err != nil {
 	return
@@ -3091,8 +3096,13 @@ func HandleEDSigningRound4Msg(conn net.Conn,content string) {
     var s2 [32]byte
     var sBBytes [32]byte
 
+    tsk,err := EDKGDecryptTSk(s.TSk)
+    if err != nil {
+	return
+    }
+
     if s.KeyType == smpc.SR25519 {
-	    ed_ristretto.ScMul(&s2, &lambda, &s.TSk)
+	    ed_ristretto.ScMul(&s2, &lambda, &tsk)
 	    //stmp := hex.EncodeToString(s2[:])
 	    ed_ristretto.ScMul(&s2, &s2, &k)
 	    ed_ristretto.ScAdd(&s2, &s2, &s.R)
@@ -3103,7 +3113,7 @@ func HandleEDSigningRound4Msg(conn net.Conn,content string) {
 	    sB := new(r255.Element).ScalarBaseMult(sScalar)
 	    sB.Encode(sBBytes[:0])
     }else {
-	    ed.ScMul(&s2, &lambda, &s.TSk)
+	    ed.ScMul(&s2, &lambda, &tsk)
 
 	    //stmp := hex.EncodeToString(s2[:])
 	    ed.ScMul(&s2, &s2, &k)
@@ -3706,6 +3716,30 @@ func  EDKGDecryptSk(cm string) ([32]byte,error) {
     copy(sk[:],tmp[:])
 
     return sk,nil
+}
+
+//ed kg tsk
+func EDKGEncryptTSk(tsk [32]byte) (string,error) {
+    s := hex.EncodeToString(tsk[:])
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
+
+func  EDKGDecryptTSk(cm string) ([32]byte,error) {
+    var ret [32]byte
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return ret,err
+    }
+
+    var tmp []byte
+    tmp,err = hex.DecodeString(s)
+    if err != nil {
+	return ret,err
+    }
+    var tsk [32]byte
+    copy(tsk[:],tmp[:])
+
+    return tsk,nil
 }
 
 

@@ -367,7 +367,7 @@ func processKeyGenEDDSA(msgprex string, errChan chan struct{}, outCh <-chan smpc
 			    w.edsku1.PushBack(msg.SkEnc)
 			    w.edpk.PushBack(string(msg.FinalPkBytes[:]))
 
-			    s := "XXX" + common.Sep11 + string(msg.Pk[:]) + common.Sep11 + string(msg.TSk[:]) + common.Sep11 + string(msg.FinalPkBytes[:])
+			    s := "XXX" + common.Sep11 + string(msg.Pk[:]) + common.Sep11 + msg.TSkEnc + common.Sep11 + string(msg.FinalPkBytes[:])
 			    w.edsave.PushBack(string(s))
 			} else {
 			    w.edsku1.PushBack(string(msg.Sk[:]))

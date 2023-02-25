@@ -1287,7 +1287,7 @@ type EDSigningRound1Msg struct {
     Base
 
     Sk string
-    TSk [32]byte 
+    TSk string 
     FinalPkBytes [32]byte
     IDs []*big.Int
 }
@@ -1321,7 +1321,7 @@ type EDSigningRound4Msg struct {
     CurDNodeID *big.Int
     IdSign []*big.Int
     Index int
-    TSk [32]byte
+    TSk string 
     R [32]byte
 }
 

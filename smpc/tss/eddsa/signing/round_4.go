@@ -311,7 +311,7 @@ func (round *round4) ExecTee(curIndex int) error {
 	ZkRs[k] = msg2.ZkR
     }
 
-    s := &socket.EDSigningRound4Msg{CRs:CRs,DRs:DRs,ZkRs:ZkRs,Message:round.temp.message,Pkfinal:round.temp.pkfinal,CurDNodeID:round.save.CurDNodeID,IdSign:round.idsign,Index:curIndex,TSk:round.temp.tsk,R:round.temp.r}
+    s := &socket.EDSigningRound4Msg{CRs:CRs,DRs:DRs,ZkRs:ZkRs,Message:round.temp.message,Pkfinal:round.temp.pkfinal,CurDNodeID:round.save.CurDNodeID,IdSign:round.idsign,Index:curIndex,TSk:round.temp.tskEnc,R:round.temp.r}
     s.Base.SetBase(round.keyType,round.msgprex)
     err := socket.SendMsgData(smpc.VSocketConnect,s)
     if err != nil {

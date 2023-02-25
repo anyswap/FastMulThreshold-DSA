@@ -365,21 +365,21 @@ func (round *round6) ExecTee(curIndex int) error {
 	return err
     }
     
-    tmp,err := hex.DecodeString(msgmap["tSk"])
+    /*tmp,err := hex.DecodeString(msgmap["tSk"])
     if err != nil {
 	return err
     }
     var tSk [32]byte
-    copy(tSk[:],tmp[:])
+    copy(tSk[:],tmp[:])*/
 
-    tmp,err = hex.DecodeString(msgmap["finalPkBytes"])
+    tmp,err := hex.DecodeString(msgmap["finalPkBytes"])
     if err != nil {
 	return err
     }
     var finalPkBytes [32]byte
     copy(finalPkBytes[:],tmp[:])
     
-    round.Save.TSk = tSk
+    round.Save.TSkEnc = msgmap["tSk"]
     round.Save.FinalPkBytes = finalPkBytes
 
     round.end <- *round.Save
