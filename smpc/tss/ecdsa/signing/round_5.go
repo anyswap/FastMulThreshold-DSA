@@ -304,7 +304,8 @@ func (round *round5) ExecTee(curIndex int) error {
     //
     t1X,_ := new(big.Int).SetString(msgmap["t1X"],10)
     t1Y,_ := new(big.Int).SetString(msgmap["t1Y"],10)
-    l1,_ := new(big.Int).SetString(msgmap["l1"],10)
+    //l1,_ := new(big.Int).SetString(msgmap["l1"],10)
+    l1 := new(big.Int).SetBytes([]byte(msgmap["l1"]))
 
     round.temp.t1X = t1X
     round.temp.t1Y = t1Y

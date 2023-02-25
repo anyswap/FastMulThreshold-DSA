@@ -1869,7 +1869,10 @@ func HandleSigningRound5Msg(conn net.Conn,content string) {
     }
     msgmap["tProof"] = string(b)
 
-    msgmap["l1"] = fmt.Sprintf("%v",l1)
+    msgmap["l1"],err = EncryptL1(l1)
+    if err != nil {
+	return
+    }
 
     str, err := json.Marshal(msgmap)
     if err != nil {
@@ -2186,7 +2189,12 @@ func HandleSigningRound8Msg(conn net.Conn,content string) {
 	return
     }
 
-    stProof := ec2.NewSTProof(s.KeyType,s.T1X,s.T1Y,S1X,S1Y,s.DeltaGammaGx,s.DeltaGammaGy,hx,hy,s.Sigma1,s.L1)
+    l1,err := DecryptL1(string(s.L1.Bytes()))
+    if err != nil {
+	return
+    }
+
+    stProof := ec2.NewSTProof(s.KeyType,s.T1X,s.T1Y,S1X,S1Y,s.DeltaGammaGx,s.DeltaGammaGy,hx,hy,s.Sigma1,l1)
     if stProof == nil {
 	return
     }
@@ -3645,5 +3653,22 @@ func  DecryptVU1(cm string) (*big.Int,error) {
     vu1,_ := new(big.Int).SetString(s,10)
     return vu1,nil
 }
+
+//L1
+func EncryptL1(l1 *big.Int) (string,error) {
+    s := fmt.Sprintf("%v",l1)
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
+
+func  DecryptL1(cm string) (*big.Int,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    l1,_ := new(big.Int).SetString(s,10)
+    return l1,nil
+}
+
 
 
