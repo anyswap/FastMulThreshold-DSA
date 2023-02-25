@@ -123,7 +123,7 @@ func (round *round6) ExecTee(curIndex int) error {
 	delt[k] = msg5.Delta1
     }
 
-    s := &socket.SigningRound6Msg{Delt:delt,U1Gamma:round.temp.u1Gamma}
+    s := &socket.SigningRound6Msg{Delt:delt,U1Gamma:round.temp.u1GammaEnc}
     s.Base.SetBase(round.keytype,round.msgprex)
     err := socket.SendMsgData(smpc.VSocketConnect,s)
     if err != nil {

@@ -1880,7 +1880,14 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
     close(commStopChan)
     signWg.Wait()
 
-    ret := &PreSignData{Key: msgprex, K1: pre.K1, R: pre.R, Ry: pre.Ry, Sigma1: pre.Sigma1, Gid: w.groupid, Used: false, Index: -1}
+    var k1 *big.Int
+    if Tee {
+	k1 = new(big.Int).SetBytes([]byte(pre.K1Enc))
+    } else {
+	k1 = pre.K1
+    }
+
+    ret := &PreSignData{Key: msgprex, K1: k1, R: pre.R, Ry: pre.Ry, Sigma1: pre.Sigma1, Gid: w.groupid, Used: false, Index: -1}
     return ret
 }
 

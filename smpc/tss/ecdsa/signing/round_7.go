@@ -283,7 +283,7 @@ func (round *round7) ExecTee(curIndex int) error {
 	    return errors.New("error ntilde for current node")
     }
 
-    s := &socket.SigningRound7Msg{DeltaSum:round.temp.deltaSum,GammaX:GammaGSumx,GammaY:GammaGSumy,U1K:round.temp.u1K,PaiPk:u1PaillierPk,Nt:u1NT,UKC:round.temp.ukc,PaiSk:round.save.U1PaillierSkEnc,U1Ra:round.temp.ukc2}
+    s := &socket.SigningRound7Msg{DeltaSum:round.temp.deltaSum,GammaX:GammaGSumx,GammaY:GammaGSumy,U1K:round.temp.u1KEnc,PaiPk:u1PaillierPk,Nt:u1NT,UKC:round.temp.ukc,PaiSk:round.save.U1PaillierSkEnc,U1Ra:round.temp.ukc2}
     s.Base.SetBase(round.keytype,round.msgprex)
     err := socket.SendMsgData(smpc.VSocketConnect,s)
     if err != nil {

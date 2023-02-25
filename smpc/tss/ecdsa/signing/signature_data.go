@@ -23,6 +23,7 @@ import (
 // PrePubData pre-sign data
 type PrePubData struct {
 	K1     *big.Int
+	K1Enc string
 	R      *big.Int
 	Ry     *big.Int
 	Sigma1 *big.Int

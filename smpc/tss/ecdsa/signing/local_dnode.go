@@ -59,8 +59,11 @@ type localTempData struct {
 
 	//round 1
 	w1             *big.Int
+	w1Enc string
 	u1K            *big.Int
+	u1KEnc string
 	u1Gamma        *big.Int
+	u1GammaEnc string
 	commitU1GammaG *ec2.Commitment
 	commitwiG *ec2.Commitment
 

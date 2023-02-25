@@ -599,7 +599,7 @@ func (kg *SigningRound1Msg) GetMsgType() string {
 type SigningRound2PaiEnc struct {
     Base
 
-    U1K *big.Int
+    U1K string 
     U1PaillierPk *ec2.PublicKey
 }
 
@@ -625,7 +625,7 @@ type SigningRound2Msg struct {
     Base
 
     UKC *big.Int
-    U1K *big.Int
+    U1K string 
     UKC2 *big.Int
     U1PaiPK *ec2.PublicKey
     U1Nt *ec2.NtildeH1H2
@@ -730,7 +730,7 @@ type SigningRound4Msg struct {
     Base
 
     KC *big.Int
-    U1Gamma *big.Int
+    U1Gamma string 
     CurPaiPk *ec2.PublicKey
     BetaStar *big.Int
     UKC *big.Int
@@ -760,7 +760,7 @@ type SigningRound4Msg1 struct {
     Base
 
     KC *big.Int
-    W1 *big.Int
+    W1 string 
     CurPaiPk *ec2.PublicKey
     VU1Star *big.Int
     UKC *big.Int
@@ -879,7 +879,7 @@ type SigningRound6Msg struct {
     Base
 
     Delt []*big.Int
-    U1Gamma *big.Int
+    U1Gamma string 
 }
 
 func (kg *SigningRound6Msg) SetBase(kt string,keyid string) {
@@ -958,7 +958,7 @@ type SigningRound7Msg struct {
     DeltaSum *big.Int
     GammaX *big.Int
     GammaY *big.Int
-    U1K *big.Int
+    U1K string 
     PaiPk *ec2.PublicKey
     Nt *ec2.NtildeH1H2
     UKC *big.Int

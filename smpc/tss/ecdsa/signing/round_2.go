@@ -150,7 +150,7 @@ func (round *round2) ExecTee(curIndex int) error {
 	    return errors.New("error paillier pk for current node")
     }
 
-    s := &socket.SigningRound2PaiEnc{U1K:round.temp.u1K,U1PaillierPk:u1PaillierPk}
+    s := &socket.SigningRound2PaiEnc{U1K:round.temp.u1KEnc,U1PaillierPk:u1PaillierPk}
     s.Base.SetBase(round.keytype,round.msgprex)
     err := socket.SendMsgData(smpc.VSocketConnect,s)
     if err != nil {
@@ -183,7 +183,7 @@ func (round *round2) ExecTee(curIndex int) error {
 
 	    u1nt := round.save.U1NtildeH1H2[index]
 	    
-	    s := &socket.SigningRound2Msg{UKC:round.temp.ukc,U1K:round.temp.u1K,UKC2:round.temp.ukc2,U1PaiPK:u1PaillierPk,U1Nt:u1nt}
+	    s := &socket.SigningRound2Msg{UKC:round.temp.ukc,U1K:round.temp.u1KEnc,UKC2:round.temp.ukc2,U1PaiPK:u1PaillierPk,U1Nt:u1nt}
 	    s.Base.SetBase(round.keytype,round.msgprex)
 	    err := socket.SendMsgData(smpc.VSocketConnect,s)
 	    if err != nil {

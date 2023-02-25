@@ -410,7 +410,7 @@ func (round *round4) ExecTee(curIndex int) error {
 		    u1PaillierPk := round.save.U1PaillierPk[index]
 		    msg3, _ := round.temp.signRound3Messages[k].(*SignRound3Message)
 
-		    s := &socket.SigningRound4Msg{KC:msg3.Kc,U1Gamma:round.temp.u1Gamma,CurPaiPk:u1PaillierPk,BetaStar:round.temp.betaU1Star[k],UKC:round.temp.ukc,OldPaiPk:round.save.U1PaillierPk[oldindex],OldNt:round.save.U1NtildeH1H2[oldindex]}
+		    s := &socket.SigningRound4Msg{KC:msg3.Kc,U1Gamma:round.temp.u1GammaEnc,CurPaiPk:u1PaillierPk,BetaStar:round.temp.betaU1Star[k],UKC:round.temp.ukc,OldPaiPk:round.save.U1PaillierPk[oldindex],OldNt:round.save.U1NtildeH1H2[oldindex]}
 		    s.Base.SetBase(round.keytype,round.msgprex)
 		    err := socket.SendMsgData(smpc.VSocketConnect,s)
 		    if err != nil {
@@ -446,7 +446,7 @@ func (round *round4) ExecTee(curIndex int) error {
 		    u1PaillierPk := round.save.U1PaillierPk[index]
 		    msg3, _ := round.temp.signRound3Messages[k].(*SignRound3Message)
 
-		    s := &socket.SigningRound4Msg{KC:msg3.Kc,U1Gamma:round.temp.u1Gamma,CurPaiPk:u1PaillierPk,BetaStar:round.temp.betaU1Star[k],UKC:msg3.Kc,OldPaiPk:u1PaillierPk,OldNt:round.save.U1NtildeH1H2[oldindex]}
+		    s := &socket.SigningRound4Msg{KC:msg3.Kc,U1Gamma:round.temp.u1GammaEnc,CurPaiPk:u1PaillierPk,BetaStar:round.temp.betaU1Star[k],UKC:msg3.Kc,OldPaiPk:u1PaillierPk,OldNt:round.save.U1NtildeH1H2[oldindex]}
 		    s.Base.SetBase(round.keytype,round.msgprex)
 		    err := socket.SendMsgData(smpc.VSocketConnect,s)
 		    if err != nil {
@@ -497,7 +497,7 @@ func (round *round4) ExecTee(curIndex int) error {
 		    u1PaillierPk := round.save.U1PaillierPk[index]
 		    msg3, _ := round.temp.signRound3Messages[k].(*SignRound3Message)
 
-		    s := &socket.SigningRound4Msg1{KC:msg3.Kc,W1:round.temp.w1,CurPaiPk:u1PaillierPk,VU1Star:round.temp.vU1Star[k],UKC:round.temp.ukc,OldPaiPk:round.save.U1PaillierPk[oldindex],OldNt:round.save.U1NtildeH1H2[oldindex]}
+		    s := &socket.SigningRound4Msg1{KC:msg3.Kc,W1:round.temp.w1Enc,CurPaiPk:u1PaillierPk,VU1Star:round.temp.vU1Star[k],UKC:round.temp.ukc,OldPaiPk:round.save.U1PaillierPk[oldindex],OldNt:round.save.U1NtildeH1H2[oldindex]}
 		    s.Base.SetBase(round.keytype,round.msgprex)
 		    err := socket.SendMsgData(smpc.VSocketConnect,s)
 		    if err != nil {
@@ -533,7 +533,7 @@ func (round *round4) ExecTee(curIndex int) error {
 		    u1PaillierPk := round.save.U1PaillierPk[index]
 		    msg3, _ := round.temp.signRound3Messages[k].(*SignRound3Message)
 
-		    s := &socket.SigningRound4Msg1{KC:msg3.Kc,W1:round.temp.w1,CurPaiPk:u1PaillierPk,VU1Star:round.temp.vU1Star[k],UKC:msg3.Kc,OldPaiPk:u1PaillierPk,OldNt:round.save.U1NtildeH1H2[oldindex]}
+		    s := &socket.SigningRound4Msg1{KC:msg3.Kc,W1:round.temp.w1Enc,CurPaiPk:u1PaillierPk,VU1Star:round.temp.vU1Star[k],UKC:msg3.Kc,OldPaiPk:u1PaillierPk,OldNt:round.save.U1NtildeH1H2[oldindex]}
 		    s.Base.SetBase(round.keytype,round.msgprex)
 		    err := socket.SendMsgData(smpc.VSocketConnect,s)
 		    if err != nil {

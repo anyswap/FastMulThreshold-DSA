@@ -177,9 +177,9 @@ func (round *round1) ExecTee(curIndex int) error {
 	return err
     }
   
-    w1,_ := new(big.Int).SetString(msgmap["W1"],10)
-    u1K,_ := new(big.Int).SetString(msgmap["U1K"],10)
-    u1Gamma,_ := new(big.Int).SetString(msgmap["U1Gamma"],10)
+    //w1,_ := new(big.Int).SetString(msgmap["W1"],10)
+    //u1K,_ := new(big.Int).SetString(msgmap["U1K"],10)
+    //u1Gamma,_ := new(big.Int).SetString(msgmap["U1Gamma"],10)
 
     commitwiG := &ec2.Commitment{}
     err = json.Unmarshal([]byte(msgmap["ComWiG"]),commitwiG)
@@ -193,10 +193,13 @@ func (round *round1) ExecTee(curIndex int) error {
 	return err
     }
 
-    round.temp.w1 = w1
+    //round.temp.w1 = w1
+    round.temp.w1Enc = msgmap["W1"]
     round.temp.commitwiG = commitwiG
-    round.temp.u1K = u1K
-    round.temp.u1Gamma = u1Gamma
+    //round.temp.u1K = u1K
+    round.temp.u1KEnc = msgmap["U1K"] 
+    //round.temp.u1Gamma = u1Gamma
+    round.temp.u1GammaEnc = msgmap["U1Gamma"]
     round.temp.commitU1GammaG = commitU1GammaG
 
     srm := &SignRound1Message{

@@ -134,7 +134,7 @@ func (round *round9) ExecTee(curIndex int) error {
 	return fmt.Errorf("signing round9 check fail")
     }
 
-    round.end <- PrePubData{K1: round.temp.u1K, R: round.temp.deltaGammaGx, Ry: round.temp.deltaGammaGy, Sigma1: round.temp.sigma1}
+    round.end <- PrePubData{K1Enc: round.temp.u1KEnc, R: round.temp.deltaGammaGx, Ry: round.temp.deltaGammaGy, Sigma1: round.temp.sigma1}
 
     log.Debug("============= presign last round round9.start success ================")
     return nil

@@ -1344,7 +1344,10 @@ func HandleSigningRound1Msg(conn net.Conn,content string) {
 
     w1 := new(big.Int).Mul(lambda1, sku1)
     w1 = new(big.Int).Mod(w1, secp256k1.S256(s.KeyType).N1())
-    msgmap["W1"] = fmt.Sprintf("%v",w1)
+    msgmap["W1"],err = EncryptW1(w1)
+    if err != nil {
+	return
+    }
 
     u1K := random.GetRandomIntFromZn(secp256k1.S256(s.KeyType).N1())
     u1Gamma := random.GetRandomIntFromZn(secp256k1.S256(s.KeyType).N1())
@@ -1362,8 +1365,15 @@ func HandleSigningRound1Msg(conn net.Conn,content string) {
 	return
     }
 
-    msgmap["U1K"] = fmt.Sprintf("%v",u1K)
-    msgmap["U1Gamma"] = fmt.Sprintf("%v",u1Gamma)
+    msgmap["U1K"],err = EncryptU1K(u1K)
+    if err != nil {
+	return
+    }
+
+    msgmap["U1Gamma"],err = EncryptU1Gamma(u1Gamma)
+    if err != nil {
+	return
+    }
 
     wicom,err := json.Marshal(commitwiG)
     if err != nil {
@@ -1402,7 +1412,12 @@ func HandleSigningRound2PaiEnc(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
 
-    u1KCipher, u1R, _ := s.U1PaillierPk.Encrypt(s.U1K)
+    u1K,err := DecryptU1K(s.U1K)
+    if err != nil {
+	return
+    }
+
+    u1KCipher, u1R, _ := s.U1PaillierPk.Encrypt(u1K)
 
     msgmap["U1R"] = fmt.Sprintf("%v",u1R)
     msgmap["U1KCipher"] = fmt.Sprintf("%v",u1KCipher)
@@ -1432,7 +1447,12 @@ func HandleSigningRound2Msg(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
 
-    u1u1MtAZK1Proof := ec2.MtARangeProofProve(s.KeyType,s.UKC,s.U1K, s.UKC2, s.U1PaiPK, s.U1Nt)
+    u1K,err := DecryptU1K(s.U1K)
+    if err != nil {
+	return
+    }
+
+    u1u1MtAZK1Proof := ec2.MtARangeProofProve(s.KeyType,s.UKC,u1K, s.UKC2, s.U1PaiPK, s.U1Nt)
     pf,err := json.Marshal(u1u1MtAZK1Proof)
     if err != nil {
 	return
@@ -1591,10 +1611,15 @@ func HandleSigningRound4Msg(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
     
-    u1KGamma1Cipher := s.CurPaiPk.HomoMul(s.KC, s.U1Gamma)
+    u1Gamma,err := DecryptU1Gamma(s.U1Gamma)
+    if err != nil {
+	return
+    }
+
+    u1KGamma1Cipher := s.CurPaiPk.HomoMul(s.KC, u1Gamma)
     beta1U1StarCipher, u1BetaR1, _ := s.CurPaiPk.Encrypt(s.BetaStar)
     u1KGamma1Cipher = s.CurPaiPk.HomoAdd(u1KGamma1Cipher, beta1U1StarCipher)
-    u1u1MtAZK2Proof := ec2.MtARespZKProofProve(s.KeyType,s.U1Gamma, s.BetaStar, u1BetaR1, s.UKC, u1KGamma1Cipher,s.OldPaiPk, s.OldNt)
+    u1u1MtAZK2Proof := ec2.MtARespZKProofProve(s.KeyType,u1Gamma, s.BetaStar, u1BetaR1, s.UKC, u1KGamma1Cipher,s.OldPaiPk, s.OldNt)
 
     msgmap["U1KGamma1Cipher"] = fmt.Sprintf("%v",u1KGamma1Cipher)
     pf,err := json.Marshal(u1u1MtAZK2Proof)
@@ -1629,10 +1654,15 @@ func HandleSigningRound4Msg1(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
     
-    u1Kw1Cipher := s.CurPaiPk.HomoMul(s.KC, s.W1)
+    w1,err := DecryptU1Gamma(s.W1)
+    if err != nil {
+	return
+    }
+
+    u1Kw1Cipher := s.CurPaiPk.HomoMul(s.KC, w1)
     v1U1StarCipher, u1VR1, _ := s.CurPaiPk.Encrypt(s.VU1Star)
     u1Kw1Cipher = s.CurPaiPk.HomoAdd(u1Kw1Cipher, v1U1StarCipher) // send to u1
-    u1u1MtAZK3Proof := ec2.MtAwcRespZKProofProve(s.KeyType,s.W1, s.VU1Star, u1VR1, s.UKC,u1Kw1Cipher,s.OldPaiPk, s.OldNt)
+    u1u1MtAZK3Proof := ec2.MtAwcRespZKProofProve(s.KeyType,w1, s.VU1Star, u1VR1, s.UKC,u1Kw1Cipher,s.OldPaiPk, s.OldNt)
     pf,err := json.Marshal(u1u1MtAZK3Proof)
     if err != nil {
 	return
@@ -1834,7 +1864,12 @@ func HandleSigningRound6Msg(conn net.Conn,content string) {
     deltaSum = new(big.Int).Mod(deltaSum, secp256k1.S256(s.KeyType).N1())
     msgmap["DeltaSum"] = fmt.Sprintf("%v",deltaSum)
     
-    u1GammaZKProof := ec2.ZkUProve(s.KeyType,s.U1Gamma)
+    u1Gamma,err := DecryptU1Gamma(s.U1Gamma)
+    if err != nil {
+	return
+    }
+
+    u1GammaZKProof := ec2.ZkUProve(s.KeyType,u1Gamma)
     pf,err := json.Marshal(u1GammaZKProof)
     if err != nil {
 	return
@@ -1961,8 +1996,13 @@ func HandleSigningRound7Msg(conn net.Conn,content string) {
     msgmap["deltaGammaGx"] = fmt.Sprintf("%v",deltaGammaGx)
     msgmap["deltaGammaGy"] = fmt.Sprintf("%v",deltaGammaGy)
 
+    u1K,err := DecryptU1Gamma(s.U1K)
+    if err != nil {
+	return
+    }
+
     // gg20: compute ZK proof of consistency between R_i and E_i(k_i) 
-    bigRK1Gx,bigRK1Gy := secp256k1.S256(s.KeyType).ScalarMult(deltaGammaGx,deltaGammaGy,s.U1K.Bytes())
+    bigRK1Gx,bigRK1Gy := secp256k1.S256(s.KeyType).ScalarMult(deltaGammaGx,deltaGammaGy,u1K.Bytes())
 
     pdlWSlackStatement := &ec2.PDLwSlackStatement{
 	    PK:         s.PaiPk,
@@ -1983,7 +2023,7 @@ func HandleSigningRound7Msg(conn net.Conn,content string) {
 
     pdlWSlackWitness := &ec2.PDLwSlackWitness{
 	    SK: paisk,
-	    K1: s.U1K,
+	    K1: u1K,
 	    K1Ra:  s.U1Ra,
     }
     pdlWSlackPf := ec2.NewPDLwSlackProof(s.KeyType,pdlWSlackWitness, pdlWSlackStatement)
@@ -2203,7 +2243,12 @@ func HandleSigningRound10Msg(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
     
-    mk1 := new(big.Int).Mul(s.TxHash, s.K1)
+    u1K,err := DecryptU1K(string(s.K1.Bytes()))
+    if err != nil {
+	return
+    }
+
+    mk1 := new(big.Int).Mul(s.TxHash, u1K)
     rSigma1 := new(big.Int).Mul(s.R, s.Sigma1)
     us1 := new(big.Int).Add(mk1, rSigma1)
     us1 = new(big.Int).Mod(us1, secp256k1.S256(s.KeyType).N1())
@@ -3446,5 +3491,52 @@ func  DecryptP2(cm string) (*big.Int,error) {
     return q,nil
 }
 
+//w1
+func EncryptW1(w1 *big.Int) (string,error) {
+    s := fmt.Sprintf("%v", w1)
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
+
+func  DecryptW1(cm string) (*big.Int,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    w1,_ := new(big.Int).SetString(s,10)
+    return w1,nil
+}
+
+//u1K
+func EncryptU1K(u1K *big.Int) (string,error) {
+    s := fmt.Sprintf("%v", u1K)
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
+
+func  DecryptU1K(cm string) (*big.Int,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    u1K,_ := new(big.Int).SetString(s,10)
+    return u1K,nil
+}
+
+//u1Gamma
+func EncryptU1Gamma(u1Gamma *big.Int) (string,error) {
+    s := fmt.Sprintf("%v", u1Gamma)
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
+
+func  DecryptU1Gamma(cm string) (*big.Int,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    u1Gamma,_ := new(big.Int).SetString(s,10)
+    return u1Gamma,nil
+}
 
 
