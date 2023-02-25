@@ -279,7 +279,7 @@ func (round *round4) ExecTee(curIndex int) error {
 	    return errors.New("round get msg3 fail")
     }
 
-    s := &socket.EDKGRound4Msg{PkSet:PkSet[:],DPk:msg3.DPk,ThresHold:round.threshold,DnodeCount:round.dnodecount,Sk:round.temp.sk,Ids:ids}
+    s := &socket.EDKGRound4Msg{PkSet:PkSet[:],DPk:msg3.DPk,ThresHold:round.threshold,DnodeCount:round.dnodecount,Sk:round.temp.skEnc,Ids:ids}
     s.Base.SetBase(round.keytype,round.msgprex)
     err = socket.SendMsgData(smpc.VSocketConnect,s)
     if err != nil {

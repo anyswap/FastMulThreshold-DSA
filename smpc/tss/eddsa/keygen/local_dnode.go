@@ -49,6 +49,7 @@ type localTempData struct {
 
 	//round 1
 	sk   [32]byte
+	skEnc   string
 	pk   [32]byte
 	DPk  [64]byte
 	zkPk [64]byte

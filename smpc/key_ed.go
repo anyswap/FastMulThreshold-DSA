@@ -363,11 +363,20 @@ func processKeyGenEDDSA(msgprex string, errChan chan struct{}, outCh <-chan smpc
 				return fmt.Errorf("get worker fail")
 			}
 
-			w.edsku1.PushBack(string(msg.Sk[:]))
-			w.edpk.PushBack(string(msg.FinalPkBytes[:]))
+			if Tee {
+			    w.edsku1.PushBack(msg.SkEnc)
+			    w.edpk.PushBack(string(msg.FinalPkBytes[:]))
 
-			s := "XXX" + common.Sep11 + string(msg.Pk[:]) + common.Sep11 + string(msg.TSk[:]) + common.Sep11 + string(msg.FinalPkBytes[:])
-			w.edsave.PushBack(string(s))
+			    s := "XXX" + common.Sep11 + string(msg.Pk[:]) + common.Sep11 + string(msg.TSk[:]) + common.Sep11 + string(msg.FinalPkBytes[:])
+			    w.edsave.PushBack(string(s))
+			} else {
+			    w.edsku1.PushBack(string(msg.Sk[:]))
+			    w.edpk.PushBack(string(msg.FinalPkBytes[:]))
+
+			    s := "XXX" + common.Sep11 + string(msg.Pk[:]) + common.Sep11 + string(msg.TSk[:]) + common.Sep11 + string(msg.FinalPkBytes[:])
+			    w.edsave.PushBack(string(s))
+			}
+			
 			fmt.Printf("=======================processKeyGenEDDSA,success finish ed keygen, key = %v =======================\n", msgprex)
 			return nil
 		}

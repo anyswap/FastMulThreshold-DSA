@@ -2414,7 +2414,11 @@ func HandleEDKGRound1Msg(conn net.Conn,content string) {
 	return
     }
 
-    msgmap["sk"] = hex.EncodeToString(sk[:])
+    msgmap["sk"],err = EDKGEncryptSk(sk)
+    if err != nil {
+	return
+    }
+
     msgmap["pk"] = hex.EncodeToString(pk[:])
     msgmap["CPk"] = hex.EncodeToString(CPk[:])
     msgmap["DPk"] = hex.EncodeToString(DPk[:])
@@ -2527,10 +2531,15 @@ func HandleEDKGRound4Msg(conn net.Conn,content string) {
 	    ed.ScReduce(&a, &aDigest)
     }
 
+    sk,err := EDKGDecryptSk(s.Sk)
+    if err != nil {
+	return
+    }
+
     // 2.6 calculate ask
     var ask [32]byte
     var temSk2 [32]byte
-    copy(temSk2[:], s.Sk[:32])
+    copy(temSk2[:], sk[:32])
 
     if s.KeyType == smpc.SR25519 {
 	    ed_ristretto.ScMul(&ask, &a, &temSk2)
@@ -2798,7 +2807,7 @@ func HandleEDKGRound6Msg(conn net.Conn,content string) {
 
 type EDSigningRound1ReturnValue struct {
     Uids [][32]byte
-    Sk [32]byte
+    //Sk [32]byte
     TSk [32]byte
     Pkfinal [32]byte
 
@@ -2823,8 +2832,13 @@ func HandleEDSigningRound1Msg(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
     
-    var sk [32]byte
-    copy(sk[:], s.Sk[:32])
+    //var sk [32]byte
+    //copy(sk[:], s.Sk[:32])
+    //sk,err := EDKGDecryptSk(s.Sk)
+    //if err != nil {
+//	return
+  //  }
+    
     var tsk [32]byte
     copy(tsk[:], s.TSk[:32])
     var pkfinal [32]byte
@@ -2895,7 +2909,7 @@ func HandleEDSigningRound1Msg(conn net.Conn,content string) {
 	    }
     }
 
-    ret := &EDSigningRound1ReturnValue{Uids:uids,Sk:sk,TSk:tsk,Pkfinal:pkfinal,R:r,ZkR:zkR,DR:DR,CR:CR}
+    ret := &EDSigningRound1ReturnValue{Uids:uids,TSk:tsk,Pkfinal:pkfinal,R:r,ZkR:zkR,DR:DR,CR:CR}
     b,err := json.Marshal(ret)
     if err != nil {
 	return
@@ -3670,5 +3684,28 @@ func  DecryptL1(cm string) (*big.Int,error) {
     return l1,nil
 }
 
+//ed kg sk
+func EDKGEncryptSk(sk [32]byte) (string,error) {
+    s := hex.EncodeToString(sk[:])
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
+
+func  EDKGDecryptSk(cm string) ([32]byte,error) {
+    var ret [32]byte
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return ret,err
+    }
+
+    var tmp []byte
+    tmp,err = hex.DecodeString(s)
+    if err != nil {
+	return ret,err
+    }
+    var sk [32]byte
+    copy(sk[:],tmp[:])
+
+    return sk,nil
+}
 
 

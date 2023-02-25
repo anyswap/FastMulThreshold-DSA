@@ -200,7 +200,6 @@ func (round *round1) NextRound() smpc.Round {
 
 type EDSigningRound1ReturnValue struct {
     Uids [][32]byte
-    Sk [32]byte
     TSk [32]byte
     Pkfinal [32]byte
 
@@ -220,7 +219,7 @@ func (round *round1) ExecTee(curIndex int) error {
 	round.temp.message = round.txhash.Bytes() 
 	round.temp.keyType = round.keyType
     
-	s := &socket.EDSigningRound1Msg{Sk:round.save.Sk,TSk:round.save.TSk,FinalPkBytes:round.save.FinalPkBytes,IDs:round.save.IDs}
+	s := &socket.EDSigningRound1Msg{Sk:round.save.SkEnc,TSk:round.save.TSk,FinalPkBytes:round.save.FinalPkBytes,IDs:round.save.IDs}
 	s.Base.SetBase(round.keyType,round.msgprex)
 	err := socket.SendMsgData(smpc.VSocketConnect,s)
 	if err != nil {
@@ -243,7 +242,7 @@ func (round *round1) ExecTee(curIndex int) error {
 	}
 
 	round.temp.uids = ret.Uids
-	round.temp.sk = ret.Sk
+	round.temp.skEnc = round.save.SkEnc
 	round.temp.tsk = ret.TSk
 	round.temp.pkfinal = ret.Pkfinal
 	round.temp.DR = ret.DR

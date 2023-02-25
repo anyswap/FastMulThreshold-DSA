@@ -2408,26 +2408,31 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
 
     sd := &edkeygen.LocalDNodeSaveData{}
 
-    var sk [32]byte
-    va := sku1.Bytes()
-    if len(va) < 32 {
-	diff := 32 - len(va)
-	for i := 0;i<diff;i++ {
-	    sk[i] = byte(0x00)
-	}
-	copy(sk[diff:], va[:])
+    if Tee {
+	sd.SkEnc = string(sku1.Bytes())
     } else {
-	copy(sk[:], va[:32])
+	var sk [32]byte
+	va := sku1.Bytes()
+	if len(va) < 32 {
+	    diff := 32 - len(va)
+	    for i := 0;i<diff;i++ {
+		sk[i] = byte(0x00)
+	    }
+	    copy(sk[diff:], va[:])
+	} else {
+	    copy(sk[:], va[:32])
+	}
+
+	sd.Sk = sk
     }
 
     var tsk [32]byte
-    va = []byte(mm[2])
+    va := []byte(mm[2])
     copy(tsk[:], va[:32])
     var pkfinal [32]byte
     va = []byte(mm[3])
     copy(pkfinal[:], va[:32])
 
-    sd.Sk = sk
     sd.TSk = tsk
     sd.FinalPkBytes = pkfinal
     sd.IDs = GetGroupNodeUIDs(cointype, pubs.GroupID,pubs.GroupID)

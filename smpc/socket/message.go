@@ -1206,7 +1206,8 @@ type EDKGRound4Msg struct {
     DPk [64]byte
     ThresHold int
     DnodeCount int
-    Sk [32]byte
+    //Sk [32]byte
+    Sk string
 
     Ids []*big.Int
 }
@@ -1285,7 +1286,7 @@ func (kg *EDKGRound6Msg) GetMsgType() string {
 type EDSigningRound1Msg struct {
     Base
 
-    Sk [32]byte
+    Sk string
     TSk [32]byte 
     FinalPkBytes [32]byte
     IDs []*big.Int

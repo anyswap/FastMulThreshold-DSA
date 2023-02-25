@@ -164,15 +164,15 @@ func (round *round1) ExecTee(index int) error {
 	return err
     }
  
-    var tmp []byte
+    /*var tmp []byte
     tmp,err = hex.DecodeString(msgmap["sk"])
     if err != nil {
 	return err
     }
     var sk [32]byte
-    copy(sk[:],tmp[:])
+    copy(sk[:],tmp[:])*/
 
-    tmp,err = hex.DecodeString(msgmap["pk"])
+    tmp,err := hex.DecodeString(msgmap["pk"])
     if err != nil {
 	return err
     }
@@ -200,7 +200,8 @@ func (round *round1) ExecTee(index int) error {
     var CPk [32]byte
     copy(CPk[:],tmp[:])
     
-    round.temp.sk = sk
+    //round.temp.sk = sk
+    round.temp.skEnc = msgmap["sk"] 
     round.temp.pk = pk
     round.temp.DPk = DPk
     round.temp.zkPk = zkPk
@@ -212,7 +213,8 @@ func (round *round1) ExecTee(index int) error {
     kg.SetFromID(round.dnodeid)
     kg.SetFromIndex(index)
 
-    round.Save.Sk = sk
+    //round.Save.Sk = sk
+    round.Save.SkEnc = msgmap["sk"]
     round.Save.Pk = pk
     round.temp.kgRound1Messages[index] = kg
     round.out <- kg
