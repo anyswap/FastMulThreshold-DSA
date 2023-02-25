@@ -304,17 +304,18 @@ func processKeyGen(msgprex string, errChan chan struct{}, outCh <-chan smpclib.M
 			w.pkx.PushBack(fmt.Sprintf("%v", msg.Pkx))
 			w.pky.PushBack(fmt.Sprintf("%v", msg.Pky))
 			w.bip32c.PushBack(string(msg.C.Bytes()))
-			w.sku1.PushBack(string(msg.SkU1.Bytes()))
 
 			ss := "XXX"
 			ss = ss + common.SepSave
 			var s1,s2,s3 string
 			if tee {
+			    w.sku1.PushBack(msg.SkU1Enc)
 			    s1 = "XXX" 
 			    s2 = "XXX"
 			    s3 = msg.U1PaillierSkEnc
 			    ss = ss + s1 + common.SepSave + s2 + common.SepSave + s3 + common.SepSave
 			} else {
+			    w.sku1.PushBack(string(msg.SkU1.Bytes()))
 			    s1 = msg.U1PaillierSk.Length
 			    s2 = string(msg.U1PaillierSk.L.Bytes())
 			    s3 = string(msg.U1PaillierSk.U.Bytes())
@@ -335,15 +336,26 @@ func processKeyGen(msgprex string, errChan chan struct{}, outCh <-chan smpclib.M
 				s3 = string(v.H2.Bytes())
 				ss = ss + s1 + common.SepSave + s2 + common.SepSave + s3 + common.SepSave
 			}
-			
-			ss += string(msg.U1NtildePrivData.Alpha.Bytes())
-			ss += common.SepSave
-			ss += string(msg.U1NtildePrivData.Beta.Bytes())
-			ss += common.SepSave
-			ss += string(msg.U1NtildePrivData.Q1.Bytes())
-			ss += common.SepSave
-			ss += string(msg.U1NtildePrivData.Q2.Bytes())
-			ss += common.SepSave
+		
+			if tee {
+			    ss += "XXX" 
+			    ss += common.SepSave
+			    ss += "XXX"
+			    ss += common.SepSave
+			    ss += "XXX"
+			    ss += common.SepSave
+			    ss += msg.U1NtildePrivDataEnc
+			    ss += common.SepSave
+			} else {
+			    ss += string(msg.U1NtildePrivData.Alpha.Bytes())
+			    ss += common.SepSave
+			    ss += string(msg.U1NtildePrivData.Beta.Bytes())
+			    ss += common.SepSave
+			    ss += string(msg.U1NtildePrivData.Q1.Bytes())
+			    ss += common.SepSave
+			    ss += string(msg.U1NtildePrivData.Q2.Bytes())
+			    ss += common.SepSave
+			}
 
 			ss += "NULL"
 			w.save.PushBack(string(ss))

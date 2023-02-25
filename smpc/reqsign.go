@@ -1306,14 +1306,15 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
 	    ch <- res
 	    return
     }
-    sku1 := new(big.Int).SetBytes(da2)
+
+    var sku1 *big.Int
+    sku1 = new(big.Int).SetBytes(da2)
     if sku1 == nil {
 	    common.Error("============================sign,get sku1 error===========================", "pubkey", pubkey, "key", wsid)
 	    res := RPCSmpcRes{Ret: "", Tip: "", Err: fmt.Errorf("sign get sku1 fail")}
 	    ch <- res
 	    return
     }
-    //
 
     var result string
     var cherrtmp error
@@ -1330,17 +1331,18 @@ func sign(wsid string, account string, pubkey string, inputcode string, unsignha
 	    result = ret
 	    cherrtmp = cherr
     } else {
-	    signEC(wsid, unsignhash, save, sku1, smpcpkx, smpcpky, inputcode, keytype, pickdata, rch)
-	    ret, tip, cherr := GetChannelValue(waitall, rch)
-	    common.Debug("=================sign,call signEC finish.==============", "return result", ret, "err", cherr, "key", wsid)
-	    if cherr != nil {
-		    res := RPCSmpcRes{Ret: "", Tip: tip, Err: cherr}
-		    ch <- res
-		    return
-	    }
+	signEC(wsid, unsignhash, save, sku1, smpcpkx, smpcpky, inputcode, keytype, pickdata, rch)
+	
+	ret, tip, cherr := GetChannelValue(waitall, rch)
+	common.Debug("=================sign,call signEC finish.==============", "return result", ret, "err", cherr, "key", wsid)
+	if cherr != nil {
+		res := RPCSmpcRes{Ret: "", Tip: tip, Err: cherr}
+		ch <- res
+		return
+	}
 
-	    result = ret
-	    cherrtmp = cherr
+	result = ret
+	cherrtmp = cherr
     }
 
     tmps := strings.Split(result, ":")

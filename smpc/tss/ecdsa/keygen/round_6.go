@@ -47,7 +47,7 @@ func (round *round6) Start() error {
 
 	////////////////////////
 	if round.tee {
-	    round.ExecTee(curIndex)
+	    return round.ExecTee(curIndex)
 	}
 	///////////////////////
 
@@ -288,10 +288,10 @@ func (round *round6) ExecTee(curIndex int) error {
     }
     ///////////
 
-    round.temp.p1 = nil
-    round.temp.p2 = nil 
+    round.temp.p1Enc = ""
+    round.temp.p2Enc = "" 
 
-    s := &socket.KGRound6Msg{Sk:round.Save.SkU1}
+    s := &socket.KGRound6Msg{Sk:round.Save.SkU1Enc}
     s.Base.SetBase(round.keytype,round.msgprex)
     err = socket.SendMsgData(smpc.VSocketConnect,s) 
     if err != nil {

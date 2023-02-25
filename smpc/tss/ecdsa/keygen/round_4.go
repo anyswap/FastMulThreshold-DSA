@@ -285,75 +285,26 @@ func (round *round4) ExecTee(curIndex int) error {
 	    }
     }
 
-    //////
-    var pkx *big.Int
-    var pky *big.Int
-    var c *big.Int
-    var skU1 *big.Int
+    cs := make([]*big.Int,len(ids))
+    ds := make([][]*big.Int,len(ids))
+    IDs := make([]*big.Int,len(ids))
+    Shares := make([]string,len(ids))
+    cc := make([]*big.Int,len(ids))
 
     for k := range ids {
-	    msg3, _ := round.temp.kgRound3Messages[k].(*KGRound3Message)
-	    msg1, _ := round.temp.kgRound1Messages[k].(*KGRound1Message)
-	    msg2, _ := round.temp.kgRound2Messages[k].(*KGRound2Message)
-	    msg21, _ := round.temp.kgRound2Messages1[k].(*KGRound2Message1)
-	    
-	    s := &socket.KGRound4DeCom{ID:msg2.ID, Share:msg2.ShareEnc, C:msg1.ComC, D:msg3.ComU1GD, Msg21C:msg21.C1}
-	    s.Base.SetBase(round.keytype,round.msgprex)
-	    err := socket.SendMsgData(smpc.VSocketConnect,s)
-	    if err != nil {
-		return err
-	    }
-	   
-	    kgs := <-round.teeout
-	    msgmap := make(map[string]string)
-	    err = json.Unmarshal([]byte(kgs), &msgmap)
-	    if err != nil {
-		return err
-	    }
-
-	    pkx, _ = new(big.Int).SetString(msgmap["PKX"], 10)
-	    pky, _ = new(big.Int).SetString(msgmap["PKY"], 10)
-
-	    c, _ = new(big.Int).SetString(msgmap["C"], 10)
-	    skU1, _ = new(big.Int).SetString(msgmap["SKU1"], 10)
-	    break
+	msg3, _ := round.temp.kgRound3Messages[k].(*KGRound3Message)
+	msg1, _ := round.temp.kgRound1Messages[k].(*KGRound1Message)
+	msg2, _ := round.temp.kgRound2Messages[k].(*KGRound2Message)
+	msg21, _ := round.temp.kgRound2Messages1[k].(*KGRound2Message1)
+	cs[k] = msg1.ComC
+	ds[k] = msg3.ComU1GD
+	IDs[k] = msg2.ID
+	Shares[k] = msg2.ShareEnc
+	cc[k] = msg21.C1
     }
 
-    for k := range ids {
-	    if k == 0 {
-		    continue
-	    }
-
-	    msg2, _ := round.temp.kgRound2Messages[k].(*KGRound2Message)
-	    msg3, _ := round.temp.kgRound3Messages[k].(*KGRound3Message)
-	    msg1, _ := round.temp.kgRound1Messages[k].(*KGRound1Message)
-	    msg21, _ := round.temp.kgRound2Messages1[k].(*KGRound2Message1)
-
-	    s := &socket.KGRound4DeCom2{ID:msg2.ID, Share:msg2.ShareEnc, C:msg1.ComC, D:msg3.ComU1GD, Msg21C:msg21.C1}
-	    s.Base.SetBase(round.keytype,round.msgprex)
-	    err := socket.SendMsgData(smpc.VSocketConnect,s)
-	    if err != nil {
-		return err
-	    }
-	   
-	    kgs := <-round.teeout
-	    msgmap := make(map[string]string)
-	    err = json.Unmarshal([]byte(kgs), &msgmap)
-	    if err != nil {
-		return err
-	    }
-	   
-	    g0,_ := new(big.Int).SetString(msgmap["G0"],10)
-	    g1,_ := new(big.Int).SetString(msgmap["G1"],10)
-	    cc,_ := new(big.Int).SetString(msgmap["C"],10)
-	    sk,_ := new(big.Int).SetString(msgmap["SKU1"],10)
-	    pkx, pky = secp256k1.S256(round.keytype).Add(pkx, pky, g0, g1)
-
-	    c = new(big.Int).Add(c, cc)
-	    skU1 = new(big.Int).Add(skU1, sk)
-    }
-
-    s := &socket.KGRound4XiCom{C:c, Sk:skU1}
+    NtildeLength := 2048
+    s := &socket.KGRound4DeCom{Cs:cs,Ds:ds,IDs:IDs,Shares:Shares,CC:cc,NtildeLen:NtildeLength}
     s.Base.SetBase(round.keytype,round.msgprex)
     err = socket.SendMsgData(smpc.VSocketConnect,s)
     if err != nil {
@@ -366,47 +317,34 @@ func (round *round4) ExecTee(curIndex int) error {
     if err != nil {
 	return err
     }
-   
+
+    var pkx *big.Int
+    var pky *big.Int
+    var c *big.Int
+    var skU1 string 
+
+    pkx,_ = new(big.Int).SetString(msgmap["PKX"],10)
+    pky,_ = new(big.Int).SetString(msgmap["PKY"],10)
     c,_ = new(big.Int).SetString(msgmap["C"],10)
-    skU1,_ = new(big.Int).SetString(msgmap["SK"],10)
-    
-    round.Save.SkU1 = skU1
+    skU1 = msgmap["SKU1"]
+
     round.Save.Pkx = pkx
     round.Save.Pky = pky
     round.Save.C = c
+    round.Save.SkU1Enc = skU1
 
-    NtildeLength := 2048
-    s2 := &socket.KGRound4Msg{Sk:skU1, NtildeLen:NtildeLength}
-    s2.Base.SetBase(round.keytype,round.msgprex)
-    err = socket.SendMsgData(smpc.VSocketConnect,s2)
-    if err != nil {
-	return err
-    }
-   
-    kgs = <-round.teeout
-    msgmap = make(map[string]string)
-    err = json.Unmarshal([]byte(kgs), &msgmap)
-    if err != nil {
-	return err
-    }
-  
+    round.Save.U1NtildePrivDataEnc = msgmap["U1NtildePrivData"]
+
+    round.temp.p1Enc = msgmap["P1"]
+    round.temp.p2Enc = msgmap["P2"]
+
     com := &ec2.Commitment{}
     if err := json.Unmarshal([]byte(msgmap["CommitXiG"]),com);err != nil {
 	return err
     }
 
     round.temp.commitXiG = com
-    //
-    ntildePriv := &ec2.NtildePrivData{}
-    if err := json.Unmarshal([]byte(msgmap["U1NtildePrivData"]),ntildePriv);err != nil {
-	return err
-    }
-
-    round.Save.U1NtildePrivData = ntildePriv
-
-    round.temp.p1,_ = new(big.Int).SetString(msgmap["P1"],10)
-    round.temp.p2,_ = new(big.Int).SetString(msgmap["P2"],10)
-
+    
     ntildeProof1 := &ec2.NtildeProof{}
     if err := json.Unmarshal([]byte(msgmap["NtildeProof1"]),ntildeProof1);err != nil {
 	return err
@@ -433,11 +371,9 @@ func (round *round4) ExecTee(curIndex int) error {
     }
     kg.SetFromID(round.dnodeid)
     kg.SetFromIndex(curIndex)
-
     round.Save.U1NtildeH1H2[curIndex] = u1NtildeH1H2
     round.temp.kgRound4Messages[curIndex] = kg
     round.out <- kg
-
     return nil
 }
 

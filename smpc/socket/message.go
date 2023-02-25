@@ -250,6 +250,34 @@ func (kg *KGRound4VssCheck) GetMsgType() string {
 type KGRound4DeCom struct {
     Base
 
+    Cs []*big.Int
+    Ds [][]*big.Int
+
+    IDs []*big.Int
+    Shares []string
+    CC []*big.Int
+    NtildeLen int
+}
+
+func (kg *KGRound4DeCom) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *KGRound4DeCom) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *KGRound4DeCom) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *KGRound4DeCom) GetMsgType() string {
+    return "KGRound4DeCom"
+}
+/*
+type KGRound4DeCom struct {
+    Base
+
     ID *big.Int
     //Share *big.Int
     Share string
@@ -275,7 +303,7 @@ func (kg *KGRound4DeCom) ToObj(raw []byte) error {
 func (kg *KGRound4DeCom) GetMsgType() string {
     return "KGRound4DeCom"
 }
-
+*/
 //------------------------------------------------------
 
 type KGRound4DeCom2 struct {
@@ -367,8 +395,8 @@ type KGRound5SquareFee struct {
     Base
 
     Ntilde *big.Int
-    P1 *big.Int
-    P2 *big.Int
+    P1 string 
+    P2 string
 }
 
 func (kg *KGRound5SquareFee) SetBase(kt string,keyid string) {
@@ -393,8 +421,8 @@ type KGRound5Hv struct {
     Base
 
     Ntilde *big.Int
-    P1 *big.Int
-    P2 *big.Int
+    P1 string 
+    P2 string
 }
 
 func (kg *KGRound5Hv) SetBase(kt string,keyid string) {
@@ -495,7 +523,7 @@ func (kg *KGRound6HvCheck) GetMsgType() string {
 type KGRound6Msg struct {
     Base
 
-    Sk *big.Int
+    Sk string
 }
 
 func (kg *KGRound6Msg) SetBase(kt string,keyid string) {

@@ -186,7 +186,7 @@ func (round *round5) NextRound() smpc.Round {
 
 func (round *round5) ExecTee(curIndex int) error {
     ntilde := round.temp.kgRound4Messages[curIndex].(*KGRound4Message).U1NtildeH1H2.Ntilde
-    s := &socket.KGRound5SquareFee{Ntilde:ntilde,P1:round.temp.p1,P2:round.temp.p2}
+    s := &socket.KGRound5SquareFee{Ntilde:ntilde,P1:round.temp.p1Enc,P2:round.temp.p2Enc}
     s.Base.SetBase(round.keytype,round.msgprex)
     err := socket.SendMsgData(smpc.VSocketConnect,s)
     if err != nil {
@@ -218,7 +218,7 @@ func (round *round5) ExecTee(curIndex int) error {
     round.temp.kgRound5Messages2[curIndex] = srm
     round.out <- srm
 
-    s2 := &socket.KGRound5Hv{Ntilde:ntilde,P1:round.temp.p1,P2:round.temp.p2}
+    s2 := &socket.KGRound5Hv{Ntilde:ntilde,P1:round.temp.p1Enc,P2:round.temp.p2Enc}
     s2.Base.SetBase(round.keytype,round.msgprex)
     err = socket.SendMsgData(smpc.VSocketConnect,s2)
     if err != nil {

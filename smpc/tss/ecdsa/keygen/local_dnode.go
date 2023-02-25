@@ -84,7 +84,9 @@ type localTempData struct {
 	//round 4
 	// Ntilde = p1*p2
 	p1 *big.Int
+	p1Enc string
 	p2 *big.Int
+	p2Enc string
 	commitXiG  *ec2.Commitment
 
 	//round 5

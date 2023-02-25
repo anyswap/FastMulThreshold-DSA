@@ -155,7 +155,7 @@ func handleMessage(conn net.Conn,msg string) {
     case "KGRound4DeCom":
 	    HandleKGRound4DeCom(conn,msgmap["Content"])
 	    break
-    case "KGRound4DeCom2":
+    /*case "KGRound4DeCom2":
 	    HandleKGRound4DeCom2(conn,msgmap["Content"])
 	    break
     case "KGRound4XiCom":
@@ -163,7 +163,7 @@ func handleMessage(conn net.Conn,msg string) {
 	    break
     case "KGRound4Msg":
 	    HandleKGRound4Msg(conn,msgmap["Content"])
-	    break
+	    break*/
     case "KGRound5SquareFee":
 	    HandleKGRound5SquareFee(conn,msgmap["Content"])
 	    break
@@ -739,19 +739,118 @@ func HandleKGRound4DeCom(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
     
-    sh,err := DecryptShare(s.Share,KeyFile)
+    var pkx *big.Int
+    var pky *big.Int
+    var c *big.Int
+    var skU1 *big.Int
+
+    for k:= range s.Cs {
+	sh,err := DecryptShare(s.Shares[k],KeyFile)
+	if err != nil {
+	    return
+	}
+
+	ushare := &ec2.ShareStruct2{ID: s.IDs[k], Share: sh}
+	deCommit := &ec2.Commitment{C: s.Cs[k], D: s.Ds[k]}
+	_, u1G := deCommit.DeCommit(s.KeyType)
+	pkx = u1G[0]
+	pky = u1G[1]
+
+	c = s.CC[k] 
+	skU1 = ushare.Share
+	break
+    }
+
+    for k := range s.Cs {
+	if k == 0 {
+	    continue
+	}
+
+	sh,err := DecryptShare(s.Shares[k],KeyFile)
+	if err != nil {
+	    return
+	}
+
+	ushare := &ec2.ShareStruct2{ID: s.IDs[k], Share: sh}
+	deCommit := &ec2.Commitment{C: s.Cs[k], D: s.Ds[k]}
+	_, u1G := deCommit.DeCommit(s.KeyType)
+	pkx, pky = secp256k1.S256(s.KeyType).Add(pkx, pky, u1G[0], u1G[1])
+	c = new(big.Int).Add(c, s.CC[k])
+	skU1 = new(big.Int).Add(skU1, ushare.Share)
+    }
+
+    c = new(big.Int).Mod(c, secp256k1.S256(s.KeyType).N1())
+    skU1 = new(big.Int).Mod(skU1, secp256k1.S256(s.KeyType).N1())
+
+    msgmap["PKX"] = fmt.Sprintf("%v", pkx)
+    msgmap["PKY"] = fmt.Sprintf("%v", pky)
+    msgmap["C"] = fmt.Sprintf("%v", c)
+    msgmap["SKU1"],err = EncryptSk(skU1)
     if err != nil {
 	return
     }
 
-    ushare := &ec2.ShareStruct2{ID: s.ID, Share: sh}
+    // add commitment for sku1
+    xiGx, xiGy := secp256k1.S256(s.KeyType).ScalarBaseMult(skU1.Bytes())
+    u1Secrets := make([]*big.Int, 0)
+    u1Secrets = append(u1Secrets, xiGx)
+    u1Secrets = append(u1Secrets, xiGy)
+    commitXiG := new(ec2.Commitment).Commit(u1Secrets...)
+    if commitXiG == nil {
+	return 
+    }
 
-    deCommit := &ec2.Commitment{C: s.C, D: s.D}
-    _, u1G := deCommit.DeCommit(s.KeyType)
-    msgmap["PKX"] = fmt.Sprintf("%v", u1G[0])
-    msgmap["PKY"] = fmt.Sprintf("%v", u1G[1])
-    msgmap["C"] = fmt.Sprintf("%v", s.Msg21C)
-    msgmap["SKU1"] = fmt.Sprintf("%v", ushare.Share)
+    b,err := json.Marshal(commitXiG)
+    if err != nil {
+	return
+    }
+
+    msgmap["CommitXiG"] = string(b)
+    //
+
+    // zk of paillier key
+    u1NtildeH1H2, alpha, beta, p, q,p1,p2 := ec2.GenerateNtildeH1H2(s.NtildeLen)
+    if u1NtildeH1H2 == nil {
+	return
+    }
+    b,err = json.Marshal(u1NtildeH1H2)
+    if err != nil {
+	return
+    }
+    msgmap["NtildeH1H2"] = string(b)
+
+    ntildeProof1 := ec2.NewNtildeProof(u1NtildeH1H2.H1, u1NtildeH1H2.H2, alpha, p, q, u1NtildeH1H2.Ntilde)
+    ntildeProof2 := ec2.NewNtildeProof(u1NtildeH1H2.H2, u1NtildeH1H2.H1, beta, p, q, u1NtildeH1H2.Ntilde)
+    b,err = json.Marshal(ntildeProof1)
+    if err != nil {
+	return
+    }
+    msgmap["NtildeProof1"] = string(b)
+
+    b,err = json.Marshal(ntildeProof2)
+    if err != nil {
+	return
+    }
+    msgmap["NtildeProof2"] = string(b)
+
+    priv := &ec2.NtildePrivData{Alpha:alpha,Beta:beta,Q1:p,Q2:q}
+    msgmap["U1NtildePrivData"],err = EncryptNtildePrivData(priv)
+    if err != nil {
+	return
+    }
+
+    //msgmap["Alpha"] = fmt.Sprintf("%v",alpha)
+    //msgmap["Beta"] = fmt.Sprintf("%v",beta)
+    msgmap["P1"],err = EncryptP1(p1)
+    if err != nil {
+	return
+    }
+
+    msgmap["P2"],err = EncryptP2(p2)
+    if err != nil {
+	return
+    }
+
     str, err := json.Marshal(msgmap)
     if err != nil {
 	return
@@ -762,7 +861,7 @@ func HandleKGRound4DeCom(conn net.Conn,content string) {
 
 //---------------------------------------------------
 
-func HandleKGRound4DeCom2(conn net.Conn,content string) {
+/*func HandleKGRound4DeCom2(conn net.Conn,content string) {
     if content == "" {
 	return
     }
@@ -827,7 +926,6 @@ func HandleKGRound4XiCom(conn net.Conn,content string) {
 
     socket.Write(conn,string(str))
 }
-
 //---------------------------------------
 
 func HandleKGRound4Msg(conn net.Conn,content string) {
@@ -916,6 +1014,7 @@ func HandleKGRound4Msg(conn net.Conn,content string) {
 
     socket.Write(conn,string(str))
 }
+*/
 
 //--------------------------------------------
 
@@ -939,8 +1038,18 @@ func HandleKGRound5SquareFee(conn net.Conn,content string) {
 	return
     }
 
-    pMinus1 := new(big.Int).Sub(s.P1, big.NewInt(1))
-    qMinus1 := new(big.Int).Sub(s.P2, big.NewInt(1))
+    p1,err := DecryptP1(s.P1)
+    if err != nil {
+	return
+    }
+
+    p2,err := DecryptP2(s.P2)
+    if err != nil {
+	return
+    }
+
+    pMinus1 := new(big.Int).Sub(p1, big.NewInt(1))
+    qMinus1 := new(big.Int).Sub(p2, big.NewInt(1))
     l := new(big.Int).Mul(pMinus1, qMinus1)
     sfProof := ec2.SquareFreeProve(s.Ntilde,num,l)
     if sfProof == nil {
@@ -983,7 +1092,17 @@ func HandleKGRound5Hv(conn net.Conn,content string) {
 	return
     }
 
-    hvProof := ec2.HvProve(s.Ntilde,num,s.P1,s.P2)
+    p1,err := DecryptP1(s.P1)
+    if err != nil {
+	return
+    }
+
+    p2,err := DecryptP2(s.P2)
+    if err != nil {
+	return
+    }
+
+    hvProof := ec2.HvProve(s.Ntilde,num,p1,p2)
     if hvProof == nil {
 	return
     }
@@ -1113,8 +1232,13 @@ func HandleKGRound6Msg(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
 
+    sk,err := DecryptSk(s.Sk)
+    if err != nil {
+	return
+    }
+
     // add prove for xi 
-    u1zkXiProof := ec2.ZkXiProve(s.KeyType,s.Sk)
+    u1zkXiProof := ec2.ZkXiProve(s.KeyType,sk)
     if u1zkXiProof == nil {
 	return
     }
@@ -1211,7 +1335,14 @@ func HandleSigningRound1Msg(conn net.Conn,content string) {
 	    lambda1 = new(big.Int).Mul(lambda1, times)
 	    lambda1 = new(big.Int).Mod(lambda1, secp256k1.S256(s.KeyType).N1())
     }
-    w1 := new(big.Int).Mul(lambda1, s.SkU1)
+
+    tmp := string(s.SkU1.Bytes())
+    sku1,err := DecryptSk(tmp)
+    if err != nil {
+	return
+    }
+
+    w1 := new(big.Int).Mul(lambda1, sku1)
     w1 = new(big.Int).Mod(w1, secp256k1.S256(s.KeyType).N1())
     msgmap["W1"] = fmt.Sprintf("%v",w1)
 
@@ -3243,6 +3374,77 @@ func  DecryptShare(cm string,keyfile string) (*big.Int,error) {
     return share,nil
 }
 
+//sku1
+func EncryptSk(sku1 *big.Int) (string,error) {
+    s := fmt.Sprintf("%v", sku1)
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
+
+func  DecryptSk(cm string) (*big.Int,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    p,_ := new(big.Int).SetString(s,10)
+    return p,nil
+}
+
+//NtildePrivData
+func EncryptNtildePrivData(priv *ec2.NtildePrivData) (string,error) {
+    b,err := json.Marshal(priv)
+    if err != nil {
+	return "",err
+    }
+
+    return tsslib.EncryptTee(string(b),"pub") //TODO
+}
+
+func  DecryptNtildePrivData(cm string) (*ec2.NtildePrivData,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    priv := &ec2.NtildePrivData{} 
+    err = json.Unmarshal([]byte(s),priv)
+    if err != nil {
+	return nil,err
+    }
+
+    return priv,nil
+}
+
+//p1 p2
+func EncryptP1(p *big.Int) (string,error) {
+    s := fmt.Sprintf("%v", p)
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
+
+func  DecryptP1(cm string) (*big.Int,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    p,_ := new(big.Int).SetString(s,10)
+    return p,nil
+}
+
+func EncryptP2(q *big.Int) (string,error) {
+    s := fmt.Sprintf("%v", q)
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
+
+func  DecryptP2(cm string) (*big.Int,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    q,_ := new(big.Int).SetString(s,10)
+    return q,nil
+}
 
 
 
