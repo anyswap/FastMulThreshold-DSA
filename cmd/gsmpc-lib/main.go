@@ -1566,7 +1566,16 @@ func HandleSigningRound2Msg(conn net.Conn,content string) {
     }
 
     u1u1MtAZK1Proof := ec2.MtARangeProofProve(s.KeyType,s.UKC,u1K, s.UKC2, s.U1PaiPK, s.U1Nt)
-    pf,err := json.Marshal(u1u1MtAZK1Proof)
+    /*pf,err := json.Marshal(u1u1MtAZK1Proof)
+    if err != nil {
+	return
+    }
+    msgmap["U1MtAZK1Proof"] = string(pf)*/
+    ret,err := EncryptMtARangeProof(u1u1MtAZK1Proof,"")
+    if err != nil {
+	return
+    }
+    pf,err := json.Marshal(ret)
     if err != nil {
 	return
     }
@@ -1597,7 +1606,12 @@ func HandleSigningRound4MtARangeProofCheck(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
 
-    u1rlt1 := s.MtAZK1Proof.MtARangeProofVerify(s.KeyType,s.KC, s.PaiPk,s.Nt)
+    old,err := DecryptMtARangeProof(s.MtAZK1Proof,KeyFile)
+    if err != nil {
+	return
+    }
+
+    u1rlt1 := old.MtARangeProofVerify(s.KeyType,s.KC, s.PaiPk,s.Nt)
     if !u1rlt1 {
 	msgmap["MtARangeProofCheckRes"] = "FALSE"
     } else {
@@ -3853,6 +3867,106 @@ func  EDKGDecryptTSk(cm string) ([32]byte,error) {
     copy(tsk[:],tmp[:])
 
     return tsk,nil
+}
+
+//---------------------------------------------------
+
+func EncryptBigInt(n *big.Int,enode string) (string,error) {
+    s := fmt.Sprintf("%v", n)
+    //TODO
+    return s,nil
+}
+
+func  DecryptBigInt(cm string,keyfile string) (*big.Int,error) {
+    //TODO
+    n,_ := new(big.Int).SetString(cm,10)
+    return n,nil
+}
+
+func EncryptMtARangeProof(n *ec2.MtARangeProof,enode string) (*ec2.MtARangeProof,error) {
+    zenc,err := EncryptBigInt(n.Z,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    uenc,err := EncryptBigInt(n.U,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    wenc,err := EncryptBigInt(n.W,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    senc,err := EncryptBigInt(n.S,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    s1enc,err := EncryptBigInt(n.S1,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    s2enc,err := EncryptBigInt(n.S2,enode)
+    if err != nil {
+	return nil,err
+    }
+
+    ret := &ec2.MtARangeProof{
+	Z:new(big.Int).SetBytes([]byte(zenc)),
+	U:new(big.Int).SetBytes([]byte(uenc)),
+	W:new(big.Int).SetBytes([]byte(wenc)),
+	S:new(big.Int).SetBytes([]byte(senc)),
+	S1:new(big.Int).SetBytes([]byte(s1enc)),
+	S2:new(big.Int).SetBytes([]byte(s2enc)),
+    }
+
+    return ret,nil
+}
+
+func  DecryptMtARangeProof(n *ec2.MtARangeProof,keyfile string) (*ec2.MtARangeProof,error) {
+    z,err := DecryptBigInt(string(n.Z.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    u,err := DecryptBigInt(string(n.U.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    w,err := DecryptBigInt(string(n.W.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    s,err := DecryptBigInt(string(n.S.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    s1,err := DecryptBigInt(string(n.S1.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    s2,err := DecryptBigInt(string(n.S2.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    ret := &ec2.MtARangeProof{
+	Z:z,
+	U:u,
+	W:w,
+	S:s,
+	S1:s1,
+	S2:s2,
+    }
+
+    return ret,nil
 }
 
 
