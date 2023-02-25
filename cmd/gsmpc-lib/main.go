@@ -1566,8 +1566,19 @@ func HandleSigningRound4Beta(conn net.Conn,content string) {
     for i := 0; i < s.ThresHold; i++ {
 	    beta1U1Star := random.GetRandomIntFromZn(NSubN2)
 	    beta1U1 := new(big.Int).Mul(MinusOne, beta1U1Star)
-	    betaU1Star[i] = beta1U1Star
-	    betaU1[i] = beta1U1
+
+	    tmp,err := EncryptBetaU1Star(beta1U1Star)
+	    if err != nil {
+		return
+	    }
+	    betaU1Star[i] = new(big.Int).SetBytes([]byte(tmp))
+	    
+	    tmp,err = EncryptBetaU1(beta1U1)
+	    if err != nil {
+		return
+	    }
+
+	    betaU1[i] = new(big.Int).SetBytes([]byte(tmp))
     }
 
     vU1Star := make([]*big.Int, s.ThresHold)
@@ -1575,8 +1586,18 @@ func HandleSigningRound4Beta(conn net.Conn,content string) {
     for i := 0; i < s.ThresHold; i++ {
 	    v1U1Star := random.GetRandomIntFromZn(NSubN2)
 	    v1U1 := new(big.Int).Mul(MinusOne, v1U1Star)
-	    vU1Star[i] = v1U1Star
-	    vU1[i] = v1U1
+	   
+	    tmp,err := EncryptVU1Star(v1U1Star)
+	    if err != nil {
+		return
+	    }
+	    vU1Star[i] = new(big.Int).SetBytes([]byte(tmp))
+
+	    tmp,err = EncryptVU1(v1U1)
+	    if err != nil {
+		return
+	    }
+	    vU1[i] = new(big.Int).SetBytes([]byte(tmp))
     }
 
     beta := &BetaStar{BetaU1Star:betaU1Star,BetaU1:betaU1,VU1Star:vU1Star,VU1:vU1}
@@ -1617,9 +1638,15 @@ func HandleSigningRound4Msg(conn net.Conn,content string) {
     }
 
     u1KGamma1Cipher := s.CurPaiPk.HomoMul(s.KC, u1Gamma)
-    beta1U1StarCipher, u1BetaR1, _ := s.CurPaiPk.Encrypt(s.BetaStar)
+
+    betastar,err := DecryptBetaU1Star(string(s.BetaStar.Bytes()))
+    if err != nil {
+	return
+    }
+
+    beta1U1StarCipher, u1BetaR1, _ := s.CurPaiPk.Encrypt(betastar)
     u1KGamma1Cipher = s.CurPaiPk.HomoAdd(u1KGamma1Cipher, beta1U1StarCipher)
-    u1u1MtAZK2Proof := ec2.MtARespZKProofProve(s.KeyType,u1Gamma, s.BetaStar, u1BetaR1, s.UKC, u1KGamma1Cipher,s.OldPaiPk, s.OldNt)
+    u1u1MtAZK2Proof := ec2.MtARespZKProofProve(s.KeyType,u1Gamma,betastar, u1BetaR1, s.UKC, u1KGamma1Cipher,s.OldPaiPk, s.OldNt)
 
     msgmap["U1KGamma1Cipher"] = fmt.Sprintf("%v",u1KGamma1Cipher)
     pf,err := json.Marshal(u1u1MtAZK2Proof)
@@ -1660,9 +1687,15 @@ func HandleSigningRound4Msg1(conn net.Conn,content string) {
     }
 
     u1Kw1Cipher := s.CurPaiPk.HomoMul(s.KC, w1)
-    v1U1StarCipher, u1VR1, _ := s.CurPaiPk.Encrypt(s.VU1Star)
+
+    vu1star,err := DecryptVU1Star(string(s.VU1Star.Bytes()))
+    if err != nil {
+	return
+    }
+
+    v1U1StarCipher, u1VR1, _ := s.CurPaiPk.Encrypt(vu1star)
     u1Kw1Cipher = s.CurPaiPk.HomoAdd(u1Kw1Cipher, v1U1StarCipher) // send to u1
-    u1u1MtAZK3Proof := ec2.MtAwcRespZKProofProve(s.KeyType,w1, s.VU1Star, u1VR1, s.UKC,u1Kw1Cipher,s.OldPaiPk, s.OldNt)
+    u1u1MtAZK3Proof := ec2.MtAwcRespZKProofProve(s.KeyType,w1,vu1star, u1VR1, s.UKC,u1Kw1Cipher,s.OldPaiPk, s.OldNt)
     pf,err := json.Marshal(u1u1MtAZK3Proof)
     if err != nil {
 	return
@@ -1781,7 +1814,12 @@ func HandleSigningRound5Msg(conn net.Conn,content string) {
 	    delta1 = new(big.Int).Add(delta1, s.Alpha1[i])
     }
     for i := 0; i < s.ThresHold; i++ {
-	    delta1 = new(big.Int).Add(delta1, s.BetaU1[i])
+	    betau1,err := DecryptBetaU1(string(s.BetaU1[i].Bytes()))
+	    if err != nil {
+		return
+	    }
+
+	    delta1 = new(big.Int).Add(delta1, betau1)
     }
     delta1 = new(big.Int).Mod(delta1, secp256k1.S256(s.KeyType).N1())
     msgmap["delta1"] = fmt.Sprintf("%v",delta1) 
@@ -1794,7 +1832,12 @@ func HandleSigningRound5Msg(conn net.Conn,content string) {
 	    sigma1 = new(big.Int).Add(sigma1, s.UU1[i])
     }
     for i := 0; i < s.ThresHold; i++ {
-	    sigma1 = new(big.Int).Add(sigma1, s.VU1[i])
+	    vu1,err := DecryptVU1(string(s.VU1[i].Bytes()))
+	    if err != nil {
+		return
+	    }
+
+	    sigma1 = new(big.Int).Add(sigma1, vu1)
     }
 
     sigma1 = new(big.Int).Mod(sigma1, secp256k1.S256(s.KeyType).N1())
@@ -3537,6 +3580,70 @@ func  DecryptU1Gamma(cm string) (*big.Int,error) {
 
     u1Gamma,_ := new(big.Int).SetString(s,10)
     return u1Gamma,nil
+}
+
+//BetaU1Star
+func EncryptBetaU1Star(betau1star *big.Int) (string,error) {
+    s := fmt.Sprintf("%v",betau1star)
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
+
+func  DecryptBetaU1Star(cm string) (*big.Int,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    betau1star,_ := new(big.Int).SetString(s,10)
+    return betau1star,nil
+}
+
+//BetaU1
+func EncryptBetaU1(betau1 *big.Int) (string,error) {
+    s := fmt.Sprintf("%v",betau1)
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
+
+func  DecryptBetaU1(cm string) (*big.Int,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    betau1,_ := new(big.Int).SetString(s,10)
+    return betau1,nil
+}
+
+//VU1Star
+func EncryptVU1Star(vu1star *big.Int) (string,error) {
+    s := fmt.Sprintf("%v",vu1star)
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
+
+func  DecryptVU1Star(cm string) (*big.Int,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    vu1star,_ := new(big.Int).SetString(s,10)
+    return vu1star,nil
+}
+
+//VU1
+func EncryptVU1(vu1 *big.Int) (string,error) {
+    s := fmt.Sprintf("%v",vu1)
+    return tsslib.EncryptTee(s,"pub") //TODO
+}
+
+func  DecryptVU1(cm string) (*big.Int,error) {
+    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    if err != nil {
+	return nil,err
+    }
+
+    vu1,_ := new(big.Int).SetString(s,10)
+    return vu1,nil
 }
 
 
