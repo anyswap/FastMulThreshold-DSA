@@ -227,6 +227,7 @@ type KGRound4Message struct {
 	*KGRoundMessage
 
 	Share [32]byte
+	ShareEnc string
 }
 
 // GetFromID get the ID of sending nodes in the group
@@ -258,6 +259,7 @@ func (kg *KGRound4Message) OutMap() map[string]string {
 
 	shares := hex.EncodeToString(kg.Share[:])
 	m["Share"] = shares
+	m["ShareEnc"] = kg.ShareEnc
 	m["Type"] = "KGRound4Message"
 	return m
 }

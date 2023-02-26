@@ -298,7 +298,7 @@ func (round *round6) ExecTee(curIndex int) error {
 		    return errors.New("ed,round.start get round3 msg fail")
 	    }
 
-	    s := &socket.EDKGRound6VssCheck{Share:msg4.Share,ID:round.temp.uids[curIndex],CfsBBytes:msg5.CfsBBytes}
+	    s := &socket.EDKGRound6VssCheck{Share:msg4.ShareEnc,ID:round.temp.uids[curIndex],CfsBBytes:msg5.CfsBBytes}
 	    s.Base.SetBase(round.keytype,round.msgprex)
 	    err := socket.SendMsgData(smpc.VSocketConnect,s)
 	    if err != nil {
@@ -326,7 +326,7 @@ func (round *round6) ExecTee(curIndex int) error {
     }
 
     DPks := make([][64]byte,len(ids))
-    Shares := make([][32]byte,len(ids))
+    Shares := make([]string,len(ids))
     CfsBBytes := make([][][32]byte,len(ids))
     for k, _ := range ids {
 	msg3, ok := round.temp.kgRound3Messages[k].(*KGRound3Message)
@@ -345,7 +345,7 @@ func (round *round6) ExecTee(curIndex int) error {
 	}
 
 	DPks[k] = msg3.DPk
-	Shares[k] = msg4.Share
+	Shares[k] = msg4.ShareEnc
 	CfsBBytes[k] = msg5.CfsBBytes
     }
 

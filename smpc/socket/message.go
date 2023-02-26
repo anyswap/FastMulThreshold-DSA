@@ -1285,7 +1285,8 @@ func (kg *EDKGRound4Msg) GetMsgType() string {
 type EDKGRound6VssCheck struct {
     Base
 
-    Share [32]byte 
+    //Share [32]byte 
+    Share string 
     ID [32]byte
     CfsBBytes [][32]byte
 }
@@ -1312,7 +1313,7 @@ type EDKGRound6Msg struct {
     Base
 
     PkSet2 []byte
-    Shares [][32]byte 
+    Shares []string 
     DPks [][64]byte
     CfsBBytes [][][32]byte
 }

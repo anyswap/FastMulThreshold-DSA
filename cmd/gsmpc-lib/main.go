@@ -2661,7 +2661,8 @@ func HandleEDKGRound4ComCheck(conn net.Conn,content string) {
 type EDKGRound4ReturnValue struct {
     Uids [][32]byte
     CfsBBytes [][32]byte
-    Shares [][32]byte
+    //Shares [][32]byte
+    Shares []string
 }
 
 func HandleEDKGRound4Msg(conn net.Conn,content string) {
@@ -2752,7 +2753,17 @@ func HandleEDKGRound4Msg(conn net.Conn,content string) {
 	return
     }
 
-    ret := &EDKGRound4ReturnValue{Uids:uids,CfsBBytes:cfsBBytes,Shares:shares}
+    tmp := make([]string,len(shares))
+    for k,v := range shares {
+	t,err := EncryptByte32(v,"")
+	if err != nil {
+	    return
+	}
+
+	tmp[k] = t
+    }
+
+    ret := &EDKGRound4ReturnValue{Uids:uids,CfsBBytes:cfsBBytes,Shares:tmp}
     b,err := json.Marshal(ret)
     if err != nil {
 	return
@@ -2784,12 +2795,17 @@ func HandleEDKGRound6VssCheck(conn net.Conn,content string) {
     msgmap := make(map[string]string)
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
-
+    
+    sh,err := DecryptByte32(s.Share,KeyFile)
+    if err != nil {
+	return
+    }
+    
     var shareUFlag = false
     if s.KeyType == smpc.SR25519 {
-	    shareUFlag = ed_ristretto.VerifyVss(s.Share,s.ID,s.CfsBBytes)
+	    shareUFlag = ed_ristretto.VerifyVss(sh,s.ID,s.CfsBBytes)
     }else {
-	    shareUFlag = ed.VerifyVss(s.Share,s.ID,s.CfsBBytes)
+	    shareUFlag = ed.VerifyVss(sh,s.ID,s.CfsBBytes)
     }
 
     if !shareUFlag {
@@ -2875,7 +2891,11 @@ func HandleEDKGRound6Msg(conn net.Conn,content string) {
 	    }
 
 	    //t3 := msg4.Share
-	    t3 := s.Shares[k]
+	    t3,err := DecryptByte32(s.Shares[k],KeyFile)
+	    if err != nil {
+		return
+	    }
+
 	    if s.KeyType == smpc.SR25519 {
 		    ed_ristretto.ScAdd(&tSk, &tSk, &t3)
 	    }else {
@@ -3925,6 +3945,27 @@ func  DecryptBigInt(cm string,keyfile string) (*big.Int,error) {
     n,_ := new(big.Int).SetString(cm,10)
     return n,nil
 }
+
+func EncryptByte32(t [32]byte,enode string) (string,error) {
+    s := hex.EncodeToString(t[:])
+    return s,nil //TODO
+}
+
+func  DecryptByte32(cm string,keyfile string) ([32]byte,error) {
+    //TODO
+    var ret [32]byte
+    var tmp []byte
+    tmp,err := hex.DecodeString(cm)
+    if err != nil {
+	return ret,err
+    }
+    var t [32]byte
+    copy(t[:],tmp[:])
+
+    return t,nil
+}
+
+//-------------------------------------
 
 func EncryptMtARangeProof(n *ec2.MtARangeProof,enode string) (*ec2.MtARangeProof,error) {
     zenc,err := EncryptBigInt(n.Z,enode)

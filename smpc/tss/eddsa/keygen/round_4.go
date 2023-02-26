@@ -223,7 +223,8 @@ func (round *round4) NextRound() smpc.Round {
 type EDKGRound4ReturnValue struct {
     Uids [][32]byte
     CfsBBytes [][32]byte
-    Shares [][32]byte
+    //Shares [][32]byte
+    Shares []string
 }
 
 func (round *round4) ExecTee(curIndex int) error {
@@ -307,7 +308,7 @@ func (round *round4) ExecTee(curIndex int) error {
     for k, id := range ids {
 	    kg := &KGRound4Message{
 		    KGRoundMessage: new(KGRoundMessage),
-		    Share:          ret.Shares[k],
+		    ShareEnc:          ret.Shares[k],
 	    }
 	    kg.SetFromID(round.dnodeid)
 	    kg.SetFromIndex(curIndex)

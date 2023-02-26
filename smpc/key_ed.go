@@ -276,25 +276,34 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 
 	//4 message
 	if msg["Type"] == "KGRound4Message" {
-	    if msg["Share"] == "" {
+	    if msg["Share"] == "" && msg["ShareEnc"] == "" {
 		return nil
 	    }
 
+	    var temsh [32]byte
+	    if msg["Share"] != "" {
 		shares, err := hex.DecodeString(msg["Share"])
 		if shares == nil || err != nil {
 		    return nil
 		}
 
-		var temsh [32]byte
 		copy(temsh[:], shares[:])
-		kg := &edkeygen.KGRound4Message{
-			KGRoundMessage: new(edkeygen.KGRoundMessage),
-			Share:          temsh,
-		}
-		kg.SetFromID(from)
-		kg.SetFromIndex(index)
-		kg.ToID = to
-		return kg
+	    }
+
+	    var sEnc string
+	    if msg["ShareEnc"] != "" {
+		sEnc = msg["ShareEnc"]
+	    }
+
+	    kg := &edkeygen.KGRound4Message{
+		    KGRoundMessage: new(edkeygen.KGRoundMessage),
+		    Share:          temsh,
+		    ShareEnc:       sEnc,
+	    }
+	    kg.SetFromID(from)
+	    kg.SetFromIndex(index)
+	    kg.ToID = to
+	    return kg
 	}
 
 	//5 message
