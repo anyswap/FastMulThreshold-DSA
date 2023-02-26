@@ -426,7 +426,8 @@ func (round *round4) ExecTee(curIndex int) error {
 			return err
 		    }
 
-		    u1KGamma1Cipher,_ := new(big.Int).SetString(msgmap["U1KGamma1Cipher"],10)
+		    //u1KGamma1Cipher,_ := new(big.Int).SetString(msgmap["U1KGamma1Cipher"],10)
+		    u1KGamma1Cipher := new(big.Int).SetBytes([]byte(msgmap["U1KGamma1Cipher"]))
 		    u1u1MtAZK2Proof := &ec2.MtARespZKProof{}
 		    err = json.Unmarshal([]byte(msgmap["MtAZK2Proof"]),u1u1MtAZK2Proof)
 		    if err != nil {
@@ -462,7 +463,8 @@ func (round *round4) ExecTee(curIndex int) error {
 			return err
 		    }
 
-		    u1KGamma1Cipher,_ := new(big.Int).SetString(msgmap["U1KGamma1Cipher"],10)
+		    //u1KGamma1Cipher,_ := new(big.Int).SetString(msgmap["U1KGamma1Cipher"],10)
+		    u1KGamma1Cipher := new(big.Int).SetBytes([]byte(msgmap["U1KGamma1Cipher"]))
 		    u1u1MtAZK2Proof := &ec2.MtARespZKProof{}
 		    err = json.Unmarshal([]byte(msgmap["MtAZK2Proof"]),u1u1MtAZK2Proof)
 		    if err != nil {
@@ -513,7 +515,8 @@ func (round *round4) ExecTee(curIndex int) error {
 			return err
 		    }
 
-		    u1Kw1Cipher,_ := new(big.Int).SetString(msgmap["Kw1Cipher"],10)
+		    //u1Kw1Cipher,_ := new(big.Int).SetString(msgmap["Kw1Cipher"],10)
+		    u1Kw1Cipher := new(big.Int).SetBytes([]byte(msgmap["Kw1Cipher"]))
 		    u1u1MtAZK3Proof := &ec2.MtAwcRespZKProof{}
 		    err = json.Unmarshal([]byte(msgmap["MtAZK3Proof"]),u1u1MtAZK3Proof)
 		    if err != nil {
@@ -549,7 +552,8 @@ func (round *round4) ExecTee(curIndex int) error {
 			return err
 		    }
 
-		    u1Kw1Cipher,_ := new(big.Int).SetString(msgmap["Kw1Cipher"],10)
+		    //u1Kw1Cipher,_ := new(big.Int).SetString(msgmap["Kw1Cipher"],10)
+		    u1Kw1Cipher := new(big.Int).SetBytes([]byte(msgmap["Kw1Cipher"]))
 		    u1u1MtAZK3Proof := &ec2.MtAwcRespZKProof{}
 		    err = json.Unmarshal([]byte(msgmap["MtAZK3Proof"]),u1u1MtAZK3Proof)
 		    if err != nil {

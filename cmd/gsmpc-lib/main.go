@@ -1775,8 +1775,17 @@ func HandleSigningRound4Msg(conn net.Conn,content string) {
     u1KGamma1Cipher = s.CurPaiPk.HomoAdd(u1KGamma1Cipher, beta1U1StarCipher)
     u1u1MtAZK2Proof := ec2.MtARespZKProofProve(s.KeyType,u1Gamma,betastar, u1BetaR1, s.UKC, u1KGamma1Cipher,s.OldPaiPk, s.OldNt)
 
-    msgmap["U1KGamma1Cipher"] = fmt.Sprintf("%v",u1KGamma1Cipher)
-    pf,err := json.Marshal(u1u1MtAZK2Proof)
+    msgmap["U1KGamma1Cipher"],err = EncryptBigInt(u1KGamma1Cipher,"")
+    if err != nil {
+	return
+    }
+
+    tmp,err := EncryptMtARespZKProof(u1u1MtAZK2Proof,"")
+    if err != nil {
+	return
+    }
+
+    pf,err := json.Marshal(tmp)
     if err != nil {
 	return
     }
@@ -1823,13 +1832,22 @@ func HandleSigningRound4Msg1(conn net.Conn,content string) {
     v1U1StarCipher, u1VR1, _ := s.CurPaiPk.Encrypt(vu1star)
     u1Kw1Cipher = s.CurPaiPk.HomoAdd(u1Kw1Cipher, v1U1StarCipher) // send to u1
     u1u1MtAZK3Proof := ec2.MtAwcRespZKProofProve(s.KeyType,w1,vu1star, u1VR1, s.UKC,u1Kw1Cipher,s.OldPaiPk, s.OldNt)
-    pf,err := json.Marshal(u1u1MtAZK3Proof)
+
+    tmp,err := EncryptMtAwcRespZKProof(u1u1MtAZK3Proof,"")
     if err != nil {
 	return
     }
-
+    
+    pf,err := json.Marshal(tmp)
+    if err != nil {
+	return
+    }
     msgmap["MtAZK3Proof"] = string(pf)
-    msgmap["Kw1Cipher"] = fmt.Sprintf("%v",u1Kw1Cipher)
+    
+    msgmap["Kw1Cipher"],err = EncryptBigInt(u1Kw1Cipher,"")
+    if err != nil {
+	return
+    }
     
     str, err := json.Marshal(msgmap)
     if err != nil {
@@ -1856,7 +1874,17 @@ func HandleSigningRound5MtARespZKProofCheck(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
 
-    b := s.MtAZK2Proof.MtARespZKProofVerify(s.KeyType,s.UKC, s.Clipher, s.PaiPk,s.Nt)
+    clip,err := DecryptBigInt(string(s.Clipher.Bytes()),KeyFile)
+    if err != nil {
+	return
+    }
+   
+    mta,err := DecryptMtARespZKProof(s.MtAZK2Proof,KeyFile)
+    if err != nil {
+	return
+    }
+   
+    b := mta.MtARespZKProofVerify(s.KeyType,s.UKC, clip, s.PaiPk,s.Nt)
     if !b {
 	msgmap["MtARespZKProofCheckRes"] = "FALSE"
     } else {
@@ -1891,7 +1919,17 @@ func HandleSigningRound5ComCheck(conn net.Conn,content string) {
     deCommit := &ec2.Commitment{C: s.C, D: s.D}
     _,xG := deCommit.DeCommit(s.KeyType)
 
-    b := s.MtAZK3Proof.MtAwcRespZKProofVefify(s.KeyType,xG,s.UKC,s.Cipher, s.PaiPk,s.Nt)
+    clip,err := DecryptBigInt(string(s.Cipher.Bytes()),KeyFile)
+    if err != nil {
+	return
+    }
+  
+    mtawc,err := DecryptMtAwcRespZKProof(s.MtAZK3Proof,KeyFile)
+    if err != nil {
+	return
+    }
+  
+    b := mtawc.MtAwcRespZKProofVefify(s.KeyType,xG,s.UKC,clip, s.PaiPk,s.Nt)
     if !b {
 	msgmap["ComCheck"] = "FALSE"
     } else {
@@ -1903,8 +1941,13 @@ func HandleSigningRound5ComCheck(conn net.Conn,content string) {
 	return
     }
 
-    alpha1U1, _ := paisk.Decrypt(s.U1KGamma1Cipher)
-    u1U1, _ := paisk.Decrypt(s.Cipher)
+    clip2,err := DecryptBigInt(string(s.U1KGamma1Cipher.Bytes()),KeyFile)
+    if err != nil {
+	return
+    }
+  
+    alpha1U1, _ := paisk.Decrypt(clip2)
+    u1U1, _ := paisk.Decrypt(clip)
     msgmap["Alpha1U1"] = fmt.Sprintf("%v",alpha1U1)
     msgmap["U1U1"] = fmt.Sprintf("%v",u1U1)
 
@@ -3968,5 +4011,300 @@ func  DecryptMtARangeProof(n *ec2.MtARangeProof,keyfile string) (*ec2.MtARangePr
 
     return ret,nil
 }
+
+//MtARespZKProof
+func EncryptMtARespZKProof(n *ec2.MtARespZKProof,enode string) (*ec2.MtARespZKProof,error) {
+    zenc,err := EncryptBigInt(n.Z,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    zbarenc,err := EncryptBigInt(n.ZBar,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    tenc,err := EncryptBigInt(n.T,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    venc,err := EncryptBigInt(n.V,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    wenc,err := EncryptBigInt(n.W,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    senc,err := EncryptBigInt(n.S,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    s1enc,err := EncryptBigInt(n.S1,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    s2enc,err := EncryptBigInt(n.S2,enode)
+    if err != nil {
+	return nil,err
+    }
+
+    t1enc,err := EncryptBigInt(n.T1,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    t2enc,err := EncryptBigInt(n.T2,enode)
+    if err != nil {
+	return nil,err
+    }
+
+    ret := &ec2.MtARespZKProof{
+	Z:new(big.Int).SetBytes([]byte(zenc)),
+	ZBar:new(big.Int).SetBytes([]byte(zbarenc)),
+	T:new(big.Int).SetBytes([]byte(tenc)),
+	V:new(big.Int).SetBytes([]byte(venc)),
+	W:new(big.Int).SetBytes([]byte(wenc)),
+	S:new(big.Int).SetBytes([]byte(senc)),
+	S1:new(big.Int).SetBytes([]byte(s1enc)),
+	S2:new(big.Int).SetBytes([]byte(s2enc)),
+	T1:new(big.Int).SetBytes([]byte(t1enc)),
+	T2:new(big.Int).SetBytes([]byte(t2enc)),
+    }
+
+    return ret,nil
+}
+
+func  DecryptMtARespZKProof(n *ec2.MtARespZKProof,keyfile string) (*ec2.MtARespZKProof,error) {
+    z,err := DecryptBigInt(string(n.Z.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    zbar,err := DecryptBigInt(string(n.ZBar.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    t,err := DecryptBigInt(string(n.T.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    v,err := DecryptBigInt(string(n.V.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    w,err := DecryptBigInt(string(n.W.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    s,err := DecryptBigInt(string(n.S.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    s1,err := DecryptBigInt(string(n.S1.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    s2,err := DecryptBigInt(string(n.S2.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    t1,err := DecryptBigInt(string(n.T1.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    t2,err := DecryptBigInt(string(n.T2.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    ret := &ec2.MtARespZKProof{
+	Z:z,
+	ZBar:zbar,
+	T:t,
+	V:v,
+	W:w,
+	S:s,
+	S1:s1,
+	S2:s2,
+	T1:t1,
+	T2:t2,
+    }
+
+    return ret,nil
+}
+
+//MtAwcRespZKProof
+func EncryptMtAwcRespZKProof(n *ec2.MtAwcRespZKProof,enode string) (*ec2.MtAwcRespZKProof,error) {
+    uxenc,err := EncryptBigInt(n.Ux,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    uyenc,err := EncryptBigInt(n.Uy,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    zenc,err := EncryptBigInt(n.Z,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    zbarenc,err := EncryptBigInt(n.ZBar,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    tenc,err := EncryptBigInt(n.T,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    venc,err := EncryptBigInt(n.V,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    wenc,err := EncryptBigInt(n.W,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    senc,err := EncryptBigInt(n.S,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    s1enc,err := EncryptBigInt(n.S1,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    s2enc,err := EncryptBigInt(n.S2,enode)
+    if err != nil {
+	return nil,err
+    }
+
+    t1enc,err := EncryptBigInt(n.T1,enode)
+    if err != nil {
+	return nil,err
+    }
+    
+    t2enc,err := EncryptBigInt(n.T2,enode)
+    if err != nil {
+	return nil,err
+    }
+
+    ret := &ec2.MtAwcRespZKProof{
+	Ux:new(big.Int).SetBytes([]byte(uxenc)),
+	Uy:new(big.Int).SetBytes([]byte(uyenc)),
+	Z:new(big.Int).SetBytes([]byte(zenc)),
+	ZBar:new(big.Int).SetBytes([]byte(zbarenc)),
+	T:new(big.Int).SetBytes([]byte(tenc)),
+	V:new(big.Int).SetBytes([]byte(venc)),
+	W:new(big.Int).SetBytes([]byte(wenc)),
+	S:new(big.Int).SetBytes([]byte(senc)),
+	S1:new(big.Int).SetBytes([]byte(s1enc)),
+	S2:new(big.Int).SetBytes([]byte(s2enc)),
+	T1:new(big.Int).SetBytes([]byte(t1enc)),
+	T2:new(big.Int).SetBytes([]byte(t2enc)),
+    }
+
+    return ret,nil
+}
+
+func  DecryptMtAwcRespZKProof(n *ec2.MtAwcRespZKProof,keyfile string) (*ec2.MtAwcRespZKProof,error) {
+    ux,err := DecryptBigInt(string(n.Ux.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    uy,err := DecryptBigInt(string(n.Uy.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    z,err := DecryptBigInt(string(n.Z.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    zbar,err := DecryptBigInt(string(n.ZBar.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    t,err := DecryptBigInt(string(n.T.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    v,err := DecryptBigInt(string(n.V.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    w,err := DecryptBigInt(string(n.W.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    s,err := DecryptBigInt(string(n.S.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    s1,err := DecryptBigInt(string(n.S1.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    s2,err := DecryptBigInt(string(n.S2.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    t1,err := DecryptBigInt(string(n.T1.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    t2,err := DecryptBigInt(string(n.T2.Bytes()),keyfile)
+    if err != nil {
+	return nil,err
+    }
+    
+    ret := &ec2.MtAwcRespZKProof{
+	Ux:ux,
+	Uy:uy,
+	Z:z,
+	ZBar:zbar,
+	T:t,
+	V:v,
+	W:w,
+	S:s,
+	S1:s1,
+	S2:s2,
+	T1:t1,
+	T2:t2,
+    }
+
+    return ret,nil
+}
+
 
 
