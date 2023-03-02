@@ -127,19 +127,4 @@ func DecryptMsg(cm string,keyfile string) (string, error) {
 
 //---------------------------------------------
 
-// TODO
-func EncryptTee(data string, pub string) (string, error) {
-    return data,nil
-}
-
-// TODO
-func DecryptTee(cm string,priv string) (string,error) {
-    return cm,nil
-}
-
-//--------------------------------------------------
- 
-
-
-
 

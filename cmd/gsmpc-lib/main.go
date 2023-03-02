@@ -3529,11 +3529,11 @@ func HandleEDSigningRound7Msg(conn net.Conn,content string) {
 //u1
 func EncryptU1(u1 *big.Int) (string,error) {
     s := fmt.Sprintf("%v", u1)
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  DecryptU1(cm string) (*big.Int,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3550,11 +3550,11 @@ func EncryptU1Poly(u1Poly *ec2.PolyStruct2) (string,error) {
     }
 
     s := strings.Join(tmp, ":")
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  DecryptU1Poly(cm string) (*ec2.PolyStruct2,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3578,11 +3578,11 @@ func EncryptPaillierSk(paiSk *ec2.PrivateKey) (string,error) {
 	return "",err
     }
 
-    return tsslib.EncryptTee(string(b),"pub") //TODO
+    return TeeKmsEncrypt(string(b)) //TODO
 }
 
 func  DecryptPaillierSk(cm string) (*ec2.PrivateKey,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3599,11 +3599,11 @@ func  DecryptPaillierSk(cm string) (*ec2.PrivateKey,error) {
 //P Q
 func EncryptP(p *big.Int) (string,error) {
     s := fmt.Sprintf("%v", p)
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  DecryptP(cm string) (*big.Int,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3614,11 +3614,11 @@ func  DecryptP(cm string) (*big.Int,error) {
 
 func EncryptQ(q *big.Int) (string,error) {
     s := fmt.Sprintf("%v", q)
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  DecryptQ(cm string) (*big.Int,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3687,11 +3687,11 @@ func  DecryptShare(cm string,keyfile string) (*big.Int,error) {
 //sku1
 func EncryptSk(sku1 *big.Int) (string,error) {
     s := fmt.Sprintf("%v", sku1)
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  DecryptSk(cm string) (*big.Int,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3707,11 +3707,11 @@ func EncryptNtildePrivData(priv *ec2.NtildePrivData) (string,error) {
 	return "",err
     }
 
-    return tsslib.EncryptTee(string(b),"pub") //TODO
+    return TeeKmsEncrypt(string(b)) //TODO
 }
 
 func  DecryptNtildePrivData(cm string) (*ec2.NtildePrivData,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3728,11 +3728,11 @@ func  DecryptNtildePrivData(cm string) (*ec2.NtildePrivData,error) {
 //p1 p2
 func EncryptP1(p *big.Int) (string,error) {
     s := fmt.Sprintf("%v", p)
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  DecryptP1(cm string) (*big.Int,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3743,11 +3743,11 @@ func  DecryptP1(cm string) (*big.Int,error) {
 
 func EncryptP2(q *big.Int) (string,error) {
     s := fmt.Sprintf("%v", q)
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  DecryptP2(cm string) (*big.Int,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3759,11 +3759,11 @@ func  DecryptP2(cm string) (*big.Int,error) {
 //w1
 func EncryptW1(w1 *big.Int) (string,error) {
     s := fmt.Sprintf("%v", w1)
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  DecryptW1(cm string) (*big.Int,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3775,11 +3775,11 @@ func  DecryptW1(cm string) (*big.Int,error) {
 //u1K
 func EncryptU1K(u1K *big.Int) (string,error) {
     s := fmt.Sprintf("%v", u1K)
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  DecryptU1K(cm string) (*big.Int,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3791,11 +3791,11 @@ func  DecryptU1K(cm string) (*big.Int,error) {
 //u1Gamma
 func EncryptU1Gamma(u1Gamma *big.Int) (string,error) {
     s := fmt.Sprintf("%v", u1Gamma)
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  DecryptU1Gamma(cm string) (*big.Int,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3807,11 +3807,11 @@ func  DecryptU1Gamma(cm string) (*big.Int,error) {
 //BetaU1Star
 func EncryptBetaU1Star(betau1star *big.Int) (string,error) {
     s := fmt.Sprintf("%v",betau1star)
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  DecryptBetaU1Star(cm string) (*big.Int,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3823,11 +3823,11 @@ func  DecryptBetaU1Star(cm string) (*big.Int,error) {
 //BetaU1
 func EncryptBetaU1(betau1 *big.Int) (string,error) {
     s := fmt.Sprintf("%v",betau1)
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  DecryptBetaU1(cm string) (*big.Int,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3839,11 +3839,11 @@ func  DecryptBetaU1(cm string) (*big.Int,error) {
 //VU1Star
 func EncryptVU1Star(vu1star *big.Int) (string,error) {
     s := fmt.Sprintf("%v",vu1star)
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  DecryptVU1Star(cm string) (*big.Int,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3855,11 +3855,11 @@ func  DecryptVU1Star(cm string) (*big.Int,error) {
 //VU1
 func EncryptVU1(vu1 *big.Int) (string,error) {
     s := fmt.Sprintf("%v",vu1)
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  DecryptVU1(cm string) (*big.Int,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3871,11 +3871,11 @@ func  DecryptVU1(cm string) (*big.Int,error) {
 //L1
 func EncryptL1(l1 *big.Int) (string,error) {
     s := fmt.Sprintf("%v",l1)
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  DecryptL1(cm string) (*big.Int,error) {
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3887,12 +3887,12 @@ func  DecryptL1(cm string) (*big.Int,error) {
 //ed kg sk
 func EDKGEncryptSk(sk [32]byte) (string,error) {
     s := hex.EncodeToString(sk[:])
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  EDKGDecryptSk(cm string) ([32]byte,error) {
     var ret [32]byte
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return ret,err
     }
@@ -3911,12 +3911,12 @@ func  EDKGDecryptSk(cm string) ([32]byte,error) {
 //ed kg tsk
 func EDKGEncryptTSk(tsk [32]byte) (string,error) {
     s := hex.EncodeToString(tsk[:])
-    return tsslib.EncryptTee(s,"pub") //TODO
+    return TeeKmsEncrypt(s) //TODO
 }
 
 func  EDKGDecryptTSk(cm string) ([32]byte,error) {
     var ret [32]byte
-    s,err := tsslib.DecryptTee(cm,"priv") //TODO
+    s,err := TeeKmsDecrypt(cm) //TODO
     if err != nil {
 	return ret,err
     }
