@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 	"time"
 )
 
@@ -168,6 +169,26 @@ func ProcessInboundMessagesEDDSA(msgprex string, keytype string,finishChan chan 
 			}
 			////
 
+			if Tee {
+			    s := &socket.EDKGTeeValidateData{MsgPrex:msgprex,Data:mm.GetTeeValidateData()}
+			    s.Base.SetBase(keytype,msgprex)
+			    err := socket.SendMsgData(smpclib.VSocketConnect,s)
+			    if err != nil {
+				res := RPCSmpcRes{Ret: "", Err: err}
+				ch <- res
+				return
+			    }
+			   
+			    kgs := <-w.OutCh
+			    msgmap := make(map[string]string)
+			    err = json.Unmarshal([]byte(kgs), &msgmap)
+			    if err != nil {
+				res := RPCSmpcRes{Ret: "", Err: err}
+				ch <- res
+				return
+			    }
+			}
+
 			_, err = w.DNode.Update(mm)
 			if err != nil {
 				common.Error("====================ProcessInboundMessagesEDDSA,dnode update fail=======================", "receiv msg", m, "err", err)
@@ -224,6 +245,7 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 		}
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
+		kg.SetTeeValidateData(msg["TeeValidateData"])
 		kg.ToID = to
 		return kg
 	}
@@ -247,6 +269,7 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 		}
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
+		kg.SetTeeValidateData(msg["TeeValidateData"])
 		kg.ToID = to
 		return kg
 	}
@@ -270,6 +293,7 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 		}
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
+		kg.SetTeeValidateData(msg["TeeValidateData"])
 		kg.ToID = to
 		return kg
 	}
@@ -302,6 +326,7 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 	    }
 	    kg.SetFromID(from)
 	    kg.SetFromIndex(index)
+	    kg.SetTeeValidateData(msg["TeeValidateData"])
 	    kg.ToID = to
 	    return kg
 	}
@@ -331,6 +356,7 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 		}
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
+		kg.SetTeeValidateData(msg["TeeValidateData"])
 		kg.ToID = to
 		return kg
 	}
@@ -340,6 +366,7 @@ func GetRealMessageEDDSA(msg map[string]string) smpclib.Message {
 	}
 	kg.SetFromID(from)
 	kg.SetFromIndex(-1)
+	kg.SetTeeValidateData(msg["TeeValidateData"])
 	kg.ToID = to
 
 	return kg

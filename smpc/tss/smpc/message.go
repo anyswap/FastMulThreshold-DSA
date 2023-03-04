@@ -24,6 +24,7 @@ type Message interface {
 	GetFromID() string // x,fi(x) ---> id,skui
 	GetFromIndex() int
 	GetToID() []string
+	GetTeeValidateData() string 
 	IsBroadcast() bool
 	OutMap() map[string]string
 	GetMsgType() string

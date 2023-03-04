@@ -225,6 +225,7 @@ type EDKGRound4ReturnValue struct {
     CfsBBytes [][32]byte
     //Shares [][32]byte
     Shares []string
+    TeeValidateData string
 }
 
 func (round *round4) ExecTee(curIndex int) error {
@@ -312,6 +313,7 @@ func (round *round4) ExecTee(curIndex int) error {
 	    }
 	    kg.SetFromID(round.dnodeid)
 	    kg.SetFromIndex(curIndex)
+	    kg.SetTeeValidateData(ret.TeeValidateData)
 
 	    if k == curIndex {
 		    round.temp.kgRound4Messages[k] = kg

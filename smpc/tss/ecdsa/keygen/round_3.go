@@ -131,6 +131,8 @@ func (round *round3) ExecTee(curIndex int) error {
 	return err
     }
 
+    var vdata string
+
     for k := range ids {
 	msg1, ok := round.temp.kgRound1Messages[k].(*KGRound1Message)
 	if !ok {
@@ -166,6 +168,8 @@ func (round *round3) ExecTee(curIndex int) error {
 	    log.Error("keygen round3,check that a zero-knowledge proof that paillier.N is a square-free integer fail","k",ids[k])
 	    return errors.New("check that a zero-knowledge proof that paillier.N is a square-free integer fail")
 	}
+
+	vdata = msgmap["TeeValidateData"]
     }
 
     kg := &KGRound3Message{
@@ -176,6 +180,7 @@ func (round *round3) ExecTee(curIndex int) error {
     }
     kg.SetFromID(round.dnodeid)
     kg.SetFromIndex(curIndex)
+    kg.SetTeeValidateData(vdata)
     round.temp.kgRound3Messages[curIndex] = kg
     round.out <- kg
 

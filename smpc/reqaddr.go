@@ -37,7 +37,7 @@ import (
 	ethcrypto "github.com/fsn-dev/cryptoCoins/tools/crypto"
 	"crypto/ecdsa"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto"
-	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
+	//"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 )
 
 var (
@@ -1131,7 +1131,7 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 	w.MsgToEnode[w.DNode.DNodeID()] = curEnode
 	
 	if Tee {
-	    log.Info("====================KeyGenerateDECDSA,get enode===============","key",msgprex,"fromid",w.DNode.DNodeID(),"enode",curEnode)
+	    /*log.Info("====================KeyGenerateDECDSA,get enode===============","key",msgprex,"fromid",w.DNode.DNodeID(),"enode",curEnode)
 	    s := &socket.KGRound0Msg{FromID:w.DNode.DNodeID(),ENode:curEnode}
 	    s.Base.SetBase(cointype,msgprex)
 	    err := socket.SendMsgData(smpclib.VSocketConnect,s)
@@ -1139,7 +1139,7 @@ func KeyGenerateDECDSA(msgprex string, ch chan interface{}, id int, cointype str
 		res := RPCSmpcRes{Ret: "", Tip: "", Err: GetRetErr(ErrGroupNotReady)}
 		ch <- res
 		return false
-	    }
+	    }*/
 	}
 
 	var keyGenWg sync.WaitGroup

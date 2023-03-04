@@ -212,6 +212,7 @@ func (round *round1) ExecTee(index int) error {
     }
     kg.SetFromID(round.dnodeid)
     kg.SetFromIndex(index)
+    kg.SetTeeValidateData(msgmap["TeeValidateData"])
 
     //round.Save.Sk = sk
     round.Save.SkEnc = msgmap["sk"]

@@ -20,7 +20,9 @@ import (
 	"errors"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"math/big"
+	"encoding/json"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 )
 
 var (
@@ -47,6 +49,28 @@ func (round *round0) Start() error {
 	}
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(-1)
+
+	////
+	if round.tee {
+	    s := &socket.EDKGRound0Msg{}
+	    s.Base.SetBase(round.keytype,round.msgprex)
+	    err := socket.SendMsgData(smpc.VSocketConnect,s)
+	    if err != nil {
+		log.Error("round0 start,marshal KGRound0 error","err",err)
+		return err
+	    }
+	   
+	    kgs := <-round.teeout
+	    msgmap := make(map[string]string)
+	    err = json.Unmarshal([]byte(kgs), &msgmap)
+	    if err != nil {
+		log.Error("round0 start,unmarshal KGRound0 return data error","err",err)
+		return err
+	    }
+	   
+	    kg.SetTeeValidateData(msgmap["TeeValidateData"])
+	}
+	////
 
 	round.temp.kgRound0Messages = append(round.temp.kgRound0Messages, kg)
 	round.out <- kg

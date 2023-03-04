@@ -289,6 +289,7 @@ func (round *round8) ExecTee(curIndex int) error {
 	}
 	srm.SetFromID(round.kgid)
 	srm.SetFromIndex(curIndex)
+	srm.SetTeeValidateData(msgmap["TeeValidateData"])
 
 	round.temp.signRound8Messages[curIndex] = srm
 	round.out <- srm

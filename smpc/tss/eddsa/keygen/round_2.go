@@ -19,6 +19,9 @@ package keygen
 import (
 	"errors"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
+	"encoding/json"
 )
 
 // Start broacast zkPk 
@@ -48,6 +51,27 @@ func (round *round2) Start() error {
 	}
 	kg.SetFromID(round.dnodeid)
 	kg.SetFromIndex(curIndex)
+	
+	if round.tee {
+	    s := &socket.EDKGRound2Msg{}
+	    s.Base.SetBase(round.keytype,round.msgprex)
+	    err := socket.SendMsgData(smpc.VSocketConnect,s)
+	    if err != nil {
+		log.Error("round2 start,marshal KGRound2 error","err",err)
+		return err
+	    }
+	   
+	    kgs := <-round.teeout
+	    msgmap := make(map[string]string)
+	    err = json.Unmarshal([]byte(kgs), &msgmap)
+	    if err != nil {
+		log.Error("round0 start,unmarshal KGRound0 return data error","err",err)
+		return err
+	    }
+	   
+	    kg.SetTeeValidateData(msgmap["TeeValidateData"])
+	}
+	////
 	round.temp.kgRound2Messages[curIndex] = kg
 	round.out <- kg
 

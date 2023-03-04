@@ -245,6 +245,8 @@ func (round *round4) ExecTee(curIndex int) error {
 	    return err
     }
 
+    var vdata string
+
     for k := range ids {
 	    msg2, ok := round.temp.kgRound2Messages[k].(*KGRound2Message)
 	    if !ok {
@@ -283,6 +285,8 @@ func (round *round4) ExecTee(curIndex int) error {
 	    if msgmap["Round4CheckRes"] == "FALSE" {
 		return errors.New("round4 check fail")
 	    }
+	    
+	    vdata = msgmap["TeeValidateData"]
     }
 
     cs := make([]*big.Int,len(ids))
@@ -371,6 +375,7 @@ func (round *round4) ExecTee(curIndex int) error {
     }
     kg.SetFromID(round.dnodeid)
     kg.SetFromIndex(curIndex)
+    kg.SetTeeValidateData(vdata)
     round.Save.U1NtildeH1H2[curIndex] = u1NtildeH1H2
     round.temp.kgRound4Messages[curIndex] = kg
     round.out <- kg

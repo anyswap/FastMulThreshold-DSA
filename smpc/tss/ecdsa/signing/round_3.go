@@ -20,6 +20,8 @@ import (
 	"errors"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"encoding/json"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 )
 
 // Start broacast Kc
@@ -44,6 +46,28 @@ func (round *round3) Start() error {
 	}
 	srm.SetFromID(round.kgid)
 	srm.SetFromIndex(curIndex)
+	////
+	if round.tee {
+	    s := &socket.SigningRound3Msg{}
+	    s.Base.SetBase(round.keytype,round.msgprex)
+	    err := socket.SendMsgData(smpc.VSocketConnect,s)
+	    if err != nil {
+		log.Error("round3 start,marshal SignRound3 error","err",err)
+		return err
+	    }
+	   
+	    kgs := <-round.teeout
+	    msgmap := make(map[string]string)
+	    err = json.Unmarshal([]byte(kgs), &msgmap)
+	    if err != nil {
+		log.Error("round3 start,unmarshal SignRound3 return data error","err",err)
+		return err
+	    }
+	   
+	    srm.SetTeeValidateData(msgmap["TeeValidateData"])
+	}
+	////
+
 
 	round.temp.signRound3Messages[curIndex] = srm
 	round.out <- srm

@@ -27,6 +27,7 @@ type SignRoundMessage struct {
 	FromID    string   `json:"FromID"` //DNodeID
 	FromIndex int      `json:"FromIndex"`
 	ToID      []string `json:"ToID"`
+	TeeValidateData string `json:"TeeValidateData"`
 }
 
 // SetFromID set sending nodes's ID
@@ -42,6 +43,11 @@ func (srm *SignRoundMessage) SetFromIndex(index int) {
 // AppendToID get the ID of nodes that the message will broacast to
 func (srm *SignRoundMessage) AppendToID(toid string) {
 	srm.ToID = append(srm.ToID, toid)
+}
+
+// SetTeeValidateData set sending nodes's tee validate data
+func (srm *SignRoundMessage) SetTeeValidateData(data string) {
+	srm.TeeValidateData = data
 }
 
 // SignRound1Message  Round 1 sending message 
@@ -65,6 +71,11 @@ func (srm *SignRound1Message) GetToID() []string {
 	return srm.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (srm *SignRound1Message) GetTeeValidateData() string {
+	return srm.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (srm *SignRound1Message) IsBroadcast() bool {
 	return true
@@ -77,6 +88,7 @@ func (srm *SignRound1Message) OutMap() map[string]string {
 	m["FromIndex"] = strconv.Itoa(srm.FromIndex)
 	m["ToID"] = ""
 	m["Type"] = "SignRound1Message"
+	m["TeeValidateData"] = srm.TeeValidateData
 
 	cr := hex.EncodeToString(srm.CR[:])
 	m["CR"] = cr
@@ -110,6 +122,11 @@ func (srm *SignRound2Message) GetToID() []string {
 	return srm.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (srm *SignRound2Message) GetTeeValidateData() string {
+	return srm.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (srm *SignRound2Message) IsBroadcast() bool {
 	return true
@@ -122,6 +139,7 @@ func (srm *SignRound2Message) OutMap() map[string]string {
 	m["FromIndex"] = strconv.Itoa(srm.FromIndex)
 	m["ToID"] = strings.Join(srm.ToID, ":")
 	m["Type"] = "SignRound2Message"
+	m["TeeValidateData"] = srm.TeeValidateData
 
 	zkr := hex.EncodeToString(srm.ZkR[:])
 	m["ZkR"] = zkr
@@ -155,6 +173,11 @@ func (srm *SignRound3Message) GetToID() []string {
 	return srm.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (srm *SignRound3Message) GetTeeValidateData() string {
+	return srm.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (srm *SignRound3Message) IsBroadcast() bool {
 	return true
@@ -167,6 +190,7 @@ func (srm *SignRound3Message) OutMap() map[string]string {
 	m["FromIndex"] = strconv.Itoa(srm.FromIndex)
 	m["ToID"] = ""
 	m["Type"] = "SignRound3Message"
+	m["TeeValidateData"] = srm.TeeValidateData
 
 	dr := hex.EncodeToString(srm.DR[:])
 	m["DR"] = dr
@@ -200,6 +224,11 @@ func (srm *SignRound4Message) GetToID() []string {
 	return srm.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (srm *SignRound4Message) GetTeeValidateData() string {
+	return srm.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (srm *SignRound4Message) IsBroadcast() bool {
 	return true
@@ -212,6 +241,7 @@ func (srm *SignRound4Message) OutMap() map[string]string {
 	m["FromIndex"] = strconv.Itoa(srm.FromIndex)
 	m["ToID"] = strings.Join(srm.ToID, ":")
 	m["Type"] = "SignRound4Message"
+	m["TeeValidateData"] = srm.TeeValidateData
 
 	csb := hex.EncodeToString(srm.CSB[:])
 	m["CSB"] = csb
@@ -245,6 +275,11 @@ func (srm *SignRound5Message) GetToID() []string {
 	return srm.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (srm *SignRound5Message) GetTeeValidateData() string {
+	return srm.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (srm *SignRound5Message) IsBroadcast() bool {
 	return true
@@ -257,6 +292,7 @@ func (srm *SignRound5Message) OutMap() map[string]string {
 	m["FromIndex"] = strconv.Itoa(srm.FromIndex)
 	m["ToID"] = ""
 	m["Type"] = "SignRound5Message"
+	m["TeeValidateData"] = srm.TeeValidateData
 
 	dsb := hex.EncodeToString(srm.DSB[:])
 	m["DSB"] = dsb
@@ -290,6 +326,11 @@ func (srm *SignRound6Message) GetToID() []string {
 	return srm.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (srm *SignRound6Message) GetTeeValidateData() string {
+	return srm.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (srm *SignRound6Message) IsBroadcast() bool {
 	return true
@@ -302,6 +343,7 @@ func (srm *SignRound6Message) OutMap() map[string]string {
 	m["FromIndex"] = strconv.Itoa(srm.FromIndex)
 	m["ToID"] = ""
 	m["Type"] = "SignRound6Message"
+	m["TeeValidateData"] = srm.TeeValidateData
 
 	s := hex.EncodeToString(srm.S[:])
 	m["S"] = s

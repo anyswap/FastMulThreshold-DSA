@@ -207,6 +207,8 @@ func (round *round5) ExecTee(curIndex int) error {
 	return err
     }
 
+    vdata := msgmap["TeeValidateData"]
+
     srm := &KGRound5Message2{    // same as KGRound2Message2
 	    KGRoundMessage: new(KGRoundMessage),
 	    Num:		num,
@@ -214,6 +216,7 @@ func (round *round5) ExecTee(curIndex int) error {
     }
     srm.SetFromID(round.dnodeid)
     srm.SetFromIndex(curIndex)
+    srm.SetTeeValidateData(vdata)
 
     round.temp.kgRound5Messages2[curIndex] = srm
     round.out <- srm
@@ -247,6 +250,7 @@ func (round *round5) ExecTee(curIndex int) error {
     }
     srm2.SetFromID(round.dnodeid)
     srm2.SetFromIndex(curIndex)
+    srm2.SetTeeValidateData(vdata)
 
     round.temp.kgRound5Messages1[curIndex] = srm2
     round.out <- srm2
@@ -258,6 +262,7 @@ func (round *round5) ExecTee(curIndex int) error {
     
     kg.SetFromID(round.dnodeid)
     kg.SetFromIndex(curIndex)
+    kg.SetTeeValidateData(vdata)
 
     round.temp.kgRound5Messages[curIndex] = kg
     round.out <- kg

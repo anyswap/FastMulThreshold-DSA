@@ -202,6 +202,7 @@ func (round *round1) ExecTee(curIndex int) error {
     round.temp.u1GammaEnc = msgmap["U1Gamma"]
     round.temp.commitU1GammaG = commitU1GammaG
 
+    vdata := msgmap["TeeValidateData"]
     srm := &SignRound1Message{
 	    SignRoundMessage: new(SignRoundMessage),
 	    C11:              commitU1GammaG.C,
@@ -209,6 +210,7 @@ func (round *round1) ExecTee(curIndex int) error {
     }
     srm.SetFromID(round.kgid)
     srm.SetFromIndex(curIndex)
+    srm.SetTeeValidateData(vdata)
 
     round.temp.signRound1Messages[curIndex] = srm
     round.out <- srm

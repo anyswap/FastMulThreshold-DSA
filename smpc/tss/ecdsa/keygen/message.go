@@ -30,6 +30,7 @@ type KGRoundMessage struct {
 	FromIndex int      `json:"FromIndex"`
 	ToID      []string `json:"ToID"`
 	//Sig []byte `json:"Sig"`
+	TeeValidateData string `json:"TeeValidateData"`
 }
 
 // SetFromID set sending nodes's ID
@@ -45,6 +46,11 @@ func (kg *KGRoundMessage) SetFromIndex(index int) {
 // AppendToID get the ID of nodes that the message will broacast to
 func (kg *KGRoundMessage) AppendToID(toid string) {
 	kg.ToID = append(kg.ToID, toid)
+}
+
+// SetTeeValidateData set sending nodes's tee validate data
+func (kg *KGRoundMessage) SetTeeValidateData(data string) {
+	kg.TeeValidateData = data
 }
 
 // KGRound0Message  Round 0 sending message 
@@ -67,6 +73,11 @@ func (kg *KGRound0Message) GetToID() []string {
 	return kg.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (kg *KGRound0Message) GetTeeValidateData() string {
+	return kg.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (kg *KGRound0Message) IsBroadcast() bool {
 	return true
@@ -79,6 +90,7 @@ func (kg *KGRound0Message) OutMap() map[string]string {
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = ""
 	m["Type"] = "KGRound0Message"
+	m["TeeValidateData"] = kg.TeeValidateData
 	return m
 }
 
@@ -112,6 +124,11 @@ func (kg *KGRound1Message) GetToID() []string {
 	return kg.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (kg *KGRound1Message) GetTeeValidateData() string {
+	return kg.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (kg *KGRound1Message) IsBroadcast() bool {
 	return true
@@ -123,6 +140,7 @@ func (kg *KGRound1Message) OutMap() map[string]string {
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = ""
+	m["TeeValidateData"] = kg.TeeValidateData
 	m["ComC"] = fmt.Sprintf("%v", kg.ComC)
 	m["ComC_bip32"] = fmt.Sprintf("%v", kg.ComCBip32)
 
@@ -164,6 +182,11 @@ func (kg *KGRound2Message) GetToID() []string {
 	return kg.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (kg *KGRound2Message) GetTeeValidateData() string {
+	return kg.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (kg *KGRound2Message) IsBroadcast() bool {
 	return false
@@ -175,6 +198,7 @@ func (kg *KGRound2Message) OutMap() map[string]string {
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = strings.Join(kg.ToID, ":")
+	m["TeeValidateData"] = kg.TeeValidateData
 	m["ID"] = fmt.Sprintf("%v", kg.ID)
 	if kg.Share != nil {
 	    m["Share"] = fmt.Sprintf("%v", kg.Share)
@@ -212,6 +236,11 @@ func (kg *KGRound2Message1) GetToID() []string {
 	return kg.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (kg *KGRound2Message1) GetTeeValidateData() string {
+	return kg.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (kg *KGRound2Message1) IsBroadcast() bool {
 	return true
@@ -223,6 +252,7 @@ func (kg *KGRound2Message1) OutMap() map[string]string {
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = ""
+	m["TeeValidateData"] = kg.TeeValidateData
 	m["C1"] = fmt.Sprintf("%v", kg.C1)
 	m["Type"] = "KGRound2Message1"
 	return m
@@ -257,6 +287,11 @@ func (kg *KGRound2Message2) GetToID() []string {
 	return kg.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (kg *KGRound2Message2) GetTeeValidateData() string {
+	return kg.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (kg *KGRound2Message2) IsBroadcast() bool {
 	return true
@@ -268,6 +303,7 @@ func (kg *KGRound2Message2) OutMap() map[string]string {
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = ""
+	m["TeeValidateData"] = kg.TeeValidateData
 	
 	if kg.SfPf == nil {
 	    return nil
@@ -314,6 +350,11 @@ func (kg *KGRound3Message) GetToID() []string {
 	return kg.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (kg *KGRound3Message) GetTeeValidateData() string {
+	return kg.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (kg *KGRound3Message) IsBroadcast() bool {
 	return true
@@ -325,6 +366,7 @@ func (kg *KGRound3Message) OutMap() map[string]string {
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = ""
+	m["TeeValidateData"] = kg.TeeValidateData
 
 	tmp := make([]string, len(kg.ComU1GD))
 	for k, v := range kg.ComU1GD {
@@ -385,6 +427,11 @@ func (kg *KGRound3Message1) GetToID() []string {
 	return kg.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (kg *KGRound3Message1) GetTeeValidateData() string {
+	return kg.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (kg *KGRound3Message1) IsBroadcast() bool {
 	return false
@@ -398,6 +445,7 @@ func (kg *KGRound3Message1) OutMap() map[string]string {
 	m["ToID"] = strings.Join(kg.ToID, ":")
 	m["Y"] = fmt.Sprintf("%v", kg.Y)
 	m["Type"] = "KGRound3Message1"
+	m["TeeValidateData"] = kg.TeeValidateData
 	return m
 }
 
@@ -440,6 +488,11 @@ func (kg *KGRound4Message) GetToID() []string {
 	return kg.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (kg *KGRound4Message) GetTeeValidateData() string {
+	return kg.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (kg *KGRound4Message) IsBroadcast() bool {
 	return true
@@ -451,6 +504,7 @@ func (kg *KGRound4Message) OutMap() map[string]string {
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = ""
+	m["TeeValidateData"] = kg.TeeValidateData
 
 	nt, err := kg.U1NtildeH1H2.MarshalJSON()
 	if err != nil {
@@ -503,6 +557,11 @@ func (kg *KGRound5Message) GetToID() []string {
 	return kg.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (kg *KGRound5Message) GetTeeValidateData() string {
+	return kg.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (kg *KGRound5Message) IsBroadcast() bool {
 	return true
@@ -514,6 +573,7 @@ func (kg *KGRound5Message) OutMap() map[string]string {
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = ""
+	m["TeeValidateData"] = kg.TeeValidateData
 
 	tmp := make([]string, len(kg.ComXiGD))
 	for k, v := range kg.ComXiGD {
@@ -555,6 +615,11 @@ func (kg *KGRound5Message1) GetToID() []string {
 	return kg.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (kg *KGRound5Message1) GetTeeValidateData() string {
+	return kg.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (kg *KGRound5Message1) IsBroadcast() bool {
 	return true
@@ -566,6 +631,7 @@ func (kg *KGRound5Message1) OutMap() map[string]string {
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = ""
+	m["TeeValidateData"] = kg.TeeValidateData
 	
 	if kg.HvPf == nil {
 	    return nil
@@ -611,6 +677,11 @@ func (kg *KGRound5Message2) GetToID() []string {
 	return kg.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (kg *KGRound5Message2) GetTeeValidateData() string {
+	return kg.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (kg *KGRound5Message2) IsBroadcast() bool {
 	return true
@@ -622,6 +693,7 @@ func (kg *KGRound5Message2) OutMap() map[string]string {
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = ""
+	m["TeeValidateData"] = kg.TeeValidateData
 	
 	if kg.SfPf == nil {
 	    return nil
@@ -667,6 +739,11 @@ func (kg *KGRound6Message) GetToID() []string {
 	return kg.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (kg *KGRound6Message) GetTeeValidateData() string {
+	return kg.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (kg *KGRound6Message) IsBroadcast() bool {
 	return true
@@ -678,6 +755,7 @@ func (kg *KGRound6Message) OutMap() map[string]string {
 	m["FromID"] = kg.FromID
 	m["FromIndex"] = strconv.Itoa(kg.FromIndex)
 	m["ToID"] = ""
+	m["TeeValidateData"] = kg.TeeValidateData
 
 	zk, err := kg.U1zkXiProof.MarshalJSON()
 	if err != nil {

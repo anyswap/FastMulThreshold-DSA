@@ -269,6 +269,7 @@ func (round *round1) ExecTee(index int) error {
     }
     kg.SetFromID(round.dnodeid)
     kg.SetFromIndex(index)
+    kg.SetTeeValidateData(msgmap["TeeValidateData"])
 
     round.temp.kgRound1Messages[index] = kg
     round.out <- kg

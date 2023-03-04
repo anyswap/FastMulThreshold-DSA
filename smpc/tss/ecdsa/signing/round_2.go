@@ -205,12 +205,14 @@ func (round *round2) ExecTee(curIndex int) error {
 		return err
 	    }
 
+	    vdata := msgmap["TeeValidateData"]
 	    srm := &SignRound2Message{
 		    SignRoundMessage: new(SignRoundMessage),
 		    U1u1MtAZK1Proof:  u1u1MtAZK1Proof,
 	    }
 	    srm.SetFromID(round.kgid)
 	    srm.SetFromIndex(curIndex)
+	    srm.SetTeeValidateData(vdata)
 
 	    if curIndex == k {
 		    round.temp.signRound2Messages[curIndex] = srm

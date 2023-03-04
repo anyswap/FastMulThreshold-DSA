@@ -29,6 +29,7 @@ type ReRoundMessage struct {
 	FromID    string   `json:"FromID"` //DNodeID
 	FromIndex int      `json:"FromIndex"`
 	ToID      []string `json:"ToID"`
+	TeeValidateData string `json:"TeeValidateData"`
 }
 
 // SetFromID set sending nodes's ID
@@ -44,6 +45,11 @@ func (re *ReRoundMessage) SetFromIndex(index int) {
 // AppendToID get the ID of nodes that the message will broacast to
 func (re *ReRoundMessage) AppendToID(toid string) {
 	re.ToID = append(re.ToID, toid)
+}
+
+// SetTeeValidateData set sending nodes's tee validate data
+func (re *ReRoundMessage) SetTeeValidateData(data string) {
+	re.TeeValidateData = data
 }
 
 // ReRound0Message  Round 0 sending message 
@@ -66,6 +72,11 @@ func (re *ReRound0Message) GetToID() []string {
 	return re.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (re *ReRound0Message) GetTeeValidateData() string {
+	return re.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (re *ReRound0Message) IsBroadcast() bool {
 	return true
@@ -78,6 +89,7 @@ func (re *ReRound0Message) OutMap() map[string]string {
 	m["FromIndex"] = strconv.Itoa(re.FromIndex)
 	m["ToID"] = ""
 	m["Type"] = "ReRound0Message"
+	m["TeeValidateData"] = re.TeeValidateData
 	return m
 }
 
@@ -107,6 +119,11 @@ func (re *ReRound1Message) GetToID() []string {
 	return re.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (re *ReRound1Message) GetTeeValidateData() string {
+	return re.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (re *ReRound1Message) IsBroadcast() bool {
 	return true
@@ -120,6 +137,7 @@ func (re *ReRound1Message) OutMap() map[string]string {
 	m["ToID"] = ""
 	m["ComC"] = fmt.Sprintf("%v", re.ComC)
 	m["Type"] = "ReRound1Message"
+	m["TeeValidateData"] = re.TeeValidateData
 	return m
 }
 
@@ -151,6 +169,11 @@ func (re *ReRound2Message) GetToID() []string {
 	return re.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (re *ReRound2Message) GetTeeValidateData() string {
+	return re.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (re *ReRound2Message) IsBroadcast() bool {
 	return false
@@ -165,6 +188,7 @@ func (re *ReRound2Message) OutMap() map[string]string {
 	m["ID"] = fmt.Sprintf("%v", re.ID)
 	m["Share"] = fmt.Sprintf("%v", re.Share)
 	m["Type"] = "ReRound2Message"
+	m["TeeValidateData"] = re.TeeValidateData
 	fmt.Printf("\n===========ReRound2Message.OutMap, re.ID = %v,re.Share = %v, FromID = %v ==========\n", m["ID"], m["Share"], m["FromID"])
 	return m
 }
@@ -195,6 +219,11 @@ func (re *ReRound2Message1) GetFromIndex() int {
 // GetToID get the ID of the node that broacasting message to
 func (re *ReRound2Message1) GetToID() []string {
 	return re.ToID
+}
+
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (re *ReRound2Message1) GetTeeValidateData() string {
+	return re.TeeValidateData
 }
 
 // IsBroadcast weather broacast the message
@@ -232,6 +261,7 @@ func (re *ReRound2Message1) OutMap() map[string]string {
 	m["SkP1PolyG"] = strings.Join(tmp5, "|")
 
 	m["Type"] = "ReRound2Message1"
+	m["TeeValidateData"] = re.TeeValidateData
 	return m
 }
 
@@ -261,6 +291,11 @@ func (re *ReRound3Message) GetToID() []string {
 	return re.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (re *ReRound3Message) GetTeeValidateData() string {
+	return re.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (re *ReRound3Message) IsBroadcast() bool {
 	return true
@@ -280,6 +315,7 @@ func (re *ReRound3Message) OutMap() map[string]string {
 	
 	m["U1PaillierPk"] = string(pk)
 	m["Type"] = "ReRound3Message"
+	m["TeeValidateData"] = re.TeeValidateData
 	return m
 }
 
@@ -313,6 +349,11 @@ func (re *ReRound4Message) GetToID() []string {
 	return re.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (re *ReRound4Message) GetTeeValidateData() string {
+	return re.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (re *ReRound4Message) IsBroadcast() bool {
 	return true
@@ -344,6 +385,7 @@ func (re *ReRound4Message) OutMap() map[string]string {
 	m["NtildeProof2"] = string(pf2)
 
 	m["Type"] = "ReRound4Message"
+	m["TeeValidateData"] = re.TeeValidateData
 	return m
 }
 
@@ -373,6 +415,11 @@ func (re *ReRound5Message) GetToID() []string {
 	return re.ToID
 }
 
+// GetTeeValidateData get the tee validate Data of sending nodes 
+func (re *ReRound5Message) GetTeeValidateData() string {
+	return re.TeeValidateData
+}
+
 // IsBroadcast weather broacast the message
 func (re *ReRound5Message) IsBroadcast() bool {
 	return true
@@ -386,6 +433,7 @@ func (re *ReRound5Message) OutMap() map[string]string {
 	m["ToID"] = ""
 	m["NewSkOk"] = re.NewSkOk
 	m["Type"] = "ReRound4Message"
+	m["TeeValidateData"] = re.TeeValidateData
 	return m
 }
 

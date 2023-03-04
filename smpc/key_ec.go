@@ -225,8 +225,28 @@ func ProcessInboundMessages(msgprex string, keytype string,finishChan chan struc
 			}
 			////////////////////////
 
+			if Tee {
+			    s := &socket.ECKGTeeValidateData{MsgPrex:msgprex,Data:mm.GetTeeValidateData()}
+			    s.Base.SetBase(keytype,msgprex)
+			    err := socket.SendMsgData(smpclib.VSocketConnect,s)
+			    if err != nil {
+				res := RPCSmpcRes{Ret: "", Err: err}
+				ch <- res
+				return
+			    }
+			   
+			    kgs := <-w.OutCh
+			    msgmap := make(map[string]string)
+			    err = json.Unmarshal([]byte(kgs), &msgmap)
+			    if err != nil {
+				res := RPCSmpcRes{Ret: "", Err: err}
+				ch <- res
+				return
+			    }
+			}
+
 			if Tee && w.DNode.CheckforMsgToEnodeTee(mm) {
-			    log.Info("====================ProcessInboundMessages,get enode===============","key",msgprex,"fromid",msgmap["FromID"],"enode",msgmap["ENode"])
+			    /*log.Info("====================ProcessInboundMessages,get enode===============","key",msgprex,"fromid",msgmap["FromID"],"enode",msgmap["ENode"])
 			    s := &socket.KGRound0Msg{FromID:msgmap["FromID"],ENode:msgmap["ENode"]}
 			    s.Base.SetBase(keytype,msgprex)
 			    err := socket.SendMsgData(smpclib.VSocketConnect,s)
@@ -237,7 +257,7 @@ func ProcessInboundMessages(msgprex string, keytype string,finishChan chan struc
 				}
 
 				return
-			    }
+			    }*/
 			}
 
 			_, err = w.DNode.Update(mm)
@@ -509,6 +529,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 			}
 			kg.SetFromID(from)
 			kg.SetFromIndex(index)
+			kg.SetTeeValidateData(msg["TeeValidateData"])
 			kg.ToID = to
 			return kg
 		}
@@ -545,6 +566,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 		}
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
+		kg.SetTeeValidateData(msg["TeeValidateData"])
 		kg.ToID = to
 		return kg
 	    //}
@@ -563,6 +585,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 		}
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
+		kg.SetTeeValidateData(msg["TeeValidateData"])
 		kg.ToID = to
 		return kg
 	}
@@ -593,6 +616,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
 		kg.ToID = to
+		kg.SetTeeValidateData(msg["TeeValidateData"])
 		return kg
 	    }
 	}
@@ -644,6 +668,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
+		kg.SetTeeValidateData(msg["TeeValidateData"])
 		kg.ToID = to
 		return kg
 	}
@@ -665,6 +690,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 		}
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
+		kg.SetTeeValidateData(msg["TeeValidateData"])
 		kg.ToID = to
 		return kg
 	}
@@ -711,6 +737,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 					}
 					kg.SetFromID(from)
 					kg.SetFromIndex(index)
+					kg.SetTeeValidateData(msg["TeeValidateData"])
 					kg.ToID = to
 					return kg
 				}
@@ -739,6 +766,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 	    }
 	    kg.SetFromID(from)
 	    kg.SetFromIndex(index)
+	    kg.SetTeeValidateData(msg["TeeValidateData"])
 	    kg.ToID = to
 	    return kg
 	}
@@ -764,6 +792,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 		}
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
+		kg.SetTeeValidateData(msg["TeeValidateData"])
 		kg.ToID = to
 		return kg
 	    }
@@ -794,6 +823,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 		}
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
+		kg.SetTeeValidateData(msg["TeeValidateData"])
 		kg.ToID = to
 		return kg
 	    }
@@ -819,6 +849,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 		}
 		kg.SetFromID(from)
 		kg.SetFromIndex(index)
+		kg.SetTeeValidateData(msg["TeeValidateData"])
 		kg.ToID = to
 		return kg
 	    }
@@ -829,6 +860,7 @@ func GetRealMessage(msg map[string]string) smpclib.Message {
 	}
 	kg.SetFromID(from)
 	kg.SetFromIndex(-1)
+	kg.SetTeeValidateData(msg["TeeValidateData"])
 	kg.ToID = to
 
 	return kg

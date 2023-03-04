@@ -28,6 +28,7 @@ import (
 	"sync"
 	"time"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 )
 
 //--------------------------------------------------------EDDSA start-------------------------------------------------------
@@ -193,6 +194,26 @@ func EdSignProcessInboundMessages(msgprex string, keytype string,finishChan chan
 			}
 			////
 
+			if Tee {
+			    s := &socket.EDSigningTeeValidateData{MsgPrex:msgprex,Data:mm.GetTeeValidateData()}
+			    s.Base.SetBase(keytype,msgprex)
+			    err := socket.SendMsgData(smpclib.VSocketConnect,s)
+			    if err != nil {
+				res := RPCSmpcRes{Ret: "", Err: err}
+				ch <- res
+				return
+			    }
+			   
+			    kgs := <-w.OutCh
+			    msgmap := make(map[string]string)
+			    err = json.Unmarshal([]byte(kgs), &msgmap)
+			    if err != nil {
+				res := RPCSmpcRes{Ret: "", Err: err}
+				ch <- res
+				return
+			    }
+			}
+
 			_, err = w.DNode.Update(mm)
 			if err != nil {
 				fmt.Printf("========== EdSignProcessInboundMessages, dnode update fail, receiv smpc msg = %v, err = %v, key = %v ============\n", m, err, msgprex)
@@ -250,6 +271,7 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 
 		srm.SetFromID(from)
 		srm.SetFromIndex(index)
+		srm.SetTeeValidateData(msg["TeeValidateData"])
 		srm.ToID = to
 		return srm
 	}
@@ -274,6 +296,7 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 		}
 		srm.SetFromID(from)
 		srm.SetFromIndex(index)
+		srm.SetTeeValidateData(msg["TeeValidateData"])
 		srm.ToID = to
 
 		return srm
@@ -299,6 +322,7 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 		}
 		srm.SetFromID(from)
 		srm.SetFromIndex(index)
+		srm.SetTeeValidateData(msg["TeeValidateData"])
 		srm.ToID = to
 
 		return srm
@@ -324,6 +348,7 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 		}
 		srm.SetFromID(from)
 		srm.SetFromIndex(index)
+		srm.SetTeeValidateData(msg["TeeValidateData"])
 		srm.ToID = to
 
 		return srm
@@ -349,6 +374,7 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 		}
 		srm.SetFromID(from)
 		srm.SetFromIndex(index)
+		srm.SetTeeValidateData(msg["TeeValidateData"])
 		srm.ToID = to
 
 		return srm
@@ -374,6 +400,7 @@ func EdSignGetRealMessage(msg map[string]string) smpclib.Message {
 		}
 		srm.SetFromID(from)
 		srm.SetFromIndex(index)
+		srm.SetTeeValidateData(msg["TeeValidateData"])
 		srm.ToID = to
 
 		return srm

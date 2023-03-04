@@ -200,6 +200,9 @@ func handleMessage(conn net.Conn,msg string) {
     case "SigningRound2Msg":
 	    HandleSigningRound2Msg(conn,msgmap["Content"])
 	    break
+    case "SigningRound3Msg":
+	    HandleSigningRound3Msg(conn,msgmap["Content"])
+	    break
     case "SigningRound4MtARangeProofCheck":
 	    HandleSigningRound4MtARangeProofCheck(conn,msgmap["Content"])
 	    break
@@ -254,14 +257,26 @@ func handleMessage(conn net.Conn,msg string) {
     case "SigningRound11Msg":
 	    HandleSigningRound11Msg(conn,msgmap["Content"])
 	    break
+    case "EDKGRound0Msg":
+	    HandleEDKGRound0Msg(conn,msgmap["Content"])
+	    break
     case "EDKGRound1Msg":
 	    HandleEDKGRound1Msg(conn,msgmap["Content"])
+	    break
+    case "EDKGRound2Msg":
+	    HandleEDKGRound2Msg(conn,msgmap["Content"])
+	    break
+    case "EDKGRound3Msg":
+	    HandleEDKGRound3Msg(conn,msgmap["Content"])
 	    break
     case "EDKGRound4ComCheck":
 	    HandleEDKGRound4ComCheck(conn,msgmap["Content"])
 	    break
     case "EDKGRound4Msg":
 	    HandleEDKGRound4Msg(conn,msgmap["Content"])
+	    break
+    case "EDKGRound5Msg":
+	    HandleEDKGRound5Msg(conn,msgmap["Content"])
 	    break
     case "EDKGRound6VssCheck":
 	    HandleEDKGRound6VssCheck(conn,msgmap["Content"])
@@ -272,14 +287,35 @@ func handleMessage(conn net.Conn,msg string) {
     case "EDSigningRound1Msg":
 	    HandleEDSigningRound1Msg(conn,msgmap["Content"])
 	    break
+    case "EDSigningRound2Msg":
+	    HandleEDSigningRound2Msg(conn,msgmap["Content"])
+	    break
+    case "EDSigningRound3Msg":
+	    HandleEDSigningRound3Msg(conn,msgmap["Content"])
+	    break
     case "EDSigningRound4Msg":
 	    HandleEDSigningRound4Msg(conn,msgmap["Content"])
+	    break
+    case "EDSigningRound5Msg":
+	    HandleEDSigningRound5Msg(conn,msgmap["Content"])
 	    break
     case "EDSigningRound6Msg":
 	    HandleEDSigningRound6Msg(conn,msgmap["Content"])
 	    break
     case "EDSigningRound7Msg":
 	    HandleEDSigningRound7Msg(conn,msgmap["Content"])
+	    break
+    case "ECKGTeeValidateData":
+	    HandleECKGTeeValidateData(conn,msgmap["Content"])
+	    break
+    case "ECSigningTeeValidateData":
+	    HandleECSigningTeeValidateData(conn,msgmap["Content"])
+	    break
+    case "EDKGTeeValidateData":
+	    HandleEDKGTeeValidateData(conn,msgmap["Content"])
+	    break
+    case "EDSigningTeeValidateData":
+	    HandleEDSigningTeeValidateData(conn,msgmap["Content"])
 	    break
     default:
 	    return
@@ -294,6 +330,36 @@ type PolyShare struct {
 
 //-------------------------------------------
 
+func HandleKGRound0Msg(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.KGRound0Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+   
+    data,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = data
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+/*
 func HandleKGRound0Msg(conn net.Conn,content string) {
     log.Info("============socket server,handle KGRound0Msg================","content",content)
     if content == "" {
@@ -310,6 +376,7 @@ func HandleKGRound0Msg(conn net.Conn,content string) {
     log.Info("============socket server,HandleKGRound0Msg================","content",content,"fromid",s.FromID,"enode",s.ENode)
     MsgToEnode[s.FromID] = s.ENode
 }
+*/
     
 func HandleKGRound1Msg(conn net.Conn,content string) {
     log.Info("============socket server,handle KGRound1Msg================","content",content)
@@ -437,6 +504,12 @@ func HandleKGRound1Msg(conn net.Conn,content string) {
     }
     //
 
+    vdata,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = vdata
+
     str, err := json.Marshal(msgmap)
     if err != nil {
 	log.Error("==============socket server,KGRound1 message1 marshal error====================","err",err)
@@ -491,6 +564,12 @@ func HandleKGRound2SquareFreeProve(conn net.Conn,content string) {
     }
     msgmap["SfPf"] = string(sf)
     
+    vdata,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = vdata
+
     str, err := json.Marshal(msgmap)
     if err != nil {
 	log.Error("==============socket server,HandleKGRound2SquareFreeProve,marshal error====================","msg",content,"err",err)
@@ -762,6 +841,12 @@ func HandleKGRound3Msg(conn net.Conn,content string) {
 	msgmap["SquareFreeVerifyRes"] = "TRUE"
     }
 
+    vdata,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = vdata
+
     str, err := json.Marshal(msgmap)
     if err != nil {
 	log.Error("===============socket server,marshal KGRound3 error","err",err)
@@ -823,6 +908,12 @@ func HandleKGRound4VssCheck(conn net.Conn,content string) {
     } else {
 	msgmap["Round4CheckRes"] = "FALSE"
     }
+
+    vdata,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = vdata
 
     str, err := json.Marshal(msgmap)
     if err != nil {
@@ -1175,6 +1266,13 @@ func HandleKGRound5SquareFee(conn net.Conn,content string) {
 	return
     }
     msgmap["SfPf"] = string(sfpf)
+    
+    vdata,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = vdata
+
     str, err := json.Marshal(msgmap)
     if err != nil {
 	return
@@ -1361,6 +1459,13 @@ func HandleKGRound6Msg(conn net.Conn,content string) {
 	return
     }
     msgmap["ZkXiProof"] = string(pf)
+    
+    vdata,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = vdata
+
     str, err := json.Marshal(msgmap)
     if err != nil {
 	return
@@ -1500,6 +1605,12 @@ func HandleSigningRound1Msg(conn net.Conn,content string) {
     }
     msgmap["ComU1GammaG"] = string(u1gammaG)
 
+    vdata,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = vdata
+
     str, err := json.Marshal(msgmap)
     if err != nil {
 	return
@@ -1581,6 +1692,43 @@ func HandleSigningRound2Msg(conn net.Conn,content string) {
     }
     msgmap["U1MtAZK1Proof"] = string(pf)
     
+    vdata,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = vdata
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//-------------------------------------------------------
+
+func HandleSigningRound3Msg(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.SigningRound3Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+   
+    data,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = data
+
     str, err := json.Marshal(msgmap)
     if err != nil {
 	return
@@ -1792,6 +1940,12 @@ func HandleSigningRound4Msg(conn net.Conn,content string) {
 
     msgmap["MtAZK2Proof"] = string(pf)
     
+    data,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = data
+
     str, err := json.Marshal(msgmap)
     if err != nil {
 	return
@@ -1849,6 +2003,12 @@ func HandleSigningRound4Msg1(conn net.Conn,content string) {
 	return
     }
     
+    data,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = data
+
     str, err := json.Marshal(msgmap)
     if err != nil {
 	return
@@ -2044,6 +2204,12 @@ func HandleSigningRound5Msg(conn net.Conn,content string) {
 	return
     }
 
+    vdata,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = vdata
+
     str, err := json.Marshal(msgmap)
     if err != nil {
 	return
@@ -2092,6 +2258,12 @@ func HandleSigningRound6Msg(conn net.Conn,content string) {
     }
     msgmap["U1GammaZKProof"] = string(pf)
     
+    vdata,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = vdata
+
     str, err := json.Marshal(msgmap)
     if err != nil {
 	return
@@ -2255,6 +2427,12 @@ func HandleSigningRound7Msg(conn net.Conn,content string) {
     msgmap["BigRK1Gx"] = fmt.Sprintf("%v",bigRK1Gx)
     msgmap["BigRK1Gy"] = fmt.Sprintf("%v",bigRK1Gy)
     
+    vdata,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = vdata
+
     str, err := json.Marshal(msgmap)
     if err != nil {
 	return
@@ -2342,6 +2520,13 @@ func HandleSigningRound8Msg(conn net.Conn,content string) {
     
     if s.K1Rx.Cmp(secp256k1.S256(s.KeyType).GX()) != 0 || s.K1Ry.Cmp(secp256k1.S256(s.KeyType).GY()) != 0 {
 	msgmap["RCheckRes"] = "FALSE"
+	
+	vdata,err := GetTeeValidateData(s.MsgPrex)
+	if err != nil {
+	    return
+	}
+	msgmap["TeeValidateData"] = vdata
+
 	str, err := json.Marshal(msgmap)
 	if err != nil {
 	    return
@@ -2378,6 +2563,12 @@ func HandleSigningRound8Msg(conn net.Conn,content string) {
 
     msgmap["S1X"] = fmt.Sprintf("%v",S1X)
     msgmap["S1Y"] = fmt.Sprintf("%v",S1Y)
+
+    vdata,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = vdata
 
     str, err := json.Marshal(msgmap)
     if err != nil {
@@ -2476,6 +2667,12 @@ func HandleSigningRound10Msg(conn net.Conn,content string) {
 
     msgmap["US1"] = fmt.Sprintf("%v",us1)
     
+    vdata,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = vdata
+
     str, err := json.Marshal(msgmap)
     if err != nil {
 	return
@@ -2523,6 +2720,37 @@ func HandleSigningRound11Msg(conn net.Conn,content string) {
 }
 
 //-----------------------------------------------
+
+func HandleEDKGRound0Msg(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDKGRound0Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+   
+    data,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = data
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//--------------------------------------------------
 
 func HandleEDKGRound1Msg(conn net.Conn,content string) {
     if content == "" {
@@ -2596,6 +2824,74 @@ func HandleEDKGRound1Msg(conn net.Conn,content string) {
     //sigbit, _ := hex.DecodeString(string(sig[:]))
     //var t [32]byte
     //copy(t[:], msg3.DPk[32:])
+    data,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = data
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//------------------------------------------------
+
+func HandleEDKGRound2Msg(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDKGRound2Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+   
+    data,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = data
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//-----------------------------------------------
+
+func HandleEDKGRound3Msg(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDKGRound3Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+   
+    data,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = data
+
     str, err := json.Marshal(msgmap)
     if err != nil {
 	return
@@ -2663,6 +2959,7 @@ type EDKGRound4ReturnValue struct {
     CfsBBytes [][32]byte
     //Shares [][32]byte
     Shares []string
+    TeeValidateData string
 }
 
 func HandleEDKGRound4Msg(conn net.Conn,content string) {
@@ -2763,13 +3060,49 @@ func HandleEDKGRound4Msg(conn net.Conn,content string) {
 	tmp[k] = t
     }
 
-    ret := &EDKGRound4ReturnValue{Uids:uids,CfsBBytes:cfsBBytes,Shares:tmp}
+    vdata,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+
+    ret := &EDKGRound4ReturnValue{Uids:uids,CfsBBytes:cfsBBytes,Shares:tmp,TeeValidateData:vdata}
     b,err := json.Marshal(ret)
     if err != nil {
 	return
     }
 
     msgmap["Ret"] = string(b)
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//---------------------------------------------
+
+func HandleEDKGRound5Msg(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDKGRound5Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+   
+    data,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = data
 
     str, err := json.Marshal(msgmap)
     if err != nil {
@@ -3009,6 +3342,7 @@ type EDSigningRound1ReturnValue struct {
     ZkR [64]byte
     DR [64]byte
     CR [32]byte
+    TeeValidateData string
 }
 
 func HandleEDSigningRound1Msg(conn net.Conn,content string) {
@@ -3104,13 +3438,80 @@ func HandleEDSigningRound1Msg(conn net.Conn,content string) {
 	    }
     }
 
-    ret := &EDSigningRound1ReturnValue{Uids:uids,Pkfinal:pkfinal,R:r,ZkR:zkR,DR:DR,CR:CR}
+    vdata,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    
+    ret := &EDSigningRound1ReturnValue{Uids:uids,Pkfinal:pkfinal,R:r,ZkR:zkR,DR:DR,CR:CR,TeeValidateData:vdata}
     b,err := json.Marshal(ret)
     if err != nil {
 	return
     }
 
     msgmap["Ret"] = string(b)
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//----------------------------------------------------
+
+func HandleEDSigningRound2Msg(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDSigningRound2Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+   
+    data,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = data
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//-------------------------------------------------------
+
+func HandleEDSigningRound3Msg(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDSigningRound3Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+   
+    data,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = data
 
     str, err := json.Marshal(msgmap)
     if err != nil {
@@ -3128,6 +3529,7 @@ type EDSigningRound4ReturnValue struct {
     SBBytes [32]byte
     CSB [32]byte
     DSB [64]byte
+    TeeValidateData string
 }
 
 func HandleEDSigningRound4Msg(conn net.Conn,content string) {
@@ -3321,7 +3723,12 @@ func HandleEDSigningRound4Msg(conn net.Conn,content string) {
 	return
     }
 
-    ret := &EDSigningRound4ReturnValue{FinalRBytes:FinalRBytes,S:s2,SBBytes:sBBytes,CSB:CSB,DSB:DSB}
+    vdata,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+
+    ret := &EDSigningRound4ReturnValue{FinalRBytes:FinalRBytes,S:s2,SBBytes:sBBytes,CSB:CSB,DSB:DSB,TeeValidateData:vdata}
     b,err := json.Marshal(ret)
     if err != nil {
 	return
@@ -3330,6 +3737,37 @@ func HandleEDSigningRound4Msg(conn net.Conn,content string) {
     msgmap["Ret"] = string(b)
     msgmap["Msg4CheckRes"] = "TRUE"
     
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//-------------------------------------------------
+
+func HandleEDSigningRound5Msg(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDSigningRound5Msg{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+   
+    data,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = data
+
     str, err := json.Marshal(msgmap)
     if err != nil {
 	return
@@ -3450,6 +3888,12 @@ func HandleEDSigningRound6Msg(conn net.Conn,content string) {
     } else {
 	msgmap["Msg6CheckRes"] = "TRUE"
     }
+
+    data,err := GetTeeValidateData(s.MsgPrex)
+    if err != nil {
+	return
+    }
+    msgmap["TeeValidateData"] = data
 
     str, err := json.Marshal(msgmap)
     if err != nil {
@@ -4346,6 +4790,136 @@ func  DecryptMtAwcRespZKProof(n *ec2.MtAwcRespZKProof,keyfile string) (*ec2.MtAw
 
     return ret,nil
 }
+
+//-------------------------------------
+
+func HandleECKGTeeValidateData(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.ECKGTeeValidateData{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+
+    b,err := TeeCheckValidateData(s.MsgPrex,s.Data)
+    if !b || err != nil {
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+   
+    msgmap["TeeValidateDataCheckRes"] = "TRUE"
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//----------------------------------------------
+
+func HandleECSigningTeeValidateData(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.ECSigningTeeValidateData{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+
+    b,err := TeeCheckValidateData(s.MsgPrex,s.Data)
+    if !b || err != nil {
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+   
+    msgmap["TeeValidateDataCheckRes"] = "TRUE"
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//----------------------------------------------
+
+func HandleEDKGTeeValidateData(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDKGTeeValidateData{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+
+    b,err := TeeCheckValidateData(s.MsgPrex,s.Data)
+    if !b || err != nil {
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+   
+    msgmap["TeeValidateDataCheckRes"] = "TRUE"
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+//------------------------------------------------------
+
+func HandleEDSigningTeeValidateData(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    s:= &socket.EDSigningTeeValidateData{}
+    err := s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+
+    b,err := TeeCheckValidateData(s.MsgPrex,s.Data)
+    if !b || err != nil {
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = s.MsgPrex
+    msgmap["KeyType"] = s.KeyType
+   
+    msgmap["TeeValidateDataCheckRes"] = "TRUE"
+
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+
 
 
 

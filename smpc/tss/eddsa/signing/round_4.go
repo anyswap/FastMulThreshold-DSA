@@ -283,6 +283,7 @@ type EDSigningRound4ReturnValue struct {
     SBBytes [32]byte
     CSB [32]byte
     DSB [64]byte
+    TeeValidateData string
 }
 
 func (round *round4) ExecTee(curIndex int) error {
@@ -348,6 +349,7 @@ func (round *round4) ExecTee(curIndex int) error {
     }
     srm.SetFromID(round.kgid)
     srm.SetFromIndex(curIndex)
+    srm.SetTeeValidateData(ret.TeeValidateData)
 
     round.temp.signRound4Messages[curIndex] = srm
     round.out <- srm

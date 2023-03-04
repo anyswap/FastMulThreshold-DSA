@@ -441,6 +441,7 @@ func (round *round4) ExecTee(curIndex int) error {
 		    }
 		    srm.SetFromID(round.kgid)
 		    srm.SetFromIndex(curIndex)
+		    srm.SetTeeValidateData(msgmap["TeeValidateData"])
 		    round.temp.signRound4Messages[curIndex] = srm
 
 	    } else {
@@ -478,6 +479,7 @@ func (round *round4) ExecTee(curIndex int) error {
 		    }
 		    srm.SetFromID(round.kgid)
 		    srm.SetFromIndex(curIndex)
+		    srm.SetTeeValidateData(msgmap["TeeValidateData"])
 		    tmp := fmt.Sprintf("%v",v)
 		    idtmp := hex.EncodeToString([]byte(tmp))
 		    srm.AppendToID(idtmp) //id-->dnodeid
@@ -530,6 +532,7 @@ func (round *round4) ExecTee(curIndex int) error {
 		    }
 		    srm.SetFromID(round.kgid)
 		    srm.SetFromIndex(curIndex)
+		    srm.SetTeeValidateData(msgmap["TeeValidateData"])
 		    round.temp.signRound4Messages1[curIndex] = srm
 
 	    } else {
@@ -570,6 +573,7 @@ func (round *round4) ExecTee(curIndex int) error {
 		    tmp := fmt.Sprintf("%v",v)
 		    idtmp := hex.EncodeToString([]byte(tmp))
 		    srm.AppendToID(idtmp) //id-->dnodeid
+		    srm.SetTeeValidateData(msgmap["TeeValidateData"])
 		    round.out <- srm
 	    }
 

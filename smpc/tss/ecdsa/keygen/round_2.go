@@ -236,6 +236,8 @@ func (round *round2) ExecTee(curIndex int,ids []*big.Int) error {
 	return err
     }
 
+    vdata := msgmap["TeeValidateData"]
+
     srm := &KGRound2Message2{
 	    KGRoundMessage: new(KGRoundMessage),
 	    Num:		num,
@@ -243,6 +245,7 @@ func (round *round2) ExecTee(curIndex int,ids []*big.Int) error {
     }
     srm.SetFromID(round.dnodeid)
     srm.SetFromIndex(curIndex)
+    srm.SetTeeValidateData(vdata)
 
     round.temp.kgRound2Messages2[curIndex] = srm
     round.out <- srm
@@ -280,6 +283,7 @@ func (round *round2) ExecTee(curIndex int,ids []*big.Int) error {
 	    }
 	    kg.SetFromID(round.dnodeid)
 	    kg.SetFromIndex(curIndex)
+	    kg.SetTeeValidateData(vdata)
 
 	    vv := ec2.GetSharesID(v)
 	    if vv != nil && vv.Cmp(id) == 0 && k == curIndex {
@@ -301,6 +305,7 @@ func (round *round2) ExecTee(curIndex int,ids []*big.Int) error {
     }
     kg.SetFromID(round.dnodeid)
     kg.SetFromIndex(curIndex)
+    kg.SetTeeValidateData(vdata)
     round.temp.kgRound2Messages1[curIndex] = kg
     round.out <- kg
 

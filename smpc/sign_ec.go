@@ -25,6 +25,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/ecdsa/signing"
 	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 	"math/big"
 	"strconv"
 	"strings"
@@ -214,6 +215,26 @@ func SignProcessInboundMessages(msgprex string, keytype string,finishChan chan s
 			}
 			////
 
+			if Tee {
+			    s := &socket.ECSigningTeeValidateData{MsgPrex:msgprex,Data:mm.GetTeeValidateData()}
+			    s.Base.SetBase(keytype,msgprex)
+			    err := socket.SendMsgData(smpclib.VSocketConnect,s)
+			    if err != nil {
+				res := RPCSmpcRes{Ret: "", Err: err}
+				ch <- res
+				return
+			    }
+			   
+			    kgs := <-w.OutCh
+			    msgmap := make(map[string]string)
+			    err = json.Unmarshal([]byte(kgs), &msgmap)
+			    if err != nil {
+				res := RPCSmpcRes{Ret: "", Err: err}
+				ch <- res
+				return
+			    }
+			}
+
 			_, err = w.DNode.Update(mm)
 			if err != nil {
 				log.Error("========== SignProcessInboundMessages, dnode update fail===========","msg hash",hexs,"err",err,"key",msgprex)
@@ -294,6 +315,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 		
 		srm.SetFromID(from)
 		srm.SetFromIndex(index)
+		srm.SetTeeValidateData(msg["TeeValidateData"])
 		srm.ToID = to
 		return srm
 	}
@@ -313,6 +335,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 			}
 			srm.SetFromID(from)
 			srm.SetFromIndex(index)
+			srm.SetTeeValidateData(msg["TeeValidateData"])
 			srm.ToID = to
 
 			return srm
@@ -352,6 +375,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 	    }
 	    srm.SetFromID(from)
 	    srm.SetFromIndex(index)
+	    srm.SetTeeValidateData(msg["TeeValidateData"])
 	    srm.ToID = to
 	    return srm
 	}
@@ -380,6 +404,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 			}
 			srm.SetFromID(from)
 			srm.SetFromIndex(index)
+			srm.SetTeeValidateData(msg["TeeValidateData"])
 			srm.ToID = to
 			return srm
 		}
@@ -411,6 +436,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 			}
 			srm.SetFromID(from)
 			srm.SetFromIndex(index)
+			srm.SetTeeValidateData(msg["TeeValidateData"])
 			srm.ToID = to
 			return srm
 		}
@@ -447,6 +473,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 		    }
 		    srm.SetFromID(from)
 		    srm.SetFromIndex(index)
+		    srm.SetTeeValidateData(msg["TeeValidateData"])
 		    srm.ToID = to
 		    return srm
 		}
@@ -482,6 +509,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 			}
 			srm.SetFromID(from)
 			srm.SetFromIndex(index)
+			srm.SetTeeValidateData(msg["TeeValidateData"])
 			srm.ToID = to
 			return srm
 		}
@@ -515,6 +543,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 			}
 			srm.SetFromID(from)
 			srm.SetFromIndex(index)
+			srm.SetTeeValidateData(msg["TeeValidateData"])
 			srm.ToID = to
 			return srm
 		}
@@ -548,6 +577,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 			}
 			srm.SetFromID(from)
 			srm.SetFromIndex(index)
+			srm.SetTeeValidateData(msg["TeeValidateData"])
 			srm.ToID = to
 			return srm
 		}
@@ -572,6 +602,7 @@ func SignGetRealMessage(msg map[string]string) smpclib.Message {
 		}
 		srm.SetFromID(from)
 		srm.SetFromIndex(index)
+		srm.SetTeeValidateData(msg["TeeValidateData"])
 		srm.ToID = to
 		return srm
 	}

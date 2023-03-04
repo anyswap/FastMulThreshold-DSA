@@ -30,11 +30,7 @@ func (b *Base) SetBase(kt string,keyid string) {
 //--------------------------------------------------------
 
 type KGRound0Msg struct {
-   
     Base
-
-    FromID string
-    ENode string
 }
 
 func (kg *KGRound0Msg) SetBase(kt string,keyid string) {
@@ -699,6 +695,28 @@ func (kg *SigningRound2Msg) GetMsgType() string {
     return "SigningRound2Msg"
 }
 
+//----------------------------------------------------
+
+type SigningRound3Msg struct {
+    Base
+}
+
+func (kg *SigningRound3Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *SigningRound3Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *SigningRound3Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *SigningRound3Msg) GetMsgType() string {
+    return "SigningRound3Msg"
+}
+
 //---------------------------------------------------
 
 type SigningRound4MtARangeProofCheck struct {
@@ -1203,6 +1221,31 @@ func (kg *SigningRound11Msg) GetMsgType() string {
 
 //---------------------------------------------
 
+type EDKGRound0Msg struct {
+    Base
+}
+
+func (kg *EDKGRound0Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDKGRound0Msg) ToJson() ([]byte,error) {
+    log.Info("===============EDKGRound0Msg.ToJson============","kg",kg)
+    return json.Marshal(kg)
+}
+
+func (kg *EDKGRound0Msg) ToObj(raw []byte) error {
+    log.Info("===============EDKGRound0Msg.ToObj===========","kg",kg)
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDKGRound0Msg) GetMsgType() string {
+    log.Info("===============EDKGRound0Msg.GetMsgType===========","kg",kg)
+    return "EDKGRound0Msg"
+}
+
+//--------------------------------------------------
+
 type EDKGRound1Msg struct {
     Base
 }
@@ -1224,6 +1267,50 @@ func (kg *EDKGRound1Msg) GetMsgType() string {
 }
 
 //-------------------------------------------------
+
+type EDKGRound2Msg struct {
+    Base
+}
+
+func (kg *EDKGRound2Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDKGRound2Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDKGRound2Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDKGRound2Msg) GetMsgType() string {
+    return "EDKGRound2Msg"
+}
+
+//------------------------------------------
+
+type EDKGRound3Msg struct {
+    Base
+}
+
+func (kg *EDKGRound3Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDKGRound3Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDKGRound3Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDKGRound3Msg) GetMsgType() string {
+    return "EDKGRound3Msg"
+}
+
+//---------------------------------------------------
 
 type EDKGRound4ComCheck struct {
     Base
@@ -1278,6 +1365,28 @@ func (kg *EDKGRound4Msg) ToObj(raw []byte) error {
 
 func (kg *EDKGRound4Msg) GetMsgType() string {
     return "EDKGRound4Msg"
+}
+
+//-------------------------------------------
+
+type EDKGRound5Msg struct {
+    Base
+}
+
+func (kg *EDKGRound5Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDKGRound5Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDKGRound5Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDKGRound5Msg) GetMsgType() string {
+    return "EDKGRound5Msg"
 }
 
 //-------------------------------------------
@@ -1361,6 +1470,50 @@ func (kg *EDSigningRound1Msg) GetMsgType() string {
     return "EDSigningRound1Msg"
 }
 
+//----------------------------------------------
+
+type EDSigningRound2Msg struct {
+    Base
+}
+
+func (kg *EDSigningRound2Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDSigningRound2Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDSigningRound2Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDSigningRound2Msg) GetMsgType() string {
+    return "EDSigningRound2Msg"
+}
+
+//-------------------------------------------------
+
+type EDSigningRound3Msg struct {
+    Base
+}
+
+func (kg *EDSigningRound3Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDSigningRound3Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDSigningRound3Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDSigningRound3Msg) GetMsgType() string {
+    return "EDSigningRound3Msg"
+}
+
 //-------------------------------------------------
 
 type EDSigningRound4Msg struct {
@@ -1392,6 +1545,28 @@ func (kg *EDSigningRound4Msg) ToObj(raw []byte) error {
 
 func (kg *EDSigningRound4Msg) GetMsgType() string {
     return "EDSigningRound4Msg"
+}
+
+//---------------------------------------------------
+
+type EDSigningRound5Msg struct {
+    Base
+}
+
+func (kg *EDSigningRound5Msg) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDSigningRound5Msg) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDSigningRound5Msg) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDSigningRound5Msg) GetMsgType() string {
+    return "EDSigningRound5Msg"
 }
 
 //-------------------------------------------------
@@ -1447,6 +1622,106 @@ func (kg *EDSigningRound7Msg) ToObj(raw []byte) error {
 
 func (kg *EDSigningRound7Msg) GetMsgType() string {
     return "EDSigningRound7Msg"
+}
+
+//-----------------------------------------------------
+
+type ECKGTeeValidateData struct {
+    Base
+
+    MsgPrex string
+    Data string
+}
+
+func (kg *ECKGTeeValidateData) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *ECKGTeeValidateData) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *ECKGTeeValidateData) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *ECKGTeeValidateData) GetMsgType() string {
+    return "ECKGTeeValidateData"
+}
+
+//--------------------------------------------------
+
+type ECSigningTeeValidateData struct {
+    Base
+
+    MsgPrex string
+    Data string
+}
+
+func (kg *ECSigningTeeValidateData) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *ECSigningTeeValidateData) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *ECSigningTeeValidateData) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *ECSigningTeeValidateData) GetMsgType() string {
+    return "ECSigningTeeValidateData"
+}
+
+//--------------------------------------------------
+
+type EDKGTeeValidateData struct {
+    Base
+
+    MsgPrex string
+    Data string
+}
+
+func (kg *EDKGTeeValidateData) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDKGTeeValidateData) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDKGTeeValidateData) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDKGTeeValidateData) GetMsgType() string {
+    return "EDKGTeeValidateData"
+}
+
+//--------------------------------------------------
+
+type EDSigningTeeValidateData struct {
+    Base
+
+    MsgPrex string
+    Data string
+}
+
+func (kg *EDSigningTeeValidateData) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *EDSigningTeeValidateData) ToJson() ([]byte,error) {
+    return json.Marshal(kg)
+}
+
+func (kg *EDSigningTeeValidateData) ToObj(raw []byte) error {
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *EDSigningTeeValidateData) GetMsgType() string {
+    return "EDSigningTeeValidateData"
 }
 
 
