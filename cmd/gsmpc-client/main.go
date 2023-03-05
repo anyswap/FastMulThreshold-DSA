@@ -341,6 +341,11 @@ func enodeSig() {
 	enodePubkey := strings.Split(s[0], "//")
 	fmt.Printf("enodePubkey = %s\n", enodePubkey[1])
 	
+	if  *mode == "2" {
+	    fmt.Printf("\nenodeSig self = \n%s\n\n", enodePubkey[1]+":"+keyWrapper.Address.String())
+	    return
+	}
+
 	hash := GetMsgSigHash([]byte(enodePubkey[1]))
 	//sig, err := crypto.Sign(crypto.Keccak256([]byte(enodePubkey[1])), keyWrapper.PrivateKey)
 	sig, err := crypto.Sign(hash, keyWrapper.PrivateKey)
@@ -405,12 +410,23 @@ func reqKeyGen() {
 	fmt.Printf("smpc_getReqAddrNonce = %s\nNonce = %d\n", reqAddrNonce, nonce)
 	// build Sigs list parameter
 	sigs := ""
-	if *mode == "0" || *mode == "2" {
+	//if *mode == "0" || *mode == "2" {
+	if *mode == "0" {
 		for i := 0; i < len(enodesSig)-1; i++ {
 			sigs = sigs + enodesSig[i] + "|"
 		}
 		sigs = sigs + enodesSig[len(enodesSig)-1]
 	}
+
+	if *mode == "2" {
+	    sigs = strconv.Itoa(len(enodesSig)) + ":"
+	    for i := 0; i < len(enodesSig)-1; i++ {
+		sigs = sigs + enodesSig[i] + ":"
+	    }
+	    sigs = sigs + enodesSig[len(enodesSig)-1]
+	}
+	fmt.Printf("sigs = \n%s\n",sigs)
+
 	// build tx data
 	timestamp := strconv.FormatInt((time.Now().UnixNano() / 1e6), 10)
 	txdata := reqAddrData{
@@ -495,12 +511,23 @@ func reqSmpcAddr() {
 	fmt.Printf("smpc_getReqAddrNonce = %s\nNonce = %d\n", reqAddrNonce, nonce)
 	// build Sigs list parameter
 	sigs := ""
-	if *mode == "0" || *mode == "2" {
+	//if *mode == "0" || *mode == "2" {
+	if *mode == "0" {
 		for i := 0; i < len(enodesSig)-1; i++ {
 			sigs = sigs + enodesSig[i] + "|"
 		}
 		sigs = sigs + enodesSig[len(enodesSig)-1]
 	}
+	
+	if *mode == "2" {
+	    sigs = strconv.Itoa(len(enodesSig)) + ":"
+	    for i := 0; i < len(enodesSig)-1; i++ {
+		sigs = sigs + enodesSig[i] + ":"
+	    }
+	    sigs = sigs + enodesSig[len(enodesSig)-1]
+	}
+	fmt.Printf("sigs = \n%s\n",sigs)
+
 	// build tx data
 	timestamp := strconv.FormatInt((time.Now().UnixNano() / 1e6), 10)
 	txdata := reqAddrData{
