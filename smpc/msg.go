@@ -1223,6 +1223,12 @@ func GetGroupSigsDataByRaw(raw string) (string, error) {
 		return "", fmt.Errorf("raw data error,must have sigs data when mode = 0")
 	}
 
+	if mode == "2" {
+	    sigs := strings.Split(groupsigs, ":")
+	    ret := strings.Join(sigs, common.Sep)
+	    return ret,nil
+	}
+
 	nums := strings.Split(threshold, "/")
 	nodecnt, _ := strconv.Atoi(nums[1])
 	if nodecnt <= 1 {
