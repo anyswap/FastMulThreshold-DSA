@@ -321,7 +321,7 @@ func (req *ReqSmpcAddr) DoReq(raw string, workid int, sender string, ch chan int
 		//AcceptReqAddr(raw, sender, from, req2.Keytype, req2.GroupID, nonce, req2.ThresHold, req2.Mode, "false", "false", "Pending", "", "", "", arstmp, workid, "")
 		//
 		
-		if req2.Mode == "0" || req2.Mode == "2" { // self-group
+		if req2.Mode == "0" { // self-group
 			////
 			var reply bool
 			var keygentimeout bool
