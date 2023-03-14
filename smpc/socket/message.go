@@ -29,6 +29,35 @@ func (b *Base) SetBase(kt string,keyid string) {
 
 //--------------------------------------------------------
 
+type GetTeeParamData struct {
+    Base
+
+    AccKey string
+    AccSk string
+    Token string
+}
+
+func (kg *GetTeeParamData) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *GetTeeParamData) ToJson() ([]byte,error) {
+    log.Info("===============GetTeeParamData.ToJson============","kg",kg)
+    return json.Marshal(kg)
+}
+
+func (kg *GetTeeParamData) ToObj(raw []byte) error {
+    log.Info("===============GetTeeParamData.ToObj===========","kg",kg)
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *GetTeeParamData) GetMsgType() string {
+    log.Info("===============GetTeeParamData.GetMsgType===========","kg",kg)
+    return "GetTeeParamData"
+}
+
+//--------------------------------------------------------
+
 type KGRound0Msg struct {
     Base
 }
@@ -134,65 +163,6 @@ func (kg *KGRound2VssShare) GetMsgType() string {
 }
 
 //-------------------------------------------------------
-
-/*
-type KGRound2Msg struct {
-    Base
-
-    //PaiSk *ec2.PrivateKey
-    PaiSk string
-    Index int
-    Ids []*big.Int
-    U1Poly string
-    NodeID string
-}
-
-func (kg *KGRound2Msg) SetBase(kt string,keyid string) {
-    kg.Base.SetBase(kt,keyid)
-}
-
-func (kg *KGRound2Msg) ToJson() ([]byte,error) {
-    log.Info("===============KGRound2Msg.ToJson============","kg",kg)
-    return json.Marshal(kg)
-}
-
-func (kg *KGRound2Msg) ToObj(raw []byte) error {
-    return json.Unmarshal(raw,kg)
-}
-
-func (kg *KGRound2Msg) GetMsgType() string {
-    return "KGRound2Msg"
-}
-*/
-
-//--------------------------------------------------
-
-/*type IdsVss struct {
-    Base
-
-    Ids []*big.Int
-    //U1Poly []*big.Int
-    U1Poly string 
-}
-
-func (kg *IdsVss) SetBase(kt string,keyid string) {
-    kg.Base.SetBase(kt,keyid)
-}
-
-func (kg *IdsVss) ToJson() ([]byte,error) {
-    return json.Marshal(kg)
-}
-
-func (kg *IdsVss) ToObj(raw []byte) error {
-    return json.Unmarshal(raw,kg)
-}
-
-func (kg *IdsVss) GetMsgType() string {
-    return "IdsVss"
-}
-*/
-
-//---------------------------------------------------
 
 type KGRound3Msg struct {
     Base
@@ -322,36 +292,7 @@ func (kg *KGRound4DeCom) ToObj(raw []byte) error {
 func (kg *KGRound4DeCom) GetMsgType() string {
     return "KGRound4DeCom"
 }
-/*
-type KGRound4DeCom struct {
-    Base
 
-    ID *big.Int
-    //Share *big.Int
-    Share string
-
-    C *big.Int
-    D []*big.Int
-
-    Msg21C *big.Int
-}
-
-func (kg *KGRound4DeCom) SetBase(kt string,keyid string) {
-    kg.Base.SetBase(kt,keyid)
-}
-
-func (kg *KGRound4DeCom) ToJson() ([]byte,error) {
-    return json.Marshal(kg)
-}
-
-func (kg *KGRound4DeCom) ToObj(raw []byte) error {
-    return json.Unmarshal(raw,kg)
-}
-
-func (kg *KGRound4DeCom) GetMsgType() string {
-    return "KGRound4DeCom"
-}
-*/
 //------------------------------------------------------
 
 type KGRound4DeCom2 struct {

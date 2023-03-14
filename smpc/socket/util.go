@@ -4,6 +4,8 @@ import (
     "github.com/anyswap/FastMulThreshold-DSA/log"
     "bytes"
     "net"
+    "os"
+    "io/ioutil"
     "encoding/json"
 )
 
@@ -64,5 +66,49 @@ func SendMsgData(conn net.Conn,msg SocketMessage) error {
     return err
 }
 
+//------------------------------------------------------
+
+func WriteFile(file string,data string) error {
+    var kfd *os.File
+    var err error
+
+    kfd, err = os.OpenFile(file, os.O_WRONLY|os.O_APPEND, 0600)
+    if err != nil {
+	f,err := os.Create(file)
+	if err != nil {
+	    log.Error("====================WriteFile, create file error=========================","err",err)
+	    return err
+	}
+
+	 _,err = f.Write([]byte(data))
+	 if err != nil {
+	    f.Close()
+	     return err
+	 }
+
+	f.Close()
+	 return nil
+    }
+
+    _,err = kfd.WriteString(data)
+    if err != nil {
+	log.Error("====================WriteFile,write string error=========================","err",err)
+	kfd.Close()
+	return err
+    }
+
+    log.Debug("====================WriteFile,write string successfully=========================")
+    kfd.Close()
+    return nil
+}
+
+func ReadFile(file string) (string,error) {
+    f, err := ioutil.ReadFile(file)
+    if err != nil {
+	return "",err
+    }
+
+    return string(f),nil
+}
 
 

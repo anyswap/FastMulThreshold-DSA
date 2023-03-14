@@ -1034,3 +1034,12 @@ func DeleteAccountDataFromDb(key []byte) error {
 	return err
 }
 
+//----------------------------------------------------------
+
+// GetTeeParamDataDir get tee param data dir  
+func GetTeeParamDataDir() string {
+	dir := common.DefaultDataDir()
+	dir += "/smpcdata/teeparamdata" + curEnode
+	return dir
+}
+

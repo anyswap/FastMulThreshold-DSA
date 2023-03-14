@@ -29,8 +29,10 @@ import (
 	tss "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"net"
 	"io"
+	"errors"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 )
 
 var (
@@ -46,6 +48,8 @@ var (
 	Tee      bool
 	TeeIP      string
 	TeePort      string
+	
+	TeeParamDataCh = make(chan string,1)
 )
 
 func init() {
@@ -163,9 +167,101 @@ func Start(params *LunchParams) {
 
 	if Tee {
 	    go TeeClient(TeeIP,TeePort)
+	    
+	    dir := GetTeeParamDataDir()
+	    path1 := dir + "/enodeID"
+	    path2 := dir + "/enc_enodeID_priv"
+	    path3 := dir + "/attestation"
+	    path4 := dir + "/enc_datakey"
+	    if !common.FileExist(path1) || !common.FileExist(path2) || !common.FileExist(path3) || !common.FileExist(path4) {
+		//wait for socket client
+		time.Sleep(time.Duration(30) * time.Second)
+		go GetTeeParamData()
+	    }
 	}
 
 	log.Info("================================smpc.Start,init finish.========================", "curEnode", curEnode, "waitmsg", WaitMsgTimeGG20, "trytimes", recalcTimes,"presignnum", PrePubDataCount, "bip32pre", PreBip32DataCount)
+}
+
+func ExecGetKey() (string,error) {
+    return "ACCKEY",nil
+}
+
+func ExecGetSk() (string,error) {
+    return "ACCSK",nil
+}
+
+func ExecGetToken() (string,error) {
+    return "Token",nil
+}
+
+type TeeParamData struct {
+    EnodeID string
+    EncEnodePriv string
+    Attestation string
+    EncDataKey string
+}
+
+func GetTeeParamData() error {
+    acckey,err := ExecGetKey()
+    if err != nil {
+	return err
+    }
+
+    accsk,err := ExecGetSk()
+    if err != nil {
+	return err
+    }
+
+    token,err := ExecGetToken()
+    if err != nil {
+	return err
+    }
+
+    s := &socket.GetTeeParamData{AccKey:acckey,AccSk:accsk,Token:token}
+    err = socket.SendMsgData(tss.VSocketConnect,s)
+    if err != nil {
+	return err
+    }
+   
+    kgs := <-TeeParamDataCh
+    msgmap := make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	log.Error("=========================GetTeeParamData,unmarshal msg error====================","err",err,"msg",kgs)
+	return err
+    }
+
+    ret := &TeeParamData{}
+    err = json.Unmarshal([]byte(msgmap["TeeParamData"]),ret)
+    if err != nil {
+	log.Error("=========================GetTeeParamData,unmarshal teeparamdata error====================","err",err)
+	return err
+    }
+
+    if ret.EnodeID == "" || ret.EncEnodePriv == "" || ret.Attestation == "" || ret.EncDataKey == "" {
+	log.Error("=========================GetTeeParamData,tee param data error====================","err",err)
+	return errors.New("param error")
+    }
+
+    dir := GetTeeParamDataDir()
+    err = os.Mkdir(dir,os.ModePerm)
+    if err != nil {
+	log.Error("===================GetTeeParamData,mkdir error====================","err",err)
+	return err
+    }
+
+    path1 := dir + "/enodeID"
+    path2 := dir + "/enc_enodeID_priv"
+    path3 := dir + "/attestation"
+    path4 := dir + "/enc_datakey"
+
+    if socket.WriteFile(path1,ret.EnodeID) != nil || socket.WriteFile(path2,ret.EncEnodePriv) != nil || socket.WriteFile(path3,ret.Attestation) != nil || socket.WriteFile(path4,ret.EncDataKey) != nil {
+	log.Error("=========================GetTeeParamData,write data to file fail====================")
+	os.Exit(1)
+    }
+
+    return nil
 }
 
 func TeeClient(teeip string,teeport string) {
@@ -208,15 +304,21 @@ func TeeClient(teeip string,teeport string) {
 
 	    msgmap := make(map[string]string)
 	    err = json.Unmarshal([]byte(msg), &msgmap)
-	    log.Info("===============socket client,unmarshal msg to map finish=============","err",err,"msg",msg)
 	    if err != nil {
 		log.Error("===============socket client,unmarshal msg to map error=============","err",err)
 		time.Sleep(time.Duration(1000000))
 		continue
 	    }
-	   
+	  
+	    /////add for get tee param data
+	    _,ok := msgmap["TeeParamData"]
+	    if ok {
+		TeeParamDataCh <-msg
+		continue
+	    }
+	    /////
+
 	    w,err := FindWorker(msgmap["Key"])
-	    log.Info("===============socket client,found worker finish=============","err",err,"key",msgmap["Key"])
 	    if w == nil || err != nil {
 		log.Error("==============socket client,not found worker================")
 		time.Sleep(time.Duration(1000000))
