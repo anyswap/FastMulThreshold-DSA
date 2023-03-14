@@ -18,11 +18,11 @@ func LoadECDSA(enodeIDpriv string) (*ecdsa.PrivateKey, error) {
 
 //TODO
 func TeeKmsGetEncDataKey(keyID string) (string,string,error) {
-    return "datakey","encdatakey",nil
+    return "123456781234567812345678","encTEEdatakey123456781234567812345678",nil
 }
 
 func TeeKmsGetDataKey(encdatakey string)  (string,error) {
-    return "datakey",nil
+    return "123456781234567812345678",nil
 }
 
 //TODO

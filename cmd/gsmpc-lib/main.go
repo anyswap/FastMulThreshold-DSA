@@ -128,8 +128,17 @@ func handleMessage(conn net.Conn,msg string) {
 
     msgtype := msgmap["MsgType"]
     switch msgtype {
-    case "GetTeeParamData":
-	    HandleGetTeeParamData(conn,msgmap["Content"])
+    //case "GetTeeParamData":
+//	    HandleGetTeeParamData(conn,msgmap["Content"])
+//	    break
+    case "GetAttestation":
+	    HandleGetAttestation(conn,msgmap["Content"])
+	    break
+    case "GetDataKey":
+	    HandleGetDataKey(conn,msgmap["Content"])
+	    break
+    case "GetTeeEnodeID":
+	    HandleGetTeeEnodeID(conn,msgmap["Content"])
 	    break
     case "KGRound0Msg":
 	    HandleKGRound0Msg(conn,msgmap["Content"])
@@ -312,6 +321,126 @@ type PolyShare struct {
 
 //-------------------------------------------
 
+func HandleGetAttestation(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    var err error
+    s:= &socket.GetAttestation{}
+    err = s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = "xxxx" 
+    msgmap["KeyType"] = "xxxx"
+   
+    t := &Atte{AccessKey:s.AccKey,AccessSk:s.AccSk,Token:s.Token}
+    Attestation, err = TeeGetAttestation(t) 
+    if err != nil {
+	return
+    }
+ 
+    msgmap["attestation"] = Attestation
+    
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+func HandleGetDataKey(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    var err error
+    s:= &socket.GetDataKey{}
+    err = s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+
+    msgmap := make(map[string]string)
+    msgmap["Key"] = "xxxx" 
+    msgmap["KeyType"] = "xxxx"
+   
+    var datakey string
+    datakey,EncDataKey,err = TeeKmsGetEncDataKey("")
+    if err != nil {
+	log.Error("================tee get datakey from kms error================","err",err)
+	return
+    }
+
+    nodeKey, _ := crypto.GenerateKey()
+    EnodePriv := hex.EncodeToString(crypto.FromECDSA(nodeKey))
+    EnodeID = fmt.Sprintf("%v", discover.PubkeyID(&nodeKey.PublicKey))
+    EncEnodePriv,err = TeeKmsEnc(EnodePriv,datakey)
+    if err != nil {
+	log.Error("================tee kms encrypt data error================","err",err)
+	return
+    }
+
+    msgmap["enodeID"] = EnodeID
+    msgmap["enc_enodeID_priv"] = EncEnodePriv
+    msgmap["enc_datakey"] = EncDataKey
+    
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+func HandleGetTeeEnodeID(conn net.Conn,content string) {
+    if content == "" {
+	return
+    }
+
+    var err error
+    s:= &socket.GetTeeEnodeID{}
+    err = s.ToObj([]byte(content))
+    if err != nil {
+	return
+    }
+
+    datakey,err := TeeKmsGetDataKey(s.EncDataKey)
+    if err != nil {
+	return
+    }
+
+    priv,err := TeeKmsDec(s.EncPriv,datakey)
+    if err != nil {
+	return
+    }
+
+    nodeKey,err := LoadECDSA(priv)
+    if err != nil {
+	return
+    }
+
+    EnodeID = fmt.Sprintf("%v", discover.PubkeyID(&nodeKey.PublicKey))
+    
+    msgmap := make(map[string]string)
+    msgmap["Key"] = "xxxx" 
+    msgmap["KeyType"] = "xxxx"
+   
+    msgmap["tee_enodeID"] = EnodeID
+    
+    str, err := json.Marshal(msgmap)
+    if err != nil {
+	return
+    }
+
+    socket.Write(conn,string(str))
+}
+
+/*
 type TeeParamData struct {
     EnodeID string
     EncEnodePriv string
@@ -370,6 +499,7 @@ func HandleGetTeeParamData(conn net.Conn,content string) {
 
     socket.Write(conn,string(str))
 }
+*/
 
 func HandleKGRound0Msg(conn net.Conn,content string) {
     if content == "" {

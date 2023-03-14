@@ -29,10 +29,8 @@ import (
 	tss "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"net"
 	"io"
-	"errors"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
-	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 )
 
 var (
@@ -49,7 +47,10 @@ var (
 	TeeIP      string
 	TeePort      string
 	
-	TeeParamDataCh = make(chan string,1)
+	//TeeParamDataCh = make(chan string,1)
+	AttestationCh = make(chan string,1)
+	DataKeyCh = make(chan string,1)
+	TeeEnodeIDCh = make(chan string,1)
 )
 
 func init() {
@@ -169,33 +170,177 @@ func Start(params *LunchParams) {
 	    go TeeClient(TeeIP,TeePort)
 	    
 	    dir := GetTeeParamDataDir()
-	    path1 := dir + "/enodeID"
-	    path2 := dir + "/enc_enodeID_priv"
-	    path3 := dir + "/attestation"
-	    path4 := dir + "/enc_datakey"
-	    if !common.FileExist(path1) || !common.FileExist(path2) || !common.FileExist(path3) || !common.FileExist(path4) {
-		//wait for socket client
+	    if !socket.Exists(dir) {
+		err := os.Mkdir(dir,os.ModePerm)
+		if err != nil {
+		    return
+		}
+
 		time.Sleep(time.Duration(30) * time.Second)
-		go GetTeeParamData()
+		go GetAttestationFromLib()
+		go GetDataKeyFromLib()
+	    } else {
+		path1 := dir + "/enodeID"
+		path2 := dir + "/enc_enodeID_priv"
+		path3 := dir + "/attestation"
+		path4 := dir + "/enc_datakey"
+
+		if !socket.Exists(path3) {
+		    time.Sleep(time.Duration(30) * time.Second)
+		    go GetAttestationFromLib()
+		}
+
+		if !socket.Exists(path2) || !socket.Exists(path4) {
+		    //wait for socket client
+		    time.Sleep(time.Duration(30) * time.Second)
+		    go GetDataKeyFromLib()
+		} else {
+		    if !socket.Exists(path1) {
+			time.Sleep(time.Duration(30) * time.Second)
+			go GetEnodeIDFromLib()
+		    }
+		}
 	    }
 	}
 
 	log.Info("================================smpc.Start,init finish.========================", "curEnode", curEnode, "waitmsg", WaitMsgTimeGG20, "trytimes", recalcTimes,"presignnum", PrePubDataCount, "bip32pre", PreBip32DataCount)
 }
 
+// TODO
 func ExecGetKey() (string,error) {
     return "ACCKEY",nil
 }
 
+//TODO
 func ExecGetSk() (string,error) {
     return "ACCSK",nil
 }
 
+//TODO
 func ExecGetToken() (string,error) {
     return "Token",nil
 }
 
-type TeeParamData struct {
+func GetAttestationFromLib() error {
+    acckey,err := ExecGetKey()
+    if err != nil {
+	return err
+    }
+
+    accsk,err := ExecGetSk()
+    if err != nil {
+	return err
+    }
+
+    token,err := ExecGetToken()
+    if err != nil {
+	return err
+    }
+
+    s := &socket.GetAttestation{AccKey:acckey,AccSk:accsk,Token:token}
+    err = socket.SendMsgData(tss.VSocketConnect,s)
+    if err != nil {
+	return err
+    }
+   
+    kgs := <-AttestationCh
+    msgmap := make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	return err
+    }
+
+    dir := GetTeeParamDataDir()
+    if !socket.Exists(dir) {
+	err := os.Mkdir(dir,os.ModePerm)
+	if err != nil {
+	    return err
+	}
+    }
+
+    path := dir + "/attestation"
+
+    if socket.WriteFile(path,msgmap["attestation"]) != nil {
+	log.Error("=========================GetAttestationFromLib,write data to file fail====================")
+	os.Exit(1)
+    }
+
+    return nil
+}
+
+func GetDataKeyFromLib() error {
+    var err error
+    s := &socket.GetDataKey{}
+    err = socket.SendMsgData(tss.VSocketConnect,s)
+    if err != nil {
+	return err
+    }
+   
+    kgs := <-DataKeyCh
+    msgmap := make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	return err
+    }
+
+    dir := GetTeeParamDataDir()
+    if !socket.Exists(dir) {
+	err := os.Mkdir(dir,os.ModePerm)
+	if err != nil {
+	    return err
+	}
+    }
+
+    path1 := dir + "/enodeID"
+    path2 := dir + "/enc_enodeID_priv"
+    path3 := dir + "/enc_datakey"
+
+    if socket.WriteFile(path1,msgmap["enodeID"]) != nil || socket.WriteFile(path2,msgmap["enc_enodeID_priv"]) != nil || socket.WriteFile(path3,msgmap["enc_datakey"]) != nil {
+	os.Exit(1)
+    }
+
+    return nil
+}
+
+func GetEnodeIDFromLib() error {
+    var err error
+
+    dir := GetTeeParamDataDir()
+    path1 := dir + "/enc_enodeID_priv"
+    path2 := dir + "/enc_datakey"
+    enc_enodeID_priv,err := socket.ReadFile(path1)
+    if err != nil {
+	return err
+    }
+    
+    enc_datakey,err := socket.ReadFile(path2)
+    if err != nil {
+	return err
+    }
+    
+    s := &socket.GetTeeEnodeID{EncPriv:enc_enodeID_priv,EncDataKey:enc_datakey}
+    err = socket.SendMsgData(tss.VSocketConnect,s)
+    if err != nil {
+	return err
+    }
+   
+    kgs := <-TeeEnodeIDCh
+    msgmap := make(map[string]string)
+    err = json.Unmarshal([]byte(kgs), &msgmap)
+    if err != nil {
+	return err
+    }
+
+    path := dir + "/enodeID"
+
+    if socket.WriteFile(path,msgmap["tee_enodeID"]) != nil {
+	os.Exit(1)
+    }
+
+    return nil
+}
+
+/*type TeeParamData struct {
     EnodeID string
     EncEnodePriv string
     Attestation string
@@ -263,6 +408,7 @@ func GetTeeParamData() error {
 
     return nil
 }
+*/
 
 func TeeClient(teeip string,teeport string) {
     if teeip == "" || teeport == "" {
@@ -311,9 +457,26 @@ func TeeClient(teeip string,teeport string) {
 	    }
 	  
 	    /////add for get tee param data
-	    _,ok := msgmap["TeeParamData"]
+	   /*
+	   _,ok := msgmap["TeeParamData"]
 	    if ok {
 		TeeParamDataCh <-msg
+		continue
+	    }
+	    */
+	    _,ok := msgmap["attestation"]
+	    if ok {
+		AttestationCh <-msg
+		continue
+	    }
+	    _,ok = msgmap["enc_datakey"]
+	    if ok {
+		DataKeyCh <-msg
+		continue
+	    }
+	    _,ok = msgmap["tee_enodeID"]
+	    if ok {
+		TeeEnodeIDCh <-msg
 		continue
 	    }
 	    /////

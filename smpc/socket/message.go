@@ -29,6 +29,7 @@ func (b *Base) SetBase(kt string,keyid string) {
 
 //--------------------------------------------------------
 
+/*
 type GetTeeParamData struct {
     Base
 
@@ -54,6 +55,87 @@ func (kg *GetTeeParamData) ToObj(raw []byte) error {
 func (kg *GetTeeParamData) GetMsgType() string {
     log.Info("===============GetTeeParamData.GetMsgType===========","kg",kg)
     return "GetTeeParamData"
+}
+*/
+
+type GetAttestation struct {
+    Base
+
+    AccKey string
+    AccSk string
+    Token string
+}
+
+func (kg *GetAttestation) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *GetAttestation) ToJson() ([]byte,error) {
+    log.Info("===============GetAttestation.ToJson============","kg",kg)
+    return json.Marshal(kg)
+}
+
+func (kg *GetAttestation) ToObj(raw []byte) error {
+    log.Info("===============GetAttestation.ToObj===========","kg",kg)
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *GetAttestation) GetMsgType() string {
+    log.Info("===============GetAttestation.GetMsgType===========","kg",kg)
+    return "GetAttestation"
+}
+
+//-------------------------------------------------------
+
+type GetDataKey struct {
+    Base
+}
+
+func (kg *GetDataKey) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *GetDataKey) ToJson() ([]byte,error) {
+    log.Info("===============GetDataKey.ToJson============","kg",kg)
+    return json.Marshal(kg)
+}
+
+func (kg *GetDataKey) ToObj(raw []byte) error {
+    log.Info("===============GetDataKey.ToObj===========","kg",kg)
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *GetDataKey) GetMsgType() string {
+    log.Info("===============GetDataKey.GetMsgType===========","kg",kg)
+    return "GetDataKey"
+}
+
+//--------------------------------------------------------
+
+type GetTeeEnodeID struct {
+    Base
+
+    EncPriv string
+    EncDataKey string
+}
+
+func (kg *GetTeeEnodeID) SetBase(kt string,keyid string) {
+    kg.Base.SetBase(kt,keyid)
+}
+
+func (kg *GetTeeEnodeID) ToJson() ([]byte,error) {
+    log.Info("===============GetTeeEnodeID.ToJson============","kg",kg)
+    return json.Marshal(kg)
+}
+
+func (kg *GetTeeEnodeID) ToObj(raw []byte) error {
+    log.Info("===============GetTeeEnodeID.ToObj===========","kg",kg)
+    return json.Unmarshal(raw,kg)
+}
+
+func (kg *GetTeeEnodeID) GetMsgType() string {
+    log.Info("===============GetTeeEnodeID.GetMsgType===========","kg",kg)
+    return "GetTeeEnodeID"
 }
 
 //--------------------------------------------------------
