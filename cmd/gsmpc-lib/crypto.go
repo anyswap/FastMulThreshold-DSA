@@ -27,12 +27,14 @@ func TeeKmsGetDataKey(encdatakey string)  (string,error) {
 
 //TODO
 func TeeKmsEnc(data string,datakey string) (string,error) {
-    return data,nil  //TODO
+    encryptCode := AesEncrypt(data,datakey)
+    return encryptCode,nil
 }
 
 //TODO
 func TeeKmsDec(cm string,datakey string) (string,error) {
-    return cm,nil  //TODO
+    decryptCode := AesDecrypt(cm,datakey)
+    return decryptCode,nil
 }
 
 //TODO
