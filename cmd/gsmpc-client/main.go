@@ -232,7 +232,7 @@ func init() {
 	cmd = flag.String("cmd", "", "EnodeSig|SetGroup|REQSMPCADDR|ACCEPTREQADDR|ACCEPTLOCKOUT|SIGN|PRESIGNDATA|DELPRESIGNDATA|GETPRESIGNDATA|ACCEPTSIGN|RESHARE|ACCEPTRESHARE|CREATECONTRACT|GETSMPCADDR")
 	gid = flag.String("gid", "", "groupID")
 	ts = flag.String("ts", "2/3", "Threshold")
-	mode = flag.String("mode", "2", "Mode:private=1/managed=0")
+	mode = flag.String("mode", "0", "Mode:private=1/managed=0")
 	toAddr = flag.String("to", "0x0520e8e5E08169c4dbc1580Dc9bF56638532773A", "To address")
 	value = flag.String("value", "10000000000000000", "lockout value")
 	coin = flag.String("coin", "FSN", "Coin type")
