@@ -16,6 +16,7 @@ import (
 	"sync"
 	"strings"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
+	"github.com/golang/protobuf/proto"
 )
 
 const (
@@ -78,6 +79,33 @@ func (mi *modInt) i() *big.Int {
 
 //----------------------------------------------------------
 
+func ProtoEncode(num string) ([]byte,error) {
+    if num == "" {
+	return nil,fmt.Errorf("data error")
+    }
+
+    t := &BigInt{
+	    Bigint: num,
+    }
+
+    data, err := proto.Marshal(t)
+    if err != nil {
+	return nil,err
+    }
+
+    return data,nil
+}
+
+func ProtoDecode(data []byte) (string,error) {
+    t := &BigInt{}
+    err := proto.Unmarshal(data, t)
+    if err != nil {
+	return "",err
+    }
+
+    return t.Bigint,nil
+}
+
 // Sha512_256 get a hash value with input and add the custom domain separator to hash computations.
 func Sha512_256(in ...*big.Int) *big.Int {
 	var data []byte
@@ -94,8 +122,17 @@ func Sha512_256(in ...*big.Int) *big.Int {
 	binary.LittleEndian.PutUint64(inLenBz, uint64(inLen))
 	ptrs := make([][]byte, inLen)
 	for i, n := range in {
-		ptrs[i] = n.Bytes()
-		bzSize += len(ptrs[i])
+	    //////
+	    /*To mitigate α-shuffle attack, it is necessary to adopt a non-ambiguous encoding scheme that specifies the length of the encoded data. By using a non-ambiguous encoding scheme, the decoding process becomes deterministic, and the risk of ambiguous decoding is eliminated.*/
+	    ntmp := fmt.Sprintf("%v",n)
+	    dtmp,err := ProtoEncode(ntmp)
+	    if err != nil {
+		return nil
+	    }
+	    ptrs[i] = dtmp
+	    //////
+	    //ptrs[i] = n.Bytes()
+	    bzSize += len(ptrs[i])
 	}
 	data = make([]byte, 0, len(inLenBz)+bzSize+inLen)
 	data = append(data, inLenBz...)

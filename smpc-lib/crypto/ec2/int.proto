@@ -1,0 +1,11 @@
+syntax = "proto3";
+package ec2;
+
+// 这里不能用 "./"，否则生成的go文件的 package 为 __，然后还要手动去改，为了避免就写成下面的样子
+option go_package = "../ec2"; // 指定生成go文件保存到当前包中
+
+// this is a comment
+message BigInt {
+  string bigint = 1;
+}
+
