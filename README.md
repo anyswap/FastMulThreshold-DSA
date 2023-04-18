@@ -27,7 +27,7 @@ The implementation provides a series of RPC interfaces for external applications
 # Prerequisites
 1. VPS server with 1 CPU and 2G mem
 2. Static public IP
-3. Golang ^1.12
+3. Golang ^1.20
 
 # Setting Up
 ## Clone The Repository
