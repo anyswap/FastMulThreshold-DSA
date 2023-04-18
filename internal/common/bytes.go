@@ -19,6 +19,11 @@ package common
 
 import "encoding/hex"
 
+// Bytes2Hex returns the hexadecimal encoding of d.
+func Bytes2Hex(d []byte) string {
+       return hex.EncodeToString(d)
+}
+
 // ToHex returns the hex representation of b, prefixed with '0x'.
 // For empty slices, the return value is "0x0".
 //
@@ -77,11 +82,6 @@ func isHex(str string) bool {
 		}
 	}
 	return true
-}
-
-// Bytes2Hex returns the hexadecimal encoding of d.
-func Bytes2Hex(d []byte) string {
-	return hex.EncodeToString(d)
 }
 
 // Hex2Bytes returns the bytes represented by the hexadecimal string str.
