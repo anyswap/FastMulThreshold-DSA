@@ -19,6 +19,9 @@ func Compress(writer io.Writer, reader io.Reader) error {
 
 func Decompress(writer io.Writer, reader io.Reader) error {
 	gzipReader, err := gzip.NewReader(reader)
+	if err != nil {
+		return err
+	}
 	defer gzipReader.Close()
 	_, err = io.Copy(writer, gzipReader)
 	if err != nil {
