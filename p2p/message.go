@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/anyswap/FastMulThreshold-DSA/common"
 	"io"
 	"io/ioutil"
 	"sync/atomic"
@@ -90,6 +91,14 @@ type MsgReadWriter interface {
 // Send writes an RLP-encoded message with the given code.
 // data should encode as an RLP list.
 func Send(w MsgWriter, msgcode uint64, data interface{}) error {
+	if strData, ok := data.(string); ok {
+		writer := new(bytes.Buffer)
+		if err := common.Compress(writer, bytes.NewBuffer([]byte(strData))); err != nil {
+			return errors.New("======= compress p2p data error " + err.Error())
+		}
+		data = writer.Bytes()
+	}
+
 	size, r, err := rlp.EncodeToReader(data)
 	if err != nil {
 		return err
