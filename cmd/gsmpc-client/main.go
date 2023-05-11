@@ -31,9 +31,9 @@ import (
 
 	"encoding/hex"
 	"github.com/anyswap/FastMulThreshold-DSA/crypto/sha3"
-	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/ethdb"
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common/hexutil"
+	smpclib "github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
@@ -44,13 +44,13 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/onrik/ethrpc"
+	msgsigsha3 "golang.org/x/crypto/sha3"
 	"log"
 	"os"
 	"os/user"
 	"path/filepath"
 	"runtime"
 	"sync"
-	msgsigsha3 "golang.org/x/crypto/sha3"
 )
 
 const (
@@ -103,6 +103,12 @@ var (
 	client            *ethrpc.EthRPC
 	predb             *ethdb.LDBDatabase
 	presignhashpairdb *ethdb.LDBDatabase
+)
+
+const (
+	Sign = "0"
+	NoSign = "1"
+	Share = "2"
 )
 
 func main() {
@@ -341,7 +347,7 @@ func enodeSig() {
 	enodePubkey := strings.Split(s[0], "//")
 	fmt.Printf("enodePubkey = %s\n", enodePubkey[1])
 	
-	if  *mode == "2" {
+	if  *mode == Share {
 	    fmt.Printf("\nenodeSig self = \n%s\n\n", enodePubkey[1]+":"+keyWrapper.Address.String())
 	    return
 	}
@@ -411,14 +417,14 @@ func reqKeyGen() {
 	// build Sigs list parameter
 	sigs := ""
 	//if *mode == "0" || *mode == "2" {
-	if *mode == "0" {
+	if *mode == Sign {
 		for i := 0; i < len(enodesSig)-1; i++ {
 			sigs = sigs + enodesSig[i] + "|"
 		}
 		sigs = sigs + enodesSig[len(enodesSig)-1]
 	}
 
-	if *mode == "2" {
+	if *mode == Share {
 	    sigs = strconv.Itoa(len(enodesSig)) + ":"
 	    for i := 0; i < len(enodesSig)-1; i++ {
 		sigs = sigs + enodesSig[i] + ":"
@@ -512,14 +518,14 @@ func reqSmpcAddr() {
 	// build Sigs list parameter
 	sigs := ""
 	//if *mode == "0" || *mode == "2" {
-	if *mode == "0" {
+	if *mode == Sign {
 		for i := 0; i < len(enodesSig)-1; i++ {
 			sigs = sigs + enodesSig[i] + "|"
 		}
 		sigs = sigs + enodesSig[len(enodesSig)-1]
 	}
 	
-	if *mode == "2" {
+	if *mode == Share {
 	    sigs = strconv.Itoa(len(enodesSig)) + ":"
 	    for i := 0; i < len(enodesSig)-1; i++ {
 		sigs = sigs + enodesSig[i] + ":"
