@@ -2,3 +2,5 @@ test/reqaddr.sh
 test/sign.sh
 .DS_Store
 .vscode
+build/bin
+temtest

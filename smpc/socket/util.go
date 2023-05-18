@@ -6,39 +6,46 @@ import (
     "net"
     "os"
     "io/ioutil"
+    "encoding/binary"
     "encoding/json"
+)
+
+var (
+    MSG_LENGTH_PREFIX = 4
 )
 
 func Write(conn net.Conn, content string) (int, error) {
     log.Info("========socket write, send msg===========","remote addr",conn.RemoteAddr(), "content",content)
+
+    contentBytes := []byte(content)
+    contentBytesLen := len(contentBytes)
+
+	prefixBytes := make([]byte, MSG_LENGTH_PREFIX)
+	binary.BigEndian.PutUint32(prefixBytes, uint32(contentBytesLen))
+
     var bytebuf bytes.Buffer
-    bytebuf.WriteString(content)
-    bytebuf.WriteByte(MessageDelimiter)
+    bytebuf.Write(prefixBytes)
+    bytebuf.Write(contentBytes)
 
     bytearr := bytebuf.Bytes()
     return conn.Write(bytearr)
 }
 
 func Read(conn net.Conn) (string, error) {
-    var str string
-    var bytebuf bytes.Buffer
-    
-    bytearr := make([]byte, 1)
-    
-    for {
-        if _, err := conn.Read(bytearr); err != nil {
-            return str, err
-        }
 
-        item := bytearr[0]
-        if item == MessageDelimiter {
-            break
-        }
-
-        bytebuf.WriteByte(item)
+    prefixBytes := make([]byte, MSG_LENGTH_PREFIX)
+    if _, err := conn.Read(prefixBytes); err != nil {
+        return "", err
     }
 
-    str = bytebuf.String()
+    contentBytesLen := int(binary.BigEndian.Uint32(prefixBytes))
+    contentBytes := make([]byte, contentBytesLen)
+
+    if _, err := conn.Read(contentBytes); err != nil {
+        return "", err
+    }
+
+    str := string(contentBytes)
     log.Info("===========socket read,recv msg============", "remote addr",conn.RemoteAddr(), "str",str)
     return str, nil
 }

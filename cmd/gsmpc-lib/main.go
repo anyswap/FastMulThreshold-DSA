@@ -44,6 +44,7 @@ var (
 func main() {
     clientip := flag.String("ip", "", "client ip to dial") // --ip
     clientport := flag.String("port", "", "client port to dial") // --port
+    // xchang todo, docker filefolder mapping 
     keyfile := flag.String("nodekey", "", "node key file path")
 
     flag.Parse()
@@ -321,6 +322,7 @@ type PolyShare struct {
 
 //-------------------------------------------
 
+// xchang todo: wrong attestation logic
 func HandleGetAttestation(conn net.Conn,content string) {
     if content == "" {
 	return
@@ -353,6 +355,7 @@ func HandleGetAttestation(conn net.Conn,content string) {
     socket.Write(conn,string(str))
 }
 
+// xchang todo: wrong datakey logic
 func HandleGetDataKey(conn net.Conn,content string) {
     if content == "" {
 	return
@@ -516,6 +519,7 @@ func HandleKGRound0Msg(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
    
+    // xchang todo: remove all following useless data
     data,err := GetTeeValidateData(s.MsgPrex)
     if err != nil {
 	return
@@ -766,6 +770,7 @@ func HandleKGRound2VssShare(conn net.Conn,content string) {
 
     tmp := make([]*ec2.ShareStruct2,len(u1Shares))
     for k,v := range u1Shares {
+        // xchang todo, use other's key to encrypt
 	shareenc,err := EncryptShare(v.Share,"")
 	if err != nil {
 	    return
@@ -917,6 +922,7 @@ func HandleKGRound4DeCom(conn net.Conn,content string) {
     var c *big.Int
     var skU1 *big.Int
 
+    // xchang todo: tidy ambigious logic, first loop run once, second loop run left items
     for k:= range s.Cs {
 	cm := string(s.Shares[k].Bytes())
 	sh,err := DecryptShare(cm,KeyFile)
@@ -1000,6 +1006,7 @@ func HandleKGRound4DeCom(conn net.Conn,content string) {
     if err != nil {
 	return
     }
+    // xchang todo: private data leak?
     msgmap["NtildeProof1"] = string(b)
 
     b,err = json.Marshal(ntildeProof2)
@@ -1069,6 +1076,7 @@ func HandleKGRound5SquareFee(conn net.Conn,content string) {
     pMinus1 := new(big.Int).Sub(p1, big.NewInt(1))
     qMinus1 := new(big.Int).Sub(p2, big.NewInt(1))
     l := new(big.Int).Mul(pMinus1, qMinus1)
+    // xchang todo: duplicate call?
     sfProof := ec2.SquareFreeProve(s.Ntilde,num,l)
     if sfProof == nil {
 	return
@@ -1496,6 +1504,7 @@ func HandleSigningRound2Msg(conn net.Conn,content string) {
 	return
     }
     msgmap["U1MtAZK1Proof"] = string(pf)*/
+    // xchang todo: no need to encrypt?
     ret,err := EncryptMtARangeProof(u1u1MtAZK1Proof,"")
     if err != nil {
 	return
@@ -1522,6 +1531,7 @@ func HandleSigningRound2Msg(conn net.Conn,content string) {
 
 //-------------------------------------------------------
 
+// xchang todo: no logic, remove?
 func HandleSigningRound3Msg(conn net.Conn,content string) {
     if content == "" {
 	return
@@ -1568,6 +1578,8 @@ func HandleSigningRound4MtARangeProofCheck(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
 
+    // xchang todo: no need to encrypt? 
+    // xchang todo: how to verify others?
     old,err := DecryptMtARangeProof(s.MtAZK1Proof,KeyFile)
     if err != nil {
 	return
@@ -1589,7 +1601,7 @@ func HandleSigningRound4MtARangeProofCheck(conn net.Conn,content string) {
 }
 
 //----------------------------------------------------
-
+// xchang todo: no need to do in tee
 func HandleSigningRound4ComCheck(conn net.Conn,content string) {
     if content == "" {
 	return
@@ -3926,6 +3938,7 @@ func EncryptShare(share *big.Int,enode string) (string,error) {
     return s,nil
 }
 
+// xchang todo: use key content instead of keyfile
 func  DecryptShare(cm string,keyfile string) (*big.Int,error) {
     /*hash := Keccak256Hash([]byte(strings.ToLower(cm))).Hex()
     log.Info("===============DecryptShare=================","hash",hash,"keyfile",keyfile)

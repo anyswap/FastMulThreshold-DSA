@@ -6,7 +6,6 @@ var (
 
 const (
     ServerNetworkType = "tcp4"
-    MessageDelimiter  = '\t'
 )
 
 

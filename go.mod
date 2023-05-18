@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/BurntSushi/toml v0.3.1
+	github.com/anyswap/nitro-toolkit v0.0.0-20230512103053-8f69d5ca62df // indirect
 	github.com/aristanetworks/goarista v0.0.0-20191206003309-5d8d36c240c9
 	github.com/astaxie/beego v1.12.0
 	github.com/btcsuite/btcd v0.20.1-beta
@@ -69,17 +70,18 @@ require (
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
+	github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5 // indirect
+	github.com/tendermint/tendermint v0.32.9 // indirect
 	github.com/whyrusleeping/go-logging v0.0.1
 	github.com/whyrusleeping/go-smux-multiplex v3.0.16+incompatible // indirect
 	github.com/whyrusleeping/go-smux-multistream v2.0.2+incompatible // indirect
 	github.com/whyrusleeping/go-smux-yamux v2.0.9+incompatible // indirect
 	github.com/whyrusleeping/yamux v1.2.0 // indirect
 	github.com/wxnacy/wgo v1.0.4
-	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
-	golang.org/x/mod v0.3.0 // indirect
-	golang.org/x/net v0.0.0-20200904194848-62affa334b73
-	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 // indirect
-	golang.org/x/tools v0.0.0-20200609164405-eb789aa7ce50 // indirect
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/net v0.9.0
+	golang.org/x/sys v0.8.0 // indirect
+	google.golang.org/grpc v1.25.1 // indirect
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0
 	gopkg.in/yaml.v3 v3.0.0-20200605160147-a5ece683394c // indirect
