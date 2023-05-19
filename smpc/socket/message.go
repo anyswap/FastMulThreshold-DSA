@@ -198,7 +198,7 @@ func (kg *KGRound1Msg) GetMsgType() string {
 type KGRound2SquareFreeProve struct {
     Base
 
-    PaiSk string
+    PaiSk []byte
 }
 
 func (kg *KGRound2SquareFreeProve) SetBase(kt string,keyid string) {
@@ -223,7 +223,7 @@ func (kg *KGRound2SquareFreeProve) GetMsgType() string {
 type KGRound2VssShare struct {
     Base
 
-    U1Poly string
+    U1Poly []byte
     IDs []*big.Int
 }
 
@@ -466,8 +466,8 @@ type KGRound5SquareFee struct {
     Base
 
     Ntilde *big.Int
-    P1 string 
-    P2 string
+    P1 []byte 
+    P2 []byte
 }
 
 func (kg *KGRound5SquareFee) SetBase(kt string,keyid string) {
@@ -492,8 +492,8 @@ type KGRound5Hv struct {
     Base
 
     Ntilde *big.Int
-    P1 string 
-    P2 string
+    P1 []byte 
+    P2 []byte
 }
 
 func (kg *KGRound5Hv) SetBase(kt string,keyid string) {
@@ -594,7 +594,7 @@ func (kg *KGRound6HvCheck) GetMsgType() string {
 type KGRound6Msg struct {
     Base
 
-    Sk string
+    Sk []byte
 }
 
 func (kg *KGRound6Msg) SetBase(kt string,keyid string) {
@@ -670,7 +670,7 @@ func (kg *SigningRound1Msg) GetMsgType() string {
 type SigningRound2PaiEnc struct {
     Base
 
-    U1K string 
+    U1K []byte 
     U1PaillierPk *ec2.PublicKey
 }
 
@@ -696,7 +696,7 @@ type SigningRound2Msg struct {
     Base
 
     UKC *big.Int
-    U1K string 
+    U1K []byte 
     UKC2 *big.Int
     U1PaiPK *ec2.PublicKey
     U1Nt *ec2.NtildeH1H2
@@ -823,7 +823,7 @@ type SigningRound4Msg struct {
     Base
 
     KC *big.Int
-    U1Gamma string 
+    U1Gamma []byte 
     CurPaiPk *ec2.PublicKey
     BetaStar *big.Int
     UKC *big.Int
@@ -853,7 +853,7 @@ type SigningRound4Msg1 struct {
     Base
 
     KC *big.Int
-    W1 string 
+    W1 []byte 
     CurPaiPk *ec2.PublicKey
     VU1Star *big.Int
     UKC *big.Int
@@ -918,7 +918,7 @@ type SigningRound5ComCheck struct {
     PaiPk *ec2.PublicKey
     Nt *ec2.NtildeH1H2
     //PaiSk *ec2.PrivateKey
-    PaiSk string
+    PaiSk []byte
     U1KGamma1Cipher *big.Int
 }
 
@@ -972,7 +972,7 @@ type SigningRound6Msg struct {
     Base
 
     Delt []*big.Int
-    U1Gamma string 
+    U1Gamma []byte 
 }
 
 func (kg *SigningRound6Msg) SetBase(kt string,keyid string) {
@@ -1051,12 +1051,12 @@ type SigningRound7Msg struct {
     DeltaSum *big.Int
     GammaX *big.Int
     GammaY *big.Int
-    U1K string 
+    U1K []byte 
     PaiPk *ec2.PublicKey
     Nt *ec2.NtildeH1H2
     UKC *big.Int
     //PaiSk *ec2.PrivateKey
-    PaiSk string
+    PaiSk []byte
     U1Ra *big.Int
 }
 
@@ -1369,7 +1369,7 @@ type EDKGRound4Msg struct {
     ThresHold int
     DnodeCount int
     //Sk [32]byte
-    Sk string
+    Sk []byte
 
     Ids []*big.Int
 }
@@ -1471,8 +1471,8 @@ func (kg *EDKGRound6Msg) GetMsgType() string {
 type EDSigningRound1Msg struct {
     Base
 
-    Sk string
-    TSk string 
+    Sk []byte
+    TSk []byte 
     FinalPkBytes [32]byte
     IDs []*big.Int
 }
@@ -1550,7 +1550,7 @@ type EDSigningRound4Msg struct {
     CurDNodeID *big.Int
     IdSign []*big.Int
     Index int
-    TSk string 
+    TSk []byte 
     R [32]byte
 }
 

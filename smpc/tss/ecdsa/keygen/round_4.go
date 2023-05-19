@@ -24,6 +24,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"math/big"
 	"encoding/json"
 )
@@ -276,8 +277,9 @@ func (round *round4) ExecTee(curIndex int) error {
 	    }
 	   
 	    kgs := <-round.teeout
-	    msgmap := make(map[string]string)
-	    err = json.Unmarshal([]byte(kgs), &msgmap)
+		bytesMap := make(map[string][]byte)
+		err = json.Unmarshal([]byte(kgs), &bytesMap)
+		msgmap := common.BytesMap2StringMap(bytesMap)
 	    if err != nil {
 		return err
 	    }
@@ -316,8 +318,9 @@ func (round *round4) ExecTee(curIndex int) error {
     }
    
     kgs := <-round.teeout
-    msgmap := make(map[string]string)
-    err = json.Unmarshal([]byte(kgs), &msgmap)
+	bytesMap := make(map[string][]byte)
+	err = json.Unmarshal([]byte(kgs), &bytesMap)
+	msgmap := common.BytesMap2StringMap(bytesMap)
     if err != nil {
 	return err
     }
@@ -325,22 +328,22 @@ func (round *round4) ExecTee(curIndex int) error {
     var pkx *big.Int
     var pky *big.Int
     var c *big.Int
-    var skU1 string 
+    var skU1 []byte 
 
     pkx,_ = new(big.Int).SetString(msgmap["PKX"],10)
     pky,_ = new(big.Int).SetString(msgmap["PKY"],10)
     c,_ = new(big.Int).SetString(msgmap["C"],10)
-    skU1 = msgmap["SKU1"]
+    skU1 = []byte(msgmap["SKU1"])
 
     round.Save.Pkx = pkx
     round.Save.Pky = pky
     round.Save.C = c
     round.Save.SkU1Enc = skU1
 
-    round.Save.U1NtildePrivDataEnc = msgmap["U1NtildePrivData"]
+    round.Save.U1NtildePrivDataEnc = []byte(msgmap["U1NtildePrivData"])
 
-    round.temp.p1Enc = msgmap["P1"]
-    round.temp.p2Enc = msgmap["P2"]
+    round.temp.p1Enc = []byte(msgmap["P1"])
+    round.temp.p2Enc = []byte(msgmap["P2"])
 
     com := &ec2.Commitment{}
     if err := json.Unmarshal([]byte(msgmap["CommitXiG"]),com);err != nil {

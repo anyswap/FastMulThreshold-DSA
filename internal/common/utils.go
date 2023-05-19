@@ -99,3 +99,22 @@ func DebugCall(callback func()) {
 	}
 	callback()
 }
+
+// json.Marshal & json.Unmarshal can not process string having special characters, so convert to byte array
+
+func StringMap2BytesMap(stringMap map[string]string) map[string][]byte {
+	bytesMap := make(map[string][]byte)
+	for k, v := range stringMap {
+		bytesMap[k] = []byte(v)
+	}
+	return bytesMap
+}
+
+func BytesMap2StringMap(bytesMap map[string][]byte) map[string]string {
+	stringMap := make(map[string]string)
+	for k, v := range bytesMap {
+		stringMap[k] = string(v)
+	}
+	return stringMap
+}
+

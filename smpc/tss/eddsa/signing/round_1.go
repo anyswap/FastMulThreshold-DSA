@@ -23,6 +23,7 @@ import (
 
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/eddsa/keygen"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 
 	//"encoding/hex"
 	cryptorand "crypto/rand"
@@ -228,8 +229,9 @@ func (round *round1) ExecTee(curIndex int) error {
 	}
        
 	kgs := <-round.teeout
-	msgmap := make(map[string]string)
-	err = json.Unmarshal([]byte(kgs), &msgmap)
+	bytesMap := make(map[string][]byte)
+	err = json.Unmarshal([]byte(kgs), &bytesMap)
+	msgmap := common.BytesMap2StringMap(bytesMap)
 	if err != nil {
 	    log.Error("round1 start,unmarshal KGRound1 return data error","err",err)
 	    return err

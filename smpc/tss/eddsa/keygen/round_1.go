@@ -29,6 +29,7 @@ import (
 	r255 "github.com/gtank/ristretto255"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"encoding/json"
 )
 
@@ -157,8 +158,9 @@ func (round *round1) ExecTee(index int) error {
     }
    
     kgs := <-round.teeout
-    msgmap := make(map[string]string)
-    err = json.Unmarshal([]byte(kgs), &msgmap)
+	bytesMap := make(map[string][]byte)
+	err = json.Unmarshal([]byte(kgs), &bytesMap)
+	msgmap := common.BytesMap2StringMap(bytesMap)
     if err != nil {
 	log.Error("round1 start,unmarshal KGRound1 return data error","err",err)
 	return err
@@ -201,7 +203,7 @@ func (round *round1) ExecTee(index int) error {
     copy(CPk[:],tmp[:])
     
     //round.temp.sk = sk
-    round.temp.skEnc = msgmap["sk"] 
+    round.temp.skEnc = []byte(msgmap["sk"])
     round.temp.pk = pk
     round.temp.DPk = DPk
     round.temp.zkPk = zkPk
@@ -215,7 +217,7 @@ func (round *round1) ExecTee(index int) error {
     kg.SetTeeValidateData(msgmap["TeeValidateData"])
 
     //round.Save.Sk = sk
-    round.Save.SkEnc = msgmap["sk"]
+    round.Save.SkEnc = []byte(msgmap["sk"])
     round.Save.Pk = pk
     round.temp.kgRound1Messages[index] = kg
     round.out <- kg

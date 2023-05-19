@@ -180,8 +180,9 @@ func ProcessInboundMessagesEDDSA(msgprex string, keytype string,finishChan chan 
 			    }
 			   
 			    kgs := <-w.OutCh
-			    msgmap := make(map[string]string)
-			    err = json.Unmarshal([]byte(kgs), &msgmap)
+			    bytesMap := make(map[string][]byte)
+			    err = json.Unmarshal([]byte(kgs), &bytesMap)
+				// msgmap := common.BytesMap2StringMap(bytesMap)
 			    if err != nil {
 				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res
@@ -403,7 +404,7 @@ func processKeyGenEDDSA(msgprex string, errChan chan struct{}, outCh <-chan smpc
 			    w.edsku1.PushBack(msg.SkEnc)
 			    w.edpk.PushBack(string(msg.FinalPkBytes[:]))
 
-			    s := "XXX" + common.Sep11 + string(msg.Pk[:]) + common.Sep11 + msg.TSkEnc + common.Sep11 + string(msg.FinalPkBytes[:])
+			    s := "XXX" + common.Sep11 + string(msg.Pk[:]) + common.Sep11 + string(msg.TSkEnc) + common.Sep11 + string(msg.FinalPkBytes[:])
 			    w.edsave.PushBack(string(s))
 			} else {
 			    w.edsku1.PushBack(string(msg.Sk[:]))

@@ -26,6 +26,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/log"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 	"encoding/json"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 )
 
 func newRound10(temp *localTempData, save *keygen.LocalDNodeSaveData, idsign smpc.SortableIDSSlice, out chan<- smpc.Message, end chan<- PrePubData, kgid string, threshold int, paillierkeylength int, predata *PrePubData, txhash *big.Int, finalizeend chan<- *big.Int,keytype string,msgprex string,teeout chan string,tee bool) smpc.Round {
@@ -113,8 +114,9 @@ func (round *round10) ExecTee(curIndex int) error {
     }
    
     kgs := <-round.teeout
-    msgmap := make(map[string]string)
-    err = json.Unmarshal([]byte(kgs), &msgmap)
+	bytesMap := make(map[string][]byte)
+	err = json.Unmarshal([]byte(kgs), &bytesMap)
+	msgmap := common.BytesMap2StringMap(bytesMap)
     if err != nil {
 	log.Error("round9 start,unmarshal return data error","err",err)
 	return err

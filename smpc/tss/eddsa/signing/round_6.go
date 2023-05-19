@@ -28,6 +28,7 @@ import (
 	tsslib "github.com/anyswap/FastMulThreshold-DSA/tss-lib/common"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 )
 
 // Start verify CSB DSB commitment data,broacast current node s to other nodes
@@ -227,8 +228,9 @@ func (round *round6) ExecTee(curIndex int) error {
     }
    
     kgs := <-round.teeout
-    msgmap := make(map[string]string)
-    err = json.Unmarshal([]byte(kgs), &msgmap)
+	bytesMap := make(map[string][]byte)
+	err = json.Unmarshal([]byte(kgs), &bytesMap)
+	msgmap := common.BytesMap2StringMap(bytesMap)
     if err != nil {
 	log.Error("round6 start,unmarshal SigningRound6 return data error","err",err)
 	return err

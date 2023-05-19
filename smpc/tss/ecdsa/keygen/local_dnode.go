@@ -59,22 +59,22 @@ type localTempData struct {
 
 	//round 1
 	u1           *big.Int
-	u1Enc string
+	u1Enc []byte
 	u1Poly       *ec2.PolyStruct2
-	u1PolyEnc string
+	u1PolyEnc []byte
 	u1PolyG      *ec2.PolyGStruct2
 	commitU1G    *ec2.Commitment
 	c1           *big.Int
-	c1Enc string
+	c1Enc []byte
 	commitC1G    *ec2.Commitment
 	u1PaillierPk *ec2.PublicKey
 	u1PaillierSk *ec2.PrivateKey
-	u1PaillierSkEnc string
+	u1PaillierSkEnc []byte
 	// paillier.N = p*q
 	p *big.Int 
-	pEnc string
+	pEnc []byte
 	q *big.Int
-	qEnc string
+	qEnc []byte
 
 	//round 2
 	u1Shares []*ec2.ShareStruct2
@@ -84,9 +84,9 @@ type localTempData struct {
 	//round 4
 	// Ntilde = p1*p2
 	p1 *big.Int
-	p1Enc string
+	p1Enc []byte
 	p2 *big.Int
-	p2Enc string
+	p2Enc []byte
 	commitXiG  *ec2.Commitment
 
 	//round 5

@@ -28,6 +28,7 @@ import (
     "github.com/anyswap/FastMulThreshold-DSA/p2p/discover"
     "github.com/anyswap/FastMulThreshold-DSA/crypto/sha3"
     "github.com/anyswap/FastMulThreshold-DSA/internal/common/hexutil"
+    "github.com/anyswap/FastMulThreshold-DSA/internal/common"
 )
 
 //------------------------------------------------
@@ -44,6 +45,7 @@ var (
 func main() {
     clientip := flag.String("ip", "", "client ip to dial") // --ip
     clientport := flag.String("port", "", "client port to dial") // --port
+    // xchang todo, docker filefolder mapping 
     keyfile := flag.String("nodekey", "", "node key file path")
 
     flag.Parse()
@@ -119,8 +121,10 @@ func handleMessage(conn net.Conn,msg string) {
 	return
     }
 
-    msgmap := make(map[string]string)
-    err := json.Unmarshal([]byte(msg),&msgmap)
+    bytesMap := make(map[string][]byte)
+    err := json.Unmarshal([]byte(msg),&bytesMap)
+    msgmap := common.BytesMap2StringMap(bytesMap)
+
     if err != nil {
 	log.Error("===========socket server,handle message error","err",err)
 	return
@@ -321,6 +325,7 @@ type PolyShare struct {
 
 //-------------------------------------------
 
+// xchang todo: wrong attestation logic
 func HandleGetAttestation(conn net.Conn,content string) {
     if content == "" {
 	return
@@ -345,7 +350,8 @@ func HandleGetAttestation(conn net.Conn,content string) {
  
     msgmap["attestation"] = Attestation
     
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -353,6 +359,7 @@ func HandleGetAttestation(conn net.Conn,content string) {
     socket.Write(conn,string(str))
 }
 
+// xchang todo: wrong datakey logic
 func HandleGetDataKey(conn net.Conn,content string) {
     if content == "" {
 	return
@@ -389,7 +396,8 @@ func HandleGetDataKey(conn net.Conn,content string) {
     msgmap["enc_enodeID_priv"] = EncEnodePriv
     msgmap["enc_datakey"] = EncDataKey
     
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -432,7 +440,8 @@ func HandleGetTeeEnodeID(conn net.Conn,content string) {
    
     msgmap["tee_enodeID"] = EnodeID
     
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -492,7 +501,9 @@ func HandleGetTeeParamData(conn net.Conn,content string) {
 	return
     }
     msgmap["TeeParamData"] = string(b)
-    str, err := json.Marshal(msgmap)
+    
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -516,13 +527,15 @@ func HandleKGRound0Msg(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
    
+    // xchang todo: remove all following useless data
     data,err := GetTeeValidateData(s.MsgPrex)
     if err != nil {
 	return
     }
     msgmap["TeeValidateData"] = data
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -662,7 +675,8 @@ func HandleKGRound1Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = vdata
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	log.Error("==============socket server,KGRound1 message1 marshal error====================","err",err)
 	return
@@ -690,7 +704,7 @@ func HandleKGRound2SquareFreeProve(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
     
-    paisk,err := DecryptPaillierSk(s.PaiSk)
+    paisk,err := DecryptPaillierSk(string(s.PaiSk))
     if err != nil {
 	log.Error("===============server.HandleKGRound2SquareFreeProve,dec paillier sk fail==============","err",err)
 	return
@@ -722,7 +736,8 @@ func HandleKGRound2SquareFreeProve(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = vdata
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	log.Error("==============socket server,HandleKGRound2SquareFreeProve,marshal error====================","msg",content,"err",err)
 	return
@@ -754,7 +769,7 @@ func HandleKGRound2VssShare(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
    
-    u1Poly,err := DecryptU1Poly(s.U1Poly)
+    u1Poly,err := DecryptU1Poly(string(s.U1Poly))
     if err != nil {
 	return
     }
@@ -766,6 +781,7 @@ func HandleKGRound2VssShare(conn net.Conn,content string) {
 
     tmp := make([]*ec2.ShareStruct2,len(u1Shares))
     for k,v := range u1Shares {
+        // xchang todo, use other's key to encrypt
 	shareenc,err := EncryptShare(v.Share,"")
 	if err != nil {
 	    return
@@ -782,7 +798,8 @@ func HandleKGRound2VssShare(conn net.Conn,content string) {
     }
     msgmap["VssShares"] = string(b)
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -818,7 +835,8 @@ func HandleKGRound3Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = vdata
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	log.Error("===============socket server,marshal KGRound3 error","err",err)
 	return
@@ -886,7 +904,8 @@ func HandleKGRound4VssCheck(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = vdata
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -917,6 +936,7 @@ func HandleKGRound4DeCom(conn net.Conn,content string) {
     var c *big.Int
     var skU1 *big.Int
 
+    // xchang todo: tidy ambigious logic, first loop run once, second loop run left items
     for k:= range s.Cs {
 	cm := string(s.Shares[k].Bytes())
 	sh,err := DecryptShare(cm,KeyFile)
@@ -1000,6 +1020,7 @@ func HandleKGRound4DeCom(conn net.Conn,content string) {
     if err != nil {
 	return
     }
+    // xchang todo: private data leak?
     msgmap["NtildeProof1"] = string(b)
 
     b,err = json.Marshal(ntildeProof2)
@@ -1026,7 +1047,12 @@ func HandleKGRound4DeCom(conn net.Conn,content string) {
 	return
     }
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
+
+    str2, err := json.Marshal(msgmap)
+    log.Info("len:", len(str2))
+
     if err != nil {
 	return
     }
@@ -1056,12 +1082,12 @@ func HandleKGRound5SquareFee(conn net.Conn,content string) {
 	return
     }
 
-    p1,err := DecryptP1(s.P1)
+    p1,err := DecryptP1(string(s.P1))
     if err != nil {
 	return
     }
 
-    p2,err := DecryptP2(s.P2)
+    p2,err := DecryptP2(string(s.P2))
     if err != nil {
 	return
     }
@@ -1069,6 +1095,7 @@ func HandleKGRound5SquareFee(conn net.Conn,content string) {
     pMinus1 := new(big.Int).Sub(p1, big.NewInt(1))
     qMinus1 := new(big.Int).Sub(p2, big.NewInt(1))
     l := new(big.Int).Mul(pMinus1, qMinus1)
+    // xchang todo: duplicate call?
     sfProof := ec2.SquareFreeProve(s.Ntilde,num,l)
     if sfProof == nil {
 	return
@@ -1087,7 +1114,8 @@ func HandleKGRound5SquareFee(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = vdata
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -1117,12 +1145,12 @@ func HandleKGRound5Hv(conn net.Conn,content string) {
 	return
     }
 
-    p1,err := DecryptP1(s.P1)
+    p1,err := DecryptP1(string(s.P1))
     if err != nil {
 	return
     }
 
-    p2,err := DecryptP2(s.P2)
+    p2,err := DecryptP2(string(s.P2))
     if err != nil {
 	return
     }
@@ -1138,7 +1166,9 @@ func HandleKGRound5Hv(conn net.Conn,content string) {
 	return
     }
     msgmap["HvPf"] = string(hvf)
-    str, err := json.Marshal(msgmap)
+
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -1170,7 +1200,8 @@ func HandleKGRound6ComCheck(conn net.Conn,content string) {
 	msgmap["CommitCheckRes"] = "TRUE"
     }
     
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -1201,7 +1232,8 @@ func HandleKGRound6SquareFeeCheck(conn net.Conn,content string) {
 	msgmap["SquareFreeCheckRes"] = "TRUE"
     }
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
        return 
     }
@@ -1232,7 +1264,8 @@ func HandleKGRound6HvCheck(conn net.Conn,content string) {
 	msgmap["HvCheckRes"] = "TRUE"
     }
     
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -1257,7 +1290,7 @@ func HandleKGRound6Msg(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
 
-    sk,err := DecryptSk(s.Sk)
+    sk,err := DecryptSk(string(s.Sk))
     if err != nil {
 	return
     }
@@ -1280,7 +1313,8 @@ func HandleKGRound6Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = vdata
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -1314,7 +1348,8 @@ func HandleKGRound7Msg(conn net.Conn,content string) {
 	    msgmap["ZkXiCheckRes"] = "TRUE"
     }
     
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -1425,7 +1460,8 @@ func HandleSigningRound1Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = vdata
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -1450,7 +1486,7 @@ func HandleSigningRound2PaiEnc(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
 
-    u1K,err := DecryptU1K(s.U1K)
+    u1K,err := DecryptU1K(string(s.U1K))
     if err != nil {
 	return
     }
@@ -1460,7 +1496,8 @@ func HandleSigningRound2PaiEnc(conn net.Conn,content string) {
     msgmap["U1R"] = fmt.Sprintf("%v",u1R)
     msgmap["U1KCipher"] = fmt.Sprintf("%v",u1KCipher)
     
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -1485,7 +1522,7 @@ func HandleSigningRound2Msg(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
 
-    u1K,err := DecryptU1K(s.U1K)
+    u1K,err := DecryptU1K(string(s.U1K))
     if err != nil {
 	return
     }
@@ -1496,6 +1533,7 @@ func HandleSigningRound2Msg(conn net.Conn,content string) {
 	return
     }
     msgmap["U1MtAZK1Proof"] = string(pf)*/
+    // xchang todo: no need to encrypt?
     ret,err := EncryptMtARangeProof(u1u1MtAZK1Proof,"")
     if err != nil {
 	return
@@ -1512,7 +1550,8 @@ func HandleSigningRound2Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = vdata
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -1522,6 +1561,7 @@ func HandleSigningRound2Msg(conn net.Conn,content string) {
 
 //-------------------------------------------------------
 
+// xchang todo: no logic, remove?
 func HandleSigningRound3Msg(conn net.Conn,content string) {
     if content == "" {
 	return
@@ -1543,7 +1583,8 @@ func HandleSigningRound3Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = data
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -1568,6 +1609,8 @@ func HandleSigningRound4MtARangeProofCheck(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
 
+    // xchang todo: no need to encrypt? 
+    // xchang todo: how to verify others?
     old,err := DecryptMtARangeProof(s.MtAZK1Proof,KeyFile)
     if err != nil {
 	return
@@ -1580,7 +1623,8 @@ func HandleSigningRound4MtARangeProofCheck(conn net.Conn,content string) {
 	msgmap["MtARangeProofCheckRes"] = "TRUE"
     }
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -1589,7 +1633,7 @@ func HandleSigningRound4MtARangeProofCheck(conn net.Conn,content string) {
 }
 
 //----------------------------------------------------
-
+// xchang todo: no need to do in tee
 func HandleSigningRound4ComCheck(conn net.Conn,content string) {
     if content == "" {
 	return
@@ -1612,7 +1656,8 @@ func HandleSigningRound4ComCheck(conn net.Conn,content string) {
 	msgmap["ComCheck"] = "TRUE"
     }
     
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -1696,7 +1741,8 @@ func HandleSigningRound4Beta(conn net.Conn,content string) {
     }
     msgmap["BetaStar"] = string(b)
     
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -1721,7 +1767,7 @@ func HandleSigningRound4Msg(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
     
-    u1Gamma,err := DecryptU1Gamma(s.U1Gamma)
+    u1Gamma,err := DecryptU1Gamma(string(s.U1Gamma))
     if err != nil {
 	return
     }
@@ -1760,7 +1806,8 @@ func HandleSigningRound4Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = data
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -1785,7 +1832,7 @@ func HandleSigningRound4Msg1(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
     
-    w1,err := DecryptU1Gamma(s.W1)
+    w1,err := DecryptU1Gamma(string(s.W1))
     if err != nil {
 	return
     }
@@ -1823,7 +1870,8 @@ func HandleSigningRound4Msg1(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = data
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -1865,7 +1913,8 @@ func HandleSigningRound5MtARespZKProofCheck(conn net.Conn,content string) {
 	msgmap["MtARespZKProofCheckRes"] = "TRUE"
     }
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -1910,7 +1959,7 @@ func HandleSigningRound5ComCheck(conn net.Conn,content string) {
 	msgmap["ComCheck"] = "TRUE"
     }
    
-    paisk,err := DecryptPaillierSk(s.PaiSk)
+    paisk,err := DecryptPaillierSk(string(s.PaiSk))
     if err != nil {
 	return
     }
@@ -1925,7 +1974,8 @@ func HandleSigningRound5ComCheck(conn net.Conn,content string) {
     msgmap["Alpha1U1"] = fmt.Sprintf("%v",alpha1U1)
     msgmap["U1U1"] = fmt.Sprintf("%v",u1U1)
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2024,7 +2074,8 @@ func HandleSigningRound5Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = vdata
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2060,7 +2111,7 @@ func HandleSigningRound6Msg(conn net.Conn,content string) {
     deltaSum = new(big.Int).Mod(deltaSum, secp256k1.S256(s.KeyType).N1())
     msgmap["DeltaSum"] = fmt.Sprintf("%v",deltaSum)
     
-    u1Gamma,err := DecryptU1Gamma(s.U1Gamma)
+    u1Gamma,err := DecryptU1Gamma(string(s.U1Gamma))
     if err != nil {
 	return
     }
@@ -2078,7 +2129,8 @@ func HandleSigningRound6Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = vdata
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2106,7 +2158,8 @@ func HandleSigningRound7ComCheck(conn net.Conn,content string) {
     deCommit := &ec2.Commitment{C: s.C, D: s.D}
     if !deCommit.Verify(s.KeyType) {
 	msgmap["ComCheck"] = "FALSE"
-	str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
 	if err != nil {
 	    return
 	}
@@ -2124,7 +2177,9 @@ func HandleSigningRound7ComCheck(conn net.Conn,content string) {
 
     msgmap["u1GammaG0"] = fmt.Sprintf("%v",u1GammaG[0])
     msgmap["u1GammaG1"] = fmt.Sprintf("%v",u1GammaG[1])
-    str, err := json.Marshal(msgmap)
+
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2152,7 +2207,9 @@ func HandleSigningRound7DeCom(conn net.Conn,content string) {
     _, u1GammaG := deCommit.DeCommit(s.KeyType)
     msgmap["u1GammaG0"] = fmt.Sprintf("%v",u1GammaG[0])
     msgmap["u1GammaG1"] = fmt.Sprintf("%v",u1GammaG[1])
-    str, err := json.Marshal(msgmap)
+
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2198,7 +2255,7 @@ func HandleSigningRound7Msg(conn net.Conn,content string) {
     msgmap["deltaGammaGx"] = fmt.Sprintf("%v",deltaGammaGx)
     msgmap["deltaGammaGy"] = fmt.Sprintf("%v",deltaGammaGy)
 
-    u1K,err := DecryptU1Gamma(s.U1K)
+    u1K,err := DecryptU1Gamma(string(s.U1K))
     if err != nil {
 	return
     }
@@ -2218,7 +2275,7 @@ func HandleSigningRound7Msg(conn net.Conn,content string) {
 	    NTilde:     s.Nt.Ntilde,
     }
 
-    paisk,err := DecryptPaillierSk(s.PaiSk)
+    paisk,err := DecryptPaillierSk(string(s.PaiSk))
     if err != nil {
 	return
     }
@@ -2247,7 +2304,8 @@ func HandleSigningRound7Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = vdata
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2278,7 +2336,8 @@ func HandleSigningRound8PDLwSlackCheck(conn net.Conn,content string) {
 	msgmap["PDLwSlackCheckRes"] = "TRUE"
     }
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2307,7 +2366,8 @@ func HandleSigningRound8CalcK1R(conn net.Conn,content string) {
     msgmap["K1Rx"] = fmt.Sprintf("%v",K1Rx)
     msgmap["K1Ry"] = fmt.Sprintf("%v",K1Ry)
     
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2341,7 +2401,8 @@ func HandleSigningRound8Msg(conn net.Conn,content string) {
 	}
 	msgmap["TeeValidateData"] = vdata
 
-	str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
 	if err != nil {
 	    return
 	}
@@ -2384,7 +2445,8 @@ func HandleSigningRound8Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = vdata
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2420,7 +2482,8 @@ func HandleSigningRound9Msg(conn net.Conn,content string) {
     for k := range s.S1X {
 	if ok := ec2.STVerify(s.KeyType,s.S1X[k],s.S1Y[k],s.T1X[k],s.T1Y[k],s.DeltaGammaGx,s.DeltaGammaGy,hx,hy,s.STProof[k]); !ok {
 	    msgmap["STCheckRes"] = "FALSE"
-	    str, err := json.Marshal(msgmap)
+        bytesMap := common.StringMap2BytesMap(msgmap)
+        str, err := json.Marshal(bytesMap)
 	    if err != nil {
 		return
 	    }
@@ -2444,7 +2507,8 @@ func HandleSigningRound9Msg(conn net.Conn,content string) {
 	msgmap["STCheckRes"] = "TRUE"
     }
     
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2487,7 +2551,8 @@ func HandleSigningRound10Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = vdata
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2525,7 +2590,8 @@ func HandleSigningRound11Msg(conn net.Conn,content string) {
 
     msgmap["S"] = fmt.Sprintf("%v",s1)
     
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2556,7 +2622,8 @@ func HandleEDKGRound0Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = data
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2644,7 +2711,8 @@ func HandleEDKGRound1Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = data
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2675,7 +2743,8 @@ func HandleEDKGRound2Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = data
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2706,7 +2775,8 @@ func HandleEDKGRound3Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = data
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2734,7 +2804,8 @@ func HandleEDKGRound4ComCheck(conn net.Conn,content string) {
     CPkFlag := ed.Verify(s.CPk,s.DPk)
     if !CPkFlag {
 	msgmap["ComCheck"] = "FALSE"
-	str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
 	if err != nil {
 	    return
 	}
@@ -2758,7 +2829,8 @@ func HandleEDKGRound4ComCheck(conn net.Conn,content string) {
 	msgmap["ComCheck"] = "TRUE"
     }
     
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2813,7 +2885,7 @@ func HandleEDKGRound4Msg(conn net.Conn,content string) {
 	    ed.ScReduce(&a, &aDigest)
     }
 
-    sk,err := EDKGDecryptSk(s.Sk)
+    sk,err := EDKGDecryptSk(string(s.Sk))
     if err != nil {
 	return
     }
@@ -2887,7 +2959,8 @@ func HandleEDKGRound4Msg(conn net.Conn,content string) {
 
     msgmap["Ret"] = string(b)
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2918,7 +2991,8 @@ func HandleEDKGRound5Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = data
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -2961,7 +3035,8 @@ func HandleEDKGRound6VssCheck(conn net.Conn,content string) {
 	msgmap["VssCheckRes"] = "TRUE"
     }
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -3136,7 +3211,8 @@ func HandleEDKGRound6Msg(conn net.Conn,content string) {
 
     msgmap["finalPkBytes"] = hex.EncodeToString(finalPkBytes[:])
     
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -3265,7 +3341,8 @@ func HandleEDSigningRound1Msg(conn net.Conn,content string) {
 
     msgmap["Ret"] = string(b)
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -3296,7 +3373,8 @@ func HandleEDSigningRound2Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = data
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -3327,7 +3405,8 @@ func HandleEDSigningRound3Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = data
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -3369,7 +3448,8 @@ func HandleEDSigningRound4Msg(conn net.Conn,content string) {
 		    CRFlag := ed.Verify(s.CRs[k], s.DRs[k])
 		    if !CRFlag {
 			msgmap["Msg4CheckRes"] = "FALSE"
-			str, err := json.Marshal(msgmap)
+            bytesMap := common.StringMap2BytesMap(msgmap)
+            str, err := json.Marshal(bytesMap)
 			if err != nil {
 			    return
 			}
@@ -3384,7 +3464,8 @@ func HandleEDSigningRound4Msg(conn net.Conn,content string) {
 		    zkRFlag := ed_ristretto.VerifyZk2(s.ZkRs[k], temR)
 		    if !zkRFlag {
 			msgmap["Msg4CheckRes"] = "FALSE"
-			str, err := json.Marshal(msgmap)
+            bytesMap := common.StringMap2BytesMap(msgmap)
+            str, err := json.Marshal(bytesMap)
 			if err != nil {
 			    return
 			}
@@ -3411,7 +3492,8 @@ func HandleEDSigningRound4Msg(conn net.Conn,content string) {
 		    CRFlag := ed.Verify(s.CRs[k], s.DRs[k])
 		    if !CRFlag {
 			msgmap["Msg4CheckRes"] = "FALSE"
-			str, err := json.Marshal(msgmap)
+            bytesMap := common.StringMap2BytesMap(msgmap)
+            str, err := json.Marshal(bytesMap)
 			if err != nil {
 			    return
 			}
@@ -3426,7 +3508,8 @@ func HandleEDSigningRound4Msg(conn net.Conn,content string) {
 		    zkRFlag := ed.VerifyZk2(s.ZkRs[k], temR)
 		    if !zkRFlag {
 			msgmap["Msg4CheckRes"] = "FALSE"
-			str, err := json.Marshal(msgmap)
+            bytesMap := common.StringMap2BytesMap(msgmap)
+            str, err := json.Marshal(bytesMap)
 			if err != nil {
 			    return
 			}
@@ -3502,7 +3585,7 @@ func HandleEDSigningRound4Msg(conn net.Conn,content string) {
     var s2 [32]byte
     var sBBytes [32]byte
 
-    tsk,err := EDKGDecryptTSk(s.TSk)
+    tsk,err := EDKGDecryptTSk(string(s.TSk))
     if err != nil {
 	return
     }
@@ -3551,7 +3634,8 @@ func HandleEDSigningRound4Msg(conn net.Conn,content string) {
     msgmap["Ret"] = string(b)
     msgmap["Msg4CheckRes"] = "TRUE"
     
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -3582,7 +3666,8 @@ func HandleEDSigningRound5Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = data
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -3616,7 +3701,8 @@ func HandleEDSigningRound6Msg(conn net.Conn,content string) {
 		    CSBFlag := ed.Verify(s.CSBs[k], s.DSBs[k])
 		    if !CSBFlag {
 			msgmap["Msg6CheckRes"] = "FALSE"
-			str, err := json.Marshal(msgmap)
+            bytesMap := common.StringMap2BytesMap(msgmap)
+            str, err := json.Marshal(bytesMap)
 			if err != nil {
 			    return
 			}
@@ -3643,7 +3729,8 @@ func HandleEDSigningRound6Msg(conn net.Conn,content string) {
 		    CSBFlag := ed.Verify(s.CSBs[k], s.DSBs[k])
 		    if !CSBFlag {
 			msgmap["Msg6CheckRes"] = "FALSE"
-			str, err := json.Marshal(msgmap)
+            bytesMap := common.StringMap2BytesMap(msgmap)
+            str, err := json.Marshal(bytesMap)
 			if err != nil {
 			    return
 			}
@@ -3709,7 +3796,8 @@ func HandleEDSigningRound6Msg(conn net.Conn,content string) {
     }
     msgmap["TeeValidateData"] = data
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -3751,7 +3839,8 @@ func HandleEDSigningRound7Msg(conn net.Conn,content string) {
     var pass = signing.EdVerify(inputVerify, s.KeyType)
     if !pass {
 	msgmap["EDRSVCheckRes"] = "FALSE"
-	str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
 	if err != nil {
 	    return
 	}
@@ -3773,7 +3862,8 @@ func HandleEDSigningRound7Msg(conn net.Conn,content string) {
    
     log.Info("=================ed signing successfully,rsv verify pass==================","r",rx,"s",sx,"keyID",s.Base.MsgPrex)
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -3787,11 +3877,11 @@ func HandleEDSigningRound7Msg(conn net.Conn,content string) {
 //u1
 func EncryptU1(u1 *big.Int) (string,error) {
     s := fmt.Sprintf("%v", u1)
-    return TeeKmsEncrypt(s) //TODO
+    return NitroKmsEncrypt(s) //TODO
 }
 
 func  DecryptU1(cm string) (*big.Int,error) {
-    s,err := TeeKmsDecrypt(cm) //TODO
+    s,err := NitroKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3836,11 +3926,11 @@ func EncryptPaillierSk(paiSk *ec2.PrivateKey) (string,error) {
 	return "",err
     }
 
-    return TeeKmsEncrypt(string(b)) //TODO
+    return NitroKmsEncrypt(string(b)) //TODO
 }
 
 func  DecryptPaillierSk(cm string) (*ec2.PrivateKey,error) {
-    s,err := TeeKmsDecrypt(cm) //TODO
+    s,err := NitroKmsDecrypt(cm) //TODO
     if err != nil {
 	return nil,err
     }
@@ -3926,6 +4016,7 @@ func EncryptShare(share *big.Int,enode string) (string,error) {
     return s,nil
 }
 
+// xchang todo: use key content instead of keyfile
 func  DecryptShare(cm string,keyfile string) (*big.Int,error) {
     /*hash := Keccak256Hash([]byte(strings.ToLower(cm))).Hex()
     log.Info("===============DecryptShare=================","hash",hash,"keyfile",keyfile)
@@ -4629,7 +4720,8 @@ func HandleECKGTeeValidateData(conn net.Conn,content string) {
    
     msgmap["TeeValidateDataCheckRes"] = "TRUE"
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -4661,7 +4753,8 @@ func HandleECSigningTeeValidateData(conn net.Conn,content string) {
    
     msgmap["TeeValidateDataCheckRes"] = "TRUE"
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -4693,7 +4786,8 @@ func HandleEDKGTeeValidateData(conn net.Conn,content string) {
    
     msgmap["TeeValidateDataCheckRes"] = "TRUE"
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }
@@ -4725,7 +4819,8 @@ func HandleEDSigningTeeValidateData(conn net.Conn,content string) {
    
     msgmap["TeeValidateDataCheckRes"] = "TRUE"
 
-    str, err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    str, err := json.Marshal(bytesMap)
     if err != nil {
 	return
     }

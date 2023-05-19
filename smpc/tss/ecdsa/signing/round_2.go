@@ -26,6 +26,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/log"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 	"encoding/json"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 )
 
 // Start paillier Encrypt and get MtAZK1Proof
@@ -159,8 +160,9 @@ func (round *round2) ExecTee(curIndex int) error {
     }
    
     kgs := <-round.teeout
-    msgmap := make(map[string]string)
-    err = json.Unmarshal([]byte(kgs), &msgmap)
+	bytesMap := make(map[string][]byte)
+	err = json.Unmarshal([]byte(kgs), &bytesMap)
+	msgmap := common.BytesMap2StringMap(bytesMap)
     if err != nil {
 	log.Error("round1 start,unmarshal SigningRound1Msg return data error","err",err)
 	return err
@@ -192,8 +194,9 @@ func (round *round2) ExecTee(curIndex int) error {
 	    }
 	   
 	    kgs := <-round.teeout
-	    msgmap := make(map[string]string)
-	    err = json.Unmarshal([]byte(kgs), &msgmap)
+		bytesMap := make(map[string][]byte)
+		err = json.Unmarshal([]byte(kgs), &bytesMap)
+		msgmap := common.BytesMap2StringMap(bytesMap)
 	    if err != nil {
 		log.Error("round1 start,unmarshal SigningRound1Msg return data error","err",err)
 		return err
