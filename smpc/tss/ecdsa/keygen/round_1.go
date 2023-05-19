@@ -258,10 +258,10 @@ func (round *round1) ExecTee(index int) error {
     //round.temp.q = q
     //round.Save.U1PaillierSk = paisk 
     round.Save.U1PaillierPk[index] = pub
-    round.temp.u1PaillierSkEnc = msgmap["U1PaillierSk"]
-    round.temp.pEnc = msgmap["P"]
-    round.temp.qEnc = msgmap["Q"]
-    round.Save.U1PaillierSkEnc =  msgmap["U1PaillierSk"]
+    round.temp.u1PaillierSkEnc = []byte(msgmap["U1PaillierSk"])
+    round.temp.pEnc = []byte(msgmap["P"])
+    round.temp.qEnc = []byte(msgmap["Q"])
+    round.Save.U1PaillierSkEnc =  []byte(msgmap["U1PaillierSk"])
     
     kg := &KGRound1Message{
 	    KGRoundMessage: new(KGRoundMessage),

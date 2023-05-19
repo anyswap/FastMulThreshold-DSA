@@ -382,7 +382,7 @@ func (round *round6) ExecTee(curIndex int) error {
     var finalPkBytes [32]byte
     copy(finalPkBytes[:],tmp[:])
     
-    round.Save.TSkEnc = msgmap["tSk"]
+    round.Save.TSkEnc = []byte(msgmap["tSk"])
     round.Save.FinalPkBytes = finalPkBytes
 
     round.end <- *round.Save

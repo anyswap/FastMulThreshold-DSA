@@ -33,12 +33,12 @@ type LocalDNodeSaveData struct {
 	CEnc string
 
 	SkU1         *big.Int
-	SkU1Enc string
+	SkU1Enc []byte
 	U1PaillierSk *ec2.PrivateKey
-	U1PaillierSkEnc string
+	U1PaillierSkEnc []byte
 	U1PaillierPk []*ec2.PublicKey
 	U1NtildePrivData *ec2.NtildePrivData
-	U1NtildePrivDataEnc string
+	U1NtildePrivDataEnc []byte
 	U1NtildeH1H2 []*ec2.NtildeH1H2
 
 	IDs        smpc.SortableIDSSlice

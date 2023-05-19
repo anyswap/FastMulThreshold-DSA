@@ -704,7 +704,7 @@ func HandleKGRound2SquareFreeProve(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
     
-    paisk,err := DecryptPaillierSk(s.PaiSk)
+    paisk,err := DecryptPaillierSk(string(s.PaiSk))
     if err != nil {
 	log.Error("===============server.HandleKGRound2SquareFreeProve,dec paillier sk fail==============","err",err)
 	return
@@ -769,7 +769,7 @@ func HandleKGRound2VssShare(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
    
-    u1Poly,err := DecryptU1Poly(s.U1Poly)
+    u1Poly,err := DecryptU1Poly(string(s.U1Poly))
     if err != nil {
 	return
     }
@@ -1082,12 +1082,12 @@ func HandleKGRound5SquareFee(conn net.Conn,content string) {
 	return
     }
 
-    p1,err := DecryptP1(s.P1)
+    p1,err := DecryptP1(string(s.P1))
     if err != nil {
 	return
     }
 
-    p2,err := DecryptP2(s.P2)
+    p2,err := DecryptP2(string(s.P2))
     if err != nil {
 	return
     }
@@ -1145,12 +1145,12 @@ func HandleKGRound5Hv(conn net.Conn,content string) {
 	return
     }
 
-    p1,err := DecryptP1(s.P1)
+    p1,err := DecryptP1(string(s.P1))
     if err != nil {
 	return
     }
 
-    p2,err := DecryptP2(s.P2)
+    p2,err := DecryptP2(string(s.P2))
     if err != nil {
 	return
     }
@@ -1290,7 +1290,7 @@ func HandleKGRound6Msg(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
 
-    sk,err := DecryptSk(s.Sk)
+    sk,err := DecryptSk(string(s.Sk))
     if err != nil {
 	return
     }
@@ -1486,7 +1486,7 @@ func HandleSigningRound2PaiEnc(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
 
-    u1K,err := DecryptU1K(s.U1K)
+    u1K,err := DecryptU1K(string(s.U1K))
     if err != nil {
 	return
     }
@@ -1522,7 +1522,7 @@ func HandleSigningRound2Msg(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
 
-    u1K,err := DecryptU1K(s.U1K)
+    u1K,err := DecryptU1K(string(s.U1K))
     if err != nil {
 	return
     }
@@ -1767,7 +1767,7 @@ func HandleSigningRound4Msg(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
     
-    u1Gamma,err := DecryptU1Gamma(s.U1Gamma)
+    u1Gamma,err := DecryptU1Gamma(string(s.U1Gamma))
     if err != nil {
 	return
     }
@@ -1832,7 +1832,7 @@ func HandleSigningRound4Msg1(conn net.Conn,content string) {
     msgmap["Key"] = s.MsgPrex
     msgmap["KeyType"] = s.KeyType
     
-    w1,err := DecryptU1Gamma(s.W1)
+    w1,err := DecryptU1Gamma(string(s.W1))
     if err != nil {
 	return
     }
@@ -1959,7 +1959,7 @@ func HandleSigningRound5ComCheck(conn net.Conn,content string) {
 	msgmap["ComCheck"] = "TRUE"
     }
    
-    paisk,err := DecryptPaillierSk(s.PaiSk)
+    paisk,err := DecryptPaillierSk(string(s.PaiSk))
     if err != nil {
 	return
     }
@@ -2111,7 +2111,7 @@ func HandleSigningRound6Msg(conn net.Conn,content string) {
     deltaSum = new(big.Int).Mod(deltaSum, secp256k1.S256(s.KeyType).N1())
     msgmap["DeltaSum"] = fmt.Sprintf("%v",deltaSum)
     
-    u1Gamma,err := DecryptU1Gamma(s.U1Gamma)
+    u1Gamma,err := DecryptU1Gamma(string(s.U1Gamma))
     if err != nil {
 	return
     }
@@ -2255,7 +2255,7 @@ func HandleSigningRound7Msg(conn net.Conn,content string) {
     msgmap["deltaGammaGx"] = fmt.Sprintf("%v",deltaGammaGx)
     msgmap["deltaGammaGy"] = fmt.Sprintf("%v",deltaGammaGy)
 
-    u1K,err := DecryptU1Gamma(s.U1K)
+    u1K,err := DecryptU1Gamma(string(s.U1K))
     if err != nil {
 	return
     }
@@ -2275,7 +2275,7 @@ func HandleSigningRound7Msg(conn net.Conn,content string) {
 	    NTilde:     s.Nt.Ntilde,
     }
 
-    paisk,err := DecryptPaillierSk(s.PaiSk)
+    paisk,err := DecryptPaillierSk(string(s.PaiSk))
     if err != nil {
 	return
     }
@@ -2885,7 +2885,7 @@ func HandleEDKGRound4Msg(conn net.Conn,content string) {
 	    ed.ScReduce(&a, &aDigest)
     }
 
-    sk,err := EDKGDecryptSk(s.Sk)
+    sk,err := EDKGDecryptSk(string(s.Sk))
     if err != nil {
 	return
     }
@@ -3585,7 +3585,7 @@ func HandleEDSigningRound4Msg(conn net.Conn,content string) {
     var s2 [32]byte
     var sBBytes [32]byte
 
-    tsk,err := EDKGDecryptTSk(s.TSk)
+    tsk,err := EDKGDecryptTSk(string(s.TSk))
     if err != nil {
 	return
     }

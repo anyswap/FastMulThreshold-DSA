@@ -59,11 +59,11 @@ type localTempData struct {
 
 	//round 1
 	w1             *big.Int
-	w1Enc string
+	w1Enc []byte
 	u1K            *big.Int
-	u1KEnc string
+	u1KEnc []byte
 	u1Gamma        *big.Int
-	u1GammaEnc string
+	u1GammaEnc []byte
 	commitU1GammaG *ec2.Commitment
 	commitwiG *ec2.Commitment
 

@@ -196,12 +196,12 @@ func (round *round1) ExecTee(curIndex int) error {
     }
 
     //round.temp.w1 = w1
-    round.temp.w1Enc = msgmap["W1"]
+    round.temp.w1Enc = []byte(msgmap["W1"])
     round.temp.commitwiG = commitwiG
     //round.temp.u1K = u1K
-    round.temp.u1KEnc = msgmap["U1K"] 
+    round.temp.u1KEnc = []byte(msgmap["U1K"]) 
     //round.temp.u1Gamma = u1Gamma
-    round.temp.u1GammaEnc = msgmap["U1Gamma"]
+    round.temp.u1GammaEnc = []byte(msgmap["U1Gamma"])
     round.temp.commitU1GammaG = commitU1GammaG
 
     vdata := msgmap["TeeValidateData"]

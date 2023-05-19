@@ -203,7 +203,7 @@ func (round *round1) ExecTee(index int) error {
     copy(CPk[:],tmp[:])
     
     //round.temp.sk = sk
-    round.temp.skEnc = msgmap["sk"] 
+    round.temp.skEnc = []byte(msgmap["sk"])
     round.temp.pk = pk
     round.temp.DPk = DPk
     round.temp.zkPk = zkPk
@@ -217,7 +217,7 @@ func (round *round1) ExecTee(index int) error {
     kg.SetTeeValidateData(msgmap["TeeValidateData"])
 
     //round.Save.Sk = sk
-    round.Save.SkEnc = msgmap["sk"]
+    round.Save.SkEnc = []byte(msgmap["sk"])
     round.Save.Pk = pk
     round.temp.kgRound1Messages[index] = kg
     round.out <- kg

@@ -1812,7 +1812,7 @@ func PreSignEC3(msgprex string, save string, sku1 *big.Int, pkx *big.Int,pky *bi
     }
 
     if Tee {
-	sd.U1PaillierSkEnc = GetCurNodePaillierSkFromSaveDataTee(save)
+	sd.U1PaillierSkEnc = []byte(GetCurNodePaillierSkFromSaveDataTee(save))
     } else {
 	sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, pubs.GroupID, cointype)
     }
@@ -1970,7 +1970,7 @@ func SignEC3(msgprex string, message string, cointype string, save string, pkx *
     sd.SkU1 = sku1
 
     if Tee {
-	sd.U1PaillierSkEnc = GetCurNodePaillierSkFromSaveDataTee(save)
+	sd.U1PaillierSkEnc = []byte(GetCurNodePaillierSkFromSaveDataTee(save))
     } else {
 	sd.U1PaillierSk = GetCurNodePaillierSkFromSaveData(save, pubs.GroupID, cointype)
     }
@@ -2409,8 +2409,8 @@ func SignED(msgprex string, save string, sku1 *big.Int, message string, cointype
     sd := &edkeygen.LocalDNodeSaveData{}
 
     if Tee {
-	sd.SkEnc = string(sku1.Bytes())
-	sd.TSkEnc = mm[2]
+	sd.SkEnc = sku1.Bytes()
+	sd.TSkEnc = []byte(mm[2])
     } else {
 	var sk [32]byte
 	va := sku1.Bytes()

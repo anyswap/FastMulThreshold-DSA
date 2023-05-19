@@ -28,10 +28,10 @@ import (
 type LocalDNodeSaveData struct {
 	//
 	Sk           [32]byte
-	SkEnc        string
+	SkEnc        []byte
 	Pk           [32]byte
 	TSk          [32]byte
-	TSkEnc       string
+	TSkEnc       []byte
 	FinalPkBytes [32]byte
 	//
 

@@ -292,8 +292,8 @@ func (round *round6) ExecTee(curIndex int) error {
     }
     ///////////
 
-    round.temp.p1Enc = ""
-    round.temp.p2Enc = "" 
+    round.temp.p1Enc = []byte("")
+    round.temp.p2Enc = []byte("")
 
     s := &socket.KGRound6Msg{Sk:round.Save.SkU1Enc}
     s.Base.SetBase(round.keytype,round.msgprex)
