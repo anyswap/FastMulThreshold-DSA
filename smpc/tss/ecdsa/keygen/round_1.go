@@ -23,6 +23,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/internal/common/math/random"
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"math/big"
 	"encoding/json"
 	"strings"
@@ -164,8 +165,9 @@ func (round *round1) ExecTee(index int) error {
     }
    
     kgs := <-round.teeout
-    msgmap := make(map[string]string)
-    err = json.Unmarshal([]byte(kgs), &msgmap)
+	bytesMap := make(map[string][]byte)
+	err = json.Unmarshal([]byte(kgs), &bytesMap)
+	msgmap := common.BytesMap2StringMap(bytesMap)
     if err != nil {
 	log.Error("round1 start,unmarshal KGRound1 return data error","err",err)
 	return err
@@ -201,8 +203,8 @@ func (round *round1) ExecTee(index int) error {
     u1PolyG := &ec2.PolyGStruct2{PolyG: ugg}
     //round.temp.u1 = u1
     //round.temp.u1Poly = u1Poly
-    round.temp.u1Enc = msgmap["U1"]
-    round.temp.u1PolyEnc = msgmap["U1Poly"]
+    round.temp.u1Enc = []byte(msgmap["U1"])
+    round.temp.u1PolyEnc = []byte(msgmap["U1Poly"])
     round.temp.u1PolyG = u1PolyG
 
     u1C, _ := new(big.Int).SetString(msgmap["CommitU1G.C"], 10)

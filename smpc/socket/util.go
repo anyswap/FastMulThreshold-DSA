@@ -8,45 +8,76 @@ import (
     "io/ioutil"
     "encoding/binary"
     "encoding/json"
+    "github.com/anyswap/FastMulThreshold-DSA/internal/common"
 )
 
 var (
+    MSG_PREFIX = []byte("VSOCK_MSG_LEN:")
     MSG_LENGTH_PREFIX = 4
+    READ_ONE_TIME_BYTES = 1024
 )
 
 func Write(conn net.Conn, content string) (int, error) {
-    log.Info("========socket write, send msg===========","remote addr",conn.RemoteAddr(), "content",content)
 
     contentBytes := []byte(content)
     contentBytesLen := len(contentBytes)
 
-	prefixBytes := make([]byte, MSG_LENGTH_PREFIX)
-	binary.BigEndian.PutUint32(prefixBytes, uint32(contentBytesLen))
+	lengthBytes := make([]byte, MSG_LENGTH_PREFIX)
+	binary.BigEndian.PutUint32(lengthBytes, uint32(contentBytesLen))
 
     var bytebuf bytes.Buffer
-    bytebuf.Write(prefixBytes)
+    bytebuf.Write(MSG_PREFIX)
+    bytebuf.Write(lengthBytes)
     bytebuf.Write(contentBytes)
 
     bytearr := bytebuf.Bytes()
+
+    log.Info("========socket write, send msg===========","remote addr",conn.RemoteAddr(), "length", contentBytesLen, "content",content)
     return conn.Write(bytearr)
 }
 
 func Read(conn net.Conn) (string, error) {
+    prefixBytes := make([]byte, MSG_LENGTH_PREFIX + len(MSG_PREFIX))
 
-    prefixBytes := make([]byte, MSG_LENGTH_PREFIX)
-    if _, err := conn.Read(prefixBytes); err != nil {
-        return "", err
+    for {
+        if _, err := conn.Read(prefixBytes); err != nil {
+            return "", err
+        }
+    
+        if bytes.Equal(MSG_PREFIX, prefixBytes[:len(MSG_PREFIX)]){
+            break
+        }
     }
 
-    contentBytesLen := int(binary.BigEndian.Uint32(prefixBytes))
-    contentBytes := make([]byte, contentBytesLen)
+    lengthBytes := prefixBytes[len(MSG_PREFIX):]
+    contentBytesLen := int(binary.BigEndian.Uint32(lengthBytes))
 
-    if _, err := conn.Read(contentBytes); err != nil {
+    // read content
+    var contentBuf bytes.Buffer
+    temBytes := make([]byte, READ_ONE_TIME_BYTES)
+    for {
+        if contentBytesLen < READ_ONE_TIME_BYTES {
+            break
+        }
+        if _, err := conn.Read(temBytes); err != nil {
+            return "", err
+        }
+        if _, err := contentBuf.Write(temBytes); err != nil {
+            return "", err
+        }
+        contentBytesLen -= READ_ONE_TIME_BYTES
+    }
+    // read left content
+    temBytes = make([]byte, contentBytesLen)
+    if _, err := conn.Read(temBytes); err != nil {
         return "", err
     }
+    if _, err := contentBuf.Write(temBytes); err != nil {
+        return "", err
+    }
+    str := contentBuf.String()
 
-    str := string(contentBytes)
-    log.Info("===========socket read,recv msg============", "remote addr",conn.RemoteAddr(), "str",str)
+    log.Info("===========socket read,recv msg============", "remote addr",conn.RemoteAddr(), "length", contentBytesLen, "content",str)
     return str, nil
 }
 
@@ -63,7 +94,9 @@ func SendMsgData(conn net.Conn,msg SocketMessage) error {
     msgmap["Content"] = string(s)
     msgmap["MsgType"] = msg.GetMsgType()
 
-    data,err := json.Marshal(msgmap)
+    bytesMap := common.StringMap2BytesMap(msgmap)
+    data, err := json.Marshal(bytesMap)
+
     if err != nil {
 	log.Error("===============socket.SendMsgData,msgmap error==========","err",err)
 	return err

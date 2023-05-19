@@ -31,6 +31,7 @@ import (
 	"io"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 	"github.com/anyswap/FastMulThreshold-DSA/log"
+    "github.com/anyswap/FastMulThreshold-DSA/internal/common"
 )
 
 var (
@@ -244,8 +245,9 @@ func GetAttestationFromLib() error {
     }
    
     kgs := <-AttestationCh
-    msgmap := make(map[string]string)
-    err = json.Unmarshal([]byte(kgs), &msgmap)
+	bytesMap := make(map[string][]byte)
+	err = json.Unmarshal([]byte(kgs), &bytesMap)
+	msgmap := common.BytesMap2StringMap(bytesMap)
     if err != nil {
 	return err
     }
@@ -277,8 +279,9 @@ func GetDataKeyFromLib() error {
     }
    
     kgs := <-DataKeyCh
-    msgmap := make(map[string]string)
-    err = json.Unmarshal([]byte(kgs), &msgmap)
+	bytesMap := make(map[string][]byte)
+	err = json.Unmarshal([]byte(kgs), &bytesMap)
+	msgmap := common.BytesMap2StringMap(bytesMap)
     if err != nil {
 	return err
     }
@@ -325,8 +328,9 @@ func GetEnodeIDFromLib() error {
     }
    
     kgs := <-TeeEnodeIDCh
-    msgmap := make(map[string]string)
-    err = json.Unmarshal([]byte(kgs), &msgmap)
+	bytesMap := make(map[string][]byte)
+	err = json.Unmarshal([]byte(kgs), &bytesMap)
+	msgmap := common.BytesMap2StringMap(bytesMap)
     if err != nil {
 	return err
     }
@@ -370,8 +374,9 @@ func GetTeeParamData() error {
     }
    
     kgs := <-TeeParamDataCh
-    msgmap := make(map[string]string)
-    err = json.Unmarshal([]byte(kgs), &msgmap)
+	bytesMap := make(map[string][]byte)
+	err = json.Unmarshal([]byte(kgs), &bytesMap)
+	msgmap := common.BytesMap2StringMap(bytesMap)
     if err != nil {
 	log.Error("=========================GetTeeParamData,unmarshal msg error====================","err",err,"msg",kgs)
 	return err
@@ -448,8 +453,10 @@ func TeeClient(teeip string,teeport string) {
 		continue
 	    }
 
-	    msgmap := make(map[string]string)
-	    err = json.Unmarshal([]byte(msg), &msgmap)
+		bytesMap := make(map[string][]byte)
+	    err = json.Unmarshal([]byte(msg), &bytesMap)
+		msgmap := common.BytesMap2StringMap(bytesMap)
+
 	    if err != nil {
 		log.Error("===============socket client,unmarshal msg to map error=============","err",err)
 		time.Sleep(time.Duration(1000000))

@@ -28,6 +28,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/log"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
 	tsslib "github.com/anyswap/FastMulThreshold-DSA/tss-lib/common"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 )
 
 // Start verify CR DR xkR,calc lambda1 s
@@ -321,8 +322,9 @@ func (round *round4) ExecTee(curIndex int) error {
     }
    
     kgs := <-round.teeout
-    msgmap := make(map[string]string)
-    err = json.Unmarshal([]byte(kgs), &msgmap)
+	bytesMap := make(map[string][]byte)
+	err = json.Unmarshal([]byte(kgs), &bytesMap)
+	msgmap := common.BytesMap2StringMap(bytesMap)
     if err != nil {
 	log.Error("round1 start,unmarshal KGRound1 return data error","err",err)
 	return err

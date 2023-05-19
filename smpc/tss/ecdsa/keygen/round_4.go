@@ -24,6 +24,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"math/big"
 	"encoding/json"
 )
@@ -276,8 +277,9 @@ func (round *round4) ExecTee(curIndex int) error {
 	    }
 	   
 	    kgs := <-round.teeout
-	    msgmap := make(map[string]string)
-	    err = json.Unmarshal([]byte(kgs), &msgmap)
+		bytesMap := make(map[string][]byte)
+		err = json.Unmarshal([]byte(kgs), &bytesMap)
+		msgmap := common.BytesMap2StringMap(bytesMap)
 	    if err != nil {
 		return err
 	    }
@@ -316,8 +318,9 @@ func (round *round4) ExecTee(curIndex int) error {
     }
    
     kgs := <-round.teeout
-    msgmap := make(map[string]string)
-    err = json.Unmarshal([]byte(kgs), &msgmap)
+	bytesMap := make(map[string][]byte)
+	err = json.Unmarshal([]byte(kgs), &bytesMap)
+	msgmap := common.BytesMap2StringMap(bytesMap)
     if err != nil {
 	return err
     }

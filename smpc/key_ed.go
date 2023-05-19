@@ -180,8 +180,9 @@ func ProcessInboundMessagesEDDSA(msgprex string, keytype string,finishChan chan 
 			    }
 			   
 			    kgs := <-w.OutCh
-			    msgmap := make(map[string]string)
-			    err = json.Unmarshal([]byte(kgs), &msgmap)
+			    bytesMap := make(map[string][]byte)
+			    err = json.Unmarshal([]byte(kgs), &bytesMap)
+				// msgmap := common.BytesMap2StringMap(bytesMap)
 			    if err != nil {
 				res := RPCSmpcRes{Ret: "", Err: err}
 				ch <- res

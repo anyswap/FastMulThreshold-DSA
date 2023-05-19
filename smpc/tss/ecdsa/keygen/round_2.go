@@ -22,6 +22,7 @@ import (
 	"github.com/anyswap/FastMulThreshold-DSA/tss-lib/ec2"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/tss/smpc"
 	"github.com/anyswap/FastMulThreshold-DSA/smpc/socket"
+	"github.com/anyswap/FastMulThreshold-DSA/internal/common"
 	"math/big"
 	"encoding/hex"
 	"encoding/json"
@@ -222,8 +223,9 @@ func (round *round2) ExecTee(curIndex int,ids []*big.Int) error {
     }
    
     kgs := <-round.teeout
-    msgmap := make(map[string]string)
-    err = json.Unmarshal([]byte(kgs), &msgmap)
+	bytesMap := make(map[string][]byte)
+	err = json.Unmarshal([]byte(kgs), &bytesMap)
+	msgmap := common.BytesMap2StringMap(bytesMap)
     if err != nil {
 	log.Error("round2 start,unmarshal KGRound2 return data error","err",err)
 	return err
@@ -259,8 +261,9 @@ func (round *round2) ExecTee(curIndex int,ids []*big.Int) error {
     }
    
     kgs = <-round.teeout
-    msgmap = make(map[string]string)
-    err = json.Unmarshal([]byte(kgs), &msgmap)
+	bytesMap = make(map[string][]byte)
+	err = json.Unmarshal([]byte(kgs), &bytesMap)
+	msgmap = common.BytesMap2StringMap(bytesMap)
     if err != nil {
 	log.Error("round2 start,unmarshal KGRound2 return data error","err",err)
 	return err
